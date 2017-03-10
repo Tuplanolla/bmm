@@ -1,0 +1,6 @@
+*.o
+*.tar.gz
+/clang*
+/gcc*
+/bmm*
+/*run*
