@@ -1,6 +1,7 @@
 *.o
 *.tar.gz
+/bmm-dem
+/bmm-sdl
 /clang*
 /gcc*
-/bmm*
-/*run*
+/run-*

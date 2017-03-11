@@ -35,29 +35,26 @@ LDLIBSGSL=`pkg-config --libs gsl`
 CFLAGSSDL=`pkg-config --cflags sdl`
 LDLIBSSDL=`pkg-config --libs sdl`
 
-build: bmm bmm-sdl
+build: bmm-dem bmm-sdl
 
 run: build
-	GSL_RNG_TYPE=mt19937 GSL_RNG_SEED=0 time -v ./bmm
+	GSL_RNG_TYPE=mt19937 GSL_RNG_SEED=0 time -v ./bmm-dem
 
 check: build
 	cppcheck -I/usr/include --enable=all *.c *.h
-	valgrind --leak-check=full --tool=memcheck ./bmm
+	valgrind --leak-check=full --tool=memcheck ./bmm-dem
 
 deep-clean: clean
 	$(RM) run-*
 
 clean: shallow-clean
-	$(RM) bmm bmm-sdl
+	$(RM) bmm-dem bmm-sdl
 
 shallow-clean:
-	$(RM) *.o
+	$(RM) *.gch *.o
 
-bmm: bmm.o
+bmm-dem: bmm-dem.o clopts.o errors.o strs.o
 	$(CC) $(CFLAGS) $(CFLAGSGSL) -o $@ $^ $(LDLIBS) $(LDLIBSGSL)
 
 bmm-sdl: bmm-sdl.o
 	$(CC) $(CFLAGS) $(CFLAGSSDL) -o $@ $^ $(LDLIBS) $(LDLIBSSDL)
-
-%.o: %.c *.h
-	$(CC) $(CFLAGS) -c -o $@ $<

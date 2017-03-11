@@ -37,7 +37,7 @@ with different specializations.
 One can, for example, run the simulation on a headless server
 while viewing the visualization on a single-user workstation.
 
-The main program `bmm` does all the heavy lifting.
+The main program `bmm-dem` does all the heavy lifting.
 In addition to running the discrete element method and
 producing two output streams of results,
 it parses the command line options, reads the initialization files and
@@ -45,7 +45,7 @@ handles signals in a synchronous fashion.
 Aside from these effects the program resembles a pure function.
 
 The utility program `bmm-filter` removes certain messages from a stream.
-If, for example, `bmm` produces real-time progress reports,
+If, for example, `bmm-dem` produces real-time progress reports,
 they can be stripped away before the results are saved into a file.
 
 The analysis programs `bmm-sdl` and `bmm-gp`
@@ -63,7 +63,7 @@ into producers, consumers and transformers.
 Producers only write to their output streams and
 consumers only read from their input streams
 while transformers do both.
-As an example, this classification makes `bmm` a producer,
+As an example, this classification makes `bmm-dem` a producer,
 `bmm-sdl` a consumer and `bmm-filter` a transformer.
 
 Since transformers participate in all parts of inter-process communication,
@@ -108,30 +108,32 @@ but the structure of the body is determined by the header.
 Just like streams,
 messages are also formed from their constituents by concatenation.
 
-At the lowest level of abstraction
-messages are defined in terms of bits and bytes (that are assumed to be octets)
-instead of other abstract concepts.
+At the lowest level of abstraction messages are defined
+in terms of bits and bytes (octets) instead of other abstract concepts.
 The following table contains all the possible bit patterns and their meanings.
-In the table repeated lowercase letters denote bit wildcards and
-repeated uppercase letters denote byte wildcards.
+In the table repeated lowercase letters denote bit variables and
+repeated uppercase letters denote byte variables.
+Free variables that carry no information should be zero by default.
 Anything not mentioned in the table is assumed to be invalid and
 sending or attempting to interpret such a pattern is a protocol violation.
 
 | Bit Pattern | Meaning
 |:------------|:--------
-| `0aaaaaaaD` | Integers are in big-endian (network order).
-| `1aaaaaaaD` | Integers are in little-endian.
-| `a0aaaaaaD` | Floating-point numbers are in big-endian (network order).
-| `a1aaaaaaD` | Floating-point numbers are in little-endian.
-| `aabbaaaaD` | Reserved for other options (`b` is free).
-| `aaaa0baaD` | Message body has a fixed size (`b` is free).
-| `aaaa10aaDH` | Message body is terminated by a literal `h`.
+| `0bbbaaaaD` | Integers are in big-endian (network order).
+| `1bbbaaaaD` | Integers are in little-endian.
+| `b0bbaaaaD` | Floating-point numbers are in big-endian (network order).
+| `b1bbaaaaD` | Floating-point numbers are in little-endian.
+| `bbbbaaaaD` | Reserved for other representation options.
+| `aaaa0bbbD` | Message body has a fixed size.
+| `aaaa1bbbD` | Message body has a varying size.
+| `aaaa10bbDH` | Message body is terminated by a literal `h`.
+| `aaaa11bbD` | Message body has a size that fits into `b` bytes.
 | `aaaa1100DH` | Message body has a size of `h` bytes (256 B).
 | `aaaa1101DHH` | Message body has a size of `h` bytes (64 kiB).
 | `aaaa1110DHHHH` | Message body has a size of `h` bytes (4 GiB).
 | `aaaa1111DHHHHHHHH` | Message body has a size of `h` bytes (16 EiB).
-| `Aeeee0000` | Initialization options (`e` is free).
-| `A0000eeee` | Runtime information (`e` is free).
+| `A0eeeeeee` | Initialization options.
+| `A1eeeeeee` | Runtime information.
 
 To summarize the table informally,
 each message is prefixed by two bytes,
@@ -148,7 +150,7 @@ keeping track of them is such a hassle,
 only long options are used and their values are replicated in the output
 for the sake of easy reproduction of runs.
 
-The following table lists all the basic options of `bmm`.
+The following table lists all the basic options of `bmm-dem`.
 
 | Option | Meaning
 |:-------|:--------
