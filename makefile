@@ -53,8 +53,11 @@ clean: shallow-clean
 shallow-clean:
 	$(RM) *.gch *.o
 
-bmm-dem: bmm-dem.o clopts.o errors.o strs.o
+bmm-dem: bmm-dem.o clopts.o dem.o errors.o msgs.o strs.o
 	$(CC) $(CFLAGS) $(CFLAGSGSL) -o $@ $^ $(LDLIBS) $(LDLIBSGSL)
 
 bmm-sdl: bmm-sdl.o
 	$(CC) $(CFLAGS) $(CFLAGSSDL) -o $@ $^ $(LDLIBS) $(LDLIBSSDL)
+
+%.gch: %.c *.h
+	$(CC) $(CFLAGS) -c -o $@ $<

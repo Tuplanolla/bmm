@@ -111,19 +111,20 @@ messages are also formed from their constituents by concatenation.
 At the lowest level of abstraction messages are defined
 in terms of bits and bytes (octets) instead of other abstract concepts.
 The following table contains all the possible bit patterns and their meanings.
-In the table repeated lowercase letters denote bit variables and
-repeated uppercase letters denote byte variables.
+In the table digits and repeated lowercase letters denote bits and
+repeated uppercase letters denote bytes.
 Free variables that carry no information should be zero by default.
 Anything not mentioned in the table is assumed to be invalid and
-sending or attempting to interpret such a pattern is a protocol violation.
+sending or attempting to interpret such a thing is a protocol violation.
 
 | Bit Pattern | Meaning
 |:------------|:--------
 | `0bbbaaaaD` | Integers are in big-endian (network order).
 | `1bbbaaaaD` | Integers are in little-endian.
-| `b0bbaaaaD` | Floating-point numbers are in big-endian (network order).
-| `b1bbaaaaD` | Floating-point numbers are in little-endian.
-| `bbbbaaaaD` | Reserved for other representation options.
+| `b0bbaaaaD` | Floating-point numbers are in IEEE 754 big-endian.
+| `b1bbaaaaD` | Floating-point numbers are in IEEE 754 little-endian.
+| `bbb0aaaaD` | Message delivery happens later.
+| `bbb1aaaaD` | Message delivery happens immediately.
 | `aaaa0bbbD` | Message body has a fixed size.
 | `aaaa1bbbD` | Message body has a varying size.
 | `aaaa10bbDH` | Message body is terminated by a literal `h`.
@@ -132,16 +133,15 @@ sending or attempting to interpret such a pattern is a protocol violation.
 | `aaaa1101DHH` | Message body has a size of `h` bytes (64 kiB).
 | `aaaa1110DHHHH` | Message body has a size of `h` bytes (4 GiB).
 | `aaaa1111DHHHHHHHH` | Message body has a size of `h` bytes (16 EiB).
-| `A0eeeeeee` | Initialization options.
+| `A0eeeeeee` | Initialization information.
 | `A1eeeeeee` | Runtime information.
 
 To summarize the table informally,
 each message is prefixed by two bytes,
 the first of which sets various flags and
-the second of which contains the message number.
-Additionally, those messages whose bodies may vary in size
-reserve the first few bytes of their bodies
-to signal the size of the rest of the body.
+the second of which contains the message type.
+Additionally, for those messages whose bodies may vary in size,
+there is an extra prefix to signal the size of the body.
 
 ### Program Options
 
