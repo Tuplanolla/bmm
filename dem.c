@@ -1,3 +1,4 @@
+#include "bits.h"
 #include "dem.h"
 #include "errors.h"
 #include "msgs.h"
@@ -9,6 +10,30 @@
 #include <fenv.h>
 #endif
 #endif
+
+// TODO Unify these.
+
+void bmm_putopts(struct bmm_state const* const state) {
+  struct bmm_head head;
+  bmm_defhead(&head);
+  bmm_setbp(&head.flags, BMM_FBIT_INTLE);
+  bmm_setbp(&head.flags, BMM_FBIT_FPLE);
+
+  head.type = BMM_MSG_NDIM;
+
+  bmm_putmsg(stdout, &head, &state);
+}
+
+void bmm_putparts(struct bmm_state const* const state) {
+  struct bmm_head head;
+  bmm_defhead(&head);
+  bmm_setbp(&head.flags, BMM_FBIT_INTLE);
+  bmm_setbp(&head.flags, BMM_FBIT_FPLE);
+
+  head.type = BMM_MSG_PARTS;
+
+  bmm_putmsg(stdout, &head, &state);
+}
 
 bool bmm_rundem(struct bmm_opts const* const opts) {
   struct bmm_state state;
@@ -22,10 +47,9 @@ bool bmm_rundem(struct bmm_opts const* const opts) {
 #endif
 #endif
 
-  // TODO Remove this test message.
-  struct bmm_head head;
-  head.type = BMM_MSG_NDIM;
-  bmm_putmsg(stdout, &head, &state);
+  // TODO Remove these test messages.
+  bmm_putopts(&state);
+  bmm_putparts(&state);
 
 #ifdef _GNU_SOURCE
 #ifdef DEBUG

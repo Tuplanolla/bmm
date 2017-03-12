@@ -32,13 +32,14 @@ CFLAGS=-D_POSIX_C_SOURCE=200809L -std=c11 $(flags)
 LDLIBS=-lm -lrt
 CFLAGSGSL=`pkg-config --cflags gsl`
 LDLIBSGSL=`pkg-config --libs gsl`
-CFLAGSSDL=`pkg-config --cflags sdl`
-LDLIBSSDL=`pkg-config --libs sdl`
+CFLAGSSDL=`pkg-config --cflags gl --libs sdl`
+LDLIBSSDL=`pkg-config --libs gl --libs sdl`
 
 build: bmm-dem bmm-sdl
 
 run: build
-	GSL_RNG_TYPE=mt19937 GSL_RNG_SEED=0 time -v ./bmm-dem
+	GSL_RNG_TYPE=mt19937 GSL_RNG_SEED=0 time -v \
+	./bmm-dem --ndim 2 --nbin 0 --npart 8 --nstep 120
 
 check: build
 	cppcheck -I/usr/include --enable=all *.c *.h
@@ -53,10 +54,10 @@ clean: shallow-clean
 shallow-clean:
 	$(RM) *.gch *.o
 
-bmm-dem: bmm-dem.o clopts.o dem.o errors.o msgs.o strs.o
+bmm-dem: bmm-dem.o bits.o clopts.o dem.o errors.o msgs.o strs.o
 	$(CC) $(CFLAGS) $(CFLAGSGSL) -o $@ $^ $(LDLIBS) $(LDLIBSGSL)
 
-bmm-sdl: bmm-sdl.o
+bmm-sdl: bmm-sdl.o errors.o
 	$(CC) $(CFLAGS) $(CFLAGSSDL) -o $@ $^ $(LDLIBS) $(LDLIBSSDL)
 
 %.gch: %.c *.h

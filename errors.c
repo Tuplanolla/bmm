@@ -10,8 +10,6 @@ void bmm_verror(char const* const fmt, va_list ap) {
 void bmm_error(char const* const fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
-
   bmm_verror(fmt, ap);
-
   va_end(ap);
 }

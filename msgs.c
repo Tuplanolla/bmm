@@ -1,7 +1,14 @@
+#include "bits.h"
 #include "dem.h"
 #include "errors.h"
 #include "msgs.h"
 #include <stdio.h>
+
+__attribute__ ((__nonnull__))
+void bmm_defhead(struct bmm_head* const head) {
+  head->flags = 0;
+  head->type = 0;
+}
 
 // TODO Check sizes etc.
 void bmm_getmsg(FILE* const stream, struct bmm_head* const head,
@@ -41,8 +48,7 @@ void bmm_putmsg(FILE* const stream, struct bmm_head const* const head,
       bmm_error("Unsupported message type.");
   }
 
-  // TODO Abstract this into bit test functions.
-  if (((head->type & 0x80) != 0) && ((head->type & 0x40) != 0))
+  if (bmm_testb(head->type, BMM_FBIT_FLUSH))
     if (fflush(stream) == EOF)
       bmm_error("Failed to flush output stream");
 }

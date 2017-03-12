@@ -17,6 +17,7 @@ struct bmm_opts {
 };
 
 struct bmm_part {
+  double rrad;
   double rpos[DIM_MAX];
 };
 
