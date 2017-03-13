@@ -58,7 +58,7 @@ shallow-clean:
 bmm-dem: bmm-dem.o bit.o opt.o dem.o err.o msg.o sec.o str.o
 	$(CC) $(CFLAGS) $(CFLAGSGSL) -o $@ $^ $(LDLIBS) $(LDLIBSGSL)
 
-bmm-sdl: bmm-sdl.o err.o io.o sec.o
+bmm-sdl: bmm-sdl.o bit.o dem.o err.o io.o msg.o sec.o
 	$(CC) $(CFLAGS) $(CFLAGSSDL) -o $@ $^ $(LDLIBS) $(LDLIBSSDL)
 
 %.gch: %.c *.h

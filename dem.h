@@ -8,7 +8,8 @@
 
 #define DIM_MAX ((size_t) 2)
 #define BIN_MAX ((size_t) 1024)
-#define PART_MAX ((size_t) 16384)
+// #define PART_MAX ((size_t) 16384)
+#define PART_MAX ((size_t) 8)
 #define STEP_MAX ((size_t) 16777216)
 
 struct bmm_opts {

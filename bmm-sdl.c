@@ -1,18 +1,38 @@
+#include "dem.h"
 #include "err.h"
 #include "ext.h"
+#include "msg.h"
 #include "io.h"
 #include <GL/gl.h>
 #include <SDL/SDL.h>
+#include <math.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 // TODO All of this.
 
-static void draw_screen( void ) {
+void glFilledCircle(GLfloat const x, GLfloat const y, GLfloat const r,
+    size_t const n) {
+  static GLfloat const twopi = 2.0f * M_PI;
+
+  glBegin(GL_TRIANGLE_FAN);
+
+  glVertex2f(x, y);
+  glVertex2f(x + r, y);
+  for (size_t i = 1; i < n; ++i)
+    glVertex2f(x + r * cos(i * twopi / n), y + r * sin(i * twopi / n));
+  glVertex2f(x + r, y);
+
+  glEnd();
+}
+
+static void draw_screen(struct bmm_state const* const state) {
   static float angle = 0.0f;
   static GLfloat v0[] = { -1.0f, -1.0f, 0.0f };
   static GLfloat v1[] = { 1.0f, -1.0f, 0.0f };
   static GLfloat v2[] = { 0.0f, 0.7f, 0.0f };
+  static GLfloat white[] = { 1.0f, 1.0f, 1.0f };
   static GLfloat red[] = { 1.0f, 0.0f, 0.0f };
   static GLfloat green[] = { 0.0f, 1.0f, 0.0f };
   static GLfloat blue[] = { 0.0f, 0.0f, 1.0f };
@@ -32,14 +52,24 @@ static void draw_screen( void ) {
 
   glBegin(GL_TRIANGLES);
 
-  glColor4fv(red);
+  glColor3fv(red);
   glVertex3fv(v0);
-  glColor4fv(green);
+  glColor3fv(green);
   glVertex3fv(v1);
-  glColor4fv(blue);
+  glColor3fv(blue);
   glVertex3fv(v2);
 
   glEnd();
+
+  glMatrixMode(GL_MODELVIEW);
+  glLoadIdentity();
+
+  glColor3fv(white);
+  size_t ipart = 0; // for (size_t ipart = 0; ipart < PART_MAX; ++ipart)
+  glFilledCircle((float) state->parts[ipart].rpos[0],
+      (float) state->parts[ipart].rpos[1],
+      (float) state->parts[ipart].rrad + 10.0f,
+      16);
 
   SDL_GL_SwapBuffers();
 }
@@ -90,7 +120,8 @@ int main(int const argc, char **const argv) {
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
 
-  glOrtho(0.0, (double) width, (double) height, 0.0, 1.0, -1.0);
+  // TODO Wrangle this.
+  glOrtho(-(double) width, (double) width, (double) height, -(double) height, 1.0, -1.0);
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
 
@@ -101,13 +132,11 @@ int main(int const argc, char **const argv) {
   // mark system stalled
   // for ever
   //   if frame time has passed
-  //     preempt frame time
   //     draw frame
   //     mark system stalled
-  //     reset preempted frame time
+  //     reset frame time
   //   else
   //     if system is stalled
-  //       preempt monitor time
   //       read message with timeout of remaining frame time
   //       if read succeeded and message is relevant
   //         update state
@@ -115,11 +144,17 @@ int main(int const argc, char **const argv) {
   //     else
   //       sleep remaining frame time
 
-  Uint32 ticks = 0;
-  for ever {
-    ticks = SDL_GetTicks();
-    draw_screen();
+  int const fps = 30;
+  Uint32 const fticks = (Uint32) (1000 / fps);
 
+  struct bmm_state state;
+  bmm_defstate(&state);
+
+  bool stalled = true;
+
+  Uint32 ticks = 0;
+
+  for ever {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
       switch (event.type) {
@@ -134,9 +169,33 @@ int main(int const argc, char **const argv) {
       }
     }
 
-    // TODO This limits the frame rate below `fps`, not to `fps`.
-    int const fps = 60;
-    SDL_Delay(1000 / fps);
+    Uint32 const sticks = SDL_GetTicks();
+    Uint32 const dticks = sticks - ticks;
+
+    if (dticks >= fticks) {
+      draw_screen(&state);
+
+      stalled = true;
+
+      ticks += fticks;
+    } else {
+      if (stalled) {
+        struct timeval timeout;
+        timeout.tv_sec = 0;
+        timeout.tv_usec = 1000000 / fps;
+
+        struct bmm_head head;
+        switch (bmm_io_waitin(&timeout)) {
+          case BMM_IO_ERROR:
+            goto hell;
+          case BMM_IO_READY:
+            bmm_msg_get(&head, &state);
+
+            stalled = false;
+        }
+      } else
+        SDL_Delay(dticks);
+    }
   }
 
 hell:

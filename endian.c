@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 static uint32_t const sample = 0xfadedace;
+
 static uint32_t const lempsa = 0xcedadefa;
 
 static bool bigend(void) {

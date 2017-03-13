@@ -22,7 +22,7 @@ void bmm_putopts(struct bmm_state const* const state) {
 
   head.type = BMM_MSG_NDIM;
 
-  bmm_msg_put(stdout, &head, state);
+  bmm_msg_put(&head, state);
 }
 
 void bmm_putparts(struct bmm_state const* const state) {
@@ -30,10 +30,17 @@ void bmm_putparts(struct bmm_state const* const state) {
   bmm_defhead(&head);
   bmm_bit_pset(&head.flags, BMM_FBIT_INTLE);
   bmm_bit_pset(&head.flags, BMM_FBIT_FPLE);
+  bmm_bit_pset(&head.flags, BMM_FBIT_FLUSH);
 
   head.type = BMM_MSG_PARTS;
 
-  bmm_msg_put(stdout, &head, state);
+  bmm_msg_put(&head, state);
+}
+
+void bmm_pretend(struct bmm_state* const state) {
+  for (size_t ipart = 0; ipart < PART_MAX; ++ipart)
+    for (size_t idim = 0; idim < DIM_MAX; ++idim)
+      state->parts[ipart].rpos[idim] += (double) (rand() % 256 - 128) / 64.0;
 }
 
 void bmm_defopts(struct bmm_opts* const opts) {
@@ -74,9 +81,13 @@ bool bmm_rundem(struct bmm_opts const* const opts) {
 #endif
 #endif
 
-  // TODO Remove these test messages.
   bmm_putopts(&state);
-  bmm_putparts(&state);
+
+  // TODO Remove these test messages.
+  for (size_t istep = 0; istep < state.opts.nstep; ++istep) {
+    bmm_pretend(&state);
+    bmm_putparts(&state);
+  }
 
 #ifdef _GNU_SOURCE
 #ifdef DEBUG
