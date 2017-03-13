@@ -1,5 +1,6 @@
 #include "errors.h"
 #include "exts.h"
+#include "watch.h"
 #include <GL/gl.h>
 #include <SDL/SDL.h>
 #include <stdio.h>
@@ -91,7 +92,30 @@ int main(int const argc, char **const argv) {
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
 
+  // Monitor `stdin` and draw at `fps`.
+  // This must work whether `stdin` is stalled or not.
+  //
+  // set initial state
+  // mark system stalled
+  // for ever
+  //   if frame time has passed
+  //     preempt frame time
+  //     draw frame
+  //     mark system stalled
+  //     reset preempted frame time
+  //   else
+  //     if system is stalled
+  //       preempt monitor time
+  //       read message with timeout of remaining frame time
+  //       if read succeeded and message is relevant
+  //         update state
+  //         unmark system stalled
+  //     else
+  //       sleep remaining frame time
+
+  Uint32 ticks = 0;
   for ever {
+    ticks = SDL_GetTicks();
     draw_screen();
 
     SDL_Event event;
@@ -109,7 +133,6 @@ int main(int const argc, char **const argv) {
     }
 
     // TODO This limits the frame rate below `fps`, not to `fps`.
-    // TODO Use `bmm_getmsg` instead of a timer as a driver.
     int const fps = 60;
     SDL_Delay(1000 / fps);
   }

@@ -28,14 +28,6 @@ static bool f(char const* const key, char const* const value, void* const p) {
 }
 
 __attribute__ ((__nonnull__))
-static void bmm_defopts(struct bmm_opts* const opts) {
-  opts->ndim = 0;
-  opts->nbin = 0;
-  opts->npart = 0;
-  opts->nstep = 0;
-}
-
-__attribute__ ((__nonnull__))
 int main(int const argc, char** const argv) {
   struct bmm_opts opts;
   bmm_defopts(&opts);

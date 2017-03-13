@@ -1,6 +1,7 @@
 #ifndef BMM_DEM_H
 #define BMM_DEM_H
 
+#include "exts.h"
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -27,6 +28,15 @@ struct bmm_state {
   double rexts[DIM_MAX];
   struct bmm_part parts[PART_MAX];
 };
+
+__attribute__ ((__nonnull__))
+void bmm_defopts(struct bmm_opts*);
+
+__attribute__ ((__nonnull__))
+void bmm_defpart(struct bmm_part*);
+
+__attribute__ ((__nonnull__))
+void bmm_defstate(struct bmm_state*);
 
 bool bmm_rundem(struct bmm_opts const*);
 

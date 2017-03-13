@@ -5,7 +5,8 @@ ifeq ($(CONFIG), debug)
 flags=-D_GNU_SOURCE -DDEBUG -O0 -g \
 	-Weverything \
 	-Wno-bad-function-cast -Wno-disabled-macro-expansion \
-	-Wno-aggregate-return -Wno-covered-switch-default -Wno-unused-function
+	-Wno-aggregate-return -Wno-covered-switch-default -Wno-switch \
+	-Wno-unused-function
 endif
 ifeq ($(CONFIG), release)
 flags=-DNDEBUG -O3 -Wl,-s -w
@@ -57,7 +58,7 @@ shallow-clean:
 bmm-dem: bmm-dem.o bits.o clopts.o dem.o errors.o msgs.o strs.o
 	$(CC) $(CFLAGS) $(CFLAGSGSL) -o $@ $^ $(LDLIBS) $(LDLIBSGSL)
 
-bmm-sdl: bmm-sdl.o errors.o
+bmm-sdl: bmm-sdl.o errors.o watch.o
 	$(CC) $(CFLAGS) $(CFLAGSSDL) -o $@ $^ $(LDLIBS) $(LDLIBSSDL)
 
 %.gch: %.c *.h
