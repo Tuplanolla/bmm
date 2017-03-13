@@ -1,5 +1,6 @@
-#ifndef BMM_EXTS_H
-#define BMM_EXTS_H
+// Language extensions.
+#ifndef BMM_EXT_H
+#define BMM_EXT_H
 
 #include <assert.h>
 #include <stdbool.h>

@@ -1,8 +1,9 @@
-#include "bits.h"
+#include "bit.h"
 #include "dem.h"
-#include "errors.h"
-#include "msgs.h"
+#include "err.h"
+#include "msg.h"
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdlib.h>
 
 #ifdef _GNU_SOURCE
@@ -16,23 +17,23 @@
 void bmm_putopts(struct bmm_state const* const state) {
   struct bmm_head head;
   bmm_defhead(&head);
-  bmm_setbp(&head.flags, BMM_FBIT_INTLE);
-  bmm_setbp(&head.flags, BMM_FBIT_FPLE);
+  bmm_bit_pset(&head.flags, BMM_FBIT_INTLE);
+  bmm_bit_pset(&head.flags, BMM_FBIT_FPLE);
 
   head.type = BMM_MSG_NDIM;
 
-  bmm_putmsg(stdout, &head, state);
+  bmm_msg_put(stdout, &head, state);
 }
 
 void bmm_putparts(struct bmm_state const* const state) {
   struct bmm_head head;
   bmm_defhead(&head);
-  bmm_setbp(&head.flags, BMM_FBIT_INTLE);
-  bmm_setbp(&head.flags, BMM_FBIT_FPLE);
+  bmm_bit_pset(&head.flags, BMM_FBIT_INTLE);
+  bmm_bit_pset(&head.flags, BMM_FBIT_FPLE);
 
   head.type = BMM_MSG_PARTS;
 
-  bmm_putmsg(stdout, &head, state);
+  bmm_msg_put(stdout, &head, state);
 }
 
 void bmm_defopts(struct bmm_opts* const opts) {
@@ -69,7 +70,7 @@ bool bmm_rundem(struct bmm_opts const* const opts) {
 #ifdef DEBUG
   int const excepts = feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
   if (excepts == -1)
-    bmm_error("Failed to enable floating-point exceptions.");
+    BMM_ERR_WARN(feenableexcept);
 #endif
 #endif
 
@@ -80,7 +81,7 @@ bool bmm_rundem(struct bmm_opts const* const opts) {
 #ifdef _GNU_SOURCE
 #ifdef DEBUG
   if (feenableexcept(excepts) == -1)
-    bmm_error("Failed to restore floating-point exceptions.");
+    BMM_ERR_WARN(feenableexcept);
 #endif
 #endif
 

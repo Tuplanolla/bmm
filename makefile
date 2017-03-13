@@ -40,7 +40,7 @@ build: bmm-dem bmm-sdl
 
 run: build
 	GSL_RNG_TYPE=mt19937 GSL_RNG_SEED=0 time -v \
-	./bmm-dem --ndim 2 --nbin 0 --npart 8 --nstep 120
+	./bmm-dem --ndim 2 --nbin 0 --npart 8 --nstep 120 | ./bmm-sdl
 
 check: build
 	cppcheck -I/usr/include --enable=all *.c *.h
@@ -55,10 +55,10 @@ clean: shallow-clean
 shallow-clean:
 	$(RM) *.gch *.o
 
-bmm-dem: bmm-dem.o bits.o clopts.o dem.o errors.o msgs.o strs.o
+bmm-dem: bmm-dem.o bit.o opt.o dem.o err.o msg.o sec.o str.o
 	$(CC) $(CFLAGS) $(CFLAGSGSL) -o $@ $^ $(LDLIBS) $(LDLIBSGSL)
 
-bmm-sdl: bmm-sdl.o errors.o watch.o
+bmm-sdl: bmm-sdl.o err.o io.o sec.o
 	$(CC) $(CFLAGS) $(CFLAGSSDL) -o $@ $^ $(LDLIBS) $(LDLIBSSDL)
 
 %.gch: %.c *.h

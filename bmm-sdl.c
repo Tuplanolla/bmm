@@ -1,6 +1,6 @@
-#include "errors.h"
-#include "exts.h"
-#include "watch.h"
+#include "err.h"
+#include "ext.h"
+#include "io.h"
 #include <GL/gl.h>
 #include <SDL/SDL.h>
 #include <stdio.h>
@@ -46,10 +46,9 @@ static void draw_screen( void ) {
 
 __attribute__((__nonnull__))
 int main(int const argc, char **const argv) {
- (void) argc,(void) argv;
-
   if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO) == -1) {
-    bmm_error("Failed to initialize SDL because '%s'.", SDL_GetError());
+    BMM_ERR_FWARN(SDL_Init,
+        "Failed to initialize SDL because '%s'.", SDL_GetError());
 
     return EXIT_FAILURE;
   }
@@ -58,7 +57,8 @@ int main(int const argc, char **const argv) {
 
   SDL_VideoInfo const* info = SDL_GetVideoInfo();
   if (info == NULL) {
-    bmm_error("Failed to get video information because '%s'.", SDL_GetError());
+    BMM_ERR_FWARN(SDL_GetVideoInfo,
+        "Failed to get video information because '%s'.", SDL_GetError());
 
     return EXIT_FAILURE;
   }
@@ -68,7 +68,8 @@ int main(int const argc, char **const argv) {
       SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 5) == -1 ||
       SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16) == -1 ||
       SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1)) {
-    bmm_error("Failed to set OpenGL attributes because '%s'.", SDL_GetError());
+    BMM_ERR_FWARN(SDL_GL_SetAttribute,
+        "Failed to set OpenGL attributes because '%s'.", SDL_GetError());
 
     return EXIT_FAILURE;
   }
@@ -78,7 +79,8 @@ int main(int const argc, char **const argv) {
   int const bpp = info->vfmt->BitsPerPixel;
   int const flags = SDL_OPENGL;
   if (SDL_SetVideoMode(width, height, bpp, flags) == NULL) {
-    bmm_error("Failed to set video mode because '%s'.", SDL_GetError());
+    BMM_ERR_FWARN(SDL_SetVideoMode,
+        "Failed to set video mode because '%s'.", SDL_GetError());
 
     return EXIT_FAILURE;
   }

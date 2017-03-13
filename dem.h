@@ -1,7 +1,8 @@
+// Discrete element method with some assumptions.
 #ifndef BMM_DEM_H
 #define BMM_DEM_H
 
-#include "exts.h"
+#include "ext.h"
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -38,6 +39,7 @@ void bmm_defpart(struct bmm_part*);
 __attribute__ ((__nonnull__))
 void bmm_defstate(struct bmm_state*);
 
+__attribute__ ((__nonnull__))
 bool bmm_rundem(struct bmm_opts const*);
 
 #endif

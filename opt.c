@@ -1,11 +1,11 @@
-#include "clopts.h"
-#include "errors.h"
-#include "exts.h"
+#include "opt.h"
+#include "err.h"
 #include <stdbool.h>
+#include <stddef.h>
 #include <string.h>
 
-bool bmm_clopts(char const* const* const args, size_t const narg,
-    bool (* const f)(char const*, char const*, void*), void* const p) {
+bool bmm_opt_parse(char const* const* const args, size_t const narg,
+    bool (* const f)(char const*, char const*, void*), void* const ptr) {
   char const* key = NULL;
   enum {KEY, VALUE} state = KEY;
 
@@ -13,7 +13,7 @@ bool bmm_clopts(char const* const* const args, size_t const narg,
     switch (state) {
       case KEY:
         if (strncmp(args[iarg], "--", 2) != 0) {
-          bmm_error("Invalid key '%s'.", args[iarg]);
+          BMM_ERR_FWARN(NULL, "Invalid key '%s'.", args[iarg]);
 
           return false;
         } else {
@@ -23,8 +23,9 @@ bool bmm_clopts(char const* const* const args, size_t const narg,
           break;
         }
       case VALUE:
-        if (!f(key, args[iarg], p)) {
-          bmm_error("Invalid value '%s' for key '%s'.", args[iarg], key);
+        if (!f(key, args[iarg], ptr)) {
+          BMM_ERR_FWARN(NULL,
+              "Invalid value '%s' for key '%s'.", args[iarg], key);
 
           return false;
         } else {
@@ -38,7 +39,7 @@ bool bmm_clopts(char const* const* const args, size_t const narg,
     case KEY:
       return true;
     case VALUE:
-      bmm_error("No value for key '%s'.", args[narg - 1]);
+      BMM_ERR_FWARN(NULL, "No value for key '%s'.", args[narg - 1]);
 
       return false;
   }
