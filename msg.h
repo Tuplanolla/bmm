@@ -3,6 +3,7 @@
 #define BMM_MSG_H
 
 #include "dem.h"
+#include <stdbool.h>
 #include <stdio.h>
 
 struct bmm_head {
@@ -30,7 +31,7 @@ void bmm_defhead(struct bmm_head*);
 
 // TODO Use functions as filters or something.
 __attribute__ ((__nonnull__))
-void bmm_msg_get(struct bmm_head*, struct bmm_state*);
+bool bmm_msg_get(struct bmm_head*, struct bmm_state*);
 
 __attribute__ ((__nonnull__))
 void bmm_msg_put(struct bmm_head const*, struct bmm_state const*);

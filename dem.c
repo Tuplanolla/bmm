@@ -5,6 +5,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
+// TODO Remove this test header.
+#include <unistd.h>
 
 #ifdef _GNU_SOURCE
 #ifdef DEBUG
@@ -40,7 +42,7 @@ void bmm_putparts(struct bmm_state const* const state) {
 void bmm_pretend(struct bmm_state* const state) {
   for (size_t ipart = 0; ipart < PART_MAX; ++ipart)
     for (size_t idim = 0; idim < DIM_MAX; ++idim)
-      state->parts[ipart].rpos[idim] += (double) (rand() % 256 - 128) / 64.0;
+      state->parts[ipart].rpos[idim] += (double) (rand() % 256 - 128) / 32.0;
 }
 
 void bmm_defopts(struct bmm_opts* const opts) {
@@ -87,6 +89,7 @@ bool bmm_rundem(struct bmm_opts const* const opts) {
   for (size_t istep = 0; istep < state.opts.nstep; ++istep) {
     bmm_pretend(&state);
     bmm_putparts(&state);
+    usleep(50000);
   }
 
 #ifdef _GNU_SOURCE

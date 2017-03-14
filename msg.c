@@ -2,6 +2,7 @@
 #include "dem.h"
 #include "err.h"
 #include "msg.h"
+#include <stdbool.h>
 #include <stdio.h>
 
 __attribute__ ((__nonnull__))
@@ -11,11 +12,11 @@ void bmm_defhead(struct bmm_head* const head) {
 }
 
 // TODO Check sizes etc.
-void bmm_msg_get(struct bmm_head* const head,
+bool bmm_msg_get(struct bmm_head* const head,
     struct bmm_state* const state) {
   if (fread(head, sizeof *head, 1, stdin) != 1) {
     if (feof(stdin) != 0)
-      return;
+      return false;
 
     BMM_ERR_WARN("Failed to read message header.");
   }
@@ -32,6 +33,8 @@ void bmm_msg_get(struct bmm_head* const head,
     default:
       BMM_ERR_WARN("Unsupported message type.");
   }
+
+  return true;
 }
 
 void bmm_msg_put(struct bmm_head const* const head,

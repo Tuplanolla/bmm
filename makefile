@@ -40,7 +40,8 @@ build: bmm-dem bmm-sdl
 
 run: build
 	GSL_RNG_TYPE=mt19937 GSL_RNG_SEED=0 time -v \
-	./bmm-dem --ndim 2 --nbin 0 --npart 8 --nstep 120 | ./bmm-sdl
+	stdbuf -o 0 ./bmm-dem --ndim 2 --nbin 0 --npart 8 --nstep 120 | \
+	stdbuf -i 0 ./bmm-sdl
 
 check: build
 	cppcheck -I/usr/include --enable=all *.c *.h
