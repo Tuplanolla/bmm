@@ -121,8 +121,10 @@ sending or attempting to interpret such a thing is a protocol violation.
 |:------------|:--------
 | `0bbbaaaaD` | Integers are in big-endian (network order).
 | `1bbbaaaaD` | Integers are in little-endian.
-| `b0bbaaaaD` | Floating-point numbers are in IEEE 754 big-endian.
-| `b1bbaaaaD` | Floating-point numbers are in IEEE 754 little-endian.
+| `b0bbaaaaD` | Floating-point numbers are in big-endian.
+| `b1bbaaaaD` | Floating-point numbers are in little-endian.
+| `bb0baaaaD` | Floating-point numbers are in IEEE 754.
+| `bb1baaaaD` | Floating-point numbers are in some other format.
 | `bbb0aaaaD` | Message delivery happens later.
 | `bbb1aaaaD` | Message delivery happens immediately.
 | `aaaa0bbbD` | Message body has a fixed size.

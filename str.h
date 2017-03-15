@@ -6,6 +6,11 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+// The call `bmm_str_strtou(str, ptr)`
+// parses an unsigned integer from the string `str` and saves it into `ptr`.
+__attribute__ ((__nonnull__ (1)))
+bool bmm_str_strtou(char const*, unsigned int*);
+
 // The call `bmm_str_strtoz(str, ptr)`
 // parses a size from the string `str` and saves it into `ptr`.
 __attribute__ ((__nonnull__ (1)))

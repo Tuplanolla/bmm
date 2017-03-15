@@ -13,6 +13,7 @@ struct bmm_head {
 
 #define BMM_FBIT_INTLE 7
 #define BMM_FBIT_FPLE 6
+#define BMM_FBIT_FPFMT 5
 #define BMM_FBIT_FLUSH 4
 #define BMM_FBIT_VARZ 3
 #define BMM_FBIT_ZPRE 2

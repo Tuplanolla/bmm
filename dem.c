@@ -40,12 +40,12 @@ void bmm_putparts(struct bmm_state const* const state) {
 }
 
 void bmm_pretend(struct bmm_state* const state) {
-  for (size_t ipart = 0; ipart < PART_MAX; ++ipart)
-    for (size_t idim = 0; idim < DIM_MAX; ++idim)
-      state->parts[ipart].rpos[idim] += (double) (rand() % 256 - 128) / 32.0;
+  for (size_t ipart = 0; ipart < BMM_PART_MAX; ++ipart)
+    for (size_t idim = 0; idim < BMM_DIM_MAX; ++idim)
+      state->parts[ipart].rpos[idim] += (double) (rand() % 256 - 128) / 16.0;
 }
 
-void bmm_defopts(struct bmm_opts* const opts) {
+void bmm_defopts(struct bmm_dem_opts* const opts) {
   opts->ndim = 0;
   opts->nbin = 0;
   opts->npart = 0;
@@ -54,8 +54,9 @@ void bmm_defopts(struct bmm_opts* const opts) {
 
 void bmm_defpart(struct bmm_part* const part) {
   part->rrad = 0.0;
+  part->arot = 0.0;
 
-  for (size_t idim = 0; idim < DIM_MAX; ++idim)
+  for (size_t idim = 0; idim < BMM_DIM_MAX; ++idim)
     part->rpos[idim] = 0.0;
 }
 
@@ -63,14 +64,14 @@ void bmm_defstate(struct bmm_state* const state) {
   bmm_defopts(&state->opts);
   state->istep = 0;
 
-  for (size_t idim = 0; idim < DIM_MAX; ++idim)
+  for (size_t idim = 0; idim < BMM_DIM_MAX; ++idim)
     state->rexts[idim] = 0.0;
 
-  for (size_t ipart = 0; ipart < PART_MAX; ++ipart)
+  for (size_t ipart = 0; ipart < BMM_PART_MAX; ++ipart)
     bmm_defpart(&state->parts[ipart]);
 }
 
-bool bmm_rundem(struct bmm_opts const* const opts) {
+bool bmm_dem_run(struct bmm_dem_opts const* const opts) {
   struct bmm_state state;
   bmm_defstate(&state);
   state.opts = *opts;
@@ -89,7 +90,6 @@ bool bmm_rundem(struct bmm_opts const* const opts) {
   for (size_t istep = 0; istep < state.opts.nstep; ++istep) {
     bmm_pretend(&state);
     bmm_putparts(&state);
-    usleep(50000);
   }
 
 #ifdef _GNU_SOURCE

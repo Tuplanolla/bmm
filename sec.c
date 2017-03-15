@@ -1,32 +1,13 @@
 #include "sec.h"
-#include <math.h>
 #include <sys/time.h>
 #include <time.h>
 
-void bmm_sec_to_timeval(struct timeval* const tp, double const s) {
-  long int const sec = (long int) s;
+extern inline void bmm_sec_to_timeval(struct timeval*, double);
 
-  tp->tv_sec = sec;
-  tp->tv_usec = (long int) ((s - (double) sec) * 1.0e+6);
-}
+extern inline double bmm_sec_from_timeval(struct timeval const*);
 
-double bmm_sec_from_timeval(struct timeval const* const tp) {
-  return (double) tp->tv_sec + (double) tp->tv_usec / 1.0e+6;
-}
+extern inline void bmm_sec_to_timespec(struct timespec*, double);
 
-void bmm_sec_to_timespec(struct timespec* const tp, double const s) {
-  long int const sec = (long int) s;
+extern inline double bmm_sec_from_timespec(struct timespec const*);
 
-  tp->tv_sec = (time_t) sec;
-  tp->tv_nsec = (long int) ((s - (double) sec) * 1.0e+9);
-}
-
-double bmm_sec_from_timespec(struct timespec const* const tp) {
-  return (double) tp->tv_sec + (double) tp->tv_nsec / 1.0e+9;
-}
-
-double bmm_sec_now(void) {
-  struct timespec tp;
-  return clock_gettime(CLOCK_MONOTONIC, &tp) == -1 ?
-    (double) NAN : bmm_sec_from_timespec(&tp);
-}
+extern inline double bmm_sec_now(void);
