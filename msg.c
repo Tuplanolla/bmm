@@ -5,7 +5,6 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-__attribute__ ((__nonnull__))
 void bmm_defhead(struct bmm_head* const head) {
   head->flags = 0;
   head->type = 0;
@@ -13,7 +12,7 @@ void bmm_defhead(struct bmm_head* const head) {
 
 // TODO Check sizes etc.
 bool bmm_msg_get(struct bmm_head* const head,
-    struct bmm_state* const state) {
+    struct bmm_dem_state* const state) {
   if (fread(head, sizeof *head, 1, stdin) != 1) {
     if (feof(stdin) != 0)
       return false;
@@ -38,7 +37,7 @@ bool bmm_msg_get(struct bmm_head* const head,
 }
 
 void bmm_msg_put(struct bmm_head const* const head,
-    struct bmm_state const* const state) {
+    struct bmm_dem_state const* const state) {
   if (fwrite(head, sizeof *head, 1, stdout) != 1)
     BMM_ERR_WARN("Failed to write message header.");
 

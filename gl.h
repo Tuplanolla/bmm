@@ -2,19 +2,53 @@
 #ifndef BMM_GL_H
 #define BMM_GL_H
 
+#include "ext.h"
 #include <GL/gl.h>
 #include <stddef.h>
 
-// The call `glDisc(x, y, r, n, c4fv)`
-// draws a filled circle centered at `x` and `y`
-// with the radius `r`, segment number `n` and fill color `c4fv`.
-void glDisc(GLfloat, GLfloat, GLfloat, size_t, GLfloat const*);
+// Primaries based on ITU-R BT.709 weights.
+static GLfloat const glBlack[] = {0.0f, 0.0f, 0.0f, 1.0f};
+static GLfloat const glRed[] = {0.7874f, 0.0f, 0.0f, 1.0f};
+static GLfloat const glGreen[] = {0.0f, 0.2848f, 0.0f, 1.0f};
+static GLfloat const glBlue[] = {0.0f, 0.0f, 0.9278f, 1.0f};
+static GLfloat const glCyan[] = {0.0f, 0.6063f, 0.6063f, 1.0f};
+static GLfloat const glMagenta[] = {0.8576f, 0.0f, 0.8576f, 1.0f};
+static GLfloat const glYellow[] = {0.5361f, 0.5361f, 0.0f, 1.0f};
+static GLfloat const glWhite[] = {0.6666667f, 0.6666667f, 0.6666667f, 1.0f};
 
-// The call `glPointedDisc(x, y, r, a, n, c4fv, mc4fv)`
-// draws a rotatable filled circle centered at `x` and `y`
-// with the radius `r`, angle `a`, segment number `n`,
-// fill color `c4fv` and marker color `mc4fv`.
-void glPointedDisc(GLfloat, GLfloat, GLfloat, GLfloat,
-    size_t, GLfloat const*, GLfloat const*);
+// The call `glClearColor4fv(v)` is equivalent
+// to `glClearColor(v[0], v[1], v[2], v[3])`.
+__attribute__ ((__nonnull__))
+inline void glClearColor4fv(GLfloat const* const v) {
+  glClearColor(v[0], v[1], v[2], v[3]);
+}
+
+// The call `glClearColor3fv(v)` is equivalent
+// to `glClearColor(v[0], v[1], v[2], 1.0f)`.
+__attribute__ ((__nonnull__))
+inline void glClearColor3fv(GLfloat const* const v) {
+  glClearColor(v[0], v[1], v[2], 1.0f);
+}
+
+// The call `glSkewedAnnulus(x, y, r, rhole, rskew, askew, ncorner, c4fv)`
+// draws a filled circle with a hole in it.
+// The circle itself has a radius `r` and is centered at `x` and `y`
+// while the hole has a radius of `rhole` and
+// is at an angle of `a` and distance of `rskew` from the center.
+// The resulting polygon is drawn with `ncorner` corners and
+// filled with the color `c4fv`.
+__attribute__ ((__nonnull__))
+void glSkewedAnnulus(GLfloat, GLfloat, GLfloat, GLfloat, GLfloat, GLfloat,
+    size_t, GLfloat const*);
+
+// The call `glAnnulus(x, y, r, rhole, ncorner, c4fv)` is equivalent
+// to `glSkewedAnnulus(x, y, r, rhole, 0.0f, 0.0f, ncorner, c4fv)`.
+__attribute__ ((__nonnull__))
+void glAnnulus(GLfloat, GLfloat, GLfloat, GLfloat, size_t, GLfloat const*);
+
+// The call `glDisc(x, y, r, ncorner, c4fv)` is equivalent
+// to `glAnnulus(x, y, r, 0.0f, ncorner, c4fv)`.
+__attribute__ ((__nonnull__))
+void glDisc(GLfloat, GLfloat, GLfloat, size_t, GLfloat const*);
 
 #endif

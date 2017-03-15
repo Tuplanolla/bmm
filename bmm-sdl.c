@@ -21,8 +21,8 @@ static bool f(char const* const key, char const* const value,
   } else if (strcmp(key, "fps") == 0) {
     if (!bmm_str_strtou(value, &opts->fps))
       return false;
-  } else if (strcmp(key, "msaa") == 0) {
-    if (!bmm_str_strtou(value, &opts->msaa))
+  } else if (strcmp(key, "ms") == 0) {
+    if (!bmm_str_strtou(value, &opts->ms))
       return false;
   }
 

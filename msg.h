@@ -32,9 +32,9 @@ void bmm_defhead(struct bmm_head*);
 
 // TODO Use functions as filters or something.
 __attribute__ ((__nonnull__))
-bool bmm_msg_get(struct bmm_head*, struct bmm_state*);
+bool bmm_msg_get(struct bmm_head*, struct bmm_dem_state*);
 
 __attribute__ ((__nonnull__))
-void bmm_msg_put(struct bmm_head const*, struct bmm_state const*);
+void bmm_msg_put(struct bmm_head const*, struct bmm_dem_state const*);
 
 #endif

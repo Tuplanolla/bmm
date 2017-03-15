@@ -8,8 +8,7 @@
 
 #define BMM_DIM_MAX ((size_t) 2)
 #define BMM_BIN_MAX ((size_t) 1024)
-// #define BMM_PART_MAX ((size_t) 16384)
-#define BMM_PART_MAX ((size_t) 8)
+#define BMM_PART_MAX ((size_t) 16384)
 #define BMM_STEP_MAX ((size_t) 16777216)
 
 struct bmm_dem_opts {
@@ -25,7 +24,7 @@ struct bmm_part {
   double rpos[BMM_DIM_MAX];
 };
 
-struct bmm_state {
+struct bmm_dem_state {
   struct bmm_dem_opts opts;
   size_t istep;
   double rexts[BMM_DIM_MAX];
@@ -39,7 +38,7 @@ __attribute__ ((__nonnull__))
 void bmm_defpart(struct bmm_part*);
 
 __attribute__ ((__nonnull__))
-void bmm_defstate(struct bmm_state*);
+void bmm_dem_defstate(struct bmm_dem_state*, struct bmm_dem_opts const*);
 
 __attribute__ ((__nonnull__))
 bool bmm_dem_run(struct bmm_dem_opts const*);
