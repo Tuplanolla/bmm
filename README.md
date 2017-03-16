@@ -152,13 +152,52 @@ keeping track of them is such a hassle,
 only long options are used and their values are replicated in the output
 for the sake of easy reproduction of runs.
 
-The following table lists all the basic options of `bmm-dem`.
+The following table lists the options for `bmm-dem`.
 
 | Option | Meaning
 |:-------|:--------
+| `--ndim` | Number of dimensions.
+| `--nbin` | Number of histogram bins.
 | `--npart` | Number of particles.
 | `--nstep` | Number of simulation steps.
-| `--magic` | Magic happens.
+
+The following table lists the options for `bmm-sdl`.
+
+| Option | Meaning
+|:-------|:--------
+| `--width` | Initial window width.
+| `--height` | Initial window height.
+| `--fps` | Visual frame rate.
+| `--ms` | Multisample anti-aliasing factor.
+
+### Building a Pipeline
+
+The following stutters or chokes the simulation.
+
+    ./bmm-dem --npart 3 --nstep 20 | \
+    ./bmm-sdl --fps 10
+
+The following does not stutter, but chokes the simulation.
+However lots of system time may be used.
+
+    stdbuf -o 0 ./bmm-dem --npart 3 --nstep 20 | \
+    stdbuf -i 0 ./bmm-sdl --fps 10
+
+The following stutters, but does not choke the simulation.
+However lots of memory may be used.
+
+    ./bmm-dem --npart 3 --nstep 20 | \
+    sponge | \
+    ./bmm-sdl --fps 10
+
+The following does not stutter or choke the simulation.
+However lots of memory and system time may be used.
+
+    stdbuf -o 0 ./bmm-dem --npart 3 --nstep 20 | \
+    stdbuf -i 0 -o 0 sponge | \
+    stdbuf -i 0 ./bmm-sdl --fps 10
+
+These things need better explanations.
 
 [cfdem]: http://www.cfdem.com/
 [liggghts]: https://github.com/CFDEMproject/LIGGGHTS-PUBLIC

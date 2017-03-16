@@ -39,10 +39,13 @@ void bmm_sdl_def(struct bmm_sdl* const sdl,
   bmm_dem_def(&sdl->dem, &defopts);
 }
 
-// TODO Check this math.
+// TODO Fix this math.
 
-static void draw(struct bmm_sdl const* const sdl) {
+static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+  glMatrixMode(GL_MODELVIEW);
+  glLoadIdentity();
 
   double const wexts = sdl->dem.rexts[0] / sdl->zoom;
   double const hexts = sdl->dem.rexts[1] / sdl->zoom;
@@ -58,12 +61,6 @@ static void draw(struct bmm_sdl const* const sdl) {
   glOrtho(sdl->focus[0] - w / 2.0, sdl->focus[0] + w / 2.0,
       sdl->focus[1] - h / 2.0, sdl->focus[1] + h / 2.0,
       -1.0, 1.0);
-
-  glMatrixMode(GL_MODELVIEW);
-  glLoadIdentity();
-
-  glColor4fv(glBlue);
-  glRectd(0.0, 0.0, sdl->dem.rexts[0], sdl->dem.rexts[1]);
 
   size_t const ncorner = 32;
 
@@ -81,14 +78,98 @@ static void draw(struct bmm_sdl const* const sdl) {
 
   glColor4fv(glWhite);
   glDisc((float) sdl->focus[0], (float) sdl->focus[1], 0.01f, ncorner);
+  glRectWire(0.0f, 0.0f, (float) sdl->dem.rexts[0], (float) sdl->dem.rexts[1]);
 
   SDL_GL_SwapBuffers();
+}
+
+static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
+  Uint32 tnow = SDL_GetTicks();
+  Uint32 tnext = tnow + sdl->tstep;
+  Uint32 trem = bmm_sdl_trem(tnow, tnext);
+
+  for ever {
+    // Handle events just before drawing for maximal responsiveness.
+    SDL_Event event;
+    while (SDL_PollEvent(&event))
+      switch (event.type) {
+        case SDL_QUIT:
+          return true;
+        case SDL_VIDEORESIZE:
+          sdl->ratio = (double) event.resize.w / (double) event.resize.h;
+          break;
+        case SDL_KEYDOWN:
+          switch (event.key.keysym.sym) {
+            case SDLK_ESCAPE:
+            case SDLK_q:
+              return true;
+            case SDLK_PLUS:
+            case SDLK_KP_PLUS:
+              sdl->zoom *= 2.0;
+              break;
+            case SDLK_MINUS:
+            case SDLK_KP_MINUS:
+              sdl->zoom *= 0.5;
+              break;
+            case SDLK_LEFT:
+              sdl->focus[0] -= 0.25;
+              break;
+            case SDLK_RIGHT:
+              sdl->focus[0] += 0.25;
+              break;
+            case SDLK_DOWN:
+              sdl->focus[1] -= 0.25;
+              break;
+            case SDLK_UP:
+              sdl->focus[1] += 0.25;
+              break;
+            case SDLK_0:
+            case SDLK_KP0:
+              sdl->zoom = 1.0;
+              sdl->focus[0] = 0.5;
+              sdl->focus[1] = 0.5;
+              break;
+          }
+      }
+
+    // Draw before state transformations to account for the initial state.
+    bmm_sdl_draw(sdl);
+
+    // Recompute the remaining time after event handling and drawing
+    // in case they take a while to complete.
+    tnow = SDL_GetTicks();
+    trem = bmm_sdl_trem(tnow, tnext);
+
+    // Use the remaining time to wait for input.
+    struct timeval timeout;
+    bmm_sdl_t_to_timeval(&timeout, trem);
+    struct bmm_head head;
+    switch (bmm_io_waitin(&timeout)) {
+      case BMM_IO_ERROR:
+        return false;
+      case BMM_IO_READY:
+        if (bmm_msg_get(&head, &sdl->dem))
+          sdl->stale = false;
+        else
+      case BMM_IO_TIMEOUT:
+          sdl->stale = true;
+    }
+
+    // Recompute the remaining time again after waiting for input
+    // in case it arrives early or takes a while to process.
+    tnow = SDL_GetTicks();
+    trem = bmm_sdl_trem(tnow, tnext);
+
+    // Sleep the remaining time and allow the tick counter to wrap.
+    SDL_Delay(trem);
+    tnext += sdl->tstep;
+  }
 }
 
 bool bmm_sdl_run(struct bmm_sdl_opts const* const opts) {
   bool result = true;
 
-  if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO) == -1) {
+  if (SDL_Init(SDL_INIT_VIDEO) == -1) {
     BMM_ERR_FWARN(SDL_Init, "SDL error: %s", SDL_GetError());
 
     goto ret_error;
@@ -103,9 +184,10 @@ bool bmm_sdl_run(struct bmm_sdl_opts const* const opts) {
     goto quit_error;
   }
 
-  if (SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 5) == -1 ||
-      SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 5) == -1 ||
-      SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 5) == -1 ||
+  if (SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8) == -1 ||
+      SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8) == -1 ||
+      SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8) == -1 ||
+      SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8) == -1 ||
       SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16) == -1 ||
       SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1) == -1) {
     BMM_ERR_FWARN(SDL_GL_SetAttribute, "SDL error: %s", SDL_GetError());
@@ -124,7 +206,7 @@ bool bmm_sdl_run(struct bmm_sdl_opts const* const opts) {
   int const width = (int) opts->width;
   int const height = (int) opts->height;
   int const bpp = info->vfmt->BitsPerPixel;
-  int const flags = SDL_OPENGL;
+  int const flags = SDL_OPENGL | SDL_RESIZABLE;
   if (SDL_SetVideoMode(width, height, bpp, flags) == NULL) {
     BMM_ERR_FWARN(SDL_SetVideoMode, "SDL error: %s", SDL_GetError());
 
@@ -132,88 +214,14 @@ bool bmm_sdl_run(struct bmm_sdl_opts const* const opts) {
   }
 
   glClearColor4fv(glBlack);
-
   glViewport(0, 0, width, height);
-
   glEnable(GL_CULL_FACE);
   glCullFace(GL_BACK);
 
-  // Create the initial state once SDL and OpenGL have been initialized.
   struct bmm_sdl sdl;
   bmm_sdl_def(&sdl, opts);
-
-  // Start timing.
-  Uint32 tnow = SDL_GetTicks();
-  Uint32 tnext = tnow + sdl.tstep;
-  Uint32 trem = bmm_sdl_trem(tnow, tnext);
-
-  for ever {
-    // Handle events just before drawing for maximal responsiveness.
-    SDL_Event event;
-    while (SDL_PollEvent(&event))
-      switch (event.type) {
-        case SDL_QUIT:
-          goto quit;
-        case SDL_KEYDOWN:
-          switch (event.key.keysym.sym) {
-            case SDLK_ESCAPE:
-            case SDLK_q:
-              goto quit;
-            case SDLK_PLUS:
-            case SDLK_KP_PLUS:
-              sdl.zoom *= 2.0;
-              break;
-            case SDLK_MINUS:
-            case SDLK_KP_MINUS:
-              sdl.zoom *= 0.5;
-              break;
-            case SDLK_LEFT:
-              sdl.focus[0] -= 0.25;
-              break;
-            case SDLK_RIGHT:
-              sdl.focus[0] += 0.25;
-              break;
-            case SDLK_DOWN:
-              sdl.focus[1] -= 0.25;
-              break;
-            case SDLK_UP:
-              sdl.focus[1] += 0.25;
-              break;
-          }
-      }
-
-    // Draw before state transformations to account for the initial state.
-    draw(&sdl);
-
-    // Recompute the remaining time after event handling and drawing
-    // in case they take a while to complete.
-    tnow = SDL_GetTicks();
-    trem = bmm_sdl_trem(tnow, tnext);
-
-    // Use the remaining time to wait for input.
-    struct timeval timeout;
-    bmm_sdl_t_to_timeval(&timeout, trem);
-    struct bmm_head head;
-    switch (bmm_io_waitin(&timeout)) {
-      case BMM_IO_ERROR:
-        goto quit_error;
-      case BMM_IO_READY:
-        if (bmm_msg_get(&head, &sdl.dem))
-          sdl.stale = false;
-        else
-      case BMM_IO_TIMEOUT:
-          sdl.stale = true;
-    }
-
-    // Recompute the remaining time again after waiting for input
-    // in case it arrives early or takes a while to process.
-    tnow = SDL_GetTicks();
-    trem = bmm_sdl_trem(tnow, tnext);
-
-    // Sleep and allow the tick counter to wrap.
-    SDL_Delay(trem);
-    tnext += sdl.tstep;
-  }
+  if (!bmm_sdl_work(&sdl))
+    goto quit_error;
 
   goto quit;
 quit_error:

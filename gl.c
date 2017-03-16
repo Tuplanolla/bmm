@@ -74,3 +74,15 @@ void glDisc(GLfloat const x, GLfloat const y,
 
   glEnd();
 }
+
+void glRectWire(GLfloat const x, GLfloat const y,
+    GLfloat const w, GLfloat const h) {
+  glBegin(GL_LINE_LOOP);
+
+  glVertex2d(x, y);
+  glVertex2d(x + w, y);
+  glVertex2d(x + w, y + h);
+  glVertex2d(x, y + h);
+
+  glEnd();
+}

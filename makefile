@@ -64,5 +64,5 @@ bmm-sdl: bmm-sdl.o \
 	bit.o dem.o err.o fp.o gl.o io.o msg.o opt.o sdl.o sec.o str.o
 	$(CC) $(CFLAGS) $(CFLAGSSDL) -o $@ $^ $(LDLIBS) $(LDLIBSSDL)
 
-%.gch: %.c *.h
+%.o: %.c *.h
 	$(CC) $(CFLAGS) -c -o $@ $<

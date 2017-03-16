@@ -7,14 +7,14 @@
 #include <stddef.h>
 
 // Primaries based on ITU-R BT.709 weights.
-static GLfloat const glBlack[] = {0.0f, 0.0f, 0.0f, 1.0f};
-static GLfloat const glRed[] = {0.7874f, 0.0f, 0.0f, 1.0f};
-static GLfloat const glGreen[] = {0.0f, 0.2848f, 0.0f, 1.0f};
-static GLfloat const glBlue[] = {0.0f, 0.0f, 0.9278f, 1.0f};
-static GLfloat const glCyan[] = {0.0f, 0.6063f, 0.6063f, 1.0f};
-static GLfloat const glMagenta[] = {0.8576f, 0.0f, 0.8576f, 1.0f};
-static GLfloat const glYellow[] = {0.5361f, 0.5361f, 0.0f, 1.0f};
-static GLfloat const glWhite[] = {0.6666667f, 0.6666667f, 0.6666667f, 1.0f};
+static GLfloat const glBlack[] = {0.0f, 0.0f, 0.0f};
+static GLfloat const glRed[] = {0.701f, 0.0f, 0.0f};
+static GLfloat const glGreen[] = {0.0f, 0.413f, 0.0f};
+static GLfloat const glBlue[] = {0.0f, 0.0f, 0.886f};
+static GLfloat const glCyan[] = {0.0f, 0.6495f, 0.6495f};
+static GLfloat const glMagenta[] = {0.7935f, 0.0f, 0.7935f};
+static GLfloat const glYellow[] = {0.557f, 0.557f, 0.0f};
+static GLfloat const glWhite[] = {0.6666667f, 0.6666667f, 0.6666667f};
 
 // The call `glClearColor4fv(v)` is equivalent
 // to `glClearColor(v[0], v[1], v[2], v[3])`.
@@ -36,18 +36,20 @@ inline void glClearColor3fv(GLfloat const* const v) {
 // while the hole has a radius of `rhole` and
 // is at an angle of `a` and distance of `rskew` from the center.
 // The shape is drawn with `ncorner` corners.
-__attribute__ ((__nonnull__))
 void glSkewedAnnulus(GLfloat, GLfloat, GLfloat, GLfloat, GLfloat, GLfloat,
     size_t);
 
 // The call `glAnnulus(x, y, r, rhole, ncorner)` is equivalent
 // to `glSkewedAnnulus(x, y, r, rhole, 0.0f, 0.0f, ncorner)`.
-__attribute__ ((__nonnull__))
 void glAnnulus(GLfloat, GLfloat, GLfloat, GLfloat, size_t);
 
 // The call `glDisc(x, y, r, ncorner)` is equivalent
 // to `glAnnulus(x, y, r, 0.0f, ncorner)`.
-__attribute__ ((__nonnull__))
 void glDisc(GLfloat, GLfloat, GLfloat, size_t);
+
+// The call `glRectWire(x, y, w, h)`
+// draws the outline of a rectangle
+// with a corner at `x` and `y`, a width of `w` and a height of `h`.
+void glRectWire(GLfloat, GLfloat, GLfloat, GLfloat);
 
 #endif
