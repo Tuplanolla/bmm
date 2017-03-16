@@ -1,4 +1,4 @@
-// Graphics operations for OpenGL.
+// Additional operations for OpenGL.
 #ifndef BMM_GL_H
 #define BMM_GL_H
 
@@ -35,20 +35,19 @@ inline void glClearColor3fv(GLfloat const* const v) {
 // The circle itself has a radius `r` and is centered at `x` and `y`
 // while the hole has a radius of `rhole` and
 // is at an angle of `a` and distance of `rskew` from the center.
-// The resulting polygon is drawn with `ncorner` corners and
-// filled with the color `c4fv`.
+// The shape is drawn with `ncorner` corners.
 __attribute__ ((__nonnull__))
 void glSkewedAnnulus(GLfloat, GLfloat, GLfloat, GLfloat, GLfloat, GLfloat,
-    size_t, GLfloat const*);
+    size_t);
 
-// The call `glAnnulus(x, y, r, rhole, ncorner, c4fv)` is equivalent
-// to `glSkewedAnnulus(x, y, r, rhole, 0.0f, 0.0f, ncorner, c4fv)`.
+// The call `glAnnulus(x, y, r, rhole, ncorner)` is equivalent
+// to `glSkewedAnnulus(x, y, r, rhole, 0.0f, 0.0f, ncorner)`.
 __attribute__ ((__nonnull__))
-void glAnnulus(GLfloat, GLfloat, GLfloat, GLfloat, size_t, GLfloat const*);
+void glAnnulus(GLfloat, GLfloat, GLfloat, GLfloat, size_t);
 
-// The call `glDisc(x, y, r, ncorner, c4fv)` is equivalent
-// to `glAnnulus(x, y, r, 0.0f, ncorner, c4fv)`.
+// The call `glDisc(x, y, r, ncorner)` is equivalent
+// to `glAnnulus(x, y, r, 0.0f, ncorner)`.
 __attribute__ ((__nonnull__))
-void glDisc(GLfloat, GLfloat, GLfloat, size_t, GLfloat const*);
+void glDisc(GLfloat, GLfloat, GLfloat, size_t);
 
 #endif

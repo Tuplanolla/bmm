@@ -10,10 +10,8 @@ extern inline void glClearColor3fv(GLfloat const*);
 
 void glSkewedAnnulus(GLfloat const x, GLfloat const y,
     GLfloat const r, GLfloat const rhole, GLfloat const rskew,
-    GLfloat const askew, size_t const ncorner, GLfloat const* const c4fv) {
+    GLfloat const askew, size_t const ncorner) {
   glBegin(GL_TRIANGLE_STRIP);
-
-  glColor4fv(c4fv);
 
   GLfloat const xskew = x + rskew * cosf(askew);
   GLfloat const yskew = y + rskew * sinf(askew);
@@ -36,11 +34,8 @@ void glSkewedAnnulus(GLfloat const x, GLfloat const y,
 }
 
 void glAnnulus(GLfloat const x, GLfloat const y,
-    GLfloat const r, GLfloat const rhole,
-    size_t const ncorner, GLfloat const* const c4fv) {
+    GLfloat const r, GLfloat const rhole, size_t const ncorner) {
   glBegin(GL_TRIANGLE_STRIP);
-
-  glColor4fv(c4fv);
 
   GLfloat const acorner = (float) M_2PI / (float) ncorner;
 
@@ -60,11 +55,9 @@ void glAnnulus(GLfloat const x, GLfloat const y,
   glEnd();
 }
 
-void glDisc(GLfloat const x, GLfloat const y, GLfloat const r,
-    size_t const ncorner, GLfloat const* const c4fv) {
+void glDisc(GLfloat const x, GLfloat const y,
+    GLfloat const r, size_t const ncorner) {
   glBegin(GL_TRIANGLE_FAN);
-
-  glColor4fv(c4fv);
 
   GLfloat const acorner = (float) M_2PI / (float) ncorner;
 

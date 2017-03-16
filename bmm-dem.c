@@ -32,7 +32,7 @@ static bool f(char const* const key, char const* const value,
 __attribute__ ((__nonnull__))
 int main(int const argc, char** const argv) {
   struct bmm_dem_opts opts;
-  bmm_defopts(&opts);
+  bmm_dem_defopts(&opts);
   bmm_opt_parse((char const* const*) &argv[1], (size_t) (argc - 1), f, &opts);
 
   return bmm_dem_run(&opts) ? EXIT_SUCCESS : EXIT_FAILURE;

@@ -1,4 +1,5 @@
 #include "bit.h"
+#include "conf.h"
 #include "dem.h"
 #include "err.h"
 #include "msg.h"
@@ -16,7 +17,7 @@
 
 // TODO Unify these two.
 
-void bmm_putopts(struct bmm_dem_state const* const state) {
+void bmm_putopts(struct bmm_dem const* const dem) {
   struct bmm_head head;
   bmm_defhead(&head);
   bmm_bit_pset(&head.flags, BMM_FBIT_INTLE);
@@ -24,10 +25,10 @@ void bmm_putopts(struct bmm_dem_state const* const state) {
 
   head.type = BMM_MSG_NDIM;
 
-  bmm_msg_put(&head, state);
+  bmm_msg_put(&head, dem);
 }
 
-void bmm_putparts(struct bmm_dem_state const* const state) {
+void bmm_putparts(struct bmm_dem const* const dem) {
   struct bmm_head head;
   bmm_defhead(&head);
   bmm_bit_pset(&head.flags, BMM_FBIT_INTLE);
@@ -36,23 +37,23 @@ void bmm_putparts(struct bmm_dem_state const* const state) {
 
   head.type = BMM_MSG_PARTS;
 
-  bmm_msg_put(&head, state);
+  bmm_msg_put(&head, dem);
 }
 
-void bmm_pretend(struct bmm_dem_state* const state) {
+void bmm_pretend(struct bmm_dem* const dem) {
   for (size_t ipart = 0; ipart < BMM_PART_MAX; ++ipart)
     for (size_t idim = 0; idim < BMM_DIM_MAX; ++idim)
-      state->parts[ipart].rpos[idim] += (double) (rand() % 256 - 128) / 16.0;
+      dem->parts[ipart].rpos[idim] += (double) (rand() % 256 - 128) * 100e-6;
 }
 
-void bmm_defopts(struct bmm_dem_opts* const opts) {
+void bmm_dem_defopts(struct bmm_dem_opts* const opts) {
   opts->ndim = 0;
   opts->nbin = 0;
   opts->npart = 0;
   opts->nstep = 0;
 }
 
-void bmm_defpart(struct bmm_part* const part) {
+void bmm_dem_defpart(struct bmm_dem_part* const part) {
   part->rrad = 0.0;
   part->arot = 0.0;
 
@@ -60,22 +61,22 @@ void bmm_defpart(struct bmm_part* const part) {
     part->rpos[idim] = 0.0;
 }
 
-void bmm_dem_defstate(struct bmm_dem_state* const state,
+void bmm_dem_def(struct bmm_dem* const dem,
     struct bmm_dem_opts const* const opts) {
-  bmm_defopts(&state->opts);
-  state->istep = 0;
+  dem->opts = *opts;
+  dem->istep = 0;
 
   for (size_t idim = 0; idim < BMM_DIM_MAX; ++idim)
-    state->rexts[idim] = 0.0;
+    dem->rexts[idim] = 1.0;
 
   for (size_t ipart = 0; ipart < BMM_PART_MAX; ++ipart)
-    bmm_defpart(&state->parts[ipart]);
+    bmm_dem_defpart(&dem->parts[ipart]);
 }
 
 bool bmm_dem_run(struct bmm_dem_opts const* const opts) {
-  struct bmm_dem_state state;
-  bmm_dem_defstate(&state, opts);
-  state.opts = *opts;
+  struct bmm_dem dem;
+  bmm_dem_def(&dem, opts);
+  dem.opts = *opts;
 
 #ifdef _GNU_SOURCE
 #ifdef DEBUG
@@ -85,12 +86,12 @@ bool bmm_dem_run(struct bmm_dem_opts const* const opts) {
 #endif
 #endif
 
-  bmm_putopts(&state);
+  bmm_putopts(&dem);
 
   // TODO Remove these test messages.
-  for (size_t istep = 0; istep < state.opts.nstep; ++istep) {
-    bmm_pretend(&state);
-    bmm_putparts(&state);
+  for (size_t istep = 0; istep < dem.opts.nstep; ++istep) {
+    bmm_pretend(&dem);
+    bmm_putparts(&dem);
     // usleep(100000);
   }
 

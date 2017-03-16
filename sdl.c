@@ -1,20 +1,15 @@
 #include "dem.h"
 #include "err.h"
 #include "ext.h"
-#include "fp.h"
 #include "gl.h"
-#include "msg.h"
 #include "io.h"
-#include "opt.h"
+#include "msg.h"
 #include "sdl.h"
 #include <GL/gl.h>
 #include <SDL/SDL.h>
-#include <math.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <sys/time.h>
 
 extern inline void bmm_sdl_t_to_timeval(struct timeval*, Uint32);
 
@@ -29,35 +24,63 @@ void bmm_sdl_defopts(struct bmm_sdl_opts* const opts) {
   opts->ms = 8;
 }
 
-void bmm_sdl_defstate(struct bmm_sdl_state* const state,
+void bmm_sdl_def(struct bmm_sdl* const sdl,
     struct bmm_sdl_opts const* const opts) {
-  struct bmm_dem_opts defopts;
-  bmm_defopts(&defopts);
-  bmm_dem_defstate(&state->state, &defopts);
+  sdl->opts = *opts;
+  sdl->ratio = (double) opts->width / (double) opts->height;
+  sdl->zoom = 1.0;
+  sdl->focus[0] = 0.5;
+  sdl->focus[1] = 0.5;
+  sdl->tstep = opts->fps > 1000 ? 1 : (Uint32) (1000 / opts->fps);
+  sdl->stale = true;
 
-  state->tstep = opts->fps > 1000 ? 1 : (Uint32) (1000 / opts->fps);
-  state->stale = true;
+  struct bmm_dem_opts defopts;
+  bmm_dem_defopts(&defopts);
+  bmm_dem_def(&sdl->dem, &defopts);
 }
 
-// TODO Choose the graphics coordinate system.
+// TODO Check this math.
 
-static void draw(struct bmm_sdl_state const* const state) {
+static void draw(struct bmm_sdl const* const sdl) {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+  double const wexts = sdl->dem.rexts[0] / sdl->zoom;
+  double const hexts = sdl->dem.rexts[1] / sdl->zoom;
+  double const wrat = hexts * sdl->ratio;
+
+  bool const p = wrat > wexts;
+
+  double const w = p ? wrat : wexts;
+  double const h = p ? hexts : wexts / sdl->ratio;
+
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+  glOrtho(sdl->focus[0] - w / 2.0, sdl->focus[0] + w / 2.0,
+      sdl->focus[1] - h / 2.0, sdl->focus[1] + h / 2.0,
+      -1.0, 1.0);
 
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
 
+  glColor4fv(glBlue);
+  glRectd(0.0, 0.0, sdl->dem.rexts[0], sdl->dem.rexts[1]);
+
   size_t const ncorner = 32;
 
-  glDisc(-620.0f, -460.0f, 10.0f, ncorner, state->stale ? glRed : glGreen);
+  glColor4fv(sdl->stale ? glRed : glGreen);
+  glDisc(0.05f, 0.05f, 0.025f, ncorner);
 
+  glColor4fv(glYellow);
   for (size_t ipart = 0; ipart < BMM_PART_MAX; ++ipart) {
-    float const x = (float) state->state.parts[ipart].rpos[0];
-    float const y = (float) state->state.parts[ipart].rpos[1];
-    float const r = (float) state->state.parts[ipart].rrad + 40.0f;
+    float const x = (float) sdl->dem.parts[ipart].rpos[0] + 0.5f;
+    float const y = (float) sdl->dem.parts[ipart].rpos[1] + 0.5f;
+    float const r = (float) sdl->dem.parts[ipart].rrad + 0.1f;
 
-    glSkewedAnnulus(x, y, r, r / 4.0f, r / 2.0f, 0.0f, ncorner, glWhite);
+    glSkewedAnnulus(x, y, r, r / 4.0f, r / 2.0f, 0.0f, ncorner);
   }
+
+  glColor4fv(glWhite);
+  glDisc((float) sdl->focus[0], (float) sdl->focus[1], 0.01f, ncorner);
 
   SDL_GL_SwapBuffers();
 }
@@ -108,28 +131,20 @@ bool bmm_sdl_run(struct bmm_sdl_opts const* const opts) {
     goto quit_error;
   }
 
-  { // TODO Wrangle OpenGL options.
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
-    glFrontFace(GL_CW);
+  glClearColor4fv(glBlack);
 
-    glClearColor4fv(glBlack);
-    glViewport(0, 0, width, height);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
+  glViewport(0, 0, width, height);
 
-    glOrtho(-(double) width, (double) width,
-        (double) height, -(double) height, 1.0, -1.0);
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-  }
+  glEnable(GL_CULL_FACE);
+  glCullFace(GL_BACK);
 
-  struct bmm_sdl_state state;
-  bmm_sdl_defstate(&state, opts);
+  // Create the initial state once SDL and OpenGL have been initialized.
+  struct bmm_sdl sdl;
+  bmm_sdl_def(&sdl, opts);
 
   // Start timing.
   Uint32 tnow = SDL_GetTicks();
-  Uint32 tnext = tnow + state.tstep;
+  Uint32 tnext = tnow + sdl.tstep;
   Uint32 trem = bmm_sdl_trem(tnow, tnext);
 
   for ever {
@@ -144,11 +159,31 @@ bool bmm_sdl_run(struct bmm_sdl_opts const* const opts) {
             case SDLK_ESCAPE:
             case SDLK_q:
               goto quit;
+            case SDLK_PLUS:
+            case SDLK_KP_PLUS:
+              sdl.zoom *= 2.0;
+              break;
+            case SDLK_MINUS:
+            case SDLK_KP_MINUS:
+              sdl.zoom *= 0.5;
+              break;
+            case SDLK_LEFT:
+              sdl.focus[0] -= 0.25;
+              break;
+            case SDLK_RIGHT:
+              sdl.focus[0] += 0.25;
+              break;
+            case SDLK_DOWN:
+              sdl.focus[1] -= 0.25;
+              break;
+            case SDLK_UP:
+              sdl.focus[1] += 0.25;
+              break;
           }
       }
 
     // Draw before state transformations to account for the initial state.
-    draw(&state);
+    draw(&sdl);
 
     // Recompute the remaining time after event handling and drawing
     // in case they take a while to complete.
@@ -163,11 +198,11 @@ bool bmm_sdl_run(struct bmm_sdl_opts const* const opts) {
       case BMM_IO_ERROR:
         goto quit_error;
       case BMM_IO_READY:
-        if (bmm_msg_get(&head, &state.state))
-          state.stale = false;
+        if (bmm_msg_get(&head, &sdl.dem))
+          sdl.stale = false;
         else
       case BMM_IO_TIMEOUT:
-          state.stale = true;
+          sdl.stale = true;
     }
 
     // Recompute the remaining time again after waiting for input
@@ -177,7 +212,7 @@ bool bmm_sdl_run(struct bmm_sdl_opts const* const opts) {
 
     // Sleep and allow the tick counter to wrap.
     SDL_Delay(trem);
-    tnext += state.tstep;
+    tnext += sdl.tstep;
   }
 
   goto quit;

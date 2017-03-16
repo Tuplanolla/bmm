@@ -45,17 +45,21 @@ struct bmm_sdl_opts {
   unsigned int ms;
 };
 
-struct bmm_sdl_state {
-  struct bmm_dem_state state;
+struct bmm_sdl {
+  struct bmm_sdl_opts opts;
+  double ratio;
+  double zoom;
+  double focus[2];
   Uint32 tstep;
   bool stale;
+  struct bmm_dem dem;
 };
 
 __attribute__ ((__nonnull__))
 void bmm_sdl_defopts(struct bmm_sdl_opts*);
 
 __attribute__ ((__nonnull__))
-void bmm_sdl_defstate(struct bmm_sdl_state*, struct bmm_sdl_opts const*);
+void bmm_sdl_def(struct bmm_sdl*, struct bmm_sdl_opts const*);
 
 // Something like this:
 // Monitor `stdin` and draw at `fps`.

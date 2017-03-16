@@ -12,7 +12,7 @@ void bmm_defhead(struct bmm_head* const head) {
 
 // TODO Check sizes etc.
 bool bmm_msg_get(struct bmm_head* const head,
-    struct bmm_dem_state* const state) {
+    struct bmm_dem* const dem) {
   if (fread(head, sizeof *head, 1, stdin) != 1) {
     if (feof(stdin) != 0)
       return false;
@@ -22,11 +22,11 @@ bool bmm_msg_get(struct bmm_head* const head,
 
   switch (head->type) {
     case BMM_MSG_NDIM:
-      if (fread(&state->opts.ndim, sizeof state->opts.ndim, 1, stdin) != 1)
+      if (fread(&dem->opts.ndim, sizeof dem->opts.ndim, 1, stdin) != 1)
         BMM_ERR_WARN("Failed to read number of dimensions.");
       break;
     case BMM_MSG_PARTS:
-      if (fread(&state->parts, sizeof state->parts, 1, stdin) != 1)
+      if (fread(&dem->parts, sizeof dem->parts, 1, stdin) != 1)
         BMM_ERR_WARN("Failed to read particles.");
       break;
     default:
@@ -37,17 +37,17 @@ bool bmm_msg_get(struct bmm_head* const head,
 }
 
 void bmm_msg_put(struct bmm_head const* const head,
-    struct bmm_dem_state const* const state) {
+    struct bmm_dem const* const dem) {
   if (fwrite(head, sizeof *head, 1, stdout) != 1)
     BMM_ERR_WARN("Failed to write message header.");
 
   switch (head->type) {
     case BMM_MSG_NDIM:
-      if (fwrite(&state->opts.ndim, sizeof state->opts.ndim, 1, stdout) != 1)
+      if (fwrite(&dem->opts.ndim, sizeof dem->opts.ndim, 1, stdout) != 1)
         BMM_ERR_WARN("Failed to write number of dimensions.");
       break;
     case BMM_MSG_PARTS:
-      if (fwrite(&state->parts, sizeof state->parts, 1, stdout) != 1)
+      if (fwrite(&dem->parts, sizeof dem->parts, 1, stdout) != 1)
         BMM_ERR_WARN("Failed to write particles.");
       break;
     default:

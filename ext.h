@@ -5,11 +5,10 @@
 #include <assert.h>
 #include <stdbool.h>
 
-// This preprocessor directive disables GNU extensions if they are unsupported.
-#if !defined __GNUC__ || __GNUC__ < 4
-#ifndef __attribute__
-#define __attribute__(_)
-#endif
+// The preprocessor directive `ever` makes it possible to write `for ever`.
+// This is essential.
+#ifndef ever
+#define ever (;;)
 #endif
 
 // The preprocessor directives `BEGIN` and `END` allow converting
@@ -18,6 +17,13 @@
 // They must always appear together.
 #define BEGIN do {
 #define END } while (false)
+
+// This preprocessor directive disables GNU extensions if they are unsupported.
+#if !defined __GNUC__ || __GNUC__ < 4
+#ifndef __attribute__
+#define __attribute__(_)
+#endif
+#endif
 
 // The preprocessor directive `static_assert(p, s)`
 // imitates the standard library function with the same name
@@ -50,12 +56,6 @@ static_assert(false, "contradictory debug directives");
 #ifndef NDEBUG
 #define NDEBUG
 #endif
-#endif
-
-// The preprocessor directive `ever` makes it possible to write `for ever`.
-// This is essential.
-#ifndef ever
-#define ever (;;)
 #endif
 
 #endif
