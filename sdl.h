@@ -39,19 +39,21 @@ inline Uint32 bmm_sdl_trem(Uint32 const tnow, Uint32 const tnext) {
 }
 
 struct bmm_sdl_opts {
-  size_t width;
-  size_t height;
+  unsigned int width;
+  unsigned int height;
   unsigned int fps;
   unsigned int ms;
 };
 
 struct bmm_sdl {
   struct bmm_sdl_opts opts;
-  double ratio;
-  double zoom;
-  double focus[2];
+  unsigned int width;
+  unsigned int height;
   Uint32 tstep;
-  bool stale;
+  double qaspect;
+  double qzoom;
+  double rorigin[2];
+  bool pstale;
   struct bmm_dem dem;
 };
 

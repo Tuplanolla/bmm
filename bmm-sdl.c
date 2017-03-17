@@ -13,10 +13,10 @@ static bool f(char const* const key, char const* const value,
   struct bmm_sdl_opts* const opts = ptr;
 
   if (strcmp(key, "width") == 0) {
-    if (!bmm_str_strtoz(value, &opts->width))
+    if (!bmm_str_strtou(value, &opts->width))
       return false;
   } else if (strcmp(key, "height") == 0) {
-    if (!bmm_str_strtoz(value, &opts->height))
+    if (!bmm_str_strtou(value, &opts->height))
       return false;
   } else if (strcmp(key, "fps") == 0) {
     if (!bmm_str_strtou(value, &opts->fps))

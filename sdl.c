@@ -1,6 +1,7 @@
 #include "dem.h"
 #include "err.h"
 #include "ext.h"
+#include "fp.h"
 #include "gl.h"
 #include "io.h"
 #include "msg.h"
@@ -27,44 +28,96 @@ void bmm_sdl_defopts(struct bmm_sdl_opts* const opts) {
 void bmm_sdl_def(struct bmm_sdl* const sdl,
     struct bmm_sdl_opts const* const opts) {
   sdl->opts = *opts;
-  sdl->ratio = (double) opts->width / (double) opts->height;
-  sdl->zoom = 1.0;
-  sdl->focus[0] = 0.5;
-  sdl->focus[1] = 0.5;
+  sdl->width = opts->width;
+  sdl->height = opts->height;
+  sdl->qaspect = (double) opts->width / (double) opts->height;
+  sdl->qzoom = 1.0;
+  sdl->rorigin[0] = 0.0;
+  sdl->rorigin[1] = 0.0;
   sdl->tstep = opts->fps > 1000 ? 1 : (Uint32) (1000 / opts->fps);
-  sdl->stale = true;
+  sdl->pstale = true;
 
   struct bmm_dem_opts defopts;
   bmm_dem_defopts(&defopts);
   bmm_dem_def(&sdl->dem, &defopts);
 }
 
-// TODO Fix this math.
+// TODO All kinds of things.
+
+static void bmm_sdl_proj(struct bmm_sdl const* const sdl,
+    double* const xproj, double* const yproj,
+    double* const wproj, double* const hproj) {
+  double const w = sdl->dem.rexts[0];
+  double const h = sdl->dem.rexts[1];
+  double const q = sdl->qaspect;
+  double const z = sdl->qzoom;
+  double const xorigin = sdl->rorigin[0];
+  double const yorigin = sdl->rorigin[1];
+
+  bool const pwide = w > h * q;
+
+  double const wzoom = w / z;
+  double const hzoom = h / z;
+  double const weither = pwide ? wzoom : hzoom * q;
+  double const heither = pwide ? wzoom / q : hzoom;
+
+  *wproj = weither;
+  *hproj = heither;
+  *xproj = xorigin - (weither - wzoom) / 2.0;
+  *yproj = yorigin - (heither - hzoom) / 2.0;
+}
+
+static void bmm_sdl_zoom(struct bmm_sdl* const sdl,
+    int const xscreen, int const yscreen, double const q) {
+  double xproj;
+  double yproj;
+  double wproj;
+  double hproj;
+  bmm_sdl_proj(sdl, &xproj, &yproj, &wproj, &hproj);
+
+  double const x = bmm_fp_lerp((double) xscreen,
+      0.0, (double) sdl->width, xproj, xproj + wproj);
+  double const y = bmm_fp_lerp((double) yscreen,
+      (double) sdl->height, 0.0, yproj, yproj + hproj);
+
+  double const ox = sdl->rorigin[0];
+  double const oy = sdl->rorigin[1];
+
+  sdl->rorigin[0] = x;
+  sdl->rorigin[1] = y;
+
+  sdl->qzoom *= q;
+
+  bmm_sdl_proj(sdl, &xproj, &yproj, &wproj, &hproj);
+
+  double const x2 = bmm_fp_lerp((double) xscreen,
+      0.0, (double) sdl->width, xproj, xproj + wproj);
+  double const y2 = bmm_fp_lerp((double) yscreen,
+      (double) sdl->height, 0.0, yproj, yproj + hproj);
+
+  sdl->rorigin[0] -= x2 - x;
+  sdl->rorigin[1] -= y2 - y;
+}
 
 static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-  glMatrixMode(GL_MODELVIEW);
-  glLoadIdentity();
-
-  double const wexts = sdl->dem.rexts[0] / sdl->zoom;
-  double const hexts = sdl->dem.rexts[1] / sdl->zoom;
-  double const wrat = hexts * sdl->ratio;
-
-  bool const p = wrat > wexts;
-
-  double const w = p ? wrat : wexts;
-  double const h = p ? hexts : wexts / sdl->ratio;
+  double xproj;
+  double yproj;
+  double wproj;
+  double hproj;
+  bmm_sdl_proj(sdl, &xproj, &yproj, &wproj, &hproj);
 
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  glOrtho(sdl->focus[0] - w / 2.0, sdl->focus[0] + w / 2.0,
-      sdl->focus[1] - h / 2.0, sdl->focus[1] + h / 2.0,
-      -1.0, 1.0);
+  glOrtho(xproj, xproj + wproj, yproj, yproj + hproj, -1.0, 1.0);
+
+  glMatrixMode(GL_MODELVIEW);
+  glLoadIdentity();
 
   size_t const ncorner = 32;
 
-  glColor4fv(sdl->stale ? glRed : glGreen);
+  glColor4fv(sdl->pstale ? glRed : glGreen);
   glDisc(0.05f, 0.05f, 0.025f, ncorner);
 
   glColor4fv(glYellow);
@@ -77,7 +130,6 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
   }
 
   glColor4fv(glWhite);
-  glDisc((float) sdl->focus[0], (float) sdl->focus[1], 0.01f, ncorner);
   glRectWire(0.0f, 0.0f, (float) sdl->dem.rexts[0], (float) sdl->dem.rexts[1]);
 
   SDL_GL_SwapBuffers();
@@ -96,7 +148,33 @@ static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
         case SDL_QUIT:
           return true;
         case SDL_VIDEORESIZE:
-          sdl->ratio = (double) event.resize.w / (double) event.resize.h;
+          { // TODO Say no to copy-paste.
+          SDL_VideoInfo const* const info = SDL_GetVideoInfo();
+          if (info == NULL) {
+            BMM_ERR_FWARN(SDL_GetVideoInfo, "SDL error: %s", SDL_GetError());
+
+            return false;
+          }
+
+          int const width = event.resize.w;
+          int const height = event.resize.h;
+          int const bpp = info->vfmt->BitsPerPixel;
+          int const flags = SDL_OPENGL | SDL_RESIZABLE;
+          if (SDL_SetVideoMode(width, height, bpp, flags) == NULL) {
+            BMM_ERR_FWARN(SDL_SetVideoMode, "SDL error: %s", SDL_GetError());
+
+            return false;
+          }
+
+          glClearColor4fv(glBlack);
+          glViewport(0, 0, width, height);
+          glEnable(GL_CULL_FACE);
+          glCullFace(GL_BACK);
+
+          sdl->width = (unsigned int) width;
+          sdl->height = (unsigned int) height;
+          sdl->qaspect = (double) width / (double) height;
+          }
           break;
         case SDL_KEYDOWN:
           switch (event.key.keysym.sym) {
@@ -105,29 +183,39 @@ static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
               return true;
             case SDLK_PLUS:
             case SDLK_KP_PLUS:
-              sdl->zoom *= 2.0;
+              sdl->qzoom *= 2.0;
               break;
             case SDLK_MINUS:
             case SDLK_KP_MINUS:
-              sdl->zoom *= 0.5;
+              sdl->qzoom *= 0.5;
               break;
             case SDLK_LEFT:
-              sdl->focus[0] -= 0.25;
+              sdl->rorigin[0] -= 0.25;
               break;
             case SDLK_RIGHT:
-              sdl->focus[0] += 0.25;
+              sdl->rorigin[0] += 0.25;
               break;
             case SDLK_DOWN:
-              sdl->focus[1] -= 0.25;
+              sdl->rorigin[1] -= 0.25;
               break;
             case SDLK_UP:
-              sdl->focus[1] += 0.25;
+              sdl->rorigin[1] += 0.25;
               break;
             case SDLK_0:
             case SDLK_KP0:
-              sdl->zoom = 1.0;
-              sdl->focus[0] = 0.5;
-              sdl->focus[1] = 0.5;
+              sdl->qzoom = 1.0;
+              sdl->rorigin[0] = 0.0;
+              sdl->rorigin[1] = 0.0;
+              break;
+          }
+          break;
+        case SDL_MOUSEBUTTONDOWN:
+          switch (event.button.button) {
+            case SDL_BUTTON_WHEELDOWN:
+              bmm_sdl_zoom(sdl, event.button.x, event.button.y, 0.5);
+              break;
+            case SDL_BUTTON_WHEELUP:
+              bmm_sdl_zoom(sdl, event.button.x, event.button.y, 2.0);
               break;
           }
       }
@@ -149,10 +237,10 @@ static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
         return false;
       case BMM_IO_READY:
         if (bmm_msg_get(&head, &sdl->dem))
-          sdl->stale = false;
+          sdl->pstale = false;
         else
       case BMM_IO_TIMEOUT:
-          sdl->stale = true;
+          sdl->pstale = true;
     }
 
     // Recompute the remaining time again after waiting for input
@@ -177,18 +265,11 @@ bool bmm_sdl_run(struct bmm_sdl_opts const* const opts) {
 
   SDL_WM_SetCaption("BMM", NULL);
 
-  SDL_VideoInfo const* const info = SDL_GetVideoInfo();
-  if (info == NULL) {
-    BMM_ERR_FWARN(SDL_GetVideoInfo, "SDL error: %s", SDL_GetError());
-
-    goto quit_error;
-  }
-
   if (SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8) == -1 ||
       SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8) == -1 ||
       SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8) == -1 ||
       SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8) == -1 ||
-      SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16) == -1 ||
+      SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 8) == -1 ||
       SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1) == -1) {
     BMM_ERR_FWARN(SDL_GL_SetAttribute, "SDL error: %s", SDL_GetError());
 
@@ -202,6 +283,13 @@ bool bmm_sdl_run(struct bmm_sdl_opts const* const opts) {
 
       goto quit_error;
     }
+
+  SDL_VideoInfo const* const info = SDL_GetVideoInfo();
+  if (info == NULL) {
+    BMM_ERR_FWARN(SDL_GetVideoInfo, "SDL error: %s", SDL_GetError());
+
+    goto quit_error;
+  }
 
   int const width = (int) opts->width;
   int const height = (int) opts->height;
