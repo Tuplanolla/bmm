@@ -6,7 +6,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-struct bmm_head {
+struct bmm_msg_head {
   unsigned char flags;
   unsigned char type;
 };
@@ -28,13 +28,13 @@ enum bmm_msg {
 };
 
 __attribute__ ((__nonnull__))
-void bmm_defhead(struct bmm_head*);
+void bmm_defhead(struct bmm_msg_head*);
 
-// TODO Use functions as filters or something.
-__attribute__ ((__nonnull__))
-bool bmm_msg_get(struct bmm_head*, struct bmm_dem*);
+__attribute__ ((__nonnull__ (1, 2, 3)))
+bool bmm_msg_get(struct bmm_msg_head*, struct bmm_dem*,
+    bool (*)(struct bmm_msg_head const*, void*), void*);
 
 __attribute__ ((__nonnull__))
-void bmm_msg_put(struct bmm_head const*, struct bmm_dem const*);
+void bmm_msg_put(struct bmm_msg_head const*, struct bmm_dem const*);
 
 #endif

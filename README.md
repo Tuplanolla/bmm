@@ -156,19 +156,19 @@ The following table lists the options for `bmm-dem`.
 
 | Option | Meaning
 |:-------|:--------
-| `--ndim` | Number of dimensions.
-| `--nbin` | Number of histogram bins.
-| `--npart` | Number of particles.
-| `--nstep` | Number of simulation steps.
+| `--ndim` | Number of dimensions (at most `BMM_DIM_MAX`).
+| `--nbin` | Number of histogram bins (at most `BMM_BIN_MAX`).
+| `--npart` | Number of particles (at most `BMM_PART_MAX`).
+| `--nstep` | Number of simulation steps (at most `BMM_STEP_MAX`).
 
 The following table lists the options for `bmm-sdl`.
 
 | Option | Meaning
 |:-------|:--------
-| `--width` | Initial window width.
-| `--height` | Initial window height.
-| `--fps` | Visual frame rate.
-| `--ms` | Multisample anti-aliasing factor.
+| `--width` | Default window width.
+| `--height` | Default window height.
+| `--fps` | Visual frame rate (between `1` and `1000`).
+| `--ms` | Multisample anti-aliasing factor (a small power of two).
 
 ### Building a Pipeline
 

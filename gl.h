@@ -6,7 +6,7 @@
 #include <GL/gl.h>
 #include <stddef.h>
 
-// Primaries based on ITU-R BT.709 weights.
+// Primaries based on ITU-R BT.601 weights.
 static GLfloat const glBlack[] = {0.0f, 0.0f, 0.0f};
 static GLfloat const glRed[] = {0.701f, 0.0f, 0.0f};
 static GLfloat const glGreen[] = {0.0f, 0.413f, 0.0f};

@@ -47,13 +47,14 @@ struct bmm_sdl_opts {
 
 struct bmm_sdl {
   struct bmm_sdl_opts opts;
-  unsigned int width;
-  unsigned int height;
-  Uint32 tstep;
+  int width;
+  int height;
   double qaspect;
   double qzoom;
   double rorigin[2];
+  Uint32 tstep;
   bool pstale;
+  bool _pad0[3];
   struct bmm_dem dem;
 };
 

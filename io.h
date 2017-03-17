@@ -3,6 +3,8 @@
 #define BMM_IO_H
 
 #include "ext.h"
+#include <stddef.h>
+#include <stdio.h>
 #include <sys/time.h>
 
 enum bmm_io {
@@ -13,5 +15,8 @@ enum bmm_io {
 
 __attribute__ ((__nonnull__))
 enum bmm_io bmm_io_waitin(struct timeval*);
+
+__attribute__ ((__nonnull__))
+size_t bmm_io_fastfw(size_t, size_t, FILE*);
 
 #endif

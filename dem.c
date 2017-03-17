@@ -15,10 +15,21 @@
 #endif
 #endif
 
-// TODO Unify these two.
+// TODO Unify these three.
+
+void bmm_putnop(struct bmm_dem const* const dem) {
+  struct bmm_msg_head head;
+  bmm_defhead(&head);
+  bmm_bit_pset(&head.flags, BMM_FBIT_INTLE);
+  bmm_bit_pset(&head.flags, BMM_FBIT_FPLE);
+
+  head.type = BMM_MSG_NOP;
+
+  bmm_msg_put(&head, dem);
+}
 
 void bmm_putopts(struct bmm_dem const* const dem) {
-  struct bmm_head head;
+  struct bmm_msg_head head;
   bmm_defhead(&head);
   bmm_bit_pset(&head.flags, BMM_FBIT_INTLE);
   bmm_bit_pset(&head.flags, BMM_FBIT_FPLE);
@@ -29,7 +40,7 @@ void bmm_putopts(struct bmm_dem const* const dem) {
 }
 
 void bmm_putparts(struct bmm_dem const* const dem) {
-  struct bmm_head head;
+  struct bmm_msg_head head;
   bmm_defhead(&head);
   bmm_bit_pset(&head.flags, BMM_FBIT_INTLE);
   bmm_bit_pset(&head.flags, BMM_FBIT_FPLE);
@@ -90,6 +101,7 @@ bool bmm_dem_run(struct bmm_dem_opts const* const opts) {
 
   // TODO Remove these test messages.
   for (size_t istep = 0; istep < dem.opts.nstep; ++istep) {
+    bmm_putnop(&dem);
     bmm_pretend(&dem);
     bmm_putparts(&dem);
     // usleep(100000);

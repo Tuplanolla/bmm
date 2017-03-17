@@ -28,8 +28,8 @@ void bmm_sdl_defopts(struct bmm_sdl_opts* const opts) {
 void bmm_sdl_def(struct bmm_sdl* const sdl,
     struct bmm_sdl_opts const* const opts) {
   sdl->opts = *opts;
-  sdl->width = opts->width;
-  sdl->height = opts->height;
+  sdl->width = (int) opts->width;
+  sdl->height = (int) opts->height;
   sdl->qaspect = (double) opts->width / (double) opts->height;
   sdl->qzoom = 1.0;
   sdl->rorigin[0] = 0.0;
@@ -42,7 +42,8 @@ void bmm_sdl_def(struct bmm_sdl* const sdl,
   bmm_dem_def(&sdl->dem, &defopts);
 }
 
-// TODO All kinds of things.
+// TODO Express this mess in terms of linear algebra.
+// The viewport mapping is essentially a homogeneous coordinate transformation.
 
 static void bmm_sdl_proj(struct bmm_sdl const* const sdl,
     double* const xproj, double* const yproj,
@@ -63,25 +64,22 @@ static void bmm_sdl_proj(struct bmm_sdl const* const sdl,
 
   *wproj = weither;
   *hproj = heither;
-  *xproj = xorigin - (weither - wzoom) / 2.0;
-  *yproj = yorigin - (heither - hzoom) / 2.0;
+  *xproj = xorigin - (weither - wzoom) * 0.5;
+  *yproj = yorigin - (heither - hzoom) * 0.5;
 }
 
 static void bmm_sdl_zoom(struct bmm_sdl* const sdl,
-    int const xscreen, int const yscreen, double const q) {
+    double const xscreen, double const yscreen, double const q) {
   double xproj;
   double yproj;
   double wproj;
   double hproj;
   bmm_sdl_proj(sdl, &xproj, &yproj, &wproj, &hproj);
 
-  double const x = bmm_fp_lerp((double) xscreen,
+  double const x = bmm_fp_lerp(xscreen,
       0.0, (double) sdl->width, xproj, xproj + wproj);
-  double const y = bmm_fp_lerp((double) yscreen,
+  double const y = bmm_fp_lerp(yscreen,
       (double) sdl->height, 0.0, yproj, yproj + hproj);
-
-  double const ox = sdl->rorigin[0];
-  double const oy = sdl->rorigin[1];
 
   sdl->rorigin[0] = x;
   sdl->rorigin[1] = y;
@@ -90,13 +88,36 @@ static void bmm_sdl_zoom(struct bmm_sdl* const sdl,
 
   bmm_sdl_proj(sdl, &xproj, &yproj, &wproj, &hproj);
 
-  double const x2 = bmm_fp_lerp((double) xscreen,
+  double const x2 = bmm_fp_lerp(xscreen,
       0.0, (double) sdl->width, xproj, xproj + wproj);
-  double const y2 = bmm_fp_lerp((double) yscreen,
+  double const y2 = bmm_fp_lerp(yscreen,
       (double) sdl->height, 0.0, yproj, yproj + hproj);
 
   sdl->rorigin[0] -= x2 - x;
   sdl->rorigin[1] -= y2 - y;
+}
+
+static void bmm_sdl_reset(struct bmm_sdl* const sdl) {
+  sdl->qzoom = 1.0;
+  sdl->rorigin[0] = 0.0;
+  sdl->rorigin[1] = 0.0;
+}
+
+static void bmm_sdl_move(struct bmm_sdl* const sdl,
+    double const xscreen, double const yscreen) {
+  double xproj;
+  double yproj;
+  double wproj;
+  double hproj;
+  bmm_sdl_proj(sdl, &xproj, &yproj, &wproj, &hproj);
+
+  double const x2 = bmm_fp_lerp(xscreen,
+      0.0, (double) sdl->width, xproj, xproj + wproj);
+  double const y2 = bmm_fp_lerp(yscreen,
+      (double) sdl->height, 0.0, yproj, yproj + hproj);
+
+  sdl->rorigin[0] += x2 - xproj - wproj * 0.5;
+  sdl->rorigin[1] += y2 - yproj - hproj * 0.5;
 }
 
 static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
@@ -126,7 +147,7 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
     float const y = (float) sdl->dem.parts[ipart].rpos[1] + 0.5f;
     float const r = (float) sdl->dem.parts[ipart].rrad + 0.1f;
 
-    glSkewedAnnulus(x, y, r, r / 4.0f, r / 2.0f, 0.0f, ncorner);
+    glSkewedAnnulus(x, y, r, r * 0.25f, r * 0.5f, 0.0f, ncorner);
   }
 
   glColor4fv(glWhite);
@@ -135,7 +156,44 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
   SDL_GL_SwapBuffers();
 }
 
+static bool bmm_sdl_video(struct bmm_sdl* const sdl,
+    int const width, int const height) {
+  SDL_VideoInfo const* const info = SDL_GetVideoInfo();
+  if (info == NULL) {
+    BMM_ERR_FWARN(SDL_GetVideoInfo, "SDL error: %s", SDL_GetError());
+
+    return false;
+  }
+
+  int const bpp = info->vfmt->BitsPerPixel;
+  int const flags = SDL_OPENGL | SDL_RESIZABLE;
+  if (SDL_SetVideoMode(width, height, bpp, flags) == NULL) {
+    BMM_ERR_FWARN(SDL_SetVideoMode, "SDL error: %s", SDL_GetError());
+
+    return false;
+  }
+
+  glViewport(0, 0, width, height);
+
+  sdl->width = width;
+  sdl->height = height;
+  sdl->qaspect = (double) width / (double) height;
+
+  return true;
+}
+
+static bool filter(struct bmm_msg_head const* const head, void* const ptr) {
+  return head->type == BMM_MSG_PARTS;
+}
+
 static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
+  if (!bmm_sdl_video(sdl, sdl->width, sdl->height))
+    return false;
+
+  glClearColor4fv(glBlack);
+  glEnable(GL_CULL_FACE);
+  glCullFace(GL_BACK);
+
   Uint32 tnow = SDL_GetTicks();
   Uint32 tnext = tnow + sdl->tstep;
   Uint32 trem = bmm_sdl_trem(tnow, tnext);
@@ -148,74 +206,62 @@ static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
         case SDL_QUIT:
           return true;
         case SDL_VIDEORESIZE:
-          { // TODO Say no to copy-paste.
-          SDL_VideoInfo const* const info = SDL_GetVideoInfo();
-          if (info == NULL) {
-            BMM_ERR_FWARN(SDL_GetVideoInfo, "SDL error: %s", SDL_GetError());
-
+          if (!bmm_sdl_video(sdl, event.resize.w, event.resize.h))
             return false;
-          }
-
-          int const width = event.resize.w;
-          int const height = event.resize.h;
-          int const bpp = info->vfmt->BitsPerPixel;
-          int const flags = SDL_OPENGL | SDL_RESIZABLE;
-          if (SDL_SetVideoMode(width, height, bpp, flags) == NULL) {
-            BMM_ERR_FWARN(SDL_SetVideoMode, "SDL error: %s", SDL_GetError());
-
-            return false;
-          }
-
-          glClearColor4fv(glBlack);
-          glViewport(0, 0, width, height);
-          glEnable(GL_CULL_FACE);
-          glCullFace(GL_BACK);
-
-          sdl->width = (unsigned int) width;
-          sdl->height = (unsigned int) height;
-          sdl->qaspect = (double) width / (double) height;
-          }
           break;
         case SDL_KEYDOWN:
           switch (event.key.keysym.sym) {
             case SDLK_ESCAPE:
             case SDLK_q:
               return true;
-            case SDLK_PLUS:
-            case SDLK_KP_PLUS:
-              sdl->qzoom *= 2.0;
-              break;
             case SDLK_MINUS:
             case SDLK_KP_MINUS:
-              sdl->qzoom *= 0.5;
+              bmm_sdl_zoom(sdl,
+                  (double) sdl->width * 0.5, (double) sdl->height * 0.5, 0.5);
+              break;
+            case SDLK_PLUS:
+            case SDLK_KP_PLUS:
+              bmm_sdl_zoom(sdl,
+                  (double) sdl->width * 0.5, (double) sdl->height * 0.5, 2.0);
               break;
             case SDLK_LEFT:
-              sdl->rorigin[0] -= 0.25;
+              bmm_sdl_move(sdl,
+                  (double) sdl->width * 0.25, (double) sdl->height * 0.5);
               break;
             case SDLK_RIGHT:
-              sdl->rorigin[0] += 0.25;
+              bmm_sdl_move(sdl,
+                  (double) sdl->width * 0.75, (double) sdl->height * 0.5);
               break;
             case SDLK_DOWN:
-              sdl->rorigin[1] -= 0.25;
+              bmm_sdl_move(sdl,
+                  (double) sdl->width * 0.5, (double) sdl->height * 0.75);
               break;
             case SDLK_UP:
-              sdl->rorigin[1] += 0.25;
+              bmm_sdl_move(sdl,
+                  (double) sdl->width * 0.5, (double) sdl->height * 0.25);
               break;
             case SDLK_0:
             case SDLK_KP0:
-              sdl->qzoom = 1.0;
-              sdl->rorigin[0] = 0.0;
-              sdl->rorigin[1] = 0.0;
+              bmm_sdl_reset(sdl);
               break;
           }
           break;
         case SDL_MOUSEBUTTONDOWN:
           switch (event.button.button) {
+            case SDL_BUTTON_LEFT:
+              bmm_sdl_move(sdl,
+                  (double) event.button.x, (double) event.button.y);
+              break;
             case SDL_BUTTON_WHEELDOWN:
-              bmm_sdl_zoom(sdl, event.button.x, event.button.y, 0.5);
+              bmm_sdl_zoom(sdl,
+                  (double) event.button.x, (double) event.button.y, 0.5);
               break;
             case SDL_BUTTON_WHEELUP:
-              bmm_sdl_zoom(sdl, event.button.x, event.button.y, 2.0);
+              bmm_sdl_zoom(sdl,
+                  (double) event.button.x, (double) event.button.y, 2.0);
+              break;
+            case SDL_BUTTON_MIDDLE:
+              bmm_sdl_reset(sdl);
               break;
           }
       }
@@ -228,19 +274,29 @@ static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
     tnow = SDL_GetTicks();
     trem = bmm_sdl_trem(tnow, tnext);
 
+    // TODO Think about this.
+
     // Use the remaining time to wait for input.
+    // If there is no time left,
+    // try to read just one message to prevent congestion.
     struct timeval timeout;
+again:
     bmm_sdl_t_to_timeval(&timeout, trem);
-    struct bmm_head head;
+    struct bmm_msg_head head;
     switch (bmm_io_waitin(&timeout)) {
       case BMM_IO_ERROR:
         return false;
       case BMM_IO_READY:
-        if (bmm_msg_get(&head, &sdl->dem))
+        if (bmm_msg_get(&head, &sdl->dem, filter, NULL))
           sdl->pstale = false;
-        else
+        else {
+          trem = bmm_sdl_t_from_timeval(&timeout);
+          if (trem > 0)
+            goto again;
+        }
+        break;
       case BMM_IO_TIMEOUT:
-          sdl->pstale = true;
+        sdl->pstale = true;
     }
 
     // Recompute the remaining time again after waiting for input
@@ -254,15 +310,7 @@ static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
   }
 }
 
-bool bmm_sdl_run(struct bmm_sdl_opts const* const opts) {
-  bool result = true;
-
-  if (SDL_Init(SDL_INIT_VIDEO) == -1) {
-    BMM_ERR_FWARN(SDL_Init, "SDL error: %s", SDL_GetError());
-
-    goto ret_error;
-  }
-
+static bool bmm_sdl_run_for_real(struct bmm_sdl* const sdl) {
   SDL_WM_SetCaption("BMM", NULL);
 
   if (SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8) == -1 ||
@@ -273,53 +321,36 @@ bool bmm_sdl_run(struct bmm_sdl_opts const* const opts) {
       SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1) == -1) {
     BMM_ERR_FWARN(SDL_GL_SetAttribute, "SDL error: %s", SDL_GetError());
 
-    goto quit_error;
+    return false;
   }
 
-  if (opts->ms > 0)
+  if (sdl->opts.ms > 0)
     if (SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1) == -1 ||
-        SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, (int) opts->ms) == -1) {
+        SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES,
+          (int) sdl->opts.ms) == -1) {
       BMM_ERR_FWARN(SDL_GL_SetAttribute, "SDL error: %s", SDL_GetError());
 
-      goto quit_error;
+      return false;
     }
 
-  SDL_VideoInfo const* const info = SDL_GetVideoInfo();
-  if (info == NULL) {
-    BMM_ERR_FWARN(SDL_GetVideoInfo, "SDL error: %s", SDL_GetError());
+  if (!bmm_sdl_work(sdl))
+    return false;
 
-    goto quit_error;
+  return true;
+}
+
+bool bmm_sdl_run(struct bmm_sdl_opts const* const opts) {
+  if (SDL_Init(SDL_INIT_VIDEO) == -1) {
+    BMM_ERR_FWARN(SDL_Init, "SDL error: %s", SDL_GetError());
+
+    return false;
   }
-
-  int const width = (int) opts->width;
-  int const height = (int) opts->height;
-  int const bpp = info->vfmt->BitsPerPixel;
-  int const flags = SDL_OPENGL | SDL_RESIZABLE;
-  if (SDL_SetVideoMode(width, height, bpp, flags) == NULL) {
-    BMM_ERR_FWARN(SDL_SetVideoMode, "SDL error: %s", SDL_GetError());
-
-    goto quit_error;
-  }
-
-  glClearColor4fv(glBlack);
-  glViewport(0, 0, width, height);
-  glEnable(GL_CULL_FACE);
-  glCullFace(GL_BACK);
 
   struct bmm_sdl sdl;
   bmm_sdl_def(&sdl, opts);
-  if (!bmm_sdl_work(&sdl))
-    goto quit_error;
+  bool const result = bmm_sdl_run_for_real(&sdl);
 
-  goto quit;
-quit_error:
-  result = false;
-quit:
   SDL_Quit();
 
-  goto ret;
-ret_error:
-  result = false;
-ret:
   return result;
 }
