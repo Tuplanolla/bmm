@@ -22,7 +22,7 @@ void bmm_sdl_defopts(struct bmm_sdl_opts* const opts) {
   opts->width = 640;
   opts->height = 480;
   opts->fps = 20;
-  opts->ms = 8;
+  opts->ms = 0;
 }
 
 void bmm_sdl_def(struct bmm_sdl* const sdl,

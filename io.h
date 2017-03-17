@@ -17,6 +17,6 @@ __attribute__ ((__nonnull__))
 enum bmm_io bmm_io_waitin(struct timeval*);
 
 __attribute__ ((__nonnull__))
-size_t bmm_io_fastfw(size_t, size_t, FILE*);
+size_t bmm_io_fastfw(FILE*, size_t);
 
 #endif

@@ -20,22 +20,21 @@ enum bmm_io bmm_io_waitin(struct timeval* const timeout) {
   }
 }
 
-size_t bmm_io_fastfw(size_t const size, size_t const nmemb,
-    FILE* const stream) {
-  size_t nsum = 0;
+size_t bmm_io_fastfw(FILE* const stream, size_t const size) {
+  size_t progress = 0;
 
   unsigned char buf[BUFSIZ];
 
-  while (nsum < nmemb) {
-    size_t const ndiff = nmemb - nsum;
-    size_t const nbuf = ndiff < sizeof buf ? ndiff : sizeof buf;
+  while (progress < size) {
+    size_t const ndiff = size - progress;
+    size_t const nmemb = ndiff < sizeof buf ? ndiff : sizeof buf;
 
-    size_t const nread = fread(buf, size, nbuf, stream);
+    size_t const nread = fread(buf, 1, nmemb, stream);
     if (nread == 0)
       break;
 
-    nsum += nread;
+    progress += nread;
   }
 
-  return nsum;
+  return progress;
 }

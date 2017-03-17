@@ -1,7 +1,8 @@
-#include "opt.h"
 #include "dem.h"
+#include "err.h"
 #include "ext.h"
-#include "str.h"
+#include "opt.h"
+#include "sdl.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -31,6 +32,8 @@ static bool f(char const* const key, char const* const value,
 
 __attribute__ ((__nonnull__))
 int main(int const argc, char** const argv) {
+  bmm_err_reset();
+
   struct bmm_dem_opts opts;
   bmm_dem_defopts(&opts);
   bmm_opt_parse((char const* const*) &argv[1], (size_t) (argc - 1), f, &opts);

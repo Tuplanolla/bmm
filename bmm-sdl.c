@@ -1,5 +1,6 @@
-#include "opt.h"
+#include "err.h"
 #include "ext.h"
+#include "opt.h"
 #include "sdl.h"
 #include "str.h"
 #include <stdbool.h>
@@ -31,6 +32,8 @@ static bool f(char const* const key, char const* const value,
 
 __attribute__ ((__nonnull__))
 int main(int const argc, char** const argv) {
+  bmm_err_reset();
+
   struct bmm_sdl_opts opts;
   bmm_sdl_defopts(&opts);
   bmm_opt_parse((char const* const*) &argv[1], (size_t) (argc - 1), f, &opts);
