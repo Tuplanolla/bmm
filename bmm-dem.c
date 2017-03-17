@@ -3,6 +3,7 @@
 #include "ext.h"
 #include "opt.h"
 #include "sdl.h"
+#include "str.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>

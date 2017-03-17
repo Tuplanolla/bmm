@@ -61,31 +61,25 @@ void bmm_err_fwarn(char const*, char const*,
 // point to the procedure or variable that caused the error.
 //
 // See `bmm_err_warn(ptr)`.
-#define BMM_ERR_WARN(ptr) \
-  (bmm_err_warn(__func__, __FILE__, (size_t) __LINE__, \
-      (ptr) == NULL ? NULL : #ptr)) \
+#define BMM_ERR_WARN(ptr) (bmm_err_warn(__func__, __FILE__, \
+      (size_t) __LINE__, (ptr) == NULL ? NULL : #ptr))
 
 // See `BMM_ERR_WARN(ptr)`.
-#define BMM_ERR_VFWARN(ptr, fmt, ap) \
-  (bmm_err_vfwarn(__func__, __FILE__, (size_t) __LINE__, \
-      (ptr) == NULL ? NULL : #ptr, fmt, ap)) \
+#define BMM_ERR_VFWARN(ptr, fmt, ap) (bmm_err_vfwarn(__func__, __FILE__, \
+      (size_t) __LINE__, (ptr) == NULL ? NULL : #ptr, fmt, ap))
 
 // See `BMM_ERR_VFWARN(ptr)`.
-#define BMM_ERR_FWARN(ptr, ...) \
-  (bmm_err_fwarn(__func__, __FILE__, (size_t) __LINE__, \
-      (ptr) == NULL ? NULL : #ptr, __VA_ARGS__)) \
+#define BMM_ERR_FWARN(ptr, ...) (bmm_err_fwarn(__func__, __FILE__, \
+      (size_t) __LINE__, (ptr) == NULL ? NULL : #ptr, __VA_ARGS__))
 
 // The call `BMM_ERR_ABORT(ptr)` is equivalent
 // to `BMM_ERR_WARN(ptr)` followed by `abort()`.
-#define BMM_ERR_ABORT(ptr) \
-  (BMM_ERR_WARN(ptr), abort()) \
+#define BMM_ERR_ABORT(ptr) (BMM_ERR_WARN(ptr), abort())
 
 // See `BMM_ERR_ABORT`.
-#define BMM_ERR_VFABORT(ptr, fmt, ap) \
-  (BMM_ERR_VFWARN(ptr, fmt, ap), abort()) \
+#define BMM_ERR_VFABORT(ptr, fmt, ap) (BMM_ERR_VFWARN(ptr, fmt, ap), abort())
 
 // See `BMM_ERR_VFABORT`.
-#define BMM_ERR_FABORT(ptr, ...) \
-  (BMM_ERR_FWARN(ptr, __VA_ARGS__), abort()) \
+#define BMM_ERR_FABORT(ptr, ...) (BMM_ERR_FWARN(ptr, __VA_ARGS__), abort())
 
 #endif

@@ -182,7 +182,8 @@ static bool bmm_sdl_video(struct bmm_sdl* const sdl,
   return true;
 }
 
-static bool filter(struct bmm_msg_head const* const head, void* const ptr) {
+static bool filter(struct bmm_msg_head const* const head,
+    __attribute__ ((__unused__)) void* const ptr) {
   return head->type == BMM_MSG_PARTS;
 }
 

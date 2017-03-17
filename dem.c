@@ -53,7 +53,7 @@ void bmm_putparts(struct bmm_dem const* const dem) {
 
 void bmm_pretend(struct bmm_dem* const dem) {
   for (size_t ipart = 0; ipart < BMM_PART_MAX; ++ipart)
-    for (size_t idim = 0; idim < BMM_DIM_MAX; ++idim)
+    for (size_t idim = 0; idim < 2; ++idim)
       dem->parts[ipart].rpos[idim] += (double) (rand() % 256 - 128) * 100e-6;
 }
 
@@ -68,7 +68,7 @@ void bmm_dem_defpart(struct bmm_dem_part* const part) {
   part->rrad = 0.0;
   part->arot = 0.0;
 
-  for (size_t idim = 0; idim < BMM_DIM_MAX; ++idim)
+  for (size_t idim = 0; idim < 2; ++idim)
     part->rpos[idim] = 0.0;
 }
 
@@ -77,7 +77,7 @@ void bmm_dem_def(struct bmm_dem* const dem,
   dem->opts = *opts;
   dem->istep = 0;
 
-  for (size_t idim = 0; idim < BMM_DIM_MAX; ++idim)
+  for (size_t idim = 0; idim < 2; ++idim)
     dem->rexts[idim] = 1.0;
 
   for (size_t ipart = 0; ipart < BMM_PART_MAX; ++ipart)

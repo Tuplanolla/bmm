@@ -17,7 +17,8 @@ static size_t slurp(void* const ptr, size_t const size) {
   return fread(ptr, size, 1, stdin);
 }
 
-static size_t ignore(void* const ptr, size_t const size) {
+static size_t ignore(__attribute__ ((__unused__)) void* const ptr,
+    size_t const size) {
   return bmm_io_fastfw(stdin, size) / size;
 }
 

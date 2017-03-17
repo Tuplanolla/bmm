@@ -199,6 +199,21 @@ However lots of memory and system time may be used.
 
 These things need better explanations.
 
+### Implementation Details
+
+Note that `T xs[N][N]` as indexed with `xs[i][j]`
+has distinctly different memory access characteristics
+from `T xs[N * N]` as indexed with `xs[i * n + j]`.
+The same applies to `T xs[N * N]` and `T* xs[N * N]`.
+Profile the cache behavior of each one to find the optimal solution.
+
+The function `part -> this cell` is trivial arithmetic.
+The function `this cell -> nearby cells` is even more trivial arithmetic.
+The function `cell -> parts` is looked up from `neigh.parts`.
+The function `part -> nearby parts` is the composition of these three and
+works as long as `iparts` does not get stale.
+The results are saved into `neigh.neighs`.
+
 [cfdem]: http://www.cfdem.com/
 [liggghts]: https://github.com/CFDEMproject/LIGGGHTS-PUBLIC
 [uio]: https://www.uio.no/english/services/it/research/hpc/abel/help/software/ESyS-Particle.html
