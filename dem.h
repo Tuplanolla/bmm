@@ -46,7 +46,6 @@ struct bmm_dem_buf {
   struct bmm_dem_part parts[BMM_PART_MAX];
 };
 
-// This structure is large and should be allocated somewhere reasonable.
 struct bmm_dem {
   struct bmm_dem_opts opts;
   size_t istep;

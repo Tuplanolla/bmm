@@ -99,11 +99,37 @@ void bmm_dem_def(struct bmm_dem* const dem,
     bmm_dem_defpart(&buf->parts[ipart]);
 }
 
-bool bmm_dem_run(struct bmm_dem_opts const* const opts) {
-  struct bmm_dem dem;
-  bmm_dem_def(&dem, opts);
-  dem.opts = *opts;
+static bool bmm_dem_run_for_real(struct bmm_dem* const dem) {
+  bmm_putopts(dem);
 
+  // TODO Remove these test messages.
+  for (size_t istep = 0; istep < dem->opts.nstep; ++istep) {
+    bmm_putnop(dem);
+    bmm_pretend(dem);
+    bmm_putparts(dem);
+    // usleep(100000);
+  }
+
+  return true;
+}
+
+static bool bmm_dem_run_now(struct bmm_dem_opts const* const opts) {
+  struct bmm_dem* const dem = malloc(sizeof *dem);
+  if (dem == NULL) {
+    BMM_ERR_WARN(malloc);
+
+    return false;
+  }
+
+  bmm_dem_def(dem, opts);
+  bool const result = bmm_dem_run_for_real(dem);
+
+  free(dem);
+
+  return result;
+}
+
+bool bmm_dem_run(struct bmm_dem_opts const* const opts) {
 #ifdef _GNU_SOURCE
 #ifdef DEBUG
   int const excepts = feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
@@ -112,15 +138,7 @@ bool bmm_dem_run(struct bmm_dem_opts const* const opts) {
 #endif
 #endif
 
-  bmm_putopts(&dem);
-
-  // TODO Remove these test messages.
-  for (size_t istep = 0; istep < dem.opts.nstep; ++istep) {
-    bmm_putnop(&dem);
-    bmm_pretend(&dem);
-    bmm_putparts(&dem);
-    // usleep(100000);
-  }
+  bool const result = bmm_dem_run_now(opts);
 
 #ifdef _GNU_SOURCE
 #ifdef DEBUG
@@ -129,5 +147,5 @@ bool bmm_dem_run(struct bmm_dem_opts const* const opts) {
 #endif
 #endif
 
-  return true;
+  return result;
 }

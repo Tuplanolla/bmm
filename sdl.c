@@ -10,6 +10,7 @@
 #include <SDL/SDL.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <sys/time.h>
 
 extern inline void bmm_sdl_t_to_timeval(struct timeval*, Uint32);
@@ -276,7 +277,7 @@ static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
     tnow = SDL_GetTicks();
     trem = bmm_sdl_trem(tnow, tnext);
 
-    // TODO Think about this.
+    // TODO Think about this and how interrupted half-messages jam everything.
 
     // Use the remaining time to wait for input.
     // If there is no time left,
@@ -341,6 +342,22 @@ static bool bmm_sdl_run_for_real(struct bmm_sdl* const sdl) {
   return true;
 }
 
+static bool bmm_sdl_run_now(struct bmm_sdl_opts const* const opts) {
+  struct bmm_sdl* const sdl = malloc(sizeof *sdl);
+  if (sdl == NULL) {
+    BMM_ERR_WARN(malloc);
+
+    return false;
+  }
+
+  bmm_sdl_def(sdl, opts);
+  bool const result = bmm_sdl_run_for_real(sdl);
+
+  free(sdl);
+
+  return result;
+}
+
 bool bmm_sdl_run(struct bmm_sdl_opts const* const opts) {
   if (SDL_Init(SDL_INIT_VIDEO) == -1) {
     BMM_ERR_FWARN(SDL_Init, "SDL error: %s", SDL_GetError());
@@ -348,9 +365,7 @@ bool bmm_sdl_run(struct bmm_sdl_opts const* const opts) {
     return false;
   }
 
-  struct bmm_sdl sdl;
-  bmm_sdl_def(&sdl, opts);
-  bool const result = bmm_sdl_run_for_real(&sdl);
+  bool const result = bmm_sdl_run_now(opts);
 
   SDL_Quit();
 
