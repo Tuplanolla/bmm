@@ -14,8 +14,11 @@ static bool f(char const* const key, char const* const value,
     void* const ptr) {
   struct bmm_dem_opts* const opts = ptr;
 
-  if (strcmp(key, "ndim") == 0) {
-    if (!bmm_str_strtoz(value, &opts->ndim))
+  if (strcmp(key, "ncellx") == 0) {
+    if (!bmm_str_strtoz(value, &opts->ncell[0]))
+      return false;
+  } else if (strcmp(key, "ncelly") == 0) {
+    if (!bmm_str_strtoz(value, &opts->ncell[1]))
       return false;
   } else if (strcmp(key, "nbin") == 0) {
     if (!bmm_str_strtoz(value, &opts->nbin))
@@ -26,7 +29,8 @@ static bool f(char const* const key, char const* const value,
   } else if (strcmp(key, "nstep") == 0) {
     if (!bmm_str_strtoz(value, &opts->nstep))
       return false;
-  }
+  } else
+    return false;
 
   return true;
 }

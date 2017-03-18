@@ -42,13 +42,16 @@ bool bmm_msg_get(struct bmm_msg_head* const head, struct bmm_dem* const dem,
   switch (head->type) {
     case BMM_MSG_NOP:
       break;
-    case BMM_MSG_NDIM:
-      if (proc(&dem->opts.ndim, sizeof dem->opts.ndim) != 1)
-        BMM_ERR_FWARN(NULL, "Failed to read number of dimensions.");
+    case BMM_MSG_NPART:
+      if (proc(&dem->opts.npart, sizeof dem->opts.npart) != 1)
+        BMM_ERR_FWARN(NULL, "Failed to read number of particles.");
       break;
     case BMM_MSG_PARTS:
-      if (proc(&dem->parts, sizeof dem->parts) != 1)
-        BMM_ERR_FWARN(NULL, "Failed to read particles.");
+      {
+        struct bmm_dem_buf* const buf = bmm_dem_getwbuf(dem);
+        if (proc(&buf->parts, sizeof buf->parts) != 1)
+          BMM_ERR_FWARN(NULL, "Failed to read particles.");
+      }
       break;
     default:
       BMM_ERR_FWARN(NULL, "Unsupported message type.");
@@ -65,13 +68,16 @@ void bmm_msg_put(struct bmm_msg_head const* const head,
   switch (head->type) {
     case BMM_MSG_NOP:
       break;
-    case BMM_MSG_NDIM:
-      if (barf(&dem->opts.ndim, sizeof dem->opts.ndim) != 1)
-        BMM_ERR_FWARN(NULL, "Failed to write number of dimensions.");
+    case BMM_MSG_NPART:
+      if (barf(&dem->opts.npart, sizeof dem->opts.npart) != 1)
+        BMM_ERR_FWARN(NULL, "Failed to write number of particles.");
       break;
     case BMM_MSG_PARTS:
-      if (barf(&dem->parts, sizeof dem->parts) != 1)
-        BMM_ERR_FWARN(NULL, "Failed to write particles.");
+      {
+        struct bmm_dem_buf const* const buf = bmm_dem_getrbuf(dem);
+        if (barf(&buf->parts, sizeof buf->parts) != 1)
+          BMM_ERR_FWARN(NULL, "Failed to write particles.");
+      }
       break;
     default:
       BMM_ERR_FWARN(NULL, "Unsupported message type.");

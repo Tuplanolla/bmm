@@ -35,7 +35,7 @@ void bmm_sdl_def(struct bmm_sdl* const sdl,
   sdl->rorigin[0] = 0.0;
   sdl->rorigin[1] = 0.0;
   sdl->tstep = opts->fps > 1000 ? 1 : (Uint32) (1000 / opts->fps);
-  sdl->pstale = true;
+  sdl->stale = true;
 
   struct bmm_dem_opts defopts;
   bmm_dem_defopts(&defopts);
@@ -138,14 +138,15 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
 
   size_t const ncorner = 32;
 
-  glColor4fv(sdl->pstale ? glRed : glGreen);
+  glColor4fv(sdl->stale ? glRed : glGreen);
   glDisc(0.05f, 0.05f, 0.025f, ncorner);
 
   glColor4fv(glYellow);
+  struct bmm_dem_buf const* const buf = bmm_dem_getrbuf(&sdl->dem);
   for (size_t ipart = 0; ipart < BMM_PART_MAX; ++ipart) {
-    float const x = (float) sdl->dem.parts[ipart].rpos[0] + 0.5f;
-    float const y = (float) sdl->dem.parts[ipart].rpos[1] + 0.5f;
-    float const r = (float) sdl->dem.parts[ipart].rrad + 0.1f;
+    float const x = (float) buf->parts[ipart].rpos[0] + 0.5f;
+    float const y = (float) buf->parts[ipart].rpos[1] + 0.5f;
+    float const r = (float) buf->parts[ipart].rrad + 0.1f;
 
     glSkewedAnnulus(x, y, r, r * 0.25f, r * 0.5f, 0.0f, ncorner);
   }
@@ -289,7 +290,7 @@ again:
         return false;
       case BMM_IO_READY:
         if (bmm_msg_get(&head, &sdl->dem, filter, NULL))
-          sdl->pstale = false;
+          sdl->stale = false;
         else {
           trem = bmm_sdl_t_from_timeval(&timeout);
           if (trem > 0)
@@ -297,7 +298,7 @@ again:
         }
         break;
       case BMM_IO_TIMEOUT:
-        sdl->pstale = true;
+        sdl->stale = true;
     }
 
     // Recompute the remaining time again after waiting for input

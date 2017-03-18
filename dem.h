@@ -8,7 +8,7 @@
 #include <stddef.h>
 
 struct bmm_dem_opts {
-  size_t ndim;
+  size_t ncell[2];
   size_t nbin;
   size_t npart;
   size_t nstep;
@@ -41,6 +41,12 @@ struct bmm_dem_neigh {
   struct bmm_dem_list neighs[BMM_PART_MAX];
 };
 
+struct bmm_dem_buf {
+  struct bmm_dem_neigh neigh;
+  struct bmm_dem_part parts[BMM_PART_MAX];
+};
+
+// This structure is large and should be allocated somewhere reasonable.
 struct bmm_dem {
   struct bmm_dem_opts opts;
   size_t istep;
@@ -51,9 +57,46 @@ struct bmm_dem {
   // TODO Force scheme goes here.
   // TODO Measurement system goes here.
   // TODO Nearest neighbor system goes here.
-  struct bmm_dem_neigh neigh;
-  struct bmm_dem_part parts[BMM_PART_MAX];
+  bool dblbuf;
+  bool _pad0[7];
+  union {
+    struct {
+      struct bmm_dem_buf bufs[2];
+      struct bmm_dem_buf* active;
+      struct bmm_dem_buf* passive;
+    } bufs;
+    struct bmm_dem_buf buf;
+  } data;
 };
+
+// The call `bmm_dem_getrbuf(dem)`
+// returns the active read buffer of the simulation `dem`
+// whether it is single-buffered or double-buffered.
+__attribute__ ((__nonnull__))
+inline struct bmm_dem_buf const* bmm_dem_getrbuf(
+    struct bmm_dem const* const dem) {
+  return dem->dblbuf ? dem->data.bufs.active : &dem->data.buf;
+}
+
+// The call `bmm_dem_getwbuf(dem)`
+// returns the active write buffer of the simulation `dem`
+// whether it is single-buffered or double-buffered.
+__attribute__ ((__nonnull__))
+inline struct bmm_dem_buf* bmm_dem_getwbuf(struct bmm_dem* const dem) {
+  return dem->dblbuf ? dem->data.bufs.active : &dem->data.buf;
+}
+
+// The call `bmm_dem_swapbuf(dem)`
+// swaps the active and passive buffers of the simulation `dem`.
+// This is necessary for operations that are not structure-preserving.
+__attribute__ ((__nonnull__))
+inline void bmm_dem_swapbuf(struct bmm_dem* const dem) {
+  if (dem->dblbuf) {
+    struct bmm_dem_buf* const buf = dem->data.bufs.passive;
+    dem->data.bufs.passive = dem->data.bufs.active;
+    dem->data.bufs.active = buf;
+  }
+}
 
 __attribute__ ((__nonnull__))
 void bmm_dem_defopts(struct bmm_dem_opts*);

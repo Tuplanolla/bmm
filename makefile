@@ -40,7 +40,7 @@ build: bmm-dem bmm-sdl
 
 run: build
 	GSL_RNG_TYPE=mt19937 GSL_RNG_SEED=0 time -v \
-	stdbuf -o 0 ./bmm-dem --ndim 2 --nbin 0 --npart 8 --nstep 120 | \
+	stdbuf -o 0 ./bmm-dem --ncellx 1 --ncelly 1 --nbin 0 --npart 8 --nstep 120 | \
 	stdbuf -i 0 ./bmm-sdl --width 800 --height 600
 
 check: build

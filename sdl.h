@@ -53,7 +53,7 @@ struct bmm_sdl {
   double qzoom;
   double rorigin[2];
   Uint32 tstep;
-  bool pstale;
+  bool stale;
   bool _pad0[3];
   struct bmm_dem dem;
 };

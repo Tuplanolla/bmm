@@ -25,7 +25,7 @@ bool bmm_opt_parse(char const* const* const args, size_t const narg,
       case VALUE:
         if (!f(key, args[iarg], ptr)) {
           BMM_ERR_FWARN(NULL,
-              "Invalid value '%s' for key '%s'.", args[iarg], key);
+              "Invalid key and value pair '%s' and '%s'.", key, args[iarg]);
 
           return false;
         } else {
