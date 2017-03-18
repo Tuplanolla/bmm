@@ -3,8 +3,11 @@
 #include "dem.h"
 #include "err.h"
 #include "msg.h"
+#include "sig.h"
+#include <signal.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdlib.h>
 // TODO Remove this test header.
 #include <unistd.h>
@@ -104,6 +107,18 @@ static bool bmm_dem_run_for_real(struct bmm_dem* const dem) {
 
   // TODO Remove these test messages.
   for (size_t istep = 0; istep < dem->opts.nstep; ++istep) {
+    int signum;
+    if (bmm_sig_use(&signum))
+      switch (signum) {
+        case SIGINT:
+        case SIGQUIT:
+        case SIGTERM:
+        case SIGPIPE:
+          BMM_ERR_FWARN(NULL, "Simulation interrupted");
+
+          return false;
+      }
+
     bmm_putnop(dem);
     bmm_pretend(dem);
     bmm_putparts(dem);
@@ -130,6 +145,13 @@ static bool bmm_dem_run_now(struct bmm_dem_opts const* const opts) {
 }
 
 bool bmm_dem_run(struct bmm_dem_opts const* const opts) {
+  int const sigs[] = {SIGINT, SIGQUIT, SIGTERM, SIGPIPE};
+  if (bmm_sig_register(sigs, sizeof sigs / sizeof *sigs) != SIZE_MAX) {
+    BMM_ERR_WARN(bmm_sig_register);
+
+    return false;
+  }
+
 #ifdef _GNU_SOURCE
 #ifdef DEBUG
   int const excepts = feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);

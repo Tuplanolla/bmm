@@ -13,7 +13,7 @@ bool bmm_opt_parse(char const* const* const args, size_t const narg,
     switch (state) {
       case KEY:
         if (strncmp(args[iarg], "--", 2) != 0) {
-          BMM_ERR_FWARN(NULL, "Invalid key '%s'.", args[iarg]);
+          BMM_ERR_FWARN(NULL, "Invalid key '%s'", args[iarg]);
 
           return false;
         } else {
@@ -24,8 +24,8 @@ bool bmm_opt_parse(char const* const* const args, size_t const narg,
         }
       case VALUE:
         if (!f(key, args[iarg], ptr)) {
-          BMM_ERR_FWARN(NULL,
-              "Invalid key and value pair '%s' and '%s'.", key, args[iarg]);
+          BMM_ERR_FWARN(NULL, "Invalid key '%s' and value '%s'",
+              key, args[iarg]);
 
           return false;
         } else {
@@ -39,7 +39,7 @@ bool bmm_opt_parse(char const* const* const args, size_t const narg,
     case KEY:
       return true;
     case VALUE:
-      BMM_ERR_FWARN(NULL, "No value for key '%s'.", args[narg - 1]);
+      BMM_ERR_FWARN(NULL, "No value for key '%s'", args[narg - 1]);
 
       return false;
   }

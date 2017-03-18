@@ -32,7 +32,7 @@ bool bmm_msg_get(struct bmm_msg_head* const head, struct bmm_dem* const dem,
     if (feof(stdin) != 0)
       return false;
 
-    BMM_ERR_FWARN(NULL, "Failed to read message header.");
+    BMM_ERR_FWARN(NULL, "Failed to read message header");
   }
 
   bool const p = f(head, ptr);
@@ -44,17 +44,17 @@ bool bmm_msg_get(struct bmm_msg_head* const head, struct bmm_dem* const dem,
       break;
     case BMM_MSG_NPART:
       if (proc(&dem->opts.npart, sizeof dem->opts.npart) != 1)
-        BMM_ERR_FWARN(NULL, "Failed to read number of particles.");
+        BMM_ERR_FWARN(NULL, "Failed to read number of particles");
       break;
     case BMM_MSG_PARTS:
       {
         struct bmm_dem_buf* const buf = bmm_dem_getwbuf(dem);
         if (proc(&buf->parts, sizeof buf->parts) != 1)
-          BMM_ERR_FWARN(NULL, "Failed to read particles.");
+          BMM_ERR_FWARN(NULL, "Failed to read particles");
       }
       break;
     default:
-      BMM_ERR_FWARN(NULL, "Unsupported message type.");
+      BMM_ERR_FWARN(NULL, "Unsupported message type");
   }
 
   return p;
@@ -63,27 +63,27 @@ bool bmm_msg_get(struct bmm_msg_head* const head, struct bmm_dem* const dem,
 void bmm_msg_put(struct bmm_msg_head const* const head,
     struct bmm_dem const* const dem) {
   if (barf(head, sizeof *head) != 1)
-    BMM_ERR_FWARN(NULL, "Failed to write message header.");
+    BMM_ERR_FWARN(NULL, "Failed to write message header");
 
   switch (head->type) {
     case BMM_MSG_NOP:
       break;
     case BMM_MSG_NPART:
       if (barf(&dem->opts.npart, sizeof dem->opts.npart) != 1)
-        BMM_ERR_FWARN(NULL, "Failed to write number of particles.");
+        BMM_ERR_FWARN(NULL, "Failed to write number of particles");
       break;
     case BMM_MSG_PARTS:
       {
         struct bmm_dem_buf const* const buf = bmm_dem_getrbuf(dem);
         if (barf(&buf->parts, sizeof buf->parts) != 1)
-          BMM_ERR_FWARN(NULL, "Failed to write particles.");
+          BMM_ERR_FWARN(NULL, "Failed to write particles");
       }
       break;
     default:
-      BMM_ERR_FWARN(NULL, "Unsupported message type.");
+      BMM_ERR_FWARN(NULL, "Unsupported message type");
   }
 
   if (bmm_bit_test(head->type, BMM_FBIT_FLUSH))
     if (fflush(stdout) == EOF)
-      BMM_ERR_FWARN(NULL, "Failed to flush output stream.");
+      BMM_ERR_FWARN(NULL, "Failed to flush output stream");
 }
