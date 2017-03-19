@@ -145,8 +145,8 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
   glColor4fv(glYellow);
   struct bmm_dem_buf const* const rbuf = bmm_dem_getrbuf(&sdl->dem);
   for (size_t ipart = 0; ipart < sdl->dem.opts.npart; ++ipart) {
-    float const x = (float) rbuf->parts[ipart].lin.r[0] + 0.5f;
-    float const y = (float) rbuf->parts[ipart].lin.r[1] + 0.5f;
+    float const x = (float) rbuf->parts[ipart].lin.r[0];
+    float const y = (float) rbuf->parts[ipart].lin.r[1];
     float const r = (float) rbuf->parts[ipart].rrad;
 
     glSkewedAnnulus(x, y, r, r * 0.25f, r * 0.5f, 0.0f, ncorner);

@@ -1,3 +1,4 @@
+// Synchronous signal handling.
 #ifndef BMM_SIG_H
 #define BMM_SIG_H
 

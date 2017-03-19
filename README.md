@@ -156,7 +156,8 @@ The following table lists the options for `bmm-dem`.
 
 | Option | Meaning
 |:-------|:--------
-| `--ndim` | Number of dimensions (at most `BMM_DIM_MAX`).
+| `--ncellx` | Number of horizontal cells (at most `BMM_CELL_MAX`).
+| `--ncelly` | Number of vertical cells (at most `BMM_CELL_MAX`).
 | `--nbin` | Number of histogram bins (at most `BMM_BIN_MAX`).
 | `--npart` | Number of particles (at most `BMM_PART_MAX`).
 | `--nstep` | Number of simulation steps (at most `BMM_STEP_MAX`).
@@ -201,6 +202,10 @@ These things need better explanations.
 
 ### Implementation Details
 
+Here be notes.
+
+#### Allocation
+
 Note that `T xs[N][N]` as indexed with `xs[i][j]`
 has distinctly different memory access characteristics
 from `T xs[N * N]` as indexed with `xs[i * n + j]`.
@@ -213,6 +218,19 @@ The function `cell -> parts` is looked up from `neigh.parts`.
 The function `part -> nearby parts` is the composition of these three and
 works as long as `iparts` does not get stale.
 The results are saved into `neigh.neighs`.
+
+#### Double Buffering
+
+Some numerical operations need a copy of the universe.
+This is provided via double buffering,
+but operations that rely on it are obliged to copy the entire universe over
+to guarantee no stale data is left behind when the buffers are swapped.
+
+#### Critical Failure
+
+In case a message writer dies in the middle of a message,
+the receiver has no way to detect and correct for this.
+This is by design.
 
 [cfdem]: http://www.cfdem.com/
 [liggghts]: https://github.com/CFDEMproject/LIGGGHTS-PUBLIC

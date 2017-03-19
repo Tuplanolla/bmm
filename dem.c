@@ -134,8 +134,12 @@ void bmm_dem_euler(struct bmm_dem* const dem) {
     for (size_t idim = 0; idim < 2; ++idim) {
       double const a = rbuf->parts[ipart].lin.f[idim] / rbuf->parts[ipart].mass;
 
-      wbuf->parts[ipart].lin.r[idim] += rbuf->parts[ipart].lin.v[idim] * dt;
+      // wbuf->parts[ipart].lin.r[idim] += rbuf->parts[ipart].lin.v[idim] * dt;
       wbuf->parts[ipart].lin.v[idim] += a * dt;
+
+      wbuf->parts[ipart].lin.r[idim] = bmm_fp_uwrap(
+          wbuf->parts[ipart].lin.r[idim] +
+          rbuf->parts[ipart].lin.v[idim] * dt, dem->rexts[idim]);
     }
 
   bmm_dem_swapbuf(dem);
@@ -183,7 +187,7 @@ void bmm_dem_defopts(struct bmm_dem_opts* const opts) {
   opts->nbin = 1;
   // opts->npart = 0;
   opts->npart = 8;
-  opts->nstep = 60;
+  opts->nstep = 600;
 }
 
 static void bmm_pretend(struct bmm_dem* const dem) {
@@ -203,7 +207,7 @@ void bmm_dem_defpart(struct bmm_dem_part* const part) {
   part->ang.tau = 0.0;
 
   for (size_t idim = 0; idim < 2; ++idim) {
-    part->lin.r[idim] = 0.0;
+    part->lin.r[idim] = 0.5;
     part->lin.v[idim] = 0.0;
     part->lin.f[idim] = 0.0;
   }
