@@ -18,10 +18,24 @@ struct bmm_dem_opts {
   size_t rstd;
 };
 
+// A terrible name for constant particle data.
+struct bmm_dem_partc {
+  double mass;
+};
+
 struct bmm_dem_part {
   double rrad;
-  double arot;
-  double rpos[2];
+  double mass; // TODO No!
+  struct {
+    double r[2];
+    double v[2];
+    double f[2];
+  } lin;
+  struct {
+    double alpha;
+    double omega;
+    double tau;
+  } ang;
 };
 
 struct bmm_dem_list {
@@ -43,17 +57,20 @@ struct bmm_dem_neigh {
 
 struct bmm_dem_buf {
   struct bmm_dem_neigh neigh;
+  struct bmm_dem_partc partcs[BMM_PART_MAX];
   struct bmm_dem_part parts[BMM_PART_MAX];
 };
 
 struct bmm_dem {
   struct bmm_dem_opts opts;
   size_t istep;
+  double tstep;
   double rexts[2];
   // TODO Initial value system goes here.
+  // TODO Force scheme goes here.
+  void (* forcesch)(struct bmm_dem*);
   // TODO Integration scheme goes here.
   void (* intsch)(struct bmm_dem*);
-  // TODO Force scheme goes here.
   // TODO Measurement system goes here.
   // TODO Nearest neighbor system goes here.
   bool dblbuf;
@@ -68,6 +85,14 @@ struct bmm_dem {
   } data;
 };
 
+// The call `bmm_dem_getbuf(dem)`
+// returns the active read and write buffer of the simulation `dem`
+// whether it is single-buffered or double-buffered.
+__attribute__ ((__nonnull__))
+inline struct bmm_dem_buf* bmm_dem_getbuf(struct bmm_dem* const dem) {
+  return dem->dblbuf ? dem->data.bufs.active : &dem->data.buf;
+}
+
 // The call `bmm_dem_getrbuf(dem)`
 // returns the active read buffer of the simulation `dem`
 // whether it is single-buffered or double-buffered.
@@ -78,11 +103,11 @@ inline struct bmm_dem_buf const* bmm_dem_getrbuf(
 }
 
 // The call `bmm_dem_getwbuf(dem)`
-// returns the active write buffer of the simulation `dem`
+// returns the passive write buffer of the simulation `dem`
 // whether it is single-buffered or double-buffered.
 __attribute__ ((__nonnull__))
 inline struct bmm_dem_buf* bmm_dem_getwbuf(struct bmm_dem* const dem) {
-  return dem->dblbuf ? dem->data.bufs.active : &dem->data.buf;
+  return dem->dblbuf ? dem->data.bufs.passive : &dem->data.buf;
 }
 
 // The call `bmm_dem_swapbuf(dem)`

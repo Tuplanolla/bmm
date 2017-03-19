@@ -137,17 +137,17 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
 
-  size_t const ncorner = 32;
+  size_t const ncorner = 16;
 
   glColor4fv(sdl->stale ? glRed : glGreen);
   glDisc(0.05f, 0.05f, 0.025f, ncorner);
 
   glColor4fv(glYellow);
-  struct bmm_dem_buf const* const buf = bmm_dem_getrbuf(&sdl->dem);
-  for (size_t ipart = 0; ipart < BMM_PART_MAX; ++ipart) {
-    float const x = (float) buf->parts[ipart].rpos[0] + 0.5f;
-    float const y = (float) buf->parts[ipart].rpos[1] + 0.5f;
-    float const r = (float) buf->parts[ipart].rrad + 0.1f;
+  struct bmm_dem_buf const* const rbuf = bmm_dem_getrbuf(&sdl->dem);
+  for (size_t ipart = 0; ipart < sdl->dem.opts.npart; ++ipart) {
+    float const x = (float) rbuf->parts[ipart].lin.r[0] + 0.5f;
+    float const y = (float) rbuf->parts[ipart].lin.r[1] + 0.5f;
+    float const r = (float) rbuf->parts[ipart].rrad;
 
     glSkewedAnnulus(x, y, r, r * 0.25f, r * 0.5f, 0.0f, ncorner);
   }

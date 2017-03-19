@@ -40,15 +40,15 @@ build: bmm-dem bmm-sdl
 
 run: build
 	GSL_RNG_TYPE=mt19937 GSL_RNG_SEED=0 time -v \
-	stdbuf -o 0 ./bmm-dem --ncellx 1 --ncelly 1 --nbin 0 --npart 8 --nstep 120 | \
-	stdbuf -i 0 ./bmm-sdl --width 800 --height 600
+	stdbuf -o 0 ./bmm-dem | \
+	stdbuf -i 0 ./bmm-sdl
 
 start-server: bmm-sdl
 	mkfifo bmm.fifo
 	./bmm-sdl < bmm.fifo &
 
 run-client: bmm-dem bmm.fifo
-	./bmm-dem --npart 8 --nstep 120 > bmm.fifo
+	./bmm-dem > bmm.fifo
 
 stop-server: bmm.fifo
 	$(RM) bmm.fifo
@@ -58,7 +58,7 @@ check: build
 	valgrind --leak-check=full --tool=memcheck ./bmm-dem
 
 deep-clean: clean
-	$(RM) run-*
+	$(RM) *.run
 
 clean: shallow-clean
 	$(RM) bmm-dem bmm-sdl
@@ -67,11 +67,11 @@ shallow-clean:
 	$(RM) *.gch *.o
 
 bmm-dem: bmm-dem.o \
-	bit.o dem.o err.o io.o msg.o opt.o sec.o sig.o str.o
+	bit.o dem.o err.o fp.o io.o msg.o opt.o sec.o sig.o size.o str.o
 	$(CC) $(CFLAGS) $(CFLAGSGSL) -o $@ $^ $(LDLIBS) $(LDLIBSGSL)
 
 bmm-sdl: bmm-sdl.o \
-	bit.o dem.o err.o fp.o gl.o io.o msg.o opt.o sdl.o sec.o sig.o str.o
+	bit.o dem.o err.o fp.o gl.o io.o msg.o opt.o sdl.o sec.o sig.o size.o str.o
 	$(CC) $(CFLAGS) $(CFLAGSSDL) -o $@ $^ $(LDLIBS) $(LDLIBSSDL)
 
 %.o: %.c *.h
