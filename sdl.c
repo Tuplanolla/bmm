@@ -277,7 +277,7 @@ static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
     tnow = SDL_GetTicks();
     trem = bmm_sdl_trem(tnow, tnext);
 
-    // TODO Think about this and how interrupted half-messages jam everything.
+    // TODO Think about a better way to express this thing.
 
     // Use the remaining time to wait for input.
     // If there is no time left,
@@ -296,6 +296,8 @@ again:
           trem = bmm_sdl_t_from_timeval(&timeout);
           if (trem > 0)
             goto again;
+          else
+            sdl->stale = true;
         }
         break;
       case BMM_IO_TIMEOUT:
