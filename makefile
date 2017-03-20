@@ -33,8 +33,8 @@ CFLAGS=-D_POSIX_C_SOURCE=200809L -std=c11 $(flags)
 LDLIBS=-lm -lrt
 CFLAGSGSL=`pkg-config --cflags gsl`
 LDLIBSGSL=`pkg-config --libs gsl`
-CFLAGSSDL=`pkg-config --cflags gl --libs sdl`
-LDLIBSSDL=`pkg-config --libs gl --libs sdl`
+CFLAGSSDL=`pkg-config --cflags gl freeglut sdl`
+LDLIBSSDL=`pkg-config --libs gl freeglut sdl`
 
 build: bmm-dem bmm-sdl
 

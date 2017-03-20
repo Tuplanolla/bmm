@@ -132,6 +132,12 @@ __attribute__ ((__nonnull__))
 void bmm_dem_def(struct bmm_dem*, struct bmm_dem_opts const*);
 
 __attribute__ ((__nonnull__))
+double bmm_dem_kine(struct bmm_dem const*);
+
+__attribute__ ((__nonnull__))
+double bmm_dem_momentum(struct bmm_dem const*);
+
+__attribute__ ((__nonnull__))
 bool bmm_dem_run(struct bmm_dem_opts const*);
 
 #endif

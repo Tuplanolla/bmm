@@ -121,6 +121,7 @@ static double bmm_dem_pangle(double const* const r0, double const* const r1,
   return atan2(dr[1], dr[0]);
 }
 
+// Fake repulsive force.
 void bmm_dem_fakef(struct bmm_dem* const dem) {
   struct bmm_dem_buf* const buf = bmm_dem_getbuf(dem);
 
@@ -176,7 +177,8 @@ void bmm_dem_euler(struct bmm_dem* const dem) {
   bmm_dem_swapbuf(dem);
 }
 
-static double bmm_dem_kine(struct bmm_dem const* const dem) {
+// Total kinetic energy estimator.
+double bmm_dem_kine(struct bmm_dem const* const dem) {
   double e = 0.0;
 
   struct bmm_dem_buf const* const rbuf = bmm_dem_getrbuf(dem);
@@ -187,6 +189,22 @@ static double bmm_dem_kine(struct bmm_dem const* const dem) {
   // TODO No!
 
   return e * 0.5;
+}
+
+// Total momentum estimator.
+double bmm_dem_momentum(struct bmm_dem const* const dem) {
+  double p[2];
+  for (size_t idim = 0; idim < 2; ++idim)
+    p[idim] = 0.0;
+
+  struct bmm_dem_buf const* const rbuf = bmm_dem_getrbuf(dem);
+
+  for (size_t ipart = 0; ipart < dem->opts.npart; ++ipart)
+    for (size_t idim = 0; idim < 2; ++idim)
+      p[idim] += rbuf->parts[ipart].mass * rbuf->parts[ipart].lin.v[idim];
+  // TODO No!
+
+  return sqrt(bmm_dem_norm2(p));
 }
 
 void bmm_dem_defopts(struct bmm_dem_opts* const opts) {
@@ -294,7 +312,9 @@ static bool bmm_dem_comm(struct bmm_dem* const dem) {
   bmm_putnop(dem);
   bmm_putparts(dem);
 
+  // TODO These should go via messages.
   // fprintf(stderr, "%f\n", bmm_dem_kine(dem));
+  // fprintf(stderr, "%f\n", bmm_dem_momentum(dem));
 
   return true;
 }

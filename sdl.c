@@ -7,6 +7,7 @@
 #include "msg.h"
 #include "sdl.h"
 #include <GL/gl.h>
+#include <GL/glut.h>
 #include <SDL/SDL.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -18,6 +19,14 @@ extern inline void bmm_sdl_t_to_timeval(struct timeval*, Uint32);
 extern inline Uint32 bmm_sdl_t_from_timeval(struct timeval const*);
 
 extern inline Uint32 bmm_sdl_trem(Uint32, Uint32);
+
+void glString(char const* str, int const x, int const y,
+    float const* const color, void* font) {
+  glColor4fv(color);
+  glRasterPos2i(x, y);
+  while (*str != '\0')
+    glutBitmapCharacter(font, *str++);
+}
 
 void bmm_sdl_defopts(struct bmm_sdl_opts* const opts) {
   opts->width = 640;
@@ -154,6 +163,17 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
 
   glColor4fv(glWhite);
   glRectWire(0.0f, 0.0f, (float) sdl->dem.rexts[0], (float) sdl->dem.rexts[1]);
+
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+  glOrtho(0.0, sdl->width, sdl->height, 0.0, -1.0, 1.0);
+
+  // TODO These should come via messages.
+  char buf[BUFSIZ];
+  (void) snprintf(buf, sizeof buf, "K (kinetic energy) = %g", bmm_dem_kine(&sdl->dem));
+  glString(buf, 8, 8 + 15, glWhite, GLUT_BITMAP_9_BY_15);
+  (void) snprintf(buf, sizeof buf, "p (total momentum) = %g", bmm_dem_momentum(&sdl->dem));
+  glString(buf, 8, 8 + 15 * 2, glWhite, GLUT_BITMAP_9_BY_15);
 
   SDL_GL_SwapBuffers();
 }
@@ -337,6 +357,11 @@ static bool bmm_sdl_run_for_real(struct bmm_sdl* const sdl) {
 
       return false;
     }
+
+  // TODO This is a bad idea and should not even work.
+  int foo = 1;
+  char* bar[] = {""};
+  glutInit(&foo, bar);
 
   if (!bmm_sdl_work(sdl))
     return false;
