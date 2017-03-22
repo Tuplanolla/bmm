@@ -16,4 +16,10 @@ bool bmm_str_strtou(char const*, unsigned int*);
 __attribute__ ((__nonnull__ (1)))
 bool bmm_str_strtoz(char const*, size_t*);
 
+// The call `bmm_str_strtod(str, ptr)`
+// parses a floating-point number from the string `str` and
+// saves it into `ptr`.
+__attribute__ ((__nonnull__ (1)))
+bool bmm_str_strtod(char const*, double*);
+
 #endif

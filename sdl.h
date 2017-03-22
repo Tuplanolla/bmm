@@ -43,6 +43,7 @@ struct bmm_sdl_opts {
   unsigned int height;
   unsigned int fps;
   unsigned int ms;
+  double zoomfac;
 };
 
 struct bmm_sdl {

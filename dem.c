@@ -162,7 +162,7 @@ void bmm_dem_euler(struct bmm_dem* const dem) {
 
   double const dt = dem->tstep;
 
-  for (size_t ipart = 0; ipart < dem->opts.npart; ++ipart)
+  for (size_t ipart = 0; ipart < dem->opts.npart; ++ipart) {
     for (size_t idim = 0; idim < 2; ++idim) {
       double const a = rbuf->parts[ipart].lin.f[idim] / rbuf->parts[ipart].mass;
 
@@ -174,11 +174,21 @@ void bmm_dem_euler(struct bmm_dem* const dem) {
           rbuf->parts[ipart].lin.v[idim] * dt, dem->rexts[idim]);
     }
 
+    // TODO This is bogus (needs to be the moment of inertia).
+    double const a = rbuf->parts[ipart].ang.tau / rbuf->parts[ipart].mass;
+
+    wbuf->parts[ipart].ang.omega += a * dt;
+
+    wbuf->parts[ipart].ang.alpha = bmm_fp_uwrap(
+        wbuf->parts[ipart].ang.alpha +
+        rbuf->parts[ipart].ang.omega * dt, M_2PI);
+  }
+
   bmm_dem_swapbuf(dem);
 }
 
 // Total kinetic energy estimator.
-double bmm_dem_kine(struct bmm_dem const* const dem) {
+double bmm_dem_ekinetic(struct bmm_dem const* const dem) {
   double e = 0.0;
 
   struct bmm_dem_buf const* const rbuf = bmm_dem_getrbuf(dem);
@@ -192,7 +202,7 @@ double bmm_dem_kine(struct bmm_dem const* const dem) {
 }
 
 // Total momentum estimator.
-double bmm_dem_momentum(struct bmm_dem const* const dem) {
+double bmm_dem_pvector(struct bmm_dem const* const dem) {
   double p[2];
   for (size_t idim = 0; idim < 2; ++idim)
     p[idim] = 0.0;
@@ -207,25 +217,46 @@ double bmm_dem_momentum(struct bmm_dem const* const dem) {
   return sqrt(bmm_dem_norm2(p));
 }
 
+// Individual momentum estimator.
+double bmm_dem_pscalar(struct bmm_dem const* const dem) {
+  double p = 0.0;
+
+  struct bmm_dem_buf const* const rbuf = bmm_dem_getrbuf(dem);
+
+  for (size_t ipart = 0; ipart < dem->opts.npart; ++ipart)
+    p += rbuf->parts[ipart].mass * sqrt(bmm_dem_norm2(
+          rbuf->parts[ipart].lin.v));
+  // TODO No!
+
+  return p;
+}
+
 void bmm_dem_defopts(struct bmm_dem_opts* const opts) {
-  opts->ncell[0] = 1;
-  opts->ncell[1] = 1;
+  opts->ncell[0] = 4;
+  opts->ncell[1] = 4;
   opts->nbin = 1;
   // opts->npart = 0;
-  opts->npart = 8;
-  opts->nstep = 200;
+  opts->npart = 256;
+  opts->nstep = 2000;
 }
 
 static void bmm_pretend(struct bmm_dem* const dem) {
   struct bmm_dem_buf* const buf = bmm_dem_getbuf(dem);
 
-  for (size_t ipart = 0; ipart < dem->opts.npart; ++ipart)
+  for (size_t ipart = 0; ipart < dem->opts.npart; ++ipart) {
     for (size_t idim = 0; idim < 2; ++idim)
-      buf->parts[ipart].lin.r[idim] += (double) (rand() % 256 - 128) * 8e-3;
+      buf->parts[ipart].lin.r[idim] = bmm_fp_uwrap(
+          (double) (rand() % 256 - 128) / 128.0,
+          dem->rexts[idim]);
+
+    buf->parts[ipart].ang.alpha = M_2PI * bmm_fp_uwrap(
+          (double) (rand() % 256 - 128) / 128.0, 1.0);
+    buf->parts[ipart].ang.omega = (double) (rand() % 256 - 128) / 128.0;
+  }
 }
 
 void bmm_dem_defpart(struct bmm_dem_part* const part) {
-  part->rrad = 0.1;
+  part->rrad = 0.0125;
   part->mass = 1.0; // TODO No!
 
   part->ang.alpha = 0.0;
@@ -313,8 +344,11 @@ static bool bmm_dem_comm(struct bmm_dem* const dem) {
   bmm_putparts(dem);
 
   // TODO These should go via messages.
-  // fprintf(stderr, "%f\n", bmm_dem_kine(dem));
-  // fprintf(stderr, "%f\n", bmm_dem_momentum(dem));
+  dem->est.ekinetic = bmm_dem_ekinetic(dem);
+  dem->est.pvector = bmm_dem_pvector(dem);
+  dem->est.pscalar = bmm_dem_pscalar(dem);
+  // fprintf(stderr, "%f\n", bmm_dem_ekinetic(dem));
+  // fprintf(stderr, "%f\n", bmm_dem_pvector(dem));
 
   return true;
 }

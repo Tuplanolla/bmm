@@ -7,6 +7,12 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+struct bmm_dem_est {
+  double ekinetic;
+  double pvector;
+  double pscalar;
+};
+
 struct bmm_dem_opts {
   size_t ncell[2];
   size_t nbin;
@@ -72,6 +78,7 @@ struct bmm_dem {
   // TODO Integration scheme goes here.
   void (* intsch)(struct bmm_dem*);
   // TODO Measurement system goes here.
+  struct bmm_dem_est est;
   // TODO Nearest neighbor system goes here.
   bool dblbuf;
   bool _pad0[7];
@@ -132,10 +139,13 @@ __attribute__ ((__nonnull__))
 void bmm_dem_def(struct bmm_dem*, struct bmm_dem_opts const*);
 
 __attribute__ ((__nonnull__))
-double bmm_dem_kine(struct bmm_dem const*);
+double bmm_dem_ekinetic(struct bmm_dem const*);
 
 __attribute__ ((__nonnull__))
-double bmm_dem_momentum(struct bmm_dem const*);
+double bmm_dem_pvector(struct bmm_dem const*);
+
+__attribute__ ((__nonnull__))
+double bmm_dem_pscalar(struct bmm_dem const*);
 
 __attribute__ ((__nonnull__))
 bool bmm_dem_run(struct bmm_dem_opts const*);

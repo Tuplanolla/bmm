@@ -36,3 +36,20 @@ bool bmm_str_strtoz(char const* const str, size_t* const ptr) {
     return true;
   }
 }
+
+bool bmm_str_strtod(char const* const str, double* const ptr) {
+  char* endptr;
+  errno = 0;
+  double const x = strtod(str, &endptr);
+  if (errno != 0 || endptr[0] != '\0') {
+    BMM_ERR_FWARN(strtod,
+        "Cannot parse '%s' as a floating-point number", str);
+
+    return false;
+  } else {
+    if (ptr != NULL)
+      *ptr = (double) x;
+
+    return true;
+  }
+}

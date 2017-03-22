@@ -33,6 +33,7 @@ void bmm_sdl_defopts(struct bmm_sdl_opts* const opts) {
   opts->height = 480;
   opts->fps = 20;
   opts->ms = 0;
+  opts->zoomfac = 1.5;
 }
 
 void bmm_sdl_def(struct bmm_sdl* const sdl,
@@ -148,32 +149,52 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
 
   size_t const ncorner = 16;
 
-  glColor4fv(sdl->stale ? glRed : glGreen);
-  glDisc(0.05f, 0.05f, 0.025f, ncorner);
-
+  // Particles.
   glColor4fv(glYellow);
   struct bmm_dem_buf const* const rbuf = bmm_dem_getrbuf(&sdl->dem);
   for (size_t ipart = 0; ipart < sdl->dem.opts.npart; ++ipart) {
     float const x = (float) rbuf->parts[ipart].lin.r[0];
     float const y = (float) rbuf->parts[ipart].lin.r[1];
     float const r = (float) rbuf->parts[ipart].rrad;
+    float const a = (float) rbuf->parts[ipart].ang.alpha;
 
-    glSkewedAnnulus(x, y, r, r * 0.25f, r * 0.5f, 0.0f, ncorner);
+    glSkewedAnnulus(x, y, r, r * 0.25f, r * 0.5f, a, ncorner);
   }
 
+  // Staleness indicator.
+  glColor4fv(sdl->stale ? glRed : glGreen);
+  glDisc(0.05f, 0.05f, 0.025f, ncorner);
+
+  // Cell boxes.
+  double const w = sdl->dem.rexts[0] / sdl->dem.opts.ncell[0];
+  double const h = sdl->dem.rexts[1] / sdl->dem.opts.ncell[1];
+
+  glColor4fv(glCyan);
+  for (size_t icellx = 0; icellx < sdl->dem.opts.ncell[0]; ++icellx)
+    for (size_t icelly = 0; icelly < sdl->dem.opts.ncell[1]; ++icelly) {
+      double const x = (double) icellx * w;
+      double const y = (double) icelly * h;
+
+      glRectWire((float) x, (float) y, (float) w, (float) h);
+    }
+
+  // Bounding box.
   glColor4fv(glWhite);
   glRectWire(0.0f, 0.0f, (float) sdl->dem.rexts[0], (float) sdl->dem.rexts[1]);
 
+  // Diagnostic text.
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
   glOrtho(0.0, sdl->width, sdl->height, 0.0, -1.0, 1.0);
 
   // TODO These should come via messages.
   char buf[BUFSIZ];
-  (void) snprintf(buf, sizeof buf, "K (kinetic energy) = %g", bmm_dem_kine(&sdl->dem));
+  (void) snprintf(buf, sizeof buf, "K (kinetic energy) = %g", bmm_dem_ekinetic(&sdl->dem));
   glString(buf, 8, 8 + 15, glWhite, GLUT_BITMAP_9_BY_15);
-  (void) snprintf(buf, sizeof buf, "p (total momentum) = %g", bmm_dem_momentum(&sdl->dem));
+  (void) snprintf(buf, sizeof buf, "p (total vector momentum) = %g", bmm_dem_pvector(&sdl->dem));
   glString(buf, 8, 8 + 15 * 2, glWhite, GLUT_BITMAP_9_BY_15);
+  (void) snprintf(buf, sizeof buf, "p (total scalar momentum) = %g", bmm_dem_pscalar(&sdl->dem));
+  glString(buf, 8, 8 + 15 * 3, glWhite, GLUT_BITMAP_9_BY_15);
 
   SDL_GL_SwapBuffers();
 }
@@ -277,11 +298,13 @@ static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
               break;
             case SDL_BUTTON_WHEELDOWN:
               bmm_sdl_zoom(sdl,
-                  (double) event.button.x, (double) event.button.y, 0.5);
+                  (double) event.button.x, (double) event.button.y,
+                  1.0 / sdl->opts.zoomfac);
               break;
             case SDL_BUTTON_WHEELUP:
               bmm_sdl_zoom(sdl,
-                  (double) event.button.x, (double) event.button.y, 2.0);
+                  (double) event.button.x, (double) event.button.y,
+                  sdl->opts.zoomfac);
               break;
             case SDL_BUTTON_MIDDLE:
               bmm_sdl_reset(sdl);
@@ -359,9 +382,10 @@ static bool bmm_sdl_run_for_real(struct bmm_sdl* const sdl) {
     }
 
   // TODO This is a bad idea and should not even work.
-  int foo = 1;
-  char* bar[] = {""};
-  glutInit(&foo, bar);
+  int argc = 1;
+  char arg[] = "";
+  char* argv[] = {arg};
+  glutInit(&argc, argv);
 
   if (!bmm_sdl_work(sdl))
     return false;

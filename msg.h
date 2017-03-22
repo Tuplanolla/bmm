@@ -22,7 +22,11 @@ enum bmm_msg {
   BMM_MSG_NOP = 0x0,
   BMM_MSG_NPART = 0x42,
   BMM_MSG_NSTEP = 0x43,
-  BMM_MSG_PARTS = 0x44
+  BMM_MSG_PARTS = 0x44,
+  BMM_MSG_EKINE = 0x45,
+  BMM_MSG_ESMOM = 0x46,
+  BMM_MSG_EVMOM = 0x47,
+  BMM_MSG_URGH = 0x80
 };
 
 __attribute__ ((__nonnull__))
