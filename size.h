@@ -76,7 +76,7 @@ inline size_t bmm_size_identity(size_t const n) {
 // The call `bmm_size_constant(n, k)` returns `n`.
 // This is analogous to `bmm_fp_constant`.
 __attribute__ ((__const__, __pure__))
-inline size_t bmm_fp_constant(size_t const x,
+inline size_t bmm_size_constant(size_t const x,
     __attribute__ ((__unused__)) size_t const y) {
   return x;
 }

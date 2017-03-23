@@ -59,8 +59,8 @@ void bmm_sdl_def(struct bmm_sdl* const sdl,
 static void bmm_sdl_proj(struct bmm_sdl const* const sdl,
     double* const xproj, double* const yproj,
     double* const wproj, double* const hproj) {
-  double const w = sdl->dem.rexts[0];
-  double const h = sdl->dem.rexts[1];
+  double const w = sdl->dem.rext[0];
+  double const h = sdl->dem.rext[1];
   double const q = sdl->qaspect;
   double const z = sdl->qzoom;
   double const xorigin = sdl->rorigin[0];
@@ -166,8 +166,8 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
   glDisc(0.05f, 0.05f, 0.025f, ncorner);
 
   // Cell boxes.
-  double const w = sdl->dem.rexts[0] / sdl->dem.opts.ncell[0];
-  double const h = sdl->dem.rexts[1] / sdl->dem.opts.ncell[1];
+  double const w = sdl->dem.rext[0] / (double) sdl->dem.opts.ncell[0];
+  double const h = sdl->dem.rext[1] / (double) sdl->dem.opts.ncell[1];
 
   glColor4fv(glCyan);
   for (size_t icellx = 0; icellx < sdl->dem.opts.ncell[0]; ++icellx)
@@ -180,7 +180,7 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
 
   // Bounding box.
   glColor4fv(glWhite);
-  glRectWire(0.0f, 0.0f, (float) sdl->dem.rexts[0], (float) sdl->dem.rexts[1]);
+  glRectWire(0.0f, 0.0f, (float) sdl->dem.rext[0], (float) sdl->dem.rext[1]);
 
   // Diagnostic text.
   glMatrixMode(GL_PROJECTION);
@@ -209,7 +209,7 @@ static bool bmm_sdl_video(struct bmm_sdl* const sdl,
   }
 
   int const bpp = info->vfmt->BitsPerPixel;
-  int const flags = SDL_OPENGL | SDL_RESIZABLE;
+  Uint32 const flags = SDL_OPENGL | SDL_RESIZABLE;
   if (SDL_SetVideoMode(width, height, bpp, flags) == NULL) {
     BMM_ERR_FWARN(SDL_SetVideoMode, "SDL error: %s", SDL_GetError());
 

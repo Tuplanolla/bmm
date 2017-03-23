@@ -11,6 +11,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 // TODO Remove this test header.
 #include <unistd.h>
 
@@ -28,98 +29,7 @@ extern inline struct bmm_dem_buf* bmm_dem_getwbuf(struct bmm_dem*);
 
 extern inline void bmm_dem_swapbuf(struct bmm_dem*);
 
-// TODO Move over to another translation unit.
 // TODO Avoid explicitly calculating angles.
-
-static void bmm_dem_diff(double* const rdiff,
-    double const* const r0, double const* const r1,
-    double const* const rexts) {
-  for (size_t idim = 0; idim < 2; ++idim)
-    rdiff[idim] = bmm_fp_swrap(r1[idim] - r0[idim], rexts[idim]);
-}
-
-// This maps $(x, y)$ to $(r^2, \phi)$.
-// Goes fast.
-inline void bmm_fp_to_polar2(double* const polar2, double const* const cart) {
-  double r2 = 0.0;
-  for (size_t idim = 0; idim < 2; ++idim)
-    r2 += bmm_fp_sq(cart[idim]);
-
-  polar2[0] = r2;
-  polar2[1] = atan2(cart[1], cart[0]);
-}
-
-// This maps $(x, y)$ to $(r, \phi)$.
-// Goes slow.
-inline void bmm_fp_to_polar(double* const polar, double const* const cart) {
-  bmm_fp_to_polar2(polar, cart);
-  polar[0] = sqrt(polar[0]);
-}
-
-// This maps $(r, \phi)$ to $(x, y)$.
-// Goes fast.
-inline void bmm_fp_from_polar(double* const cart, double const* const polar) {
-  cart[0] = polar[0] * cos(polar[1]);
-  cart[1] = polar[0] * sin(polar[1]);
-}
-
-// This maps $(r^2, \phi)$ to $(x, y)$.
-// Goes slow.
-inline void bmm_fp_from_polar2(double* const cart,
-    double const* const polar2) {
-  double const polar[] = {sqrt(polar2[0]), polar2[1]};
-  bmm_fp_from_polar(cart, polar);
-}
-
-// TODO No shit.
-
-// Shit norm.
-static double bmm_dem_norm2(double const* const r) {
-  double d = 0.0;
-  for (size_t idim = 0; idim < 2; ++idim)
-    d += bmm_fp_sq(r[idim]);
-
-  return d;
-}
-
-// Shit distance.
-static double bmm_dem_dist2(double const* const r0, double const* const r1) {
-  double d = 0.0;
-  for (size_t idim = 0; idim < 2; ++idim)
-    d += bmm_fp_sq(r1[idim] - r0[idim]);
-
-  return d;
-}
-
-// Shit angle.
-static double bmm_dem_angle(double const* const r0, double const* const r1) {
-  double dr[2];
-  for (size_t idim = 0; idim < 2; ++idim)
-    dr[idim] = r1[idim] - r0[idim];
-
-  return atan2(dr[1], dr[0]);
-}
-
-// Shit periodic distance (minimum image convention).
-static double bmm_dem_pdist2(double const* const r0, double const* const r1,
-    double const* const rexts) {
-  double d = 0.0;
-
-  for (size_t idim = 0; idim < 2; ++idim)
-    d += bmm_fp_sq(bmm_fp_swrap(r1[idim] - r0[idim], rexts[idim]));
-
-  return d;
-}
-
-// Shit periodic angle.
-static double bmm_dem_pangle(double const* const r0, double const* const r1,
-    double const* const rexts) {
-  double dr[2];
-  for (size_t idim = 0; idim < 2; ++idim)
-    dr[idim] = bmm_fp_swrap(r1[idim] - r0[idim], rexts[idim]);
-
-  return atan2(dr[1], dr[0]);
-}
 
 // Fake repulsive force.
 void bmm_dem_fakef(struct bmm_dem* const dem) {
@@ -131,21 +41,21 @@ void bmm_dem_fakef(struct bmm_dem* const dem) {
 
   for (size_t ipart = 0; ipart < dem->opts.npart; ++ipart)
     for (size_t jpart = ipart + 1; jpart < dem->opts.npart; ++jpart) {
-      double const d2 = bmm_dem_pdist2(
+      double const d2 = bmm_fp_pdist2(
           buf->parts[ipart].lin.r,
           buf->parts[jpart].lin.r,
-          dem->rexts);
+          dem->rext);
 
       double const r2 = bmm_fp_sq(
           buf->parts[ipart].rrad + buf->parts[jpart].rrad);
 
       if (d2 < r2) {
-        double const a = bmm_dem_pangle(
+        double const a = bmm_fp_pangle(
             buf->parts[ipart].lin.r,
             buf->parts[jpart].lin.r,
-            dem->rexts);
+            dem->rext);
 
-        double const c = 0.1;
+        double const c = 0.04;
 
         buf->parts[ipart].lin.f[0] -= c * cos(a);
         buf->parts[ipart].lin.f[1] -= c * sin(a);
@@ -155,7 +65,6 @@ void bmm_dem_fakef(struct bmm_dem* const dem) {
     }
 }
 
-// TODO Buffering woes.
 void bmm_dem_euler(struct bmm_dem* const dem) {
   struct bmm_dem_buf const* const rbuf = bmm_dem_getrbuf(dem);
   struct bmm_dem_buf* const wbuf = bmm_dem_getwbuf(dem);
@@ -163,28 +72,41 @@ void bmm_dem_euler(struct bmm_dem* const dem) {
   double const dt = dem->tstep;
 
   for (size_t ipart = 0; ipart < dem->opts.npart; ++ipart) {
+    // TODO No!
+    wbuf->parts[ipart].rrad = rbuf->parts[ipart].rrad;
+    wbuf->parts[ipart].mass = rbuf->parts[ipart].mass;
+
     for (size_t idim = 0; idim < 2; ++idim) {
       double const a = rbuf->parts[ipart].lin.f[idim] / rbuf->parts[ipart].mass;
 
-      // wbuf->parts[ipart].lin.r[idim] += rbuf->parts[ipart].lin.v[idim] * dt;
-      wbuf->parts[ipart].lin.v[idim] += a * dt;
+      wbuf->parts[ipart].lin.v[idim] =
+        rbuf->parts[ipart].lin.v[idim] + a * dt;
 
       wbuf->parts[ipart].lin.r[idim] = bmm_fp_uwrap(
-          wbuf->parts[ipart].lin.r[idim] +
-          rbuf->parts[ipart].lin.v[idim] * dt, dem->rexts[idim]);
+          rbuf->parts[ipart].lin.r[idim] +
+          rbuf->parts[ipart].lin.v[idim] * dt, dem->rext[idim]);
     }
 
     // TODO This is bogus (needs to be the moment of inertia).
     double const a = rbuf->parts[ipart].ang.tau / rbuf->parts[ipart].mass;
 
-    wbuf->parts[ipart].ang.omega += a * dt;
+    wbuf->parts[ipart].ang.omega =
+      rbuf->parts[ipart].ang.omega + a * dt;
 
     wbuf->parts[ipart].ang.alpha = bmm_fp_uwrap(
-        wbuf->parts[ipart].ang.alpha +
+        rbuf->parts[ipart].ang.alpha +
         rbuf->parts[ipart].ang.omega * dt, M_2PI);
   }
+}
 
-  bmm_dem_swapbuf(dem);
+// Horse says neigh.
+void bmm_dem_horse(struct bmm_dem* const dem) {
+  struct bmm_dem_buf const* const rbuf = bmm_dem_getrbuf(dem);
+  struct bmm_dem_buf* const wbuf = bmm_dem_getwbuf(dem);
+
+  // TODO Something.
+  (void) memmove(&wbuf->neigh, &rbuf->neigh, sizeof wbuf->neigh);
+  (void) memmove(&wbuf->partcs, &rbuf->partcs, sizeof wbuf->partcs);
 }
 
 // Total kinetic energy estimator.
@@ -214,7 +136,7 @@ double bmm_dem_pvector(struct bmm_dem const* const dem) {
       p[idim] += rbuf->parts[ipart].mass * rbuf->parts[ipart].lin.v[idim];
   // TODO No!
 
-  return sqrt(bmm_dem_norm2(p));
+  return bmm_fp_norm(p);
 }
 
 // Individual momentum estimator.
@@ -224,8 +146,7 @@ double bmm_dem_pscalar(struct bmm_dem const* const dem) {
   struct bmm_dem_buf const* const rbuf = bmm_dem_getrbuf(dem);
 
   for (size_t ipart = 0; ipart < dem->opts.npart; ++ipart)
-    p += rbuf->parts[ipart].mass * sqrt(bmm_dem_norm2(
-          rbuf->parts[ipart].lin.v));
+    p += rbuf->parts[ipart].mass * bmm_fp_norm(rbuf->parts[ipart].lin.v);
   // TODO No!
 
   return p;
@@ -247,7 +168,7 @@ static void bmm_pretend(struct bmm_dem* const dem) {
     for (size_t idim = 0; idim < 2; ++idim)
       buf->parts[ipart].lin.r[idim] = bmm_fp_uwrap(
           (double) (rand() % 256 - 128) / 128.0,
-          dem->rexts[idim]);
+          dem->rext[idim]);
 
     buf->parts[ipart].ang.alpha = M_2PI * bmm_fp_uwrap(
           (double) (rand() % 256 - 128) / 128.0, 1.0);
@@ -259,29 +180,32 @@ void bmm_dem_defpart(struct bmm_dem_part* const part) {
   part->rrad = 0.0125;
   part->mass = 1.0; // TODO No!
 
-  part->ang.alpha = 0.0;
-  part->ang.omega = 0.0;
-  part->ang.tau = 0.0;
-
   for (size_t idim = 0; idim < 2; ++idim) {
     part->lin.r[idim] = 0.5;
     part->lin.v[idim] = 0.0;
     part->lin.f[idim] = 0.0;
   }
+
+  part->ang.alpha = 0.0;
+  part->ang.omega = 0.0;
+  part->ang.tau = 0.0;
 }
 
 void bmm_dem_def(struct bmm_dem* const dem,
     struct bmm_dem_opts const* const opts) {
+  // This is here just to help Valgrind.
+  memset(dem, 0, sizeof *dem);
+
   dem->opts = *opts;
   dem->istep = 0;
   dem->tstep = 0.1;
 
   for (size_t idim = 0; idim < 2; ++idim)
-    dem->rexts[idim] = 1.0;
+    dem->rext[idim] = 1.0;
 
   dem->forcesch = bmm_dem_fakef;
   dem->intsch = bmm_dem_euler;
-  dem->dblbuf = false;
+  dem->dblbuf = true;
 
   if (dem->dblbuf) {
     dem->data.bufs.active = &dem->data.bufs.bufs[0];
@@ -335,6 +259,9 @@ static void bmm_putparts(struct bmm_dem const* const dem) {
 static bool bmm_dem_step(struct bmm_dem* const dem) {
   dem->forcesch(dem);
   dem->intsch(dem);
+  bmm_dem_horse(dem);
+
+  bmm_dem_swapbuf(dem);
 
   return true;
 }

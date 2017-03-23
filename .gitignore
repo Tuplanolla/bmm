@@ -2,6 +2,6 @@
 *.tar.gz
 /bmm-dem
 /bmm-sdl
-/clang*
-/gcc*
+/clang-*-release
+/gcc-*-release
 /run-*

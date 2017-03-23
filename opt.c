@@ -43,5 +43,7 @@ bool bmm_opt_parse(char const* const* const args, size_t const narg,
 
       return false;
   }
+
+  BMM_ERR_ABORT(NULL);
 }
 

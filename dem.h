@@ -71,7 +71,7 @@ struct bmm_dem {
   struct bmm_dem_opts opts;
   size_t istep;
   double tstep;
-  double rexts[2];
+  double rext[2];
   // TODO Initial value system goes here.
   // TODO Force scheme goes here.
   void (* forcesch)(struct bmm_dem*);

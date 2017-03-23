@@ -13,7 +13,7 @@ extern inline size_t bmm_size_pow(size_t, size_t);
 
 extern inline size_t bmm_size_identity(size_t);
 
-extern inline size_t bmm_size_constant(size_t);
+extern inline size_t bmm_size_constant(size_t, size_t);
 
 extern inline size_t bmm_size_zero(size_t);
 
