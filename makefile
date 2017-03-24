@@ -4,9 +4,8 @@ ifeq ($(CC), clang)
 ifeq ($(CONFIG), debug)
 flags=-D_GNU_SOURCE -DDEBUG -O0 -g \
 	-Weverything \
-	-Wno-bad-function-cast -Wno-disabled-macro-expansion \
-	-Wno-aggregate-return -Wno-covered-switch-default -Wno-switch \
-	-Wno-unused-function
+	-Wno-aggregate-return -Wno-bad-function-cast -Wno-disabled-macro-expansion \
+	-Wno-switch
 endif
 ifeq ($(CONFIG), release)
 flags=-DNDEBUG -O3 -Wl,-s -w
@@ -18,11 +17,12 @@ ifeq ($(CONFIG), debug)
 flags=-D_GNU_SOURCE -DDEBUG -Og -g \
 	`cat gcc-$$(./gcc-version | tr . _)-release` \
 	-Wno-error -Wno-fatal-errors -Wno-system-headers \
-	-Wno-c++-compat -Wno-declaration-after-statement \
-	-Wno-traditional -Wno-traditional-conversion \
-	-Wno-unsuffixed-float-constants \
-	-Wno-address -Wno-bad-function-cast -Wno-long-long \
-	-Wno-aggregate-return -Wno-switch-default -Wno-unused-function
+	-Wno-c++-compat \
+	-Wno-long-long -Wno-traditional -Wno-traditional-conversion \
+	-Wno-declaration-after-statement -Wno-unsuffixed-float-constants \
+	-Wno-address -Wno-aggregate-return \
+	-Wno-switch -Wno-switch-enum -Wno-switch-default \
+	-Wno-missing-declarations -Wno-missing-prototypes
 endif
 ifeq ($(CONFIG), release)
 flags=-D_GNU_SOURCE -DNDEBUG -O3 -s -w
@@ -33,8 +33,8 @@ CFLAGS=-D_POSIX_C_SOURCE=200809L -std=c11 $(flags)
 LDLIBS=-lm -lrt
 CFLAGSGSL=`pkg-config --cflags gsl`
 LDLIBSGSL=`pkg-config --libs gsl`
-CFLAGSSDL=`pkg-config --cflags gl freeglut sdl`
-LDLIBSSDL=`pkg-config --libs gl freeglut sdl`
+CFLAGSSDL=`pkg-config --cflags freeglut gl sdl`
+LDLIBSSDL=`pkg-config --libs freeglut gl sdl`
 
 build: bmm-dem bmm-sdl
 
@@ -55,7 +55,7 @@ stop-server: bmm.fifo
 
 check: build
 	cppcheck -I/usr/include --enable=all *.c *.h
-	valgrind --leak-check=full --tool=memcheck ./bmm-dem
+	valgrind --leak-check=full --tool=memcheck ./bmm-dem > /dev/null
 
 deep-clean: clean
 	$(RM) *.run
@@ -67,11 +67,11 @@ shallow-clean:
 	$(RM) *.gch *.o
 
 bmm-dem: bmm-dem.o \
-	bit.o dem.o err.o fp.o io.o msg.o opt.o sec.o sig.o size.o str.o
+	bit.o dem.o err.o fp.o geom.o geom2d.o io.o msg.o opt.o sec.o sig.o size.o str.o
 	$(CC) $(CFLAGS) $(CFLAGSGSL) -o $@ $^ $(LDLIBS) $(LDLIBSGSL)
 
 bmm-sdl: bmm-sdl.o \
-	bit.o dem.o err.o fp.o gl.o io.o msg.o opt.o sdl.o sec.o sig.o size.o str.o
+	bit.o dem.o err.o fp.o geom.o geom2d.o gl.o io.o msg.o opt.o sdl.o sec.o sig.o size.o str.o
 	$(CC) $(CFLAGS) $(CFLAGSSDL) -o $@ $^ $(LDLIBS) $(LDLIBSSDL)
 
 %.o: %.c *.h

@@ -190,17 +190,17 @@ inline size_t bmm_size_uwrap(size_t const n, size_t const k) {
   return n % k;
 }
 
-// The call `bmm_size_uwrap_inc(n, k)` is equivalent
+// The call `bmm_size_inc(n, k)` is equivalent
 // to `bmm_size_uwrap(n + 1, k)` without wrapping.
 __attribute__ ((__const__, __pure__))
-inline size_t bmm_size_uwrap_inc(size_t const n, size_t const k) {
+inline size_t bmm_size_inc(size_t const n, size_t const k) {
   return n == k - 1 ? 0 : n + 1;
 }
 
-// The call `bmm_size_uwrap_dec(n, k)` is equivalent
+// The call `bmm_size_dec(n, k)` is equivalent
 // to `bmm_size_uwrap(n - 1, k)` without wrapping.
 __attribute__ ((__const__, __pure__))
-inline size_t bmm_size_uwrap_dec(size_t const n, size_t const k) {
+inline size_t bmm_size_dec(size_t const n, size_t const k) {
   return n == 0 ? k - 1 : n - 1;
 }
 

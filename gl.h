@@ -43,9 +43,9 @@ void glSkewedAnnulus(GLfloat, GLfloat, GLfloat, GLfloat, GLfloat, GLfloat,
 // to `glSkewedAnnulus(x, y, r, rhole, 0.0f, 0.0f, ncorner)`.
 void glAnnulus(GLfloat, GLfloat, GLfloat, GLfloat, size_t);
 
-// The call `glDisc(x, y, r, ncorner)` is equivalent
+// The call `glDisk(x, y, r, ncorner)` is equivalent
 // to `glAnnulus(x, y, r, 0.0f, ncorner)`.
-void glDisc(GLfloat, GLfloat, GLfloat, size_t);
+void glDisk(GLfloat, GLfloat, GLfloat, size_t);
 
 // The call `glRectWire(x, y, w, h)`
 // draws the outline of a rectangle

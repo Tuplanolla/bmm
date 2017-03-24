@@ -32,6 +32,7 @@ struct bmm_dem_partc {
 struct bmm_dem_part {
   double rrad;
   double mass; // TODO No!
+  double moi; // TODO No!
   struct {
     double r[2];
     double v[2];

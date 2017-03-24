@@ -35,6 +35,6 @@ extern inline size_t bmm_size_uclamp(size_t, size_t);
 
 extern inline size_t bmm_size_uwrap(size_t, size_t);
 
-extern inline size_t bmm_size_uwrap_inc(size_t, size_t);
+extern inline size_t bmm_size_inc(size_t, size_t);
 
-extern inline size_t bmm_size_uwrap_dec(size_t, size_t);
+extern inline size_t bmm_size_dec(size_t, size_t);

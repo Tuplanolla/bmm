@@ -3,8 +3,11 @@
 #include "dem.h"
 #include "err.h"
 #include "fp.h"
+#include "geom.h"
+#include "geom2d.h"
 #include "msg.h"
 #include "sig.h"
+#include "size.h"
 #include <math.h>
 #include <signal.h>
 #include <stdbool.h>
@@ -41,7 +44,7 @@ void bmm_dem_fakef(struct bmm_dem* const dem) {
 
   for (size_t ipart = 0; ipart < dem->opts.npart; ++ipart)
     for (size_t jpart = ipart + 1; jpart < dem->opts.npart; ++jpart) {
-      double const d2 = bmm_fp_pdist2(
+      double const d2 = bmm_geom2d_pdist2(
           buf->parts[ipart].lin.r,
           buf->parts[jpart].lin.r,
           dem->rext);
@@ -50,7 +53,7 @@ void bmm_dem_fakef(struct bmm_dem* const dem) {
           buf->parts[ipart].rrad + buf->parts[jpart].rrad);
 
       if (d2 < r2) {
-        double const a = bmm_fp_pangle(
+        double const a = bmm_geom2d_pangle(
             buf->parts[ipart].lin.r,
             buf->parts[jpart].lin.r,
             dem->rext);
@@ -66,36 +69,57 @@ void bmm_dem_fakef(struct bmm_dem* const dem) {
 }
 
 void bmm_dem_euler(struct bmm_dem* const dem) {
-  struct bmm_dem_buf const* const rbuf = bmm_dem_getrbuf(dem);
-  struct bmm_dem_buf* const wbuf = bmm_dem_getwbuf(dem);
+  struct bmm_dem_buf* const buf = bmm_dem_getbuf(dem);
 
   double const dt = dem->tstep;
 
   for (size_t ipart = 0; ipart < dem->opts.npart; ++ipart) {
-    // TODO No!
-    wbuf->parts[ipart].rrad = rbuf->parts[ipart].rrad;
-    wbuf->parts[ipart].mass = rbuf->parts[ipart].mass;
-
     for (size_t idim = 0; idim < 2; ++idim) {
-      double const a = rbuf->parts[ipart].lin.f[idim] / rbuf->parts[ipart].mass;
+      double const a = buf->parts[ipart].lin.f[idim] / buf->parts[ipart].mass;
 
-      wbuf->parts[ipart].lin.v[idim] =
-        rbuf->parts[ipart].lin.v[idim] + a * dt;
+      buf->parts[ipart].lin.r[idim] = bmm_fp_uwrap(
+          buf->parts[ipart].lin.r[idim] +
+          buf->parts[ipart].lin.v[idim] * dt, dem->rext[idim]);
 
-      wbuf->parts[ipart].lin.r[idim] = bmm_fp_uwrap(
-          rbuf->parts[ipart].lin.r[idim] +
-          rbuf->parts[ipart].lin.v[idim] * dt, dem->rext[idim]);
+      buf->parts[ipart].lin.v[idim] =
+        buf->parts[ipart].lin.v[idim] + a * dt;
     }
 
-    // TODO This is bogus (needs to be the moment of inertia).
-    double const a = rbuf->parts[ipart].ang.tau / rbuf->parts[ipart].mass;
+    double const a = buf->parts[ipart].ang.tau / buf->parts[ipart].moi;
 
-    wbuf->parts[ipart].ang.omega =
-      rbuf->parts[ipart].ang.omega + a * dt;
+    buf->parts[ipart].ang.alpha = bmm_fp_uwrap(
+        buf->parts[ipart].ang.alpha +
+        buf->parts[ipart].ang.omega * dt, M_2PI);
 
-    wbuf->parts[ipart].ang.alpha = bmm_fp_uwrap(
-        rbuf->parts[ipart].ang.alpha +
-        rbuf->parts[ipart].ang.omega * dt, M_2PI);
+    buf->parts[ipart].ang.omega =
+      buf->parts[ipart].ang.omega + a * dt;
+  }
+}
+
+void bmm_dem_cell(size_t* const icell,
+    struct bmm_dem const* const dem, size_t const ipart) {
+  struct bmm_dem_buf const* const rbuf = bmm_dem_getrbuf(dem);
+
+  for (size_t idim = 0; idim < 2; ++idim)
+    icell[idim] = bmm_size_uclamp(
+        (size_t) bmm_fp_lerp(rbuf->parts[ipart].lin.r[idim],
+          0.0, dem->rext[idim],
+          0.0, (double) dem->opts.ncell[idim]), dem->opts.ncell[idim]);
+}
+
+void bmm_dem_upneigh(struct bmm_dem* const dem) {
+  struct bmm_dem_buf const* const rbuf = bmm_dem_getrbuf(dem);
+
+  for (size_t ipart = 0; ipart < dem->opts.npart; ++ipart) {
+    size_t icell[2];
+    bmm_dem_cell(icell, dem, ipart);
+
+    // The size is $3^d$.
+    size_t (* const f[])(size_t, size_t) = {
+      bmm_size_dec, bmm_size_constant, bmm_size_inc
+    };
+
+    size_t incell[9];
   }
 }
 
@@ -105,6 +129,7 @@ void bmm_dem_horse(struct bmm_dem* const dem) {
   struct bmm_dem_buf* const wbuf = bmm_dem_getwbuf(dem);
 
   // TODO Something.
+  (void) memmove(&wbuf->parts, &rbuf->parts, sizeof wbuf->parts);
   (void) memmove(&wbuf->neigh, &rbuf->neigh, sizeof wbuf->neigh);
   (void) memmove(&wbuf->partcs, &rbuf->partcs, sizeof wbuf->partcs);
 }
@@ -136,7 +161,7 @@ double bmm_dem_pvector(struct bmm_dem const* const dem) {
       p[idim] += rbuf->parts[ipart].mass * rbuf->parts[ipart].lin.v[idim];
   // TODO No!
 
-  return bmm_fp_norm(p);
+  return bmm_geom2d_norm(p);
 }
 
 // Individual momentum estimator.
@@ -146,7 +171,7 @@ double bmm_dem_pscalar(struct bmm_dem const* const dem) {
   struct bmm_dem_buf const* const rbuf = bmm_dem_getrbuf(dem);
 
   for (size_t ipart = 0; ipart < dem->opts.npart; ++ipart)
-    p += rbuf->parts[ipart].mass * bmm_fp_norm(rbuf->parts[ipart].lin.v);
+    p += rbuf->parts[ipart].mass * bmm_geom2d_norm(rbuf->parts[ipart].lin.v);
   // TODO No!
 
   return p;
@@ -179,6 +204,7 @@ static void bmm_pretend(struct bmm_dem* const dem) {
 void bmm_dem_defpart(struct bmm_dem_part* const part) {
   part->rrad = 0.0125;
   part->mass = 1.0; // TODO No!
+  part->moi = 0.5 * part->mass * bmm_fp_sq(part->rrad); // TODO No!
 
   for (size_t idim = 0; idim < 2; ++idim) {
     part->lin.r[idim] = 0.5;
@@ -205,7 +231,7 @@ void bmm_dem_def(struct bmm_dem* const dem,
 
   dem->forcesch = bmm_dem_fakef;
   dem->intsch = bmm_dem_euler;
-  dem->dblbuf = true;
+  dem->dblbuf = false;
 
   if (dem->dblbuf) {
     dem->data.bufs.active = &dem->data.bufs.bufs[0];
@@ -259,7 +285,9 @@ static void bmm_putparts(struct bmm_dem const* const dem) {
 static bool bmm_dem_step(struct bmm_dem* const dem) {
   dem->forcesch(dem);
   dem->intsch(dem);
-  bmm_dem_horse(dem);
+
+  if (dem->dblbuf)
+    bmm_dem_horse(dem);
 
   bmm_dem_swapbuf(dem);
 

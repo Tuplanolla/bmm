@@ -55,7 +55,7 @@ void glAnnulus(GLfloat const x, GLfloat const y,
   glEnd();
 }
 
-void glDisc(GLfloat const x, GLfloat const y,
+void glDisk(GLfloat const x, GLfloat const y,
     GLfloat const r, size_t const ncorner) {
   glBegin(GL_TRIANGLE_FAN);
 
