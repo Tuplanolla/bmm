@@ -14,10 +14,17 @@ struct bmm_dem_est {
 };
 
 struct bmm_dem_opts {
+  // Cell extents by dimension, expressed in divs.
   size_t ncell[2];
   size_t nbin;
   size_t npart;
   size_t nstep;
+  // Maximum distance for qualifying as a neighbor.
+  double rmax;
+  // Simulated time step.
+  double tstep;
+  // Drift leeway velocity.
+  double vleeway;
   // Particle size mean.
   size_t rmean;
   // Particle size standard deviation.
@@ -26,13 +33,12 @@ struct bmm_dem_opts {
 
 // A terrible name for constant particle data.
 struct bmm_dem_partc {
+  double rrad;
   double mass;
+  double moi;
 };
 
 struct bmm_dem_part {
-  double rrad;
-  double mass; // TODO No!
-  double moi; // TODO No!
   struct {
     double r[2];
     double v[2];
@@ -52,12 +58,8 @@ struct bmm_dem_list {
 };
 
 struct bmm_dem_neigh {
-  // Maximum distance for qualifying as a neighbor.
-  double rmax;
-  // Cell extents by dimension, expressed in divs.
-  size_t ncell[2];
-  // Which particles each cell contains, roughly.
-  struct bmm_dem_list conts[BMM_CELL_MAX * BMM_CELL_MAX];
+  // Next scheduled update.
+  double tnext;
   // Neighbors for each particle.
   struct bmm_dem_list neighs[BMM_PART_MAX];
 };
@@ -71,7 +73,6 @@ struct bmm_dem_buf {
 struct bmm_dem {
   struct bmm_dem_opts opts;
   size_t istep;
-  double tstep;
   double rext[2];
   // TODO Initial value system goes here.
   // TODO Force scheme goes here.
@@ -91,6 +92,11 @@ struct bmm_dem {
     } bufs;
     struct bmm_dem_buf buf;
   } data;
+  // Large object memory pool.
+  union {
+    // Which particles each cell owns, roughly.
+    struct bmm_dem_list conts[BMM_CELL_MAX * BMM_CELL_MAX];
+  } pool;
 };
 
 inline void bmm_dem_clear(struct bmm_dem_list* const list) {

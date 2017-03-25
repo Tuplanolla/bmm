@@ -64,7 +64,7 @@ void bmm_dem_fakef(struct bmm_dem* const dem) {
           dem->rext);
 
       double const r2 = bmm_fp_sq(
-          buf->parts[ipart].rrad + buf->parts[jpart].rrad);
+          buf->partcs[ipart].rrad + buf->partcs[jpart].rrad);
 
       if (d2 < r2) {
         double const a = bmm_geom2d_pangle(
@@ -72,7 +72,7 @@ void bmm_dem_fakef(struct bmm_dem* const dem) {
             buf->parts[jpart].lin.r,
             dem->rext);
 
-        double const c = 0.02;
+        double const c = 0.03;
 
         buf->parts[ipart].lin.f[0] -= c * cos(a);
         buf->parts[ipart].lin.f[1] -= c * sin(a);
@@ -85,28 +85,31 @@ void bmm_dem_fakef(struct bmm_dem* const dem) {
 void bmm_dem_euler(struct bmm_dem* const dem) {
   struct bmm_dem_buf* const buf = bmm_dem_getbuf(dem);
 
-  double const dt = dem->tstep;
+  // TODO Dissipate energy elsewhere.
+  double const damp = 0.986;
+
+  double const dt = dem->opts.tstep;
 
   for (size_t ipart = 0; ipart < dem->opts.npart; ++ipart) {
     for (size_t idim = 0; idim < 2; ++idim) {
-      double const a = buf->parts[ipart].lin.f[idim] / buf->parts[ipart].mass;
+      double const a = buf->parts[ipart].lin.f[idim] / buf->partcs[ipart].mass;
 
       buf->parts[ipart].lin.r[idim] = bmm_fp_uwrap(
           buf->parts[ipart].lin.r[idim] +
           buf->parts[ipart].lin.v[idim] * dt, dem->rext[idim]);
 
       buf->parts[ipart].lin.v[idim] =
-        buf->parts[ipart].lin.v[idim] + a * dt;
+        damp * (buf->parts[ipart].lin.v[idim] + a * dt);
     }
 
-    double const a = buf->parts[ipart].ang.tau / buf->parts[ipart].moi;
+    double const a = buf->parts[ipart].ang.tau / buf->partcs[ipart].moi;
 
     buf->parts[ipart].ang.alpha = bmm_fp_uwrap(
         buf->parts[ipart].ang.alpha +
         buf->parts[ipart].ang.omega * dt, M_2PI);
 
     buf->parts[ipart].ang.omega =
-      buf->parts[ipart].ang.omega + a * dt;
+      damp * (buf->parts[ipart].ang.omega + a * dt);
   }
 }
 
@@ -125,7 +128,7 @@ void bmm_dem_recont(struct bmm_dem* const dem) {
   struct bmm_dem_buf* const buf = bmm_dem_getbuf(dem);
 
   for (size_t ilist = 0; ilist < bmm_size_prod(dem->opts.ncell, 2); ++ilist)
-    bmm_dem_clear(&buf->neigh.conts[ilist]);
+    bmm_dem_clear(&dem->pool.conts[ilist]);
 
   for (size_t ipart = 0; ipart < dem->opts.npart; ++ipart) {
     size_t icell[2];
@@ -133,7 +136,7 @@ void bmm_dem_recont(struct bmm_dem* const dem) {
 
     size_t const ilist = icell[0] + icell[1] * dem->opts.ncell[0];
 
-    (void) bmm_dem_push(&buf->neigh.conts[ilist], ipart);
+    (void) bmm_dem_push(&dem->pool.conts[ilist], ipart);
   }
 }
 
@@ -160,13 +163,13 @@ void bmm_dem_reneigh(struct bmm_dem* const dem) {
 
         size_t const icont = iwhat + jwhat * dem->opts.ncell[0];
 
-        for (size_t ineigh = 0; ineigh < bmm_dem_size(&buf->neigh.conts[icont]); ++ineigh) {
-          size_t const jpart = bmm_dem_get(&buf->neigh.conts[icont], ineigh);
+        for (size_t ineigh = 0; ineigh < bmm_dem_size(&dem->pool.conts[icont]); ++ineigh) {
+          size_t const jpart = bmm_dem_get(&dem->pool.conts[icont], ineigh);
 
           if (bmm_geom2d_pdist2(
                 buf->parts[ipart].lin.r,
                 buf->parts[jpart].lin.r,
-                dem->rext) < bmm_fp_sq(buf->neigh.rmax))
+                dem->rext) < bmm_fp_sq(dem->opts.rmax))
             bmm_dem_push(&buf->neigh.neighs[ipart], jpart);
         }
       }
@@ -184,6 +187,50 @@ void bmm_dem_horse(struct bmm_dem* const dem) {
   (void) memmove(&wbuf->partcs, &rbuf->partcs, sizeof wbuf->partcs);
 }
 
+// TODO These are dubious for empty sets.
+
+// Maximum velocity estimator.
+void bmm_dem_maxvel(double* const v, struct bmm_dem const* const dem) {
+  struct bmm_dem_buf const* const rbuf = bmm_dem_getrbuf(dem);
+
+  for (size_t idim = 0; idim < 2; ++idim) {
+    v[idim] = 0.0;
+
+    for (size_t ipart = 0; ipart < dem->opts.npart; ++ipart)
+      v[idim] = fmax(v[idim], rbuf->parts[ipart].lin.v[idim]);
+  }
+}
+
+// Maximum radius estimator.
+double bmm_dem_maxrad(struct bmm_dem const* const dem) {
+  double r = 0.0;
+
+  struct bmm_dem_buf const* const rbuf = bmm_dem_getrbuf(dem);
+
+  for (size_t ipart = 0; ipart < dem->opts.npart; ++ipart)
+    r = fmax(r, rbuf->partcs[ipart].rrad);
+
+  return r;
+}
+
+// Drift time estimator.
+double bmm_dem_drift(struct bmm_dem const* const dem) {
+  double t = INFINITY;
+
+  double const rad = bmm_dem_maxrad(dem);
+
+  double v[2];
+  bmm_dem_maxvel(v, dem);
+
+  for (size_t idim = 0; idim < 2; ++idim)
+    t = fmin(t, (fmin(
+            dem->opts.rmax,
+            0.5 * dem->rext[idim] / (double) dem->opts.ncell[idim]) - rad) /
+        (v[idim] + dem->opts.vleeway));
+
+  return t;
+}
+
 // Total kinetic energy estimator.
 double bmm_dem_ekinetic(struct bmm_dem const* const dem) {
   double e = 0.0;
@@ -192,7 +239,7 @@ double bmm_dem_ekinetic(struct bmm_dem const* const dem) {
 
   for (size_t ipart = 0; ipart < dem->opts.npart; ++ipart)
     for (size_t idim = 0; idim < 2; ++idim)
-      e += rbuf->parts[ipart].mass * bmm_fp_sq(rbuf->parts[ipart].lin.v[idim]);
+      e += rbuf->partcs[ipart].mass * bmm_fp_sq(rbuf->parts[ipart].lin.v[idim]);
   // TODO No!
 
   return e * 0.5;
@@ -208,7 +255,7 @@ double bmm_dem_pvector(struct bmm_dem const* const dem) {
 
   for (size_t ipart = 0; ipart < dem->opts.npart; ++ipart)
     for (size_t idim = 0; idim < 2; ++idim)
-      p[idim] += rbuf->parts[ipart].mass * rbuf->parts[ipart].lin.v[idim];
+      p[idim] += rbuf->partcs[ipart].mass * rbuf->parts[ipart].lin.v[idim];
   // TODO No!
 
   return bmm_geom2d_norm(p);
@@ -221,19 +268,22 @@ double bmm_dem_pscalar(struct bmm_dem const* const dem) {
   struct bmm_dem_buf const* const rbuf = bmm_dem_getrbuf(dem);
 
   for (size_t ipart = 0; ipart < dem->opts.npart; ++ipart)
-    p += rbuf->parts[ipart].mass * bmm_geom2d_norm(rbuf->parts[ipart].lin.v);
+    p += rbuf->partcs[ipart].mass * bmm_geom2d_norm(rbuf->parts[ipart].lin.v);
   // TODO No!
 
   return p;
 }
 
 void bmm_dem_defopts(struct bmm_dem_opts* const opts) {
-  opts->ncell[0] = 4;
-  opts->ncell[1] = 4;
+  opts->ncell[0] = 6;
+  opts->ncell[1] = 6;
   opts->nbin = 1;
   // opts->npart = 0;
   opts->npart = 256;
   opts->nstep = 2000;
+  opts->rmax = 0.2;
+  opts->tstep = 0.1;
+  opts->vleeway = 0.01;
 }
 
 static void bmm_pretend(struct bmm_dem* const dem) {
@@ -251,11 +301,13 @@ static void bmm_pretend(struct bmm_dem* const dem) {
   }
 }
 
-void bmm_dem_defpart(struct bmm_dem_part* const part) {
-  part->rrad = 0.0125;
-  part->mass = 1.0; // TODO No!
-  part->moi = 0.5 * part->mass * bmm_fp_sq(part->rrad); // TODO No!
+void bmm_dem_defpartc(struct bmm_dem_partc* const partc) {
+  partc->rrad = 0.0125;
+  partc->mass = 1.0; // TODO No!
+  partc->moi = 0.5 * partc->mass * bmm_fp_sq(partc->rrad); // TODO No!
+}
 
+void bmm_dem_defpart(struct bmm_dem_part* const part) {
   for (size_t idim = 0; idim < 2; ++idim) {
     part->lin.r[idim] = 0.5;
     part->lin.v[idim] = 0.0;
@@ -274,7 +326,6 @@ void bmm_dem_def(struct bmm_dem* const dem,
 
   dem->opts = *opts;
   dem->istep = 0;
-  dem->tstep = 0.1;
 
   for (size_t idim = 0; idim < 2; ++idim)
     dem->rext[idim] = 1.0;
@@ -290,15 +341,14 @@ void bmm_dem_def(struct bmm_dem* const dem,
 
   struct bmm_dem_buf* const buf = bmm_dem_getbuf(dem);
 
-  for (size_t ipart = 0; ipart < dem->opts.npart; ++ipart)
+  for (size_t ipart = 0; ipart < dem->opts.npart; ++ipart) {
+    bmm_dem_defpartc(&buf->partcs[ipart]);
     bmm_dem_defpart(&buf->parts[ipart]);
+  }
 
   bmm_pretend(dem); // TODO Remove later!
 
-  buf->neigh.rmax = 10.0;
-
-  bmm_dem_recont(dem);
-  bmm_dem_reneigh(dem);
+  buf->neigh.tnext = 0.0;
 }
 
 // TODO Unify these three.
@@ -350,10 +400,12 @@ static void bmm_putneighs(struct bmm_dem const* const dem) {
 }
 
 static bool bmm_dem_step(struct bmm_dem* const dem) {
-  // TODO This timing is bogus.
-  if (dem->istep % 20 == 0) {
+  struct bmm_dem_buf* const buf = bmm_dem_getbuf(dem);
+
+  if (dem->istep * dem->opts.tstep >= buf->neigh.tnext) {
     bmm_dem_recont(dem);
     bmm_dem_reneigh(dem);
+    buf->neigh.tnext += bmm_dem_drift(dem);
   }
 
   dem->forcesch(dem);
@@ -368,12 +420,12 @@ static bool bmm_dem_step(struct bmm_dem* const dem) {
 }
 
 static bool bmm_dem_comm(struct bmm_dem* const dem) {
-  bmm_putnop(dem);
-  bmm_putparts(dem);
-
   // TODO This timing is bogus.
   if (dem->istep % 20 == 0)
     bmm_putneighs(dem);
+
+  bmm_putnop(dem);
+  bmm_putparts(dem);
 
   // TODO These should go via messages.
   dem->est.ekinetic = bmm_dem_ekinetic(dem);

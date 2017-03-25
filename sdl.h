@@ -56,6 +56,7 @@ struct bmm_sdl {
   Uint32 tstep;
   bool stale;
   bool _pad0[3];
+  size_t itarget;
   struct bmm_dem dem;
 };
 

@@ -29,6 +29,9 @@ static bool f(char const* const key, char const* const value,
   } else if (strcmp(key, "nstep") == 0) {
     if (!bmm_str_strtoz(value, &opts->nstep))
       return false;
+  } else if (strcmp(key, "rmax") == 0) {
+    if (!bmm_str_strtod(value, &opts->rmax))
+      return false;
   } else
     return false;
 

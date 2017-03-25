@@ -5,7 +5,7 @@
 #include <stddef.h>
 
 #define BMM_BIN_MAX ((size_t) 1024)
-#define BMM_PART_MAX ((size_t) 1024)
+#define BMM_PART_MAX ((size_t) 4096)
 // #define BMM_PART_MAX ((size_t) 16384)
 // Maximum number of cells per dimension.
 #define BMM_CELL_MAX ((size_t) 256)

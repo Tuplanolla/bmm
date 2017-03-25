@@ -12,6 +12,7 @@
 #include <SDL/SDL.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <sys/time.h>
 
@@ -47,6 +48,7 @@ void bmm_sdl_def(struct bmm_sdl* const sdl,
   sdl->rorigin[0] = 0.0;
   sdl->rorigin[1] = 0.0;
   sdl->tstep = opts->fps > 1000 ? 1 : (Uint32) (1000 / opts->fps);
+  sdl->itarget = SIZE_MAX;
   sdl->stale = true;
 
   struct bmm_dem_opts defopts;
@@ -162,13 +164,39 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
 
   size_t const ncorner = 16;
 
+  double const w = sdl->dem.rext[0] / (double) sdl->dem.opts.ncell[0];
+  double const h = sdl->dem.rext[1] / (double) sdl->dem.opts.ncell[1];
+
+  struct bmm_dem_buf const* const rbuf = bmm_dem_getrbuf(&sdl->dem);
+
+  // Focus.
+  if (sdl->itarget != SIZE_MAX) {
+    glColor4fv(glBlue);
+    size_t const ipart = sdl->itarget;
+
+    // Focus box for neighbor markers.
+    size_t icell[2];
+    bmm_dem_cell(icell, &sdl->dem, ipart);
+    double const x = (double) icell[0] * w;
+    double const y = (double) icell[1] * h;
+    glRectWire((float) x, (float) y, (float) w, (float) h);
+
+    // Neighbor markers.
+    glBegin(GL_LINES);
+    for (size_t ineigh = 0; ineigh < bmm_dem_size(&rbuf->neigh.neighs[ipart]); ++ineigh) {
+      size_t const jpart = bmm_dem_get(&rbuf->neigh.neighs[ipart], ineigh);
+      glVertex2dv(rbuf->parts[ipart].lin.r);
+      glVertex2dv(rbuf->parts[jpart].lin.r);
+    }
+    glEnd();
+  }
+
   // Particles.
   glColor4fv(glYellow);
-  struct bmm_dem_buf const* const rbuf = bmm_dem_getrbuf(&sdl->dem);
   for (size_t ipart = 0; ipart < sdl->dem.opts.npart; ++ipart) {
     float const x = (float) rbuf->parts[ipart].lin.r[0];
     float const y = (float) rbuf->parts[ipart].lin.r[1];
-    float const r = (float) rbuf->parts[ipart].rrad;
+    float const r = (float) rbuf->partcs[ipart].rrad;
     float const a = (float) rbuf->parts[ipart].ang.alpha;
 
     glSkewedAnnulus(x, y, r, r * 0.25f, r * 0.5f, a, ncorner);
@@ -179,9 +207,6 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
   glDisk(0.05f, 0.05f, 0.025f, ncorner);
 
   // Cell boxes.
-  double const w = sdl->dem.rext[0] / (double) sdl->dem.opts.ncell[0];
-  double const h = sdl->dem.rext[1] / (double) sdl->dem.opts.ncell[1];
-
   glColor4fv(glCyan);
   for (size_t icellx = 0; icellx < sdl->dem.opts.ncell[0]; ++icellx)
     for (size_t icelly = 0; icelly < sdl->dem.opts.ncell[1]; ++icelly) {
@@ -194,28 +219,6 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
   // Bounding box.
   glColor4fv(glWhite);
   glRectWire(0.0f, 0.0f, (float) sdl->dem.rext[0], (float) sdl->dem.rext[1]);
-
-  // Focus.
-#ifdef FOCUS_POCUS
-  glColor4fv(glWhite);
-  size_t const ipart = 42;
-
-  // Focus box for neighbor markers.
-  size_t icell[2];
-  bmm_dem_cell(icell, &sdl->dem, ipart);
-  double const x = (double) icell[0] * w;
-  double const y = (double) icell[1] * h;
-  glRectWire((float) x, (float) y, (float) w, (float) h);
-
-  // Neighbor markers.
-  glBegin(GL_LINES);
-  for (size_t ineigh = 0; ineigh < bmm_dem_size(&rbuf->neigh.neighs[ipart]); ++ineigh) {
-    size_t const jpart = bmm_dem_get(&rbuf->neigh.neighs[ipart], ineigh);
-    glVertex2dv(rbuf->parts[ipart].lin.r);
-    glVertex2dv(rbuf->parts[jpart].lin.r);
-  }
-  glEnd();
-#endif
 
   // Diagnostic text.
   glMatrixMode(GL_PROJECTION);
@@ -323,6 +326,18 @@ static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
             case SDLK_0:
             case SDLK_KP0:
               bmm_sdl_reset(sdl);
+              break;
+            case SDLK_1:
+              sdl->itarget = SIZE_MAX;
+              break;
+            case SDLK_2:
+              sdl->itarget = 0;
+              break;
+            case SDLK_3:
+              sdl->itarget = 42;
+              break;
+            case SDLK_4:
+              sdl->itarget = 13;
               break;
           }
           break;
