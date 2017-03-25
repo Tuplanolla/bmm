@@ -212,13 +212,6 @@ from `T xs[N * N]` as indexed with `xs[i + j * n]`.
 The same applies to `T xs[N * N]` and `T* xs[N * N]`.
 Profile the cache behavior of each one to find the optimal solution.
 
-The function `part -> this cell` is trivial arithmetic.
-The function `this cell -> nearby cells` is even more trivial arithmetic.
-The function `cell -> parts` is looked up from `neigh.parts`.
-The function `part -> nearby parts` is the composition of these three and
-works as long as `iparts` does not get stale.
-The results are saved into `neigh.neighs`.
-
 #### Double Buffering
 
 Some numerical operations need a copy of the universe.
@@ -231,6 +224,12 @@ to guarantee no stale data is left behind when the buffers are swapped.
 In case a message writer dies in the middle of a message,
 the receiver has no way to detect and correct for this.
 This is by design.
+
+#### Interesting Idea
+
+Particle speed distribution could be calculated and
+then partitioned into slow and fast regions.
+Only the slow region would participate in the linked cell algorithm.
 
 [cfdem]: http://www.cfdem.com/
 [liggghts]: https://github.com/CFDEMproject/LIGGGHTS-PUBLIC
