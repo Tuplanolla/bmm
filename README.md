@@ -208,7 +208,7 @@ Here be notes.
 
 Note that `T xs[N][N]` as indexed with `xs[i][j]`
 has distinctly different memory access characteristics
-from `T xs[N * N]` as indexed with `xs[i * n + j]`.
+from `T xs[N * N]` as indexed with `xs[i + j * n]`.
 The same applies to `T xs[N * N]` and `T* xs[N * N]`.
 Profile the cache behavior of each one to find the optimal solution.
 

@@ -6,6 +6,7 @@
 #include "io.h"
 #include "msg.h"
 #include "sdl.h"
+#include "size.h"
 #include <GL/gl.h>
 #include <GL/glut.h>
 #include <SDL/SDL.h>
@@ -131,6 +132,18 @@ static void bmm_sdl_move(struct bmm_sdl* const sdl,
   sdl->rorigin[1] += y2 - yproj - hproj * 0.5;
 }
 
+// TODO Remove this duplicate.
+static void bmm_dem_cell(size_t* const icell,
+    struct bmm_dem const* const dem, size_t const ipart) {
+  struct bmm_dem_buf const* const rbuf = bmm_dem_getrbuf(dem);
+
+  for (size_t idim = 0; idim < 2; ++idim)
+    icell[idim] = bmm_size_uclamp(
+        (size_t) bmm_fp_lerp(rbuf->parts[ipart].lin.r[idim],
+          0.0, dem->rext[idim],
+          0.0, (double) dem->opts.ncell[idim]), dem->opts.ncell[idim]);
+}
+
 static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
@@ -182,6 +195,28 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
   glColor4fv(glWhite);
   glRectWire(0.0f, 0.0f, (float) sdl->dem.rext[0], (float) sdl->dem.rext[1]);
 
+  // Focus.
+#ifdef FOCUS_POCUS
+  glColor4fv(glWhite);
+  size_t const ipart = 42;
+
+  // Focus box for neighbor markers.
+  size_t icell[2];
+  bmm_dem_cell(icell, &sdl->dem, ipart);
+  double const x = (double) icell[0] * w;
+  double const y = (double) icell[1] * h;
+  glRectWire((float) x, (float) y, (float) w, (float) h);
+
+  // Neighbor markers.
+  glBegin(GL_LINES);
+  for (size_t ineigh = 0; ineigh < bmm_dem_size(&rbuf->neigh.neighs[ipart]); ++ineigh) {
+    size_t const jpart = bmm_dem_get(&rbuf->neigh.neighs[ipart], ineigh);
+    glVertex2dv(rbuf->parts[ipart].lin.r);
+    glVertex2dv(rbuf->parts[jpart].lin.r);
+  }
+  glEnd();
+#endif
+
   // Diagnostic text.
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
@@ -227,7 +262,8 @@ static bool bmm_sdl_video(struct bmm_sdl* const sdl,
 
 static bool filter(struct bmm_msg_head const* const head,
     __attribute__ ((__unused__)) void* const ptr) {
-  return head->type == BMM_MSG_PARTS;
+  return head->type == BMM_MSG_PARTS ||
+    head->type == BMM_MSG_NEIGH;
 }
 
 static bool bmm_sdl_work(struct bmm_sdl* const sdl) {

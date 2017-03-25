@@ -57,7 +57,7 @@ struct bmm_dem_neigh {
   // Cell extents by dimension, expressed in divs.
   size_t ncell[2];
   // Which particles each cell contains, roughly.
-  struct bmm_dem_list parts[BMM_CELL_MAX * BMM_CELL_MAX];
+  struct bmm_dem_list conts[BMM_CELL_MAX * BMM_CELL_MAX];
   // Neighbors for each particle.
   struct bmm_dem_list neighs[BMM_PART_MAX];
 };
@@ -92,6 +92,28 @@ struct bmm_dem {
     struct bmm_dem_buf buf;
   } data;
 };
+
+inline void bmm_dem_clear(struct bmm_dem_list* const list) {
+  list->n = 0;
+}
+
+inline bool bmm_dem_push(struct bmm_dem_list* const list, size_t const x) {
+  if (list->n >= sizeof list->i / sizeof *list->i)
+    return false;
+
+  list->i[list->n] = x;
+  ++list->n;
+
+  return true;
+}
+
+inline size_t bmm_dem_size(struct bmm_dem_list const* const list) {
+  return list->n;
+}
+
+inline size_t bmm_dem_get(struct bmm_dem_list const* const list, size_t const i) {
+  return list->i[i];
+}
 
 // The call `bmm_dem_getbuf(dem)`
 // returns the active read and write buffer of the simulation `dem`

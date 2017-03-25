@@ -24,6 +24,14 @@
 #endif
 #endif
 
+extern inline void bmm_dem_clear(struct bmm_dem_list* const list);
+
+extern inline bool bmm_dem_push(struct bmm_dem_list* const list, size_t const x);
+
+extern inline size_t bmm_dem_size(struct bmm_dem_list const* const list);
+
+extern inline size_t bmm_dem_get(struct bmm_dem_list const* const list, size_t const i);
+
 extern inline struct bmm_dem_buf* bmm_dem_getbuf(struct bmm_dem*);
 
 extern inline struct bmm_dem_buf const* bmm_dem_getrbuf(struct bmm_dem const*);
@@ -42,8 +50,14 @@ void bmm_dem_fakef(struct bmm_dem* const dem) {
     for (size_t idim = 0; idim < 2; ++idim)
       buf->parts[ipart].lin.f[idim] = 0.0;
 
+  /*
   for (size_t ipart = 0; ipart < dem->opts.npart; ++ipart)
     for (size_t jpart = ipart + 1; jpart < dem->opts.npart; ++jpart) {
+    */
+  for (size_t ipart = 0; ipart < dem->opts.npart; ++ipart)
+    for (size_t ineigh = 0; ineigh < bmm_dem_size(&buf->neigh.neighs[ipart]); ++ineigh) {
+      size_t const jpart = bmm_dem_get(&buf->neigh.neighs[ipart], ineigh);
+
       double const d2 = bmm_geom2d_pdist2(
           buf->parts[ipart].lin.r,
           buf->parts[jpart].lin.r,
@@ -58,7 +72,7 @@ void bmm_dem_fakef(struct bmm_dem* const dem) {
             buf->parts[jpart].lin.r,
             dem->rext);
 
-        double const c = 0.04;
+        double const c = 0.02;
 
         buf->parts[ipart].lin.f[0] -= c * cos(a);
         buf->parts[ipart].lin.f[1] -= c * sin(a);
@@ -107,19 +121,55 @@ void bmm_dem_cell(size_t* const icell,
           0.0, (double) dem->opts.ncell[idim]), dem->opts.ncell[idim]);
 }
 
-void bmm_dem_upneigh(struct bmm_dem* const dem) {
-  struct bmm_dem_buf const* const rbuf = bmm_dem_getrbuf(dem);
+void bmm_dem_recont(struct bmm_dem* const dem) {
+  struct bmm_dem_buf* const buf = bmm_dem_getbuf(dem);
+
+  for (size_t ilist = 0; ilist < bmm_size_prod(dem->opts.ncell, 2); ++ilist)
+    bmm_dem_clear(&buf->neigh.conts[ilist]);
 
   for (size_t ipart = 0; ipart < dem->opts.npart; ++ipart) {
     size_t icell[2];
     bmm_dem_cell(icell, dem, ipart);
 
-    // The size is $3^d$.
+    size_t const ilist = icell[0] + icell[1] * dem->opts.ncell[0];
+
+    (void) bmm_dem_push(&buf->neigh.conts[ilist], ipart);
+  }
+}
+
+// TODO Must this always be called immediately after `bmm_dem_recont`?
+// Not an important question, but interesting nevertheless.
+void bmm_dem_reneigh(struct bmm_dem* const dem) {
+  struct bmm_dem_buf* const buf = bmm_dem_getbuf(dem);
+
+  for (size_t ipart = 0; ipart < dem->opts.npart; ++ipart) {
+    bmm_dem_clear(&buf->neigh.neighs[ipart]);
+
+    size_t icell[2];
+    bmm_dem_cell(icell, dem, ipart);
+
     size_t (* const f[])(size_t, size_t) = {
       bmm_size_dec, bmm_size_constant, bmm_size_inc
     };
 
-    size_t incell[9];
+    // The size is $3^d$.
+    for (size_t imoore = 0; imoore < 3; ++imoore)
+      for (size_t jmoore = 0; jmoore < 3; ++jmoore) {
+        size_t const iwhat = f[imoore](icell[0], dem->opts.ncell[0]);
+        size_t const jwhat = f[jmoore](icell[1], dem->opts.ncell[1]);
+
+        size_t const icont = iwhat + jwhat * dem->opts.ncell[0];
+
+        for (size_t ineigh = 0; ineigh < bmm_dem_size(&buf->neigh.conts[icont]); ++ineigh) {
+          size_t const jpart = bmm_dem_get(&buf->neigh.conts[icont], ineigh);
+
+          if (bmm_geom2d_pdist2(
+                buf->parts[ipart].lin.r,
+                buf->parts[jpart].lin.r,
+                dem->rext) < bmm_fp_sq(buf->neigh.rmax))
+            bmm_dem_push(&buf->neigh.neighs[ipart], jpart);
+        }
+      }
   }
 }
 
@@ -244,6 +294,11 @@ void bmm_dem_def(struct bmm_dem* const dem,
     bmm_dem_defpart(&buf->parts[ipart]);
 
   bmm_pretend(dem); // TODO Remove later!
+
+  buf->neigh.rmax = 10.0;
+
+  bmm_dem_recont(dem);
+  bmm_dem_reneigh(dem);
 }
 
 // TODO Unify these three.
@@ -282,7 +337,25 @@ static void bmm_putparts(struct bmm_dem const* const dem) {
   bmm_msg_put(&head, dem);
 }
 
+static void bmm_putneighs(struct bmm_dem const* const dem) {
+  struct bmm_msg_head head;
+  bmm_defhead(&head);
+  bmm_bit_pset(&head.flags, BMM_FBIT_INTLE);
+  bmm_bit_pset(&head.flags, BMM_FBIT_FPLE);
+  bmm_bit_pset(&head.flags, BMM_FBIT_FLUSH);
+
+  head.type = BMM_MSG_NEIGH;
+
+  bmm_msg_put(&head, dem);
+}
+
 static bool bmm_dem_step(struct bmm_dem* const dem) {
+  // TODO This timing is bogus.
+  if (dem->istep % 20 == 0) {
+    bmm_dem_recont(dem);
+    bmm_dem_reneigh(dem);
+  }
+
   dem->forcesch(dem);
   dem->intsch(dem);
 
@@ -297,6 +370,10 @@ static bool bmm_dem_step(struct bmm_dem* const dem) {
 static bool bmm_dem_comm(struct bmm_dem* const dem) {
   bmm_putnop(dem);
   bmm_putparts(dem);
+
+  // TODO This timing is bogus.
+  if (dem->istep % 20 == 0)
+    bmm_putneighs(dem);
 
   // TODO These should go via messages.
   dem->est.ekinetic = bmm_dem_ekinetic(dem);

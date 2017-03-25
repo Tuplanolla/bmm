@@ -38,3 +38,7 @@ extern inline size_t bmm_size_uwrap(size_t, size_t);
 extern inline size_t bmm_size_inc(size_t, size_t);
 
 extern inline size_t bmm_size_dec(size_t, size_t);
+
+extern inline size_t bmm_size_sum(size_t const*, size_t);
+
+extern inline size_t bmm_size_prod(size_t const*, size_t);

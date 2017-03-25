@@ -26,6 +26,7 @@ enum bmm_msg {
   BMM_MSG_EKINE = 0x45,
   BMM_MSG_ESMOM = 0x46,
   BMM_MSG_EVMOM = 0x47,
+  BMM_MSG_NEIGH = 0x48,
   BMM_MSG_URGH = 0x80
 };
 

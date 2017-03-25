@@ -53,6 +53,13 @@ bool bmm_msg_get(struct bmm_msg_head* const head, struct bmm_dem* const dem,
           BMM_ERR_FWARN(NULL, "Failed to read particles");
       }
       break;
+    case BMM_MSG_NEIGH:
+      {
+        struct bmm_dem_buf* const buf = bmm_dem_getbuf(dem);
+        if (proc(&buf->neigh, sizeof buf->neigh) != 1)
+          BMM_ERR_FWARN(NULL, "Failed to read stuff");
+      }
+      break;
     default:
       BMM_ERR_FWARN(NULL, "Unsupported message type");
   }
@@ -77,6 +84,13 @@ void bmm_msg_put(struct bmm_msg_head const* const head,
         struct bmm_dem_buf const* const rbuf = bmm_dem_getrbuf(dem);
         if (barf(&rbuf->parts, sizeof rbuf->parts) != 1)
           BMM_ERR_FWARN(NULL, "Failed to write particles");
+      }
+      break;
+    case BMM_MSG_NEIGH:
+      {
+        struct bmm_dem_buf const* const rbuf = bmm_dem_getrbuf(dem);
+        if (barf(&rbuf->neigh, sizeof rbuf->neigh) != 1)
+          BMM_ERR_FWARN(NULL, "Failed to write stuff");
       }
       break;
     default:

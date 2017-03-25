@@ -204,4 +204,28 @@ inline size_t bmm_size_dec(size_t const n, size_t const k) {
   return n == 0 ? k - 1 : n - 1;
 }
 
+// The call `bmm_size_sum(n, k)` returns
+// the sum of the array `n` of length `k`.
+__attribute__ ((__pure__))
+inline size_t bmm_size_sum(size_t const* const n, size_t const k) {
+  size_t m = 0;
+
+  for (size_t i = 0; i < k; ++i)
+    m += n[i];
+
+  return m;
+}
+
+// The call `bmm_size_prod(n, k)` returns
+// the product of the array `n` of length `k`.
+__attribute__ ((__pure__))
+inline size_t bmm_size_prod(size_t const* const n, size_t const k) {
+  size_t m = 1;
+
+  for (size_t i = 0; i < k; ++i)
+    m *= n[i];
+
+  return m;
+}
+
 #endif
