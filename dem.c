@@ -24,6 +24,16 @@
 #endif
 #endif
 
+extern inline void bmm_dem_cleary(struct bmm_dem_listy* const list);
+
+extern inline bool bmm_dem_pushy(struct bmm_dem_listy* const list, size_t const x);
+
+extern inline size_t bmm_dem_sizey(struct bmm_dem_listy const* const list);
+
+extern inline size_t bmm_dem_gety(struct bmm_dem_listy const* const list, size_t const i);
+
+// TODO Wow, disgusting.
+
 extern inline void bmm_dem_clear(struct bmm_dem_list* const list);
 
 extern inline bool bmm_dem_push(struct bmm_dem_list* const list, size_t const x);
@@ -31,6 +41,8 @@ extern inline bool bmm_dem_push(struct bmm_dem_list* const list, size_t const x)
 extern inline size_t bmm_dem_size(struct bmm_dem_list const* const list);
 
 extern inline size_t bmm_dem_get(struct bmm_dem_list const* const list, size_t const i);
+
+// TODO Wow, even more disgusting.
 
 extern inline struct bmm_dem_buf* bmm_dem_getbuf(struct bmm_dem*);
 
@@ -40,10 +52,7 @@ extern inline struct bmm_dem_buf* bmm_dem_getwbuf(struct bmm_dem*);
 
 extern inline void bmm_dem_swapbuf(struct bmm_dem*);
 
-// TODO Avoid explicitly calculating angles.
-
-// Fake repulsive force.
-void bmm_dem_fakef(struct bmm_dem* const dem) {
+void bmm_dem_forces(struct bmm_dem* const dem) {
   struct bmm_dem_buf* const buf = bmm_dem_getbuf(dem);
 
   for (size_t ipart = 0; ipart < dem->opts.npart; ++ipart)
@@ -54,39 +63,60 @@ void bmm_dem_fakef(struct bmm_dem* const dem) {
   for (size_t ipart = 0; ipart < dem->opts.npart; ++ipart)
     for (size_t jpart = ipart + 1; jpart < dem->opts.npart; ++jpart) {
     */
-  for (size_t ipart = 0; ipart < dem->opts.npart; ++ipart)
-    for (size_t ineigh = 0; ineigh < bmm_dem_size(&buf->neigh.neighs[ipart]); ++ineigh) {
-      size_t const jpart = bmm_dem_get(&buf->neigh.neighs[ipart], ineigh);
+  for (size_t ipart = 0; ipart < dem->opts.npart; ++ipart) {
+    struct bmm_dem_listy* const listy = &buf->neigh.neighs[ipart];
 
-      double const d2 = bmm_geom2d_pdist2(
+    for (size_t ineigh = 0; ineigh < bmm_dem_sizey(listy); ++ineigh) {
+      size_t const jpart = bmm_dem_gety(listy, ineigh);
+
+      double dr[2];
+      bmm_geom2d_pdiff(dr,
           buf->parts[ipart].lin.r,
           buf->parts[jpart].lin.r,
           dem->rext);
 
-      double const r2 = bmm_fp_sq(
-          buf->partcs[ipart].rrad + buf->partcs[jpart].rrad);
+      double n[2];
+      bmm_geom2d_normal(n, dr);
+
+      double t[2];
+      bmm_geom2d_rperpr(t, n);
+
+      double const d2 = bmm_geom2d_norm2(dr);
+
+      double const r = buf->partcs[ipart].rrad + buf->partcs[jpart].rrad;
+
+      double const r2 = bmm_fp_sq(r);
 
       if (d2 < r2) {
-        double const a = bmm_geom2d_pangle(
-            buf->parts[ipart].lin.r,
-            buf->parts[jpart].lin.r,
-            dem->rext);
+        double const x = r - sqrt(d2);
 
-        double const c = 0.03;
+        // TODO Write a fast vector shift function.
+        listy->thingy[jpart].x[1] = listy->thingy[jpart].x[0];
+        listy->thingy[jpart].x[0] = x;
 
-        buf->parts[ipart].lin.f[0] -= c * cos(a);
-        buf->parts[ipart].lin.f[1] -= c * sin(a);
-        buf->parts[jpart].lin.f[0] += c * cos(a);
-        buf->parts[jpart].lin.f[1] += c * sin(a);
+        // TODO Write a thing for this too.
+        double const dx = listy->thingy[jpart].x[1] - listy->thingy[jpart].x[0];
+        double const v = dx / dem->opts.tstep;
+
+        // TODO Use getters.
+        double const f =
+          buf->partcs[ipart].ymodul * x +
+          buf->partcs[ipart].yelast * v;
+
+        double df[2];
+        bmm_geom2d_scale(df, n, -f);
+
+        bmm_geom2d_add(buf->parts[ipart].lin.f, buf->parts[ipart].lin.f, df);
       }
     }
+  }
 }
 
 void bmm_dem_euler(struct bmm_dem* const dem) {
   struct bmm_dem_buf* const buf = bmm_dem_getbuf(dem);
 
   // TODO Dissipate energy elsewhere.
-  double const damp = 0.986;
+  double const damp = 0.981;
 
   double const dt = dem->opts.tstep;
 
@@ -146,7 +176,7 @@ void bmm_dem_reneigh(struct bmm_dem* const dem) {
   struct bmm_dem_buf* const buf = bmm_dem_getbuf(dem);
 
   for (size_t ipart = 0; ipart < dem->opts.npart; ++ipart) {
-    bmm_dem_clear(&buf->neigh.neighs[ipart]);
+    bmm_dem_cleary(&buf->neigh.neighs[ipart]);
 
     size_t icell[2];
     bmm_dem_cell(icell, dem, ipart);
@@ -170,7 +200,7 @@ void bmm_dem_reneigh(struct bmm_dem* const dem) {
                 buf->parts[ipart].lin.r,
                 buf->parts[jpart].lin.r,
                 dem->rext) < bmm_fp_sq(dem->opts.rmax))
-            bmm_dem_push(&buf->neigh.neighs[ipart], jpart);
+            bmm_dem_pushy(&buf->neigh.neighs[ipart], jpart);
         }
       }
   }
@@ -240,7 +270,6 @@ double bmm_dem_ekinetic(struct bmm_dem const* const dem) {
   for (size_t ipart = 0; ipart < dem->opts.npart; ++ipart)
     for (size_t idim = 0; idim < 2; ++idim)
       e += rbuf->partcs[ipart].mass * bmm_fp_sq(rbuf->parts[ipart].lin.v[idim]);
-  // TODO No!
 
   return e * 0.5;
 }
@@ -256,7 +285,6 @@ double bmm_dem_pvector(struct bmm_dem const* const dem) {
   for (size_t ipart = 0; ipart < dem->opts.npart; ++ipart)
     for (size_t idim = 0; idim < 2; ++idim)
       p[idim] += rbuf->partcs[ipart].mass * rbuf->parts[ipart].lin.v[idim];
-  // TODO No!
 
   return bmm_geom2d_norm(p);
 }
@@ -269,7 +297,6 @@ double bmm_dem_pscalar(struct bmm_dem const* const dem) {
 
   for (size_t ipart = 0; ipart < dem->opts.npart; ++ipart)
     p += rbuf->partcs[ipart].mass * bmm_geom2d_norm(rbuf->parts[ipart].lin.v);
-  // TODO No!
 
   return p;
 }
@@ -303,8 +330,10 @@ static void bmm_pretend(struct bmm_dem* const dem) {
 
 void bmm_dem_defpartc(struct bmm_dem_partc* const partc) {
   partc->rrad = 0.0125;
-  partc->mass = 1.0; // TODO No!
-  partc->moi = 0.5 * partc->mass * bmm_fp_sq(partc->rrad); // TODO No!
+  partc->mass = 1.0;
+  partc->moi = 0.5 * partc->mass * bmm_fp_sq(partc->rrad);
+  partc->ymodul = 1.0e+4;
+  partc->yelast = 2.0e+3;
 }
 
 void bmm_dem_defpart(struct bmm_dem_part* const part) {
@@ -330,7 +359,7 @@ void bmm_dem_def(struct bmm_dem* const dem,
   for (size_t idim = 0; idim < 2; ++idim)
     dem->rext[idim] = 1.0;
 
-  dem->forcesch = bmm_dem_fakef;
+  dem->forcesch = bmm_dem_forces;
   dem->intsch = bmm_dem_euler;
   dem->dblbuf = false;
 

@@ -36,6 +36,10 @@ struct bmm_dem_partc {
   double rrad;
   double mass;
   double moi;
+  // Young's modulus $Y$.
+  double ymodul;
+  // Elasticity $\gamma$.
+  double yelast;
 };
 
 struct bmm_dem_part {
@@ -49,6 +53,7 @@ struct bmm_dem_part {
     double omega;
     double tau;
   } ang;
+  bool fixed;
 };
 
 struct bmm_dem_list {
@@ -57,11 +62,24 @@ struct bmm_dem_list {
   size_t i[BMM_GROUP_MAX];
 };
 
+struct bmm_dem_thingy {
+  // Neighbor index.
+  size_t i;
+  // Compression history.
+  double x[2];
+};
+
+struct bmm_dem_listy {
+  size_t n;
+  struct bmm_dem_thingy thingy[BMM_GROUP_MAX];
+};
+
 struct bmm_dem_neigh {
   // Next scheduled update.
   double tnext;
-  // Neighbors for each particle.
-  struct bmm_dem_list neighs[BMM_PART_MAX];
+  // Neighbors for each particle
+  // plus room for carrying garbage.
+  struct bmm_dem_listy neighs[BMM_PART_MAX];
 };
 
 struct bmm_dem_buf {
@@ -77,6 +95,8 @@ struct bmm_dem {
   // TODO Initial value system goes here.
   // TODO Force scheme goes here.
   void (* forcesch)(struct bmm_dem*);
+  double (* fnormal)(struct bmm_dem const*, double const*, double const*);
+  double (* ftang)(struct bmm_dem const*, double const*, double const*);
   // TODO Integration scheme goes here.
   void (* intsch)(struct bmm_dem*);
   // TODO Measurement system goes here.
@@ -99,6 +119,10 @@ struct bmm_dem {
   } pool;
 };
 
+// TODO Combine list types.
+
+// Index lists.
+
 inline void bmm_dem_clear(struct bmm_dem_list* const list) {
   list->n = 0;
 }
@@ -117,8 +141,37 @@ inline size_t bmm_dem_size(struct bmm_dem_list const* const list) {
   return list->n;
 }
 
-inline size_t bmm_dem_get(struct bmm_dem_list const* const list, size_t const i) {
+inline size_t bmm_dem_get(struct bmm_dem_list const* const list,
+    size_t const i) {
   return list->i[i];
+}
+
+// Some other kinds of lists.
+
+inline void bmm_dem_cleary(struct bmm_dem_listy* const list) {
+  list->n = 0;
+}
+
+inline bool bmm_dem_pushy(struct bmm_dem_listy* const list,
+    size_t const x) {
+  if (list->n >= sizeof list->thingy / sizeof *list->thingy)
+    return false;
+
+  list->thingy[list->n].i = x;
+  list->thingy[list->n].x[0] = 0.0;
+  list->thingy[list->n].x[1] = 0.0;
+  ++list->n;
+
+  return true;
+}
+
+inline size_t bmm_dem_sizey(struct bmm_dem_listy const* const list) {
+  return list->n;
+}
+
+inline size_t bmm_dem_gety(struct bmm_dem_listy const* const list,
+    size_t const i) {
+  return list->thingy[i].i;
 }
 
 // The call `bmm_dem_getbuf(dem)`

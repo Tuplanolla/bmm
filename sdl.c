@@ -183,8 +183,8 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
 
     // Neighbor markers.
     glBegin(GL_LINES);
-    for (size_t ineigh = 0; ineigh < bmm_dem_size(&rbuf->neigh.neighs[ipart]); ++ineigh) {
-      size_t const jpart = bmm_dem_get(&rbuf->neigh.neighs[ipart], ineigh);
+    for (size_t ineigh = 0; ineigh < bmm_dem_sizey(&rbuf->neigh.neighs[ipart]); ++ineigh) {
+      size_t const jpart = bmm_dem_gety(&rbuf->neigh.neighs[ipart], ineigh);
       glVertex2dv(rbuf->parts[ipart].lin.r);
       glVertex2dv(rbuf->parts[jpart].lin.r);
     }
