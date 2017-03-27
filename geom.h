@@ -47,22 +47,14 @@ inline double bmm_geom_ballsurf(double const r, size_t d) {
 }
 
 // The call `bmm_geom_ballmoi(r, d)` returns the moment of inertia
-// of the `d`-dimensional solid unit mass ball of radius `r`.
-// The result is obtained by evaluating the integral
-// $J_d(r) = ...$.
+// of a `d`-dimensional homogeneous unit mass ball of radius `r`.
+// To obtain the moment of inertia of a ball with mass `m`,
+// multiply the return value with `m`.
+// The result is obtained by applying the equation
+// $J_d(r) = ((d - 1) / (d + 2)) m r^2$.
 __attribute__ ((__const__, __pure__))
 inline double bmm_geom_ballmoi(double const r, size_t const d) {
-  switch (d) {
-    case 1:
-      return 0.0;
-    case 2:
-      return 0.5 * bmm_fp_sq(r);
-    case 3:
-      return 0.4 * bmm_fp_sq(r);
-    default:
-      // TODO Use a fallback.
-      return NAN;
-  }
+  return ((double) (d - 1) / (double) (d + 2)) * bmm_fp_sq(r);
 }
 
 #endif
