@@ -10,7 +10,7 @@
 // Maximum number of cells per dimension.
 #define BMM_CELL_MAX ((size_t) 256)
 // Maximum cell or neighbor population.
-#define BMM_GROUP_MAX ((size_t) 512)
+#define BMM_GROUP_MAX ((size_t) 128)
 #define BMM_STEP_MAX ((size_t) 16777216)
 
 #endif

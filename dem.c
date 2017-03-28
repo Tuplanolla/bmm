@@ -89,11 +89,11 @@ void bmm_dem_forces(struct bmm_dem* const dem) {
         double const x = r - sqrt(d2);
 
         // TODO Write a fast vector shift function.
-        listy->thingy[jpart].x[1] = listy->thingy[jpart].x[0];
-        listy->thingy[jpart].x[0] = x;
+        listy->thingy[ineigh].x[1] = listy->thingy[ineigh].x[0];
+        listy->thingy[ineigh].x[0] = x;
 
         // TODO Write a thing for this too.
-        double const dx = listy->thingy[jpart].x[1] - listy->thingy[jpart].x[0];
+        double const dx = listy->thingy[ineigh].x[1] - listy->thingy[ineigh].x[0];
         double const v = dx / dem->opts.tstep;
 
         // TODO Use getters.
@@ -303,7 +303,7 @@ void bmm_dem_defopts(struct bmm_dem_opts* const opts) {
   opts->ncell[1] = 6;
   opts->nbin = 1;
   // opts->npart = 0;
-  opts->npart = 513; // TODO Fix this overflow.
+  opts->npart = 256;
   opts->nstep = 2000;
   opts->rmax = 0.2;
   opts->tstep = 0.1;
