@@ -25,6 +25,10 @@ struct bmm_dem_opts {
   double tstep;
   // Drift leeway velocity.
   double vleeway;
+  // Young's modulus $Y$.
+  double ymodul;
+  // Elasticity $\gamma$.
+  double yelast;
   // Particle size mean.
   size_t rmean;
   // Particle size standard deviation.
@@ -36,10 +40,8 @@ struct bmm_dem_partc {
   double rrad;
   double mass;
   double moi;
-  // Young's modulus $Y$.
-  double ymodul;
-  // Elasticity $\gamma$.
-  double yelast;
+  // Fixed or moving.
+  bool free;
 };
 
 struct bmm_dem_part {
@@ -53,7 +55,6 @@ struct bmm_dem_part {
     double omega;
     double tau;
   } ang;
-  bool fixed;
 };
 
 struct bmm_dem_list {

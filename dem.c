@@ -15,8 +15,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-// TODO Remove this test header.
-#include <unistd.h>
 
 #ifdef _GNU_SOURCE
 #ifdef DEBUG
@@ -99,9 +97,7 @@ void bmm_dem_forces(struct bmm_dem* const dem) {
         double const v = dx / dem->opts.tstep;
 
         // TODO Use getters.
-        double const f =
-          buf->partcs[ipart].ymodul * x +
-          buf->partcs[ipart].yelast * v;
+        double const f = dem->opts.ymodul * x + dem->opts.yelast * v;
 
         double df[2];
         bmm_geom2d_scale(df, n, -f);
@@ -116,31 +112,32 @@ void bmm_dem_euler(struct bmm_dem* const dem) {
   struct bmm_dem_buf* const buf = bmm_dem_getbuf(dem);
 
   // TODO Dissipate energy elsewhere.
-  double const damp = 0.981;
+  double const damp = 0.986;
 
   double const dt = dem->opts.tstep;
 
-  for (size_t ipart = 0; ipart < dem->opts.npart; ++ipart) {
-    for (size_t idim = 0; idim < 2; ++idim) {
-      double const a = buf->parts[ipart].lin.f[idim] / buf->partcs[ipart].mass;
+  for (size_t ipart = 0; ipart < dem->opts.npart; ++ipart)
+    if (buf->partcs[ipart].free) {
+      for (size_t idim = 0; idim < 2; ++idim) {
+        double const a = buf->parts[ipart].lin.f[idim] / buf->partcs[ipart].mass;
 
-      buf->parts[ipart].lin.r[idim] = bmm_fp_uwrap(
-          buf->parts[ipart].lin.r[idim] +
-          buf->parts[ipart].lin.v[idim] * dt, dem->rext[idim]);
+        buf->parts[ipart].lin.r[idim] = bmm_fp_uwrap(
+            buf->parts[ipart].lin.r[idim] +
+            buf->parts[ipart].lin.v[idim] * dt, dem->rext[idim]);
 
-      buf->parts[ipart].lin.v[idim] =
-        damp * (buf->parts[ipart].lin.v[idim] + a * dt);
+        buf->parts[ipart].lin.v[idim] =
+          damp * (buf->parts[ipart].lin.v[idim] + a * dt);
+      }
+
+      double const a = buf->parts[ipart].ang.tau / buf->partcs[ipart].moi;
+
+      buf->parts[ipart].ang.alpha = bmm_fp_uwrap(
+          buf->parts[ipart].ang.alpha +
+          buf->parts[ipart].ang.omega * dt, M_2PI);
+
+      buf->parts[ipart].ang.omega =
+        damp * (buf->parts[ipart].ang.omega + a * dt);
     }
-
-    double const a = buf->parts[ipart].ang.tau / buf->partcs[ipart].moi;
-
-    buf->parts[ipart].ang.alpha = bmm_fp_uwrap(
-        buf->parts[ipart].ang.alpha +
-        buf->parts[ipart].ang.omega * dt, M_2PI);
-
-    buf->parts[ipart].ang.omega =
-      damp * (buf->parts[ipart].ang.omega + a * dt);
-  }
 }
 
 void bmm_dem_cell(size_t* const icell,
@@ -200,7 +197,7 @@ void bmm_dem_reneigh(struct bmm_dem* const dem) {
                 buf->parts[ipart].lin.r,
                 buf->parts[jpart].lin.r,
                 dem->rext) < bmm_fp_sq(dem->opts.rmax))
-            bmm_dem_pushy(&buf->neigh.neighs[ipart], jpart);
+            (void) bmm_dem_pushy(&buf->neigh.neighs[ipart], jpart);
         }
       }
   }
@@ -306,11 +303,13 @@ void bmm_dem_defopts(struct bmm_dem_opts* const opts) {
   opts->ncell[1] = 6;
   opts->nbin = 1;
   // opts->npart = 0;
-  opts->npart = 256;
+  opts->npart = 513; // TODO Fix this overflow.
   opts->nstep = 2000;
   opts->rmax = 0.2;
   opts->tstep = 0.1;
   opts->vleeway = 0.01;
+  opts->ymodul = 2.0e+4;
+  opts->yelast = 1.0e+3;
 }
 
 static void bmm_pretend(struct bmm_dem* const dem) {
@@ -323,8 +322,11 @@ static void bmm_pretend(struct bmm_dem* const dem) {
           dem->rext[idim]);
 
     buf->parts[ipart].ang.alpha = M_2PI * bmm_fp_uwrap(
-          (double) (rand() % 256 - 128) / 128.0, 1.0);
+        (double) (rand() % 256 - 128) / 128.0, 1.0);
     buf->parts[ipart].ang.omega = (double) (rand() % 256 - 128) / 128.0;
+
+    if (buf->parts[ipart].lin.r[1] < 1.0 / (double) dem->opts.ncell[1])
+      buf->partcs[ipart].free = false;
   }
 }
 
@@ -332,8 +334,7 @@ void bmm_dem_defpartc(struct bmm_dem_partc* const partc) {
   partc->rrad = 0.0125;
   partc->mass = 1.0;
   partc->moi = 0.5 * partc->mass * bmm_fp_sq(partc->rrad);
-  partc->ymodul = 1.0e+4;
-  partc->yelast = 2.0e+3;
+  partc->free = true;
 }
 
 void bmm_dem_defpart(struct bmm_dem_part* const part) {
