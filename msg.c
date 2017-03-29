@@ -52,6 +52,8 @@ bool bmm_msg_get(struct bmm_msg_head* const head, struct bmm_dem* const dem,
     case BMM_MSG_PARTS:
       {
         struct bmm_dem_buf* const buf = bmm_dem_getbuf(dem);
+        if (proc(&dem->istep, sizeof dem->istep) != 1)
+          BMM_ERR_FWARN(NULL, "Failed to read particles");
         if (proc(&buf->parts, sizeof buf->parts) != 1)
           BMM_ERR_FWARN(NULL, "Failed to read particles");
         if (proc(&buf->partcs, sizeof buf->partcs) != 1)
@@ -90,6 +92,8 @@ void bmm_msg_put(struct bmm_msg_head const* const head,
     case BMM_MSG_PARTS:
       {
         struct bmm_dem_buf const* const buf = bmm_dem_getrbuf(dem);
+        if (barf(&dem->istep, sizeof dem->istep) != 1)
+          BMM_ERR_FWARN(NULL, "Failed to write particles");
         if (barf(&buf->parts, sizeof buf->parts) != 1)
           BMM_ERR_FWARN(NULL, "Failed to write particles");
         if (barf(&buf->partcs, sizeof buf->partcs) != 1)

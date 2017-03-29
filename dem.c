@@ -308,6 +308,25 @@ double bmm_dem_pscalar(struct bmm_dem const* const dem) {
   return p;
 }
 
+// Mean coefficient of restitution
+// (just linear dashpot for now, also a bit wrong).
+double bmm_dem_cor(struct bmm_dem const* const dem) {
+  double e = 0.0;
+
+  struct bmm_dem_buf const* const buf = bmm_dem_getrbuf(dem);
+
+  for (size_t ipart = 0; ipart < buf->npart; ++ipart) {
+    double const meff =
+      buf->partcs[ipart].mass * buf->partcs[ipart].mass /
+      (buf->partcs[ipart].mass + buf->partcs[ipart].mass);
+    e += exp(-M_PI * dem->opts.yelast / (2.0 * meff) /
+        sqrt(dem->opts.ymodul / meff -
+          bmm_fp_sq(dem->opts.yelast / (2.0 * meff))));
+  }
+
+  return e / (double) buf->npart;
+}
+
 void bmm_dem_defopts(struct bmm_dem_opts* const opts) {
   opts->ncell[0] = 6;
   opts->ncell[1] = 6;
@@ -320,8 +339,8 @@ void bmm_dem_defopts(struct bmm_dem_opts* const opts) {
   opts->vleeway = 0.01;
   opts->gravy[0] = 0.0;
   opts->gravy[1] = -0.005;
-  opts->ymodul = 3.0e+4;
-  opts->yelast = 1.0e+3;
+  opts->ymodul = 2.0e+4;
+  opts->yelast = 1.0e+2;
   opts->rmean = 0.0125;
   opts->rsd = opts->rmean * 0.2;
 }

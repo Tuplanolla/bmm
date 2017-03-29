@@ -227,18 +227,25 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
 
   // TODO These should come via messages.
   char strbuf[BUFSIZ];
+  int ioff = 1;
   (void) snprintf(strbuf, sizeof strbuf, "K (kinetic energy) = %g",
       bmm_dem_ekinetic(&sdl->dem));
-  glString(strbuf, 8, 8 + 15, glWhite, GLUT_BITMAP_9_BY_15);
+  glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
   (void) snprintf(strbuf, sizeof strbuf, "p (total vector momentum) = %g",
       bmm_dem_pvector(&sdl->dem));
-  glString(strbuf, 8, 8 + 15 * 2, glWhite, GLUT_BITMAP_9_BY_15);
+  glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
   (void) snprintf(strbuf, sizeof strbuf, "p (total scalar momentum) = %g",
       bmm_dem_pscalar(&sdl->dem));
-  glString(strbuf, 8, 8 + 15 * 3, glWhite, GLUT_BITMAP_9_BY_15);
-  (void) snprintf(strbuf, sizeof strbuf, "t (next update) = %g -> %g",
-      sdl->dem.istep * sdl->dem.opts.tstep, buf->neigh.tnext);
-  glString(strbuf, 8, 8 + 15 * 4, glWhite, GLUT_BITMAP_9_BY_15);
+  glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
+  (void) snprintf(strbuf, sizeof strbuf, "t (now) = %g",
+      sdl->dem.istep * sdl->dem.opts.tstep);
+  glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
+  (void) snprintf(strbuf, sizeof strbuf, "t (next sched. update) = %g",
+      buf->neigh.tnext);
+  glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
+  (void) snprintf(strbuf, sizeof strbuf, "e (coeff. of restit.) = %g",
+      bmm_dem_cor(&sdl->dem));
+  glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
 
   SDL_GL_SwapBuffers();
 }
