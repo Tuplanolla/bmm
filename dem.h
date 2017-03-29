@@ -4,6 +4,7 @@
 
 #include "conf.h"
 #include "ext.h"
+#include <gsl/gsl_rng.h>
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -13,28 +14,37 @@ struct bmm_dem_est {
   double pscalar;
 };
 
+struct bmm_dem_time {
+  double tinit;
+  double tsim;
+};
+
 struct bmm_dem_opts {
   // Cell extents by dimension, expressed in divs.
   size_t ncell[2];
   size_t nbin;
-  // TODO Move this to dynamic parameters.
-  size_t npart;
-  // TODO Determine the simulation time instead?
+  __attribute__ ((__deprecated__))
   size_t nstep;
   // Maximum distance for qualifying as a neighbor.
   double rmax;
+  // TODO Total simulation time.
+  struct bmm_dem_time tend;
+  struct bmm_dem_time tadv;
   // Simulated time step.
+  __attribute__ ((__deprecated__))
   double tstep;
   // Drift leeway velocity.
   double vleeway;
+  // Acceleration for sedimentation (gravity).
+  double gravy[2];
   // Young's modulus $Y$.
   double ymodul;
   // Elasticity $\gamma$.
   double yelast;
   // Particle size mean.
-  size_t rmean;
+  double rmean;
   // Particle size standard deviation.
-  size_t rstd;
+  double rsd;
 };
 
 // A terrible name for constant particle data.
@@ -86,13 +96,22 @@ struct bmm_dem_neigh {
 };
 
 struct bmm_dem_buf {
+  size_t npart;
   struct bmm_dem_neigh neigh;
   struct bmm_dem_partc partcs[BMM_PART_MAX];
   struct bmm_dem_part parts[BMM_PART_MAX];
 };
 
+enum bmm_dem_mode {
+  BMM_DEM_SEDIMENT,
+  BMM_DEM_BREAK,
+  BMM_DEM_CRUNCH
+};
+
 struct bmm_dem {
   struct bmm_dem_opts opts;
+  gsl_rng* rng;
+  enum bmm_dem_mode mode;
   size_t istep;
   double rext[2];
   // TODO Initial value system goes here.

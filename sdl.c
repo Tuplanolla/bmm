@@ -137,11 +137,11 @@ static void bmm_sdl_move(struct bmm_sdl* const sdl,
 // TODO Remove this duplicate.
 static void bmm_dem_cell(size_t* const icell,
     struct bmm_dem const* const dem, size_t const ipart) {
-  struct bmm_dem_buf const* const rbuf = bmm_dem_getrbuf(dem);
+  struct bmm_dem_buf const* const buf = bmm_dem_getrbuf(dem);
 
   for (size_t idim = 0; idim < 2; ++idim)
     icell[idim] = bmm_size_uclamp(
-        (size_t) bmm_fp_lerp(rbuf->parts[ipart].lin.r[idim],
+        (size_t) bmm_fp_lerp(buf->parts[ipart].lin.r[idim],
           0.0, dem->rext[idim],
           0.0, (double) dem->opts.ncell[idim]), dem->opts.ncell[idim]);
 }
@@ -167,7 +167,7 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
   double const w = sdl->dem.rext[0] / (double) sdl->dem.opts.ncell[0];
   double const h = sdl->dem.rext[1] / (double) sdl->dem.opts.ncell[1];
 
-  struct bmm_dem_buf const* const rbuf = bmm_dem_getrbuf(&sdl->dem);
+  struct bmm_dem_buf const* const buf = bmm_dem_getrbuf(&sdl->dem);
 
   // Focus.
   if (sdl->itarget != SIZE_MAX) {
@@ -183,21 +183,21 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
 
     // Neighbor markers.
     glBegin(GL_LINES);
-    for (size_t ineigh = 0; ineigh < bmm_dem_sizey(&rbuf->neigh.neighs[ipart]); ++ineigh) {
-      size_t const jpart = bmm_dem_gety(&rbuf->neigh.neighs[ipart], ineigh);
-      glVertex2dv(rbuf->parts[ipart].lin.r);
-      glVertex2dv(rbuf->parts[jpart].lin.r);
+    for (size_t ineigh = 0; ineigh < bmm_dem_sizey(&buf->neigh.neighs[ipart]); ++ineigh) {
+      size_t const jpart = bmm_dem_gety(&buf->neigh.neighs[ipart], ineigh);
+      glVertex2dv(buf->parts[ipart].lin.r);
+      glVertex2dv(buf->parts[jpart].lin.r);
     }
     glEnd();
   }
 
   // Particles.
   glColor4fv(glYellow);
-  for (size_t ipart = 0; ipart < sdl->dem.opts.npart; ++ipart) {
-    float const x = (float) rbuf->parts[ipart].lin.r[0];
-    float const y = (float) rbuf->parts[ipart].lin.r[1];
-    float const r = (float) rbuf->partcs[ipart].rrad;
-    float const a = (float) rbuf->parts[ipart].ang.alpha;
+  for (size_t ipart = 0; ipart < buf->npart; ++ipart) {
+    float const x = (float) buf->parts[ipart].lin.r[0];
+    float const y = (float) buf->parts[ipart].lin.r[1];
+    float const r = (float) buf->partcs[ipart].rrad;
+    float const a = (float) buf->parts[ipart].ang.alpha;
 
     glSkewedAnnulus(x, y, r, r * 0.25f, r * 0.5f, a, ncorner);
   }
@@ -226,13 +226,19 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
   glOrtho(0.0, sdl->width, sdl->height, 0.0, -1.0, 1.0);
 
   // TODO These should come via messages.
-  char buf[BUFSIZ];
-  (void) snprintf(buf, sizeof buf, "K (kinetic energy) = %g", bmm_dem_ekinetic(&sdl->dem));
-  glString(buf, 8, 8 + 15, glWhite, GLUT_BITMAP_9_BY_15);
-  (void) snprintf(buf, sizeof buf, "p (total vector momentum) = %g", bmm_dem_pvector(&sdl->dem));
-  glString(buf, 8, 8 + 15 * 2, glWhite, GLUT_BITMAP_9_BY_15);
-  (void) snprintf(buf, sizeof buf, "p (total scalar momentum) = %g", bmm_dem_pscalar(&sdl->dem));
-  glString(buf, 8, 8 + 15 * 3, glWhite, GLUT_BITMAP_9_BY_15);
+  char strbuf[BUFSIZ];
+  (void) snprintf(strbuf, sizeof strbuf, "K (kinetic energy) = %g",
+      bmm_dem_ekinetic(&sdl->dem));
+  glString(strbuf, 8, 8 + 15, glWhite, GLUT_BITMAP_9_BY_15);
+  (void) snprintf(strbuf, sizeof strbuf, "p (total vector momentum) = %g",
+      bmm_dem_pvector(&sdl->dem));
+  glString(strbuf, 8, 8 + 15 * 2, glWhite, GLUT_BITMAP_9_BY_15);
+  (void) snprintf(strbuf, sizeof strbuf, "p (total scalar momentum) = %g",
+      bmm_dem_pscalar(&sdl->dem));
+  glString(strbuf, 8, 8 + 15 * 3, glWhite, GLUT_BITMAP_9_BY_15);
+  (void) snprintf(strbuf, sizeof strbuf, "t (next update) = %g -> %g",
+      sdl->dem.istep * sdl->dem.opts.tstep, buf->neigh.tnext);
+  glString(strbuf, 8, 8 + 15 * 4, glWhite, GLUT_BITMAP_9_BY_15);
 
   SDL_GL_SwapBuffers();
 }
@@ -265,7 +271,8 @@ static bool bmm_sdl_video(struct bmm_sdl* const sdl,
 
 static bool filter(struct bmm_msg_head const* const head,
     __attribute__ ((__unused__)) void* const ptr) {
-  return head->type == BMM_MSG_PARTS ||
+  return head->type == BMM_MSG_NPART ||
+    head->type == BMM_MSG_PARTS ||
     head->type == BMM_MSG_NEIGH;
 }
 

@@ -43,13 +43,18 @@ bool bmm_msg_get(struct bmm_msg_head* const head, struct bmm_dem* const dem,
     case BMM_MSG_NOP:
       break;
     case BMM_MSG_NPART:
-      if (proc(&dem->opts.npart, sizeof dem->opts.npart) != 1)
-        BMM_ERR_FWARN(NULL, "Failed to read number of particles");
+      {
+        struct bmm_dem_buf* const buf = bmm_dem_getbuf(dem);
+        if (proc(&buf->npart, sizeof buf->npart) != 1)
+          BMM_ERR_FWARN(NULL, "Failed to read number of particles");
+      }
       break;
     case BMM_MSG_PARTS:
       {
         struct bmm_dem_buf* const buf = bmm_dem_getbuf(dem);
         if (proc(&buf->parts, sizeof buf->parts) != 1)
+          BMM_ERR_FWARN(NULL, "Failed to read particles");
+        if (proc(&buf->partcs, sizeof buf->partcs) != 1)
           BMM_ERR_FWARN(NULL, "Failed to read particles");
       }
       break;
@@ -76,20 +81,25 @@ void bmm_msg_put(struct bmm_msg_head const* const head,
     case BMM_MSG_NOP:
       break;
     case BMM_MSG_NPART:
-      if (barf(&dem->opts.npart, sizeof dem->opts.npart) != 1)
-        BMM_ERR_FWARN(NULL, "Failed to write number of particles");
+      {
+        struct bmm_dem_buf const* const buf = bmm_dem_getrbuf(dem);
+        if (barf(&buf->npart, sizeof buf->npart) != 1)
+          BMM_ERR_FWARN(NULL, "Failed to write number of particles");
+      }
       break;
     case BMM_MSG_PARTS:
       {
-        struct bmm_dem_buf const* const rbuf = bmm_dem_getrbuf(dem);
-        if (barf(&rbuf->parts, sizeof rbuf->parts) != 1)
+        struct bmm_dem_buf const* const buf = bmm_dem_getrbuf(dem);
+        if (barf(&buf->parts, sizeof buf->parts) != 1)
+          BMM_ERR_FWARN(NULL, "Failed to write particles");
+        if (barf(&buf->partcs, sizeof buf->partcs) != 1)
           BMM_ERR_FWARN(NULL, "Failed to write particles");
       }
       break;
     case BMM_MSG_NEIGH:
       {
-        struct bmm_dem_buf const* const rbuf = bmm_dem_getrbuf(dem);
-        if (barf(&rbuf->neigh, sizeof rbuf->neigh) != 1)
+        struct bmm_dem_buf const* const buf = bmm_dem_getrbuf(dem);
+        if (barf(&buf->neigh, sizeof buf->neigh) != 1)
           BMM_ERR_FWARN(NULL, "Failed to write stuff");
       }
       break;
