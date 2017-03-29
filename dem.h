@@ -33,6 +33,9 @@ struct bmm_dem_opts {
   // Simulated time step.
   __attribute__ ((__deprecated__))
   double tstep;
+  __attribute__ ((__deprecated__))
+  double tstepcomm;
+  double tcomm;
   // Drift leeway velocity.
   double vleeway;
   // Acceleration for sedimentation (gravity).

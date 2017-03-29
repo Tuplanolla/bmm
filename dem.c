@@ -76,17 +76,12 @@ void bmm_dem_forces(struct bmm_dem* const dem) {
     for (size_t ineigh = 0; ineigh < bmm_dem_sizey(listy); ++ineigh) {
       size_t const jpart = bmm_dem_gety(listy, ineigh);
 
+      // TODO Make a predicate function.
       double dr[2];
       bmm_geom2d_pdiff(dr,
           buf->parts[ipart].lin.r,
           buf->parts[jpart].lin.r,
           dem->rext);
-
-      double n[2];
-      bmm_geom2d_normal(n, dr);
-
-      double t[2];
-      bmm_geom2d_rperpr(t, n);
 
       double const d2 = bmm_geom2d_norm2(dr);
 
@@ -108,6 +103,12 @@ void bmm_dem_forces(struct bmm_dem* const dem) {
         // TODO Use getters.
         double const f = fmax(0.0,
             dem->opts.ymodul * x + dem->opts.yelast * v);
+
+        double n[2];
+        bmm_geom2d_normal(n, dr);
+
+        double t[2];
+        bmm_geom2d_rperpr(t, n);
 
         double df[2];
         bmm_geom2d_scale(df, n, -f);
@@ -331,17 +332,19 @@ void bmm_dem_defopts(struct bmm_dem_opts* const opts) {
   opts->ncell[0] = 6;
   opts->ncell[1] = 6;
   opts->nbin = 1;
-  opts->nstep = 1000;
+  opts->nstep = 100000;
   opts->rmax = 0.2;
   // opts->tend = ...;
   // opts->tadv = ...;
-  opts->tstep = 0.1;
+  opts->tstep = 0.01;
+  opts->tstepcomm = 1.0;
+  opts->tcomm = 0.0;
   opts->vleeway = 0.01;
   opts->gravy[0] = 0.0;
   opts->gravy[1] = -0.005;
   opts->ymodul = 2.0e+4;
   opts->yelast = 1.0e+2;
-  opts->rmean = 0.0125;
+  opts->rmean = 0.03;
   opts->rsd = opts->rmean * 0.2;
 }
 
@@ -396,23 +399,55 @@ static void bmm_bottom(struct bmm_dem* const dem) {
   }
 }
 
-static void bmm_top(struct bmm_dem* const dem) {
+static void bmm_disperse(struct bmm_dem* const dem) {
   struct bmm_dem_buf* const buf = bmm_dem_getbuf(dem);
 
-  double r = dem->opts.rmean + gsl_ran_gaussian(dem->rng, dem->opts.rsd);
+  size_t maxfail = 100;
+  size_t fail = 0;
 
-  struct bmm_dem_partc* const partc = &buf->partcs[buf->npart];
-  struct bmm_dem_part* const part = &buf->parts[buf->npart];
+  while (fail < maxfail && buf->npart < BMM_PART_MAX) {
+    double const r = dem->opts.rmean +
+      gsl_ran_gaussian(dem->rng, dem->opts.rsd);
 
-  bmm_dem_defpartc(partc);
-  bmm_dem_defpart(part);
+    double x[2];
+    x[0] = gsl_rng_uniform(dem->rng) * dem->rext[0];
+    x[1] = gsl_rng_uniform(dem->rng) * dem->rext[1];
 
-  partc->rrad = r;
-  partc->free = true;
-  part->lin.r[0] = gsl_rng_uniform(dem->rng) * dem->rext[0];
-  part->lin.r[1] = dem->rext[1] / 16.0;
+    for (size_t ipart = 0; ipart < buf->npart; ++ipart) {
+      double dr[2];
+      bmm_geom2d_pdiff(dr,
+          buf->parts[ipart].lin.r,
+          x,
+          dem->rext);
 
-  ++buf->npart;
+      double const d2 = bmm_geom2d_norm2(dr);
+
+      double const rs = buf->partcs[ipart].rrad + r;
+
+      double const r2 = bmm_fp_sq(rs);
+
+      if (d2 < r2) {
+        ++fail;
+        goto end;
+      }
+    }
+
+    fail = 0;
+
+    struct bmm_dem_partc* const partc = &buf->partcs[buf->npart];
+    struct bmm_dem_part* const part = &buf->parts[buf->npart];
+
+    bmm_dem_defpartc(partc);
+    bmm_dem_defpart(part);
+
+    partc->rrad = r;
+    partc->free = true;
+    part->lin.r[0] = x[0];
+    part->lin.r[1] = x[1];
+
+    ++buf->npart;
+end: ;
+  }
 }
 
 void bmm_dem_def(struct bmm_dem* const dem,
@@ -500,13 +535,8 @@ static bool bmm_dem_step(struct bmm_dem* const dem) {
     buf->neigh.tnext += bmm_dem_drift(dem);
   }
 
-  if (dem->istep % 10 == 0) {
-    bmm_top(dem);
     // TODO Make a mechanism to automate this.
-    // TODO Also make a mechanism to automate retransmission of differences.
-    bmm_dem_recont(dem);
-    bmm_dem_reneigh(dem);
-  }
+  // TODO Make a mechanism to automate retransmission of differences.
 
   dem->forcesch(dem);
   dem->intsch(dem);
@@ -520,6 +550,13 @@ static bool bmm_dem_step(struct bmm_dem* const dem) {
 }
 
 static bool bmm_dem_comm(struct bmm_dem* const dem) {
+  double const tnow = dem->istep * dem->opts.tstep;
+
+  if (tnow < dem->opts.tcomm + dem->opts.tstepcomm)
+    return true;
+
+  dem->opts.tcomm = tnow;
+
   // TODO This timing is bogus.
   if (dem->istep % 20 == 0)
     bmm_putneighs(dem);
@@ -588,7 +625,7 @@ static bool bmm_dem_run_now(struct bmm_dem_opts const* const opts) {
 
   bmm_bottom(dem);
 
-  bmm_top(dem);
+  bmm_disperse(dem);
 
   bool const result = bmm_dem_run_for_real(dem);
 

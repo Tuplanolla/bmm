@@ -246,6 +246,9 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
   (void) snprintf(strbuf, sizeof strbuf, "e (coeff. of restit.) = %g",
       bmm_dem_cor(&sdl->dem));
   glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
+  (void) snprintf(strbuf, sizeof strbuf, "n (number of particles) = %zu",
+      buf->npart);
+  glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
 
   SDL_GL_SwapBuffers();
 }
