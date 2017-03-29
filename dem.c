@@ -50,6 +50,7 @@ extern inline struct bmm_dem_buf* bmm_dem_getwbuf(struct bmm_dem*);
 
 extern inline void bmm_dem_swapbuf(struct bmm_dem*);
 
+// TODO Make periodicity mutable by axis.
 void bmm_dem_forces(struct bmm_dem* const dem) {
   struct bmm_dem_buf* const buf = bmm_dem_getbuf(dem);
 
@@ -97,7 +98,8 @@ void bmm_dem_forces(struct bmm_dem* const dem) {
         double const v = dx / dem->opts.tstep;
 
         // TODO Use getters.
-        double const f = dem->opts.ymodul * x + dem->opts.yelast * v;
+        double const f = fmax(0.0,
+            dem->opts.ymodul * x + dem->opts.yelast * v);
 
         double df[2];
         bmm_geom2d_scale(df, n, -f);
@@ -303,12 +305,12 @@ void bmm_dem_defopts(struct bmm_dem_opts* const opts) {
   opts->ncell[1] = 6;
   opts->nbin = 1;
   // opts->npart = 0;
-  opts->npart = 256;
+  opts->npart = 1024;
   opts->nstep = 2000;
   opts->rmax = 0.2;
   opts->tstep = 0.1;
   opts->vleeway = 0.01;
-  opts->ymodul = 2.0e+4;
+  opts->ymodul = 3.0e+4;
   opts->yelast = 1.0e+3;
 }
 

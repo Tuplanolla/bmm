@@ -17,7 +17,9 @@ struct bmm_dem_opts {
   // Cell extents by dimension, expressed in divs.
   size_t ncell[2];
   size_t nbin;
+  // TODO Move this to dynamic parameters.
   size_t npart;
+  // TODO Determine the simulation time instead?
   size_t nstep;
   // Maximum distance for qualifying as a neighbor.
   double rmax;
