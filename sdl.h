@@ -55,7 +55,8 @@ struct bmm_sdl {
   double rorigin[2];
   Uint32 tstep;
   bool stale;
-  bool _pad0[3];
+  bool active;
+  bool _pad0[2];
   size_t itarget;
   struct bmm_dem dem;
 };

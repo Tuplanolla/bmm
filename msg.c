@@ -64,7 +64,9 @@ bool bmm_msg_get(struct bmm_msg_head* const head, struct bmm_dem* const dem,
       {
         struct bmm_dem_buf* const buf = bmm_dem_getbuf(dem);
         if (proc(&buf->neigh, sizeof buf->neigh) != 1)
-          BMM_ERR_FWARN(NULL, "Failed to read stuff");
+          BMM_ERR_FWARN(NULL, "Failed to read neighbors");
+        if (proc(&buf->links, sizeof buf->links) != 1)
+          BMM_ERR_FWARN(NULL, "Failed to read links");
       }
       break;
     default:
@@ -104,7 +106,9 @@ void bmm_msg_put(struct bmm_msg_head const* const head,
       {
         struct bmm_dem_buf const* const buf = bmm_dem_getrbuf(dem);
         if (barf(&buf->neigh, sizeof buf->neigh) != 1)
-          BMM_ERR_FWARN(NULL, "Failed to write stuff");
+          BMM_ERR_FWARN(NULL, "Failed to write neighbors");
+        if (barf(&buf->links, sizeof buf->links) != 1)
+          BMM_ERR_FWARN(NULL, "Failed to write links");
       }
       break;
     default:

@@ -103,6 +103,10 @@ struct bmm_dem_buf {
   struct bmm_dem_neigh neigh;
   struct bmm_dem_partc partcs[BMM_PART_MAX];
   struct bmm_dem_part parts[BMM_PART_MAX];
+  // These are directed links *to* some particle.
+  struct bmm_dem_list links[BMM_PART_MAX];
+  // TODO Do we want a asymmetric pair list or an symmetric list of lists?
+  // Probably the latter, even though keeping it consistent takes work.
 };
 
 enum bmm_dem_mode {

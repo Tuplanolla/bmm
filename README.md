@@ -230,6 +230,30 @@ This is by design.
 Particle speed distribution could be calculated and
 then partitioned into slow and fast regions.
 Only the slow region would participate in the linked cell algorithm.
+This did not work due to nonlocality:
+transfer of kinetic energy quickly changed the distribution.
+
+#### Pair Symmetry
+
+Forces between pairs could be worked out asymmetrically,
+which would cut the Moore neighborhood sizes and iterations into half.
+However this would prevent one from not having to build neighbor lists and
+short-circuiting interaction calculations for fixed particles.
+
+#### Simulation Stages
+
+First particles are placed randomly without overlapping
+until enough consecutive failures happen.
+Then gravity is applied and the simulation is run
+until energy reaches a low point.
+The process is repeated until failures happen immediately.
+This introduces a statistical size bias, which has to be taken into account.
+The time step may be varied (from large to small here)
+as long as it produces a stable simulation.
+
+Beams are formed by building the convex hull of the particle point set and
+adding and flipping vertices until we run out.
+This is basically Delaunay triangulation with length constraints.
 
 [cfdem]: http://www.cfdem.com/
 [liggghts]: https://github.com/CFDEMproject/LIGGGHTS-PUBLIC

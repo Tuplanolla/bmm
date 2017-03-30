@@ -50,6 +50,7 @@ void bmm_sdl_def(struct bmm_sdl* const sdl,
   sdl->tstep = opts->fps > 1000 ? 1 : (Uint32) (1000 / opts->fps);
   sdl->itarget = SIZE_MAX;
   sdl->stale = true;
+  sdl->active = true;
 
   struct bmm_dem_opts defopts;
   bmm_dem_defopts(&defopts);
@@ -169,6 +170,17 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
 
   struct bmm_dem_buf const* const buf = bmm_dem_getrbuf(&sdl->dem);
 
+  // Particles.
+  glColor4fv(glYellow);
+  for (size_t ipart = 0; ipart < buf->npart; ++ipart) {
+    float const x = (float) buf->parts[ipart].lin.r[0];
+    float const y = (float) buf->parts[ipart].lin.r[1];
+    float const r = (float) buf->partcs[ipart].rrad;
+    float const a = (float) buf->parts[ipart].ang.alpha;
+
+    glSkewedAnnulus(x, y, r, r * 0.25f, r * 0.5f, a, ncorner);
+  }
+
   // Focus.
   if (sdl->itarget != SIZE_MAX) {
     glColor4fv(glBlue);
@@ -185,21 +197,40 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
     glBegin(GL_LINES);
     for (size_t ineigh = 0; ineigh < bmm_dem_sizey(&buf->neigh.neighs[ipart]); ++ineigh) {
       size_t const jpart = bmm_dem_gety(&buf->neigh.neighs[ipart], ineigh);
-      glVertex2dv(buf->parts[ipart].lin.r);
-      glVertex2dv(buf->parts[jpart].lin.r);
+
+      bool p = true;
+      for (size_t idim = 0; idim < 2; ++idim)
+        p = p &&
+          fabs(buf->parts[ipart].lin.r[idim] - buf->parts[jpart].lin.r[idim]) <
+          sdl->dem.rext[idim] / 2.0;
+
+      if (p) {
+        glVertex2dv(buf->parts[ipart].lin.r);
+        glVertex2dv(buf->parts[jpart].lin.r);
+      }
     }
     glEnd();
   }
 
-  // Particles.
-  glColor4fv(glYellow);
+  // Structural links.
+  glColor4fv(glMagenta);
   for (size_t ipart = 0; ipart < buf->npart; ++ipart) {
-    float const x = (float) buf->parts[ipart].lin.r[0];
-    float const y = (float) buf->parts[ipart].lin.r[1];
-    float const r = (float) buf->partcs[ipart].rrad;
-    float const a = (float) buf->parts[ipart].ang.alpha;
+    glBegin(GL_LINES);
+    for (size_t ineigh = 0; ineigh < bmm_dem_size(&buf->links[ipart]); ++ineigh) {
+      size_t const jpart = bmm_dem_get(&buf->links[ipart], ineigh);
 
-    glSkewedAnnulus(x, y, r, r * 0.25f, r * 0.5f, a, ncorner);
+      bool p = true;
+      for (size_t idim = 0; idim < 2; ++idim)
+        p = p &&
+          fabs(buf->parts[ipart].lin.r[idim] - buf->parts[jpart].lin.r[idim]) <
+          sdl->dem.rext[idim] / 2.0;
+
+      if (p) {
+        glVertex2dv(buf->parts[ipart].lin.r);
+        glVertex2dv(buf->parts[jpart].lin.r);
+      }
+    }
+    glEnd();
   }
 
   // Staleness indicator.
@@ -314,6 +345,9 @@ static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
             case SDLK_ESCAPE:
             case SDLK_q:
               return true;
+            case SDLK_SPACE:
+              sdl->active = !sdl->active;
+              break;
             case SDLK_MINUS:
             case SDLK_KP_MINUS:
               bmm_sdl_zoom(sdl,
@@ -351,10 +385,10 @@ static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
               sdl->itarget = 0;
               break;
             case SDLK_3:
-              sdl->itarget = 42;
-              break;
-            case SDLK_4:
-              sdl->itarget = 13;
+              {
+                struct bmm_dem_buf const* const buf = bmm_dem_getrbuf(&sdl->dem);
+                sdl->itarget = (size_t) (rand() % buf->npart);
+              }
               break;
           }
           break;
@@ -390,29 +424,31 @@ static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
 
     // TODO Think about a better way to express this thing.
 
-    // Use the remaining time to wait for input.
-    // If there is no time left,
-    // try to read just one message to prevent congestion.
-    struct timeval timeout;
+    if (sdl->active) {
+      // Use the remaining time to wait for input.
+      // If there is no time left,
+      // try to read just one message to prevent congestion.
+      struct timeval timeout;
 again:
-    bmm_sdl_t_to_timeval(&timeout, trem);
-    struct bmm_msg_head head;
-    switch (bmm_io_waitin(&timeout)) {
-      case BMM_IO_ERROR:
-        return false;
-      case BMM_IO_READY:
-        if (bmm_msg_get(&head, &sdl->dem, filter, NULL))
-          sdl->stale = false;
-        else {
-          trem = bmm_sdl_t_from_timeval(&timeout);
-          if (trem > 0)
-            goto again;
-          else
-            sdl->stale = true;
-        }
-        break;
-      case BMM_IO_TIMEOUT:
-        sdl->stale = true;
+      bmm_sdl_t_to_timeval(&timeout, trem);
+      struct bmm_msg_head head;
+      switch (bmm_io_waitin(&timeout)) {
+        case BMM_IO_ERROR:
+          return false;
+        case BMM_IO_READY:
+          if (bmm_msg_get(&head, &sdl->dem, filter, NULL))
+            sdl->stale = false;
+          else {
+            trem = bmm_sdl_t_from_timeval(&timeout);
+            if (trem > 0)
+              goto again;
+            else
+              sdl->stale = true;
+          }
+          break;
+        case BMM_IO_TIMEOUT:
+          sdl->stale = true;
+      }
     }
 
     // Recompute the remaining time again after waiting for input

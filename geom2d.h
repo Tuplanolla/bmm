@@ -128,6 +128,35 @@ inline void bmm_geom2d_from_polar2(double* const cart,
   cart[1] = r * sin(polar2[1]);
 }
 
+// The call `bmm_geom2d_diff(rdiff, r0, r1)` sets
+// the vector `rdiff` to the difference between the vectors `r0` and `r1`.
+inline void bmm_geom2d_diff(double* const rdiff,
+    double const* const r0, double const* const r1) {
+  for (size_t idim = 0; idim < 2; ++idim)
+    rdiff[idim] = r1[idim] - r0[idim];
+}
+
+// The call `bmm_geom2d_dist2(r0, r1)` returns
+// the distance $r^2$ between the vectors `r0` and `r1`.
+__attribute__ ((__pure__))
+inline double bmm_geom2d_dist2(double const* const r0,
+    double const* const r1) {
+  double r[2];
+  bmm_geom2d_diff(r, r0, r1);
+
+  return bmm_geom2d_norm2(r);
+}
+
+// The call `bmm_geom2d_dist(r0, r1)` returns
+// the distance $r$ between the vectors `r0` and `r1`.
+__attribute__ ((__pure__))
+inline double bmm_geom2d_dist(double const* const r0, double const* const r1) {
+  double r[2];
+  bmm_geom2d_diff(r, r0, r1);
+
+  return bmm_geom2d_norm(r);
+}
+
 // The call `bmm_geom2d_pdiff(rdiff, r0, r1, rper)` sets
 // the vector `rdiff` to the `rper`-periodic difference
 // between the vectors `r0` and `r1` by following the minimum image convention.

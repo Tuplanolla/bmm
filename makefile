@@ -39,7 +39,7 @@ LDLIBSSDL=`pkg-config --libs freeglut gl gsl sdl`
 build: bmm-dem bmm-sdl
 
 run: build
-	GSL_RNG_TYPE=mt19937 GSL_RNG_SEED=0 time -v \
+	GSL_RNG_TYPE=mt19937 GSL_RNG_SEED=42 time -v \
 	./bmm-dem | ./bmm-sdl
 
 start-server: bmm-sdl

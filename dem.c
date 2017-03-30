@@ -214,6 +214,30 @@ void bmm_dem_reneigh(struct bmm_dem* const dem) {
   }
 }
 
+void bmm_dem_relink(struct bmm_dem* const dem) {
+  struct bmm_dem_buf* const buf = bmm_dem_getbuf(dem);
+
+  for (size_t ipart = 0; ipart < buf->npart; ++ipart) {
+    struct bmm_dem_listy* const listy = &buf->neigh.neighs[ipart];
+
+    struct bmm_dem_list* const list = &buf->links[ipart];
+
+    bmm_dem_clear(list);
+
+    for (size_t ineigh = 0; ineigh < bmm_dem_sizey(listy); ++ineigh) {
+      size_t const jpart = bmm_dem_gety(listy, ineigh);
+
+      // TODO This is bogus; use triangulation instead.
+      if (bmm_geom2d_pdist2(
+            buf->parts[ipart].lin.r,
+            buf->parts[jpart].lin.r,
+            dem->rext) < bmm_fp_sq(2.0 *
+              (dem->opts.rmean + dem->opts.rsd)))
+        (void) bmm_dem_push(list, jpart);
+    }
+  }
+}
+
 // Horse says neigh.
 void bmm_dem_horse(struct bmm_dem* const dem) {
   struct bmm_dem_buf const* const buf = bmm_dem_getrbuf(dem);
@@ -390,10 +414,24 @@ static void bmm_bottom(struct bmm_dem* const dem) {
     part->lin.r[0] = x;
     part->lin.r[1] = dem->rext[1] / 32.0;
 
-    x += r;
+    if (x + r >= dem->rext[0]) {
+      x -= r;
 
-    if (x + r >= dem->rext[0])
+      double const rprime = (dem->rext[0] - x) / 2.0;
+
+      x += rprime;
+
+      partc->rrad = rprime;
+      partc->free = false;
+      part->lin.r[0] = x;
+      part->lin.r[1] = dem->rext[1] / 32.0;
+
+      ++buf->npart;
+
       break;
+    }
+
+    x += r;
 
     ++buf->npart;
   }
@@ -452,7 +490,7 @@ end: ;
 
 void bmm_dem_def(struct bmm_dem* const dem,
     struct bmm_dem_opts const* const opts) {
-  // This is here just to help Valgrind.
+  // This is here just to help Valgrind and cover up my mistakes.
   memset(dem, 0, sizeof *dem);
 
   dem->opts = *opts;
@@ -532,10 +570,10 @@ static bool bmm_dem_step(struct bmm_dem* const dem) {
   if (dem->istep * dem->opts.tstep >= buf->neigh.tnext) {
     bmm_dem_recont(dem);
     bmm_dem_reneigh(dem);
+    bmm_dem_relink(dem);
     buf->neigh.tnext += bmm_dem_drift(dem);
   }
 
-    // TODO Make a mechanism to automate this.
   // TODO Make a mechanism to automate retransmission of differences.
 
   dem->forcesch(dem);
@@ -615,7 +653,8 @@ static bool bmm_dem_run_now(struct bmm_dem_opts const* const opts) {
   bmm_dem_def(dem, opts);
 
   // TODO Stack frame.
-  dem->rng = gsl_rng_alloc(gsl_rng_mt19937);
+  gsl_rng_type const* const t = gsl_rng_env_setup();
+  dem->rng = gsl_rng_alloc(t);
   if (dem->rng == NULL) {
     BMM_ERR_WARN(gsl_rng_alloc);
 
