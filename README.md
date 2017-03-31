@@ -145,6 +145,24 @@ the second of which contains the message type.
 Additionally, for those messages whose bodies may vary in size,
 there is an extra prefix to signal the size of the body.
 
+### Separation of Concerns (Relating to Messaging)
+
+The current design has the following procedures.
+
+    bool bmm_msg_get(struct bmm_msg_head*, struct bmm_dem*,
+        bool (*)(struct bmm_msg_head const*, void*), void*);
+
+    void bmm_msg_put(struct bmm_msg_head const*, struct bmm_dem const*);
+
+This is not ideal,
+because now every component has to know the definition of `bmm_dem`.
+This also means that one has to allocate the whole thing just
+to receive messages relating to small parts of it.
+
+Here is a proposal: remove such procedures.
+Only related utility functions actually need to be called,
+which makes life easier.
+
 ### Program Options
 
 Since passing a large number of arguments to the programs and

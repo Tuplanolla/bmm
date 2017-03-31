@@ -33,6 +33,11 @@ enum bmm_msg {
 __attribute__ ((__nonnull__))
 void bmm_defhead(struct bmm_msg_head*);
 
+// Read a message and call `f` on the header.
+// Return `false` in case of an error.
+// Return `true` otherwise.
+// With `EOF` return `true`, but do not call `f`.
+// TODO Maybe change this?
 __attribute__ ((__nonnull__ (1, 2, 3)))
 bool bmm_msg_get(struct bmm_msg_head*, struct bmm_dem*,
     bool (*)(struct bmm_msg_head const*, void*), void*);

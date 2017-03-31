@@ -1,7 +1,9 @@
+*.log
 *.o
 *.tar.gz
+/*.run
 /bmm-dem
+/bmm-filter
 /bmm-sdl
 /clang-*-release
 /gcc-*-release
-/run-*

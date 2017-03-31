@@ -36,11 +36,11 @@ LDLIBSGSL=`pkg-config --libs gsl`
 CFLAGSSDL=`pkg-config --cflags freeglut gl gsl sdl`
 LDLIBSSDL=`pkg-config --libs freeglut gl gsl sdl`
 
-build: bmm-dem bmm-sdl
+build: bmm-dem bmm-filter bmm-sdl
 
 run: build
 	GSL_RNG_TYPE=mt19937 GSL_RNG_SEED=42 time -v \
-	./bmm-dem | ./bmm-sdl
+	./bmm-dem | ./bmm-filter 2> filter.log | ./bmm-sdl
 
 start-server: bmm-sdl
 	mkfifo bmm.fifo
@@ -57,7 +57,7 @@ check: build
 	valgrind --leak-check=full --tool=memcheck ./bmm-dem > /dev/null
 
 deep-clean: clean
-	$(RM) *.run
+	$(RM) *.log *.run
 
 clean: shallow-clean
 	$(RM) bmm-dem bmm-sdl
@@ -67,6 +67,10 @@ shallow-clean:
 
 bmm-dem: bmm-dem.o \
 	bit.o dem.o err.o fp.o geom.o geom2d.o io.o msg.o opt.o sec.o sig.o size.o str.o
+	$(CC) $(CFLAGS) $(CFLAGSGSL) -o $@ $^ $(LDLIBS) $(LDLIBSGSL)
+
+bmm-filter: bmm-filter.o \
+	bit.o dem.o err.o filter.o fp.o geom.o geom2d.o io.o msg.o opt.o sec.o sig.o size.o str.o
 	$(CC) $(CFLAGS) $(CFLAGSGSL) -o $@ $^ $(LDLIBS) $(LDLIBSGSL)
 
 bmm-sdl: bmm-sdl.o \

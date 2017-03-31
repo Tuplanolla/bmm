@@ -571,48 +571,15 @@ void bmm_dem_def(struct bmm_dem* const dem,
 
 // TODO Unify these three.
 
-static void bmm_putnop(struct bmm_dem const* const dem) {
-  struct bmm_msg_head head;
-  bmm_defhead(&head);
-  bmm_bit_pset(&head.flags, BMM_FBIT_INTLE);
-  bmm_bit_pset(&head.flags, BMM_FBIT_FPLE);
-
-  head.type = BMM_MSG_NOP;
-
-  bmm_msg_put(&head, dem);
-}
-
-static void bmm_putopts(struct bmm_dem const* const dem) {
-  struct bmm_msg_head head;
-  bmm_defhead(&head);
-  bmm_bit_pset(&head.flags, BMM_FBIT_INTLE);
-  bmm_bit_pset(&head.flags, BMM_FBIT_FPLE);
-
-  head.type = BMM_MSG_NPART;
-
-  bmm_msg_put(&head, dem);
-}
-
-static void bmm_putparts(struct bmm_dem const* const dem) {
+static void bmm_dem_put(struct bmm_dem const* const dem,
+    enum bmm_msg const msg) {
   struct bmm_msg_head head;
   bmm_defhead(&head);
   bmm_bit_pset(&head.flags, BMM_FBIT_INTLE);
   bmm_bit_pset(&head.flags, BMM_FBIT_FPLE);
   bmm_bit_pset(&head.flags, BMM_FBIT_FLUSH);
 
-  head.type = BMM_MSG_PARTS;
-
-  bmm_msg_put(&head, dem);
-}
-
-static void bmm_putneighs(struct bmm_dem const* const dem) {
-  struct bmm_msg_head head;
-  bmm_defhead(&head);
-  bmm_bit_pset(&head.flags, BMM_FBIT_INTLE);
-  bmm_bit_pset(&head.flags, BMM_FBIT_FPLE);
-  bmm_bit_pset(&head.flags, BMM_FBIT_FLUSH);
-
-  head.type = BMM_MSG_NEIGH;
+  head.type = msg;
 
   bmm_msg_put(&head, dem);
 }
@@ -653,26 +620,24 @@ static bool bmm_dem_comm(struct bmm_dem* const dem) {
 
   // TODO This timing is bogus.
   if (dem->istep % 20 == 0)
-    bmm_putneighs(dem);
+    bmm_dem_put(dem, BMM_MSG_NEIGH);
 
   // TODO Make a mechanism to automate retransmission of differences only.
 
-  bmm_putnop(dem);
-  bmm_putopts(dem);
-  bmm_putparts(dem);
+  bmm_dem_put(dem, BMM_MSG_NPART);
+  bmm_dem_put(dem, BMM_MSG_PARTS);
 
-  // TODO These should go via messages.
   dem->est.ekinetic = bmm_dem_ekinetic(dem);
   dem->est.pvector = bmm_dem_pvector(dem);
   dem->est.pscalar = bmm_dem_pscalar(dem);
-  // fprintf(stderr, "%f\n", bmm_dem_ekinetic(dem));
-  // fprintf(stderr, "%f\n", bmm_dem_pvector(dem));
+
+  bmm_dem_put(dem, BMM_MSG_EKINE);
 
   return true;
 }
 
 static bool bmm_dem_run_for_real(struct bmm_dem* const dem) {
-  bmm_putopts(dem);
+  bmm_dem_put(dem, BMM_MSG_NPART);
 
   // TODO Remove these test messages.
   while (dem->istep < dem->opts.nstep) {
