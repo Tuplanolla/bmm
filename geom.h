@@ -47,7 +47,8 @@ inline double bmm_geom_ballsurf(double const r, size_t d) {
 }
 
 // The call `bmm_geom_ballmoi(r, d)` returns the moment of inertia
-// of a `d`-dimensional homogeneous unit mass ball of radius `r`.
+// of a `d`-dimensional homogeneous unit mass ball of radius `r`
+// as it rotates around any of its axes.
 // To obtain the moment of inertia of a ball with mass `m`,
 // multiply the return value with `m`.
 // The result is obtained by applying the equation
@@ -55,6 +56,20 @@ inline double bmm_geom_ballsurf(double const r, size_t d) {
 __attribute__ ((__const__, __pure__))
 inline double bmm_geom_ballmoi(double const r, size_t const d) {
   return ((double) (d - 1) / (double) (d + 2)) * bmm_fp_sq(r);
+}
+
+// The call `bmm_geom_ballpmoi(r, d)` returns the moment of inertia
+// of a `d`-dimensional homogeneous unit mass ball of radius `r`
+// as it rotates around an axis perpendicular to all of its own axes.
+// This implies that the `d`-dimensional ball is embedded
+// into a `d + 1 + n`-dimensional space for some nonnegative `n`.
+// To obtain the moment of inertia of a ball with mass `m`,
+// multiply the return value with `m`.
+// The result is obtained by applying the equation
+// $J_d(r) = (d / (d + 2)) m r^2$.
+__attribute__ ((__const__, __pure__))
+inline double bmm_geom_ballpmoi(double const r, size_t const d) {
+  return ((double) d / (double) (d + 2)) * bmm_fp_sq(r);
 }
 
 #endif
