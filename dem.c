@@ -24,6 +24,16 @@
 #endif
 #endif
 
+extern inline void bmm_dem_clearl(struct bmm_dem_listl* const list);
+
+extern inline bool bmm_dem_pushl(struct bmm_dem_listl* const list, size_t const x);
+
+extern inline size_t bmm_dem_sizel(struct bmm_dem_listl const* const list);
+
+extern inline size_t bmm_dem_getl(struct bmm_dem_listl const* const list, size_t const i);
+
+// TODO Wow, disgusting.
+
 extern inline void bmm_dem_cleary(struct bmm_dem_listy* const list);
 
 extern inline bool bmm_dem_pushy(struct bmm_dem_listy* const list, size_t const x);
@@ -32,7 +42,7 @@ extern inline size_t bmm_dem_sizey(struct bmm_dem_listy const* const list);
 
 extern inline size_t bmm_dem_gety(struct bmm_dem_listy const* const list, size_t const i);
 
-// TODO Wow, disgusting.
+// TODO Wow, even more disgusting.
 
 extern inline void bmm_dem_clear(struct bmm_dem_list* const list);
 
@@ -42,7 +52,7 @@ extern inline size_t bmm_dem_size(struct bmm_dem_list const* const list);
 
 extern inline size_t bmm_dem_get(struct bmm_dem_list const* const list, size_t const i);
 
-// TODO Wow, even more disgusting.
+// TODO Wow, what is wrong with you?
 
 extern inline struct bmm_dem_buf* bmm_dem_getbuf(struct bmm_dem*);
 
@@ -60,12 +70,16 @@ void bmm_dem_forces(struct bmm_dem* const dem) {
     for (size_t idim = 0; idim < 2; ++idim)
       buf->parts[ipart].lin.f[idim] = 0.0;
 
+  // TODO Cohesive field forces go here.
+
+  // Gravitational forces.
   if (dem->mode == BMM_DEM_SEDIMENT)
     for (size_t ipart = 0; ipart < buf->npart; ++ipart)
       for (size_t idim = 0; idim < 2; ++idim)
         buf->parts[ipart].lin.f[idim] +=
           dem->opts.gravy[idim] * buf->partcs[ipart].mass;
 
+  // Pair forces.
   /*
   for (size_t ipart = 0; ipart < buf->npart; ++ipart)
     for (size_t jpart = ipart + 1; jpart < buf->npart; ++jpart) {
@@ -115,6 +129,40 @@ void bmm_dem_forces(struct bmm_dem* const dem) {
 
         bmm_geom2d_add(buf->parts[ipart].lin.f, buf->parts[ipart].lin.f, df);
       }
+    }
+  }
+
+  // Link forces.
+  for (size_t ipart = 0; ipart < buf->npart; ++ipart) {
+    struct bmm_dem_listl* const list = &buf->links[ipart];
+
+    for (size_t ilink = 0; ilink < bmm_dem_sizel(list); ++ilink) {
+      size_t const jpart = bmm_dem_getl(list, ilink);
+
+      // TODO Copy-pasted from above...
+
+      double dr[2];
+      bmm_geom2d_pdiff(dr,
+          buf->parts[ipart].lin.r,
+          buf->parts[jpart].lin.r,
+          dem->rext);
+
+      double const d = bmm_geom2d_norm(dr);
+
+      // TODO Use getters.
+      double const x0 = list->linkl[ilink].x0;
+      double const f = dem->opts.klink * (x0 - d);
+
+      double n[2];
+      bmm_geom2d_normal(n, dr);
+
+      double t[2];
+      bmm_geom2d_rperpr(t, n);
+
+      double df[2];
+      bmm_geom2d_scale(df, n, -f);
+
+      bmm_geom2d_add(buf->parts[ipart].lin.f, buf->parts[ipart].lin.f, df);
     }
   }
 }
@@ -214,26 +262,29 @@ void bmm_dem_reneigh(struct bmm_dem* const dem) {
   }
 }
 
+// TODO Check triangulation quality and compare with Delaunay.
 void bmm_dem_relink(struct bmm_dem* const dem) {
   struct bmm_dem_buf* const buf = bmm_dem_getbuf(dem);
 
   for (size_t ipart = 0; ipart < buf->npart; ++ipart) {
     struct bmm_dem_listy* const listy = &buf->neigh.neighs[ipart];
 
-    struct bmm_dem_list* const list = &buf->links[ipart];
+    struct bmm_dem_listl* const list = &buf->links[ipart];
 
-    bmm_dem_clear(list);
+    bmm_dem_clearl(list);
 
     for (size_t ineigh = 0; ineigh < bmm_dem_sizey(listy); ++ineigh) {
       size_t const jpart = bmm_dem_gety(listy, ineigh);
 
-      // TODO This is bogus; use triangulation instead.
-      if (bmm_geom2d_pdist2(
-            buf->parts[ipart].lin.r,
-            buf->parts[jpart].lin.r,
-            dem->rext) < bmm_fp_sq(2.0 *
-              (dem->opts.rmean + dem->opts.rsd)))
-        (void) bmm_dem_push(list, jpart);
+      double const d2 = bmm_geom2d_pdist2(
+          buf->parts[ipart].lin.r,
+          buf->parts[jpart].lin.r,
+          dem->rext);
+
+      if (d2 < bmm_fp_sq(dem->opts.linkslurp *
+            (buf->partcs[ipart].rrad + buf->partcs[jpart].rrad)))
+        if (bmm_dem_pushl(list, jpart))
+          list->linkl[list->n].x0 = sqrt(d2);
     }
   }
 }
@@ -364,6 +415,8 @@ void bmm_dem_defopts(struct bmm_dem_opts* const opts) {
   opts->tstepcomm = 1.0;
   opts->tcomm = 0.0;
   opts->vleeway = 0.01;
+  opts->linkslurp = 1.2;
+  opts->klink = 20.0;
   opts->gravy[0] = 0.0;
   opts->gravy[1] = -0.005;
   opts->ymodul = 2.0e+4;
@@ -570,11 +623,14 @@ static bool bmm_dem_step(struct bmm_dem* const dem) {
   if (dem->istep * dem->opts.tstep >= buf->neigh.tnext) {
     bmm_dem_recont(dem);
     bmm_dem_reneigh(dem);
-    bmm_dem_relink(dem);
     buf->neigh.tnext += bmm_dem_drift(dem);
   }
 
-  // TODO Make a mechanism to automate retransmission of differences.
+  // TODO No! Bad touch!
+  if (fabs(dem->istep * dem->opts.tstep - 200.0) < 1.5 * dem->opts.tstep)
+    bmm_dem_relink(dem);
+  if (fabs(dem->istep * dem->opts.tstep - 300.0) < 1.5 * dem->opts.tstep)
+    dem->opts.gravy[1] *= -1.0;
 
   dem->forcesch(dem);
   dem->intsch(dem);
@@ -598,6 +654,8 @@ static bool bmm_dem_comm(struct bmm_dem* const dem) {
   // TODO This timing is bogus.
   if (dem->istep % 20 == 0)
     bmm_putneighs(dem);
+
+  // TODO Make a mechanism to automate retransmission of differences only.
 
   bmm_putnop(dem);
   bmm_putopts(dem);

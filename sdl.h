@@ -53,7 +53,7 @@ struct bmm_sdl {
   double qaspect;
   double qzoom;
   double rorigin[2];
-  Uint32 tstep;
+  unsigned int fps;
   bool stale;
   bool active;
   bool _pad0[2];

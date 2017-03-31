@@ -47,7 +47,7 @@ void bmm_sdl_def(struct bmm_sdl* const sdl,
   sdl->qzoom = 1.0;
   sdl->rorigin[0] = 0.0;
   sdl->rorigin[1] = 0.0;
-  sdl->tstep = opts->fps > 1000 ? 1 : (Uint32) (1000 / opts->fps);
+  sdl->fps = opts->fps;
   sdl->itarget = SIZE_MAX;
   sdl->stale = true;
   sdl->active = true;
@@ -55,6 +55,10 @@ void bmm_sdl_def(struct bmm_sdl* const sdl,
   struct bmm_dem_opts defopts;
   bmm_dem_defopts(&defopts);
   bmm_dem_def(&sdl->dem, &defopts);
+}
+
+static Uint32 bmm_sdl_tstep(struct bmm_sdl const* const sdl) {
+  return sdl->fps > 1000 ? 1 : (Uint32) (1000 / sdl->fps);
 }
 
 // TODO Express this mess in terms of linear algebra.
@@ -216,8 +220,8 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
   glColor4fv(glMagenta);
   for (size_t ipart = 0; ipart < buf->npart; ++ipart) {
     glBegin(GL_LINES);
-    for (size_t ineigh = 0; ineigh < bmm_dem_size(&buf->links[ipart]); ++ineigh) {
-      size_t const jpart = bmm_dem_get(&buf->links[ipart], ineigh);
+    for (size_t ineigh = 0; ineigh < bmm_dem_sizel(&buf->links[ipart]); ++ineigh) {
+      size_t const jpart = bmm_dem_getl(&buf->links[ipart], ineigh);
 
       bool p = true;
       for (size_t idim = 0; idim < 2; ++idim)
@@ -259,6 +263,9 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
   // TODO These should come via messages.
   char strbuf[BUFSIZ];
   int ioff = 1;
+  (void) snprintf(strbuf, sizeof strbuf, "f (target vfps) = %u (%u)",
+      sdl->fps, bmm_sdl_tstep(sdl));
+  glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
   (void) snprintf(strbuf, sizeof strbuf, "K (kinetic energy) = %g",
       bmm_dem_ekinetic(&sdl->dem));
   glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
@@ -326,7 +333,7 @@ static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
   glCullFace(GL_BACK);
 
   Uint32 tnow = SDL_GetTicks();
-  Uint32 tnext = tnow + sdl->tstep;
+  Uint32 tnext = tnow + bmm_sdl_tstep(sdl);
   Uint32 trem = bmm_sdl_trem(tnow, tnext);
 
   for ever {
@@ -347,6 +354,13 @@ static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
               return true;
             case SDLK_SPACE:
               sdl->active = !sdl->active;
+              break;
+            case SDLK_PAGEDOWN:
+              if (sdl->fps % 2 == 0)
+                sdl->fps /= 2;
+              break;
+            case SDLK_PAGEUP:
+              sdl->fps *= 2;
               break;
             case SDLK_MINUS:
             case SDLK_KP_MINUS:
@@ -423,6 +437,7 @@ static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
     trem = bmm_sdl_trem(tnow, tnext);
 
     // TODO Think about a better way to express this thing.
+    // TODO This sleeps too much with the current definition of `filter`.
 
     if (sdl->active) {
       // Use the remaining time to wait for input.
@@ -458,7 +473,9 @@ again:
 
     // Sleep the remaining time and allow the tick counter to wrap.
     SDL_Delay(trem);
-    tnext += sdl->tstep;
+    // TODO Fix the effect of `filter` on the vfps.
+    // tnext += bmm_sdl_tstep(sdl);
+    tnext += (bmm_sdl_tstep(sdl) - 1) / 2 + 1;
   }
 }
 

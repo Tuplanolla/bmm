@@ -36,6 +36,10 @@ struct bmm_dem_opts {
   __attribute__ ((__deprecated__))
   double tstepcomm;
   double tcomm;
+  // Link length creation multiplier.
+  double linkslurp;
+  // Link strength (according to Hooke's law).
+  double klink;
   // Drift leeway velocity.
   double vleeway;
   // Acceleration for sedimentation (gravity).
@@ -98,13 +102,25 @@ struct bmm_dem_neigh {
   struct bmm_dem_listy neighs[BMM_PART_MAX];
 };
 
+struct bmm_dem_link {
+  // Link *to*.
+  size_t i;
+  // Spring rest position.
+  double x0;
+};
+
+struct bmm_dem_listl {
+  size_t n;
+  struct bmm_dem_link linkl[BMM_GROUP_MAX];
+};
+
 struct bmm_dem_buf {
   size_t npart;
   struct bmm_dem_neigh neigh;
   struct bmm_dem_partc partcs[BMM_PART_MAX];
   struct bmm_dem_part parts[BMM_PART_MAX];
   // These are directed links *to* some particle.
-  struct bmm_dem_list links[BMM_PART_MAX];
+  struct bmm_dem_listl links[BMM_PART_MAX];
   // TODO Do we want a asymmetric pair list or an symmetric list of lists?
   // Probably the latter, even though keeping it consistent takes work.
 };
@@ -175,7 +191,7 @@ inline size_t bmm_dem_get(struct bmm_dem_list const* const list,
   return list->i[i];
 }
 
-// Some other kinds of lists.
+// TODO Some other kinds of lists.
 
 inline void bmm_dem_cleary(struct bmm_dem_listy* const list) {
   list->n = 0;
@@ -201,6 +217,33 @@ inline size_t bmm_dem_sizey(struct bmm_dem_listy const* const list) {
 inline size_t bmm_dem_gety(struct bmm_dem_listy const* const list,
     size_t const i) {
   return list->thingy[i].i;
+}
+
+// TODO Yet another kinds of lists.
+
+inline void bmm_dem_clearl(struct bmm_dem_listl* const list) {
+  list->n = 0;
+}
+
+inline bool bmm_dem_pushl(struct bmm_dem_listl* const list,
+    size_t const x) {
+  if (list->n >= sizeof list->linkl / sizeof *list->linkl)
+    return false;
+
+  list->linkl[list->n].i = x;
+  list->linkl[list->n].x0 = 0.0;
+  ++list->n;
+
+  return true;
+}
+
+inline size_t bmm_dem_sizel(struct bmm_dem_listl const* const list) {
+  return list->n;
+}
+
+inline size_t bmm_dem_getl(struct bmm_dem_listl const* const list,
+    size_t const i) {
+  return list->linkl[i].i;
 }
 
 // The call `bmm_dem_getbuf(dem)`
