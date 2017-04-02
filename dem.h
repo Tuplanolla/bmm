@@ -8,6 +8,15 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+enum bmm_dem_mode {
+  BMM_DEM_BEGIN,
+  BMM_DEM_SEDIMENT,
+  BMM_DEM_LINK,
+  BMM_DEM_BREAK,
+  BMM_DEM_ACCEL,
+  BMM_DEM_CRUNCH
+};
+
 struct bmm_dem_est {
   double ekinetic;
   double pvector;
@@ -42,6 +51,10 @@ struct bmm_dem_opts {
   double klink;
   // Drift leeway velocity.
   double vleeway;
+  // Cohesive force multiplier during sedimentation.
+  double fcohes;
+  // Accelerative force during crunching.
+  double faccel;
   // Acceleration for sedimentation (gravity).
   double gravy[2];
   // Young's modulus $Y$.
@@ -123,12 +136,6 @@ struct bmm_dem_buf {
   struct bmm_dem_listl links[BMM_PART_MAX];
   // TODO Do we want a asymmetric pair list or an symmetric list of lists?
   // Probably the latter, even though keeping it consistent takes work.
-};
-
-enum bmm_dem_mode {
-  BMM_DEM_SEDIMENT,
-  BMM_DEM_BREAK,
-  BMM_DEM_CRUNCH
 };
 
 struct bmm_dem {

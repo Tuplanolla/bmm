@@ -167,7 +167,7 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
 
-  size_t const ncorner = 16;
+  size_t const ncorner = 8;
 
   double const w = sdl->dem.rext[0] / (double) sdl->dem.opts.ncell[0];
   double const h = sdl->dem.rext[1] / (double) sdl->dem.opts.ncell[1];

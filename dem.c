@@ -70,14 +70,29 @@ void bmm_dem_forces(struct bmm_dem* const dem) {
     for (size_t idim = 0; idim < 2; ++idim)
       buf->parts[ipart].lin.f[idim] = 0.0;
 
-  // TODO Cohesive field forces go here.
+  // Cohesive (fictitious) forces.
+  if (dem->mode == BMM_DEM_SEDIMENT || dem->mode == BMM_DEM_LINK)
+    for (size_t ipart = 0; ipart < buf->npart; ++ipart)
+      buf->parts[ipart].lin.f[1] +=
+        dem->opts.fcohes * (dem->rext[1] / 2.0 - buf->parts[ipart].lin.r[1]);
+
+  // Accelerating (currently fictitious) forces.
+  if (dem->mode == BMM_DEM_ACCEL)
+    for (size_t ipart = 0; ipart < buf->npart; ++ipart) {
+      if (buf->parts[ipart].lin.r[1] > 0.8 * dem->rext[1])
+        buf->parts[ipart].lin.f[0] += dem->opts.faccel;
+      else if (buf->parts[ipart].lin.r[1] < 0.2 * dem->rext[1])
+        buf->parts[ipart].lin.f[0] -= dem->opts.faccel;
+    }
 
   // Gravitational forces.
+#ifdef GRAVY
   if (dem->mode == BMM_DEM_SEDIMENT)
     for (size_t ipart = 0; ipart < buf->npart; ++ipart)
       for (size_t idim = 0; idim < 2; ++idim)
         buf->parts[ipart].lin.f[idim] +=
           dem->opts.gravy[idim] * buf->partcs[ipart].mass;
+#endif
 
   // Pair forces.
   /*
@@ -262,8 +277,41 @@ void bmm_dem_reneigh(struct bmm_dem* const dem) {
   }
 }
 
+// TODO Real physics.
+bool bmm_dem_relink(struct bmm_dem* const dem) {
+  struct bmm_dem_buf* const buf = bmm_dem_getbuf(dem);
+
+  for (size_t ipart = 0; ipart < buf->npart; ++ipart) {
+    struct bmm_dem_listl* const list = &buf->links[ipart];
+
+    for (size_t ilink = 0; ilink < bmm_dem_sizel(list); ++ilink) {
+      size_t const jpart = bmm_dem_getl(list, ilink);
+
+      // TODO Copy-pasted from elsewhere...
+
+      double dr[2];
+      bmm_geom2d_pdiff(dr,
+          buf->parts[ipart].lin.r,
+          buf->parts[jpart].lin.r,
+          dem->rext);
+
+      double const d = bmm_geom2d_norm(dr);
+
+      // TODO Use getters.
+      double const x0 = list->linkl[ilink].x0;
+
+      if (d > x0 * 1.75) {
+        // TODO Remove element properly.
+        --list->n;
+        list->linkl[ilink] = list->linkl[list->n];
+        --ilink;
+      }
+    }
+  }
+}
+
 // TODO Check triangulation quality and compare with Delaunay.
-void bmm_dem_relink(struct bmm_dem* const dem) {
+bool bmm_dem_link(struct bmm_dem* const dem) {
   struct bmm_dem_buf* const buf = bmm_dem_getbuf(dem);
 
   for (size_t ipart = 0; ipart < buf->npart; ++ipart) {
@@ -284,9 +332,38 @@ void bmm_dem_relink(struct bmm_dem* const dem) {
       if (d2 < bmm_fp_sq(dem->opts.linkslurp *
             (buf->partcs[ipart].rrad + buf->partcs[jpart].rrad)))
         if (bmm_dem_pushl(list, jpart))
-          list->linkl[list->n].x0 = sqrt(d2);
+          list->linkl[list->n - 1].x0 = sqrt(d2);
     }
   }
+
+  return true;
+}
+
+// TODO All of it.
+bool bmm_dem_break(struct bmm_dem* const dem) {
+  struct bmm_dem_buf* const buf = bmm_dem_getbuf(dem);
+
+  for (size_t ipart = 0; ipart < buf->npart; ++ipart) {
+    struct bmm_dem_listl* const list = &buf->links[ipart];
+
+    for (size_t ilink = 0; ilink < bmm_dem_sizel(list); ++ilink) {
+      size_t const jpart = bmm_dem_getl(list, ilink);
+
+      if (fabs(buf->parts[ipart].lin.r[1] - dem->rext[1] * 0.5) <
+          0.1 * dem->rext[1]) {
+        double p = gsl_rng_uniform(dem->rng);
+
+        if (p > 0.1) {
+          // TODO Copy-pasted from somewhere...
+          --list->n;
+          list->linkl[ilink] = list->linkl[list->n];
+          --ilink;
+        }
+      }
+    }
+  }
+
+  return true;
 }
 
 // Horse says neigh.
@@ -407,21 +484,23 @@ void bmm_dem_defopts(struct bmm_dem_opts* const opts) {
   opts->ncell[0] = 6;
   opts->ncell[1] = 6;
   opts->nbin = 1;
-  opts->nstep = 100000;
   opts->rmax = 0.2;
   // opts->tend = ...;
   // opts->tadv = ...;
-  opts->tstep = 0.01;
+  opts->tstep = 0.008;
   opts->tstepcomm = 1.0;
+  opts->nstep = (size_t) (400 / opts->tstep); // ??
   opts->tcomm = 0.0;
   opts->vleeway = 0.01;
   opts->linkslurp = 1.2;
-  opts->klink = 20.0;
+  opts->klink = 120.0;
+  opts->fcohes = 0.04;
+  opts->faccel = 0.02;
   opts->gravy[0] = 0.0;
   opts->gravy[1] = -0.005;
   opts->ymodul = 2.0e+4;
   opts->yelast = 1.0e+2;
-  opts->rmean = 0.03;
+  opts->rmean = 0.04;
   opts->rsd = opts->rmean * 0.2;
 }
 
@@ -490,7 +569,9 @@ static void bmm_bottom(struct bmm_dem* const dem) {
   }
 }
 
-static void bmm_disperse(struct bmm_dem* const dem) {
+static bool bmm_disperse(struct bmm_dem* const dem) {
+  size_t success = 0;
+
   struct bmm_dem_buf* const buf = bmm_dem_getbuf(dem);
 
   size_t maxfail = 100;
@@ -537,8 +618,13 @@ static void bmm_disperse(struct bmm_dem* const dem) {
     part->lin.r[1] = x[1];
 
     ++buf->npart;
+
+    ++success;
 end: ;
   }
+
+  // TODO The lucky 13.
+  return success > 13;
 }
 
 void bmm_dem_def(struct bmm_dem* const dem,
@@ -547,7 +633,7 @@ void bmm_dem_def(struct bmm_dem* const dem,
   memset(dem, 0, sizeof *dem);
 
   dem->opts = *opts;
-  dem->mode = BMM_DEM_SEDIMENT;
+  dem->mode = BMM_DEM_BEGIN;
   dem->istep = 0;
 
   for (size_t idim = 0; idim < 2; ++idim)
@@ -587,17 +673,42 @@ static void bmm_dem_put(struct bmm_dem const* const dem,
 static bool bmm_dem_step(struct bmm_dem* const dem) {
   struct bmm_dem_buf* const buf = bmm_dem_getbuf(dem);
 
+  switch (dem->mode) {
+    case BMM_DEM_BEGIN:
+      // bmm_bottom(dem);
+
+      dem->mode = BMM_DEM_SEDIMENT;
+
+    // TODO No! Bad touch!
+    case BMM_DEM_SEDIMENT:
+      if (fmod(dem->istep * dem->opts.tstep, 50.0) < dem->opts.tstep / 2.0)
+        if (!bmm_disperse(dem))
+          dem->mode = BMM_DEM_LINK;
+
+      break;
+    case BMM_DEM_LINK:
+      if (fmod(dem->istep * dem->opts.tstep, 30.0) < dem->opts.tstep / 2.0)
+        if (bmm_dem_link(dem))
+          dem->mode = BMM_DEM_BREAK;
+
+      break;
+    case BMM_DEM_BREAK:
+      if (fmod(dem->istep * dem->opts.tstep, 70.0) < dem->opts.tstep / 2.0)
+        if (bmm_dem_break(dem))
+          dem->mode = BMM_DEM_ACCEL;
+
+      break;
+    case BMM_DEM_ACCEL:
+      bmm_dem_relink(dem);
+
+      break;
+  }
+
   if (dem->istep * dem->opts.tstep >= buf->neigh.tnext) {
     bmm_dem_recont(dem);
     bmm_dem_reneigh(dem);
     buf->neigh.tnext += bmm_dem_drift(dem);
   }
-
-  // TODO No! Bad touch!
-  if (fabs(dem->istep * dem->opts.tstep - 200.0) < 1.5 * dem->opts.tstep)
-    bmm_dem_relink(dem);
-  if (fabs(dem->istep * dem->opts.tstep - 300.0) < 1.5 * dem->opts.tstep)
-    dem->opts.gravy[1] *= -1.0;
 
   dem->forcesch(dem);
   dem->intsch(dem);
@@ -684,10 +795,6 @@ static bool bmm_dem_run_now(struct bmm_dem_opts const* const opts) {
     free(dem);
     return false;
   }
-
-  bmm_bottom(dem);
-
-  bmm_disperse(dem);
 
   bool const result = bmm_dem_run_for_real(dem);
 
