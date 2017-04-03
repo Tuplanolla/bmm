@@ -487,9 +487,9 @@ void bmm_dem_defopts(struct bmm_dem_opts* const opts) {
   opts->rmax = 0.2;
   // opts->tend = ...;
   // opts->tadv = ...;
-  opts->tstep = 0.008;
+  opts->tstep = 0.006;
   opts->tstepcomm = 1.0;
-  opts->nstep = (size_t) (400 / opts->tstep); // ??
+  opts->nstep = (size_t) (500 / opts->tstep); // ??
   opts->tcomm = 0.0;
   opts->vleeway = 0.01;
   opts->linkslurp = 1.2;
@@ -654,8 +654,6 @@ void bmm_dem_def(struct bmm_dem* const dem,
 
   buf->neigh.tnext = 0.0;
 }
-
-// TODO Unify these three.
 
 static void bmm_dem_put(struct bmm_dem const* const dem,
     enum bmm_msg const msg) {

@@ -2,6 +2,7 @@
 #ifndef BMM_MSG_H
 #define BMM_MSG_H
 
+#include "ext.h"
 #include "dem.h"
 #include <stdbool.h>
 #include <stdio.h>
@@ -12,11 +13,10 @@ struct bmm_msg_head {
 };
 
 #define BMM_FBIT_INTLE 7
-#define BMM_FBIT_FPLE 6
-#define BMM_FBIT_FPFMT 5
+#define BMM_FBIT_FPLE 5
 #define BMM_FBIT_FLUSH 4
-#define BMM_FBIT_VARZ 3
-#define BMM_FBIT_ZPRE 2
+#define BMM_FBIT_BODY 3
+#define BMM_FBIT_PREFIX 2
 
 enum bmm_msg {
   BMM_MSG_NOP = 0x0,
@@ -29,6 +29,8 @@ enum bmm_msg {
   BMM_MSG_NEIGH = 0x48,
   BMM_MSG_URGH = 0x80
 };
+
+static_assert(BMM_MSG_URGH < BMM_MSG_MAX, "Too many messages");
 
 __attribute__ ((__nonnull__))
 void bmm_defhead(struct bmm_msg_head*);

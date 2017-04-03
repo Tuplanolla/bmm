@@ -15,19 +15,19 @@ static bool f(char const* const key, char const* const value,
   struct bmm_dem_opts* const opts = ptr;
 
   if (strcmp(key, "ncellx") == 0) {
-    if (!bmm_str_strtoz(value, &opts->ncell[0]))
+    if (!bmm_str_strtoz(&opts->ncell[0], value))
       return false;
   } else if (strcmp(key, "ncelly") == 0) {
-    if (!bmm_str_strtoz(value, &opts->ncell[1]))
+    if (!bmm_str_strtoz(&opts->ncell[1], value))
       return false;
   } else if (strcmp(key, "nbin") == 0) {
-    if (!bmm_str_strtoz(value, &opts->nbin))
+    if (!bmm_str_strtoz(&opts->nbin, value))
       return false;
   } else if (strcmp(key, "nstep") == 0) {
-    if (!bmm_str_strtoz(value, &opts->nstep))
+    if (!bmm_str_strtoz(&opts->nstep, value))
       return false;
   } else if (strcmp(key, "rmax") == 0) {
-    if (!bmm_str_strtod(value, &opts->rmax))
+    if (!bmm_str_strtod(&opts->rmax, value))
       return false;
   } else
     return false;

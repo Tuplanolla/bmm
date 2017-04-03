@@ -1,11 +1,15 @@
+#include "bit.h"
 #include "dem.h"
 #include "err.h"
 #include "filter.h"
+#include "io.h"
 #include "msg.h"
+#include "size.h"
 #include <stdio.h>
 
 void bmm_filter_defopts(struct bmm_filter_opts* const opts) {
-  opts->dummy = 0;
+  for (size_t imsg = 0; imsg < BMM_MSG_MAX; ++imsg)
+    opts->mask[imsg] = true;
 }
 
 void bmm_filter_def(struct bmm_filter* const filter,
@@ -17,33 +21,93 @@ void bmm_filter_def(struct bmm_filter* const filter,
   filter->opts = *opts;
 }
 
-static bool f(struct bmm_msg_head const* const head,
-    void* const ptr) {
-  bool* const eof = ptr;
-  *eof = false;
-
-  // TODO Think about this.
-  // return head->type == BMM_MSG_EKINE;
-  return true;
+static bool f(struct bmm_filter const* const filter,
+    struct bmm_msg_head const* const head) {
+  return filter->opts.mask[head->type];
 }
 
 bool bmm_filter_run_with(struct bmm_filter* const filter) {
   for ever {
-    bool eof = true;
-
     struct bmm_msg_head head;
-    if (!bmm_msg_get(&head, &filter->dem, f, &eof))
-      return false;
+    switch (bmm_io_readin(&head, sizeof head)) {
+      case BMM_IO_READ_ERROR:
+        BMM_ERR_FWARN(bmm_io_readin, "Failed to read header");
 
-    if (eof)
-      return true;
+        return false;
+      case BMM_IO_READ_EOF:
+        return true;
+    }
 
-    bmm_msg_put(&head, &filter->dem);
+    if (f(filter, &head)) {
+      bmm_io_writeout(&head, sizeof head);
 
-    fprintf(stderr, "%g %g %g %g\n",
-        filter->dem.opts.tstep * (double) filter->dem.istep,
-        filter->dem.est.ekinetic,
-        filter->dem.est.pvector, filter->dem.est.pscalar);
+      if (bmm_bit_test(head.flags, BMM_FBIT_BODY)) {
+        if (bmm_bit_test(head.flags, BMM_FBIT_PREFIX)) {
+          size_t const presize = bmm_size_pow(2, head.flags & 3);
+
+          unsigned char buf[1 << 3];
+          switch (bmm_io_readin(buf, presize)) {
+            case BMM_IO_READ_ERROR:
+            case BMM_IO_READ_EOF:
+              BMM_ERR_FWARN(bmm_io_readin, "Failed to read size prefix");
+
+              return false;
+          }
+
+          enum bmm_size_format const fmt =
+            bmm_bit_test(head.flags, BMM_FBIT_INTLE) ? BMM_SIZE_FORMAT_LE :
+            BMM_SIZE_FORMAT_BE;
+
+          size_t bodysize;
+          if (!bmm_size_from_buffer(&bodysize, buf,
+                MAX(sizeof buf, sizeof bodysize), fmt)) {
+            BMM_ERR_FWARN(bmm_size_from_buffer, "Message body too large");
+
+            return false;
+          }
+
+          if (!bmm_io_redirio(bodysize)) {
+            BMM_ERR_FWARN(bmm_io_redirio, "Failed to redirect body");
+
+            return false;
+          }
+        } else {
+          unsigned char term;
+          switch (bmm_io_readin(&term, 1)) {
+            case BMM_IO_READ_ERROR:
+            case BMM_IO_READ_EOF:
+              BMM_ERR_FWARN(bmm_io_readin, "Failed to read terminator");
+
+              return false;
+          }
+
+          // This is slow by design.
+          for ever {
+            unsigned char buf;
+            switch (bmm_io_readin(&buf, 1)) {
+              case BMM_IO_READ_ERROR:
+              case BMM_IO_READ_EOF:
+                BMM_ERR_FWARN(bmm_io_readin, "Failed to read body");
+
+                return false;
+            }
+
+            if (buf == term)
+              break;
+
+            if (!bmm_io_writeout(&buf, 1)) {
+              BMM_ERR_FWARN(bmm_io_writeout, "Failed to write body");
+
+              return false;
+            }
+          }
+        }
+      }
+
+      if (bmm_bit_test(head.flags, BMM_FBIT_FLUSH))
+        if (fflush(stdout) == EOF)
+          return false;
+    }
   }
 
   return true;

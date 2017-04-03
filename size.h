@@ -228,4 +228,73 @@ inline size_t bmm_size_prod(size_t const* const n, size_t const k) {
   return m;
 }
 
+enum bmm_size_format {
+  BMM_SIZE_FORMAT_BE,
+  BMM_SIZE_FORMAT_LE
+};
+
+// The call `bmm_size_to_buffer(ptr, buf, n, k, fmt)`
+// writes the size `k` in the format `fmt`
+// into the byte buffer `buf` of length `n` and
+// sets `ptr` to the number of bytes written.
+inline bool bmm_size_to_buffer(size_t* const ptr,
+    unsigned char* const buf, size_t const n,
+    size_t const k, enum bmm_size_format const fmt) {
+  size_t const m = k == 0 ? 1 : bmm_size_filog(k, 2) / CHAR_BIT + 1;
+
+  if (n < m)
+    return false;
+
+  if (ptr != NULL)
+    *ptr = m;
+
+  switch (fmt) {
+    case BMM_SIZE_FORMAT_LE:
+      if (buf != NULL)
+        for (size_t i = 0; i < m; ++i)
+          buf[i] = (unsigned char) (k >> i * CHAR_BIT & 0xff);
+
+      break;
+    case BMM_SIZE_FORMAT_BE:
+      if (buf != NULL)
+        for (size_t i = 0; i < m; ++i)
+          buf[m - 1 - i] = (unsigned char) (k >> i * CHAR_BIT & 0xff);
+
+      break;
+  }
+
+  return true;
+}
+
+// The call `bmm_size_from_buffer(ptr, buf, n, fmt)`
+// reads a size in the format `fmt`
+// from the byte buffer `buf` of length `n` and saves it into `ptr`.
+__attribute__ ((__nonnull__ (2)))
+inline bool bmm_size_from_buffer(size_t* const ptr,
+    unsigned char const* const buf, size_t const n,
+    enum bmm_size_format const fmt) {
+  size_t k = 0;
+
+  if (n > sizeof k)
+    return false;
+
+  switch (fmt) {
+    case BMM_SIZE_FORMAT_LE:
+      for (size_t i = 0; i < n; ++i)
+        k |= (size_t) buf[i] << i * CHAR_BIT;
+
+      break;
+    case BMM_SIZE_FORMAT_BE:
+      for (size_t i = 0; i < n; ++i)
+        k |= (size_t) buf[n - 1 - i] << i * CHAR_BIT;
+
+      break;
+  }
+
+  if (ptr != NULL)
+    *ptr = k;
+
+  return true;
+}
+
 #endif

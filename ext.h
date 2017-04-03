@@ -57,4 +57,12 @@ static_assert(false, "contradictory debug directives");
 #endif
 #endif
 
+// The preprocessor directive `MIN(x, y)`
+// expands to the lesser of `x` and `y`.
+#define MIN(x, y) ((x) < (y) ? (x) : (y))
+
+// The preprocessor directive `MAX(x, y)`
+// expands to the greater of `x` and `y`.
+#define MAX(x, y) ((x) > (y) ? (x) : (y))
+
 #endif

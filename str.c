@@ -5,7 +5,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 
-bool bmm_str_strtou(char const* const str, unsigned int* const ptr) {
+bool bmm_str_strtou(unsigned int* const ptr, char const* const str) {
   char* endptr;
   errno = 0;
   long long int const x = strtoll(str, &endptr, 10);
@@ -21,7 +21,7 @@ bool bmm_str_strtou(char const* const str, unsigned int* const ptr) {
   }
 }
 
-bool bmm_str_strtoz(char const* const str, size_t* const ptr) {
+bool bmm_str_strtoz(size_t* const ptr, char const* const str) {
   char* endptr;
   errno = 0;
   long long int const x = strtoll(str, &endptr, 10);
@@ -37,7 +37,7 @@ bool bmm_str_strtoz(char const* const str, size_t* const ptr) {
   }
 }
 
-bool bmm_str_strtod(char const* const str, double* const ptr) {
+bool bmm_str_strtod(double* const ptr, char const* const str) {
   char* endptr;
   errno = 0;
   double const x = strtod(str, &endptr);

@@ -121,14 +121,12 @@ sending or attempting to interpret such a thing is a protocol violation.
 |:------------|:--------
 | `0bbbaaaaD` | Integers are in big-endian (network order).
 | `1bbbaaaaD` | Integers are in little-endian.
-| `b0bbaaaaD` | Floating-point numbers are in big-endian.
-| `b1bbaaaaD` | Floating-point numbers are in little-endian.
-| `bb0baaaaD` | Floating-point numbers are in IEEE 754.
-| `bb1baaaaD` | Floating-point numbers are in some other format.
+| `b00baaaaD` | Floating-point numbers are in IEEE 754 big-endian.
+| `b01baaaaD` | Floating-point numbers are in IEEE 754 little-endian.
 | `bbb0aaaaD` | Message delivery happens later.
 | `bbb1aaaaD` | Message delivery happens immediately.
-| `aaaa0bbbD` | Message body has a fixed size.
-| `aaaa1bbbD` | Message body has a varying size.
+| `aaaa0bbbD` | Message has no body.
+| `aaaa1bbbD` | Message has a body.
 | `aaaa10bbDH` | Message body is terminated by a literal `h`.
 | `aaaa11bbD` | Message body has a size that fits into `b` bytes.
 | `aaaa1100DH` | Message body has a size of `h` bytes (256 B).
@@ -144,6 +142,8 @@ the first of which sets various flags and
 the second of which contains the message type.
 Additionally, for those messages whose bodies may vary in size,
 there is an extra prefix to signal the size of the body.
+
+TODO Consider network order for sizes.
 
 ### Separation of Concerns (Relating to Messaging)
 

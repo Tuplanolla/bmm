@@ -4,10 +4,12 @@
 
 #include "dem.h"
 #include "ext.h"
+#include "msg.h"
 #include <limits.h>
 #include <stdbool.h>
 
 struct bmm_filter_opts {
+  bool mask[0x100];
   int dummy;
 };
 

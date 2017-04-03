@@ -14,19 +14,19 @@ static bool f(char const* const key, char const* const value,
   struct bmm_sdl_opts* const opts = ptr;
 
   if (strcmp(key, "width") == 0) {
-    if (!bmm_str_strtou(value, &opts->width))
+    if (!bmm_str_strtou(&opts->width, value))
       return false;
   } else if (strcmp(key, "height") == 0) {
-    if (!bmm_str_strtou(value, &opts->height))
+    if (!bmm_str_strtou(&opts->height, value))
       return false;
   } else if (strcmp(key, "fps") == 0) {
-    if (!bmm_str_strtou(value, &opts->fps))
+    if (!bmm_str_strtou(&opts->fps, value))
       return false;
   } else if (strcmp(key, "ms") == 0) {
-    if (!bmm_str_strtou(value, &opts->ms))
+    if (!bmm_str_strtou(&opts->ms, value))
       return false;
   } else if (strcmp(key, "zoomfac") == 0) {
-    if (!bmm_str_strtod(value, &opts->zoomfac))
+    if (!bmm_str_strtod(&opts->zoomfac, value))
       return false;
   } else
     return false;

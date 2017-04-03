@@ -139,18 +139,6 @@ static void bmm_sdl_move(struct bmm_sdl* const sdl,
   sdl->rorigin[1] += y2 - yproj - hproj * 0.5;
 }
 
-// TODO Remove this duplicate.
-static void bmm_dem_cell(size_t* const icell,
-    struct bmm_dem const* const dem, size_t const ipart) {
-  struct bmm_dem_buf const* const buf = bmm_dem_getrbuf(dem);
-
-  for (size_t idim = 0; idim < 2; ++idim)
-    icell[idim] = bmm_size_uclamp(
-        (size_t) bmm_fp_lerp(buf->parts[ipart].lin.r[idim],
-          0.0, dem->rext[idim],
-          0.0, (double) dem->opts.ncell[idim]), dem->opts.ncell[idim]);
-}
-
 static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
@@ -189,13 +177,6 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
   if (sdl->itarget != SIZE_MAX) {
     glColor4fv(glBlue);
     size_t const ipart = sdl->itarget;
-
-    // Focus box for neighbor markers.
-    size_t icell[2];
-    bmm_dem_cell(icell, &sdl->dem, ipart);
-    double const x = (double) icell[0] * w;
-    double const y = (double) icell[1] * h;
-    glRectWire((float) x, (float) y, (float) w, (float) h);
 
     // Neighbor markers.
     glBegin(GL_LINES);
@@ -448,9 +429,9 @@ again:
       bmm_sdl_t_to_timeval(&timeout, trem);
       struct bmm_msg_head head;
       switch (bmm_io_waitin(&timeout)) {
-        case BMM_IO_ERROR:
+        case BMM_IO_WAIT_ERROR:
           return false;
-        case BMM_IO_READY:
+        case BMM_IO_WAIT_READY:
           if (bmm_msg_get(&head, &sdl->dem, filter, NULL))
             sdl->stale = false;
           else {
@@ -461,7 +442,7 @@ again:
               sdl->stale = true;
           }
           break;
-        case BMM_IO_TIMEOUT:
+        case BMM_IO_WAIT_TIMEOUT:
           sdl->stale = true;
       }
     }
