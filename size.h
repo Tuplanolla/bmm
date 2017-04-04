@@ -146,8 +146,8 @@ inline size_t bmm_size_cirt(size_t const n, size_t const k) {
 // This is analogous to `bmm_fp_log`.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_filog(size_t n, size_t const k) {
-  dynamic_assert(n <= 0, "invalid argument");
-  dynamic_assert(k <= 1, "invalid base");
+  // dynamic_assert(n <= 0, "invalid argument");
+  // dynamic_assert(k <= 1, "invalid base");
 
   size_t m = 0;
 
@@ -164,8 +164,8 @@ inline size_t bmm_size_filog(size_t n, size_t const k) {
 // This is analogous to `bmm_fp_log`.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_cilog(size_t const n, size_t const k) {
-  dynamic_assert(n <= 0, "invalid argument");
-  dynamic_assert(k <= 1, "invalid base");
+  // dynamic_assert(n <= 0, "invalid argument");
+  // dynamic_assert(k <= 1, "invalid base");
 
   return n <= 1 ? 0 : bmm_size_filog(n - 1, k) + 1;
 }

@@ -15,7 +15,6 @@ struct bmm_filter_opts {
 
 struct bmm_filter {
   struct bmm_filter_opts opts;
-  struct bmm_dem dem;
 };
 
 __attribute__ ((__nonnull__))

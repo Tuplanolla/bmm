@@ -32,6 +32,16 @@ enum bmm_msg {
 
 static_assert(BMM_MSG_URGH < BMM_MSG_MAX, "Too many messages");
 
+// TODO Wrangle prototypes.
+
+__attribute__ ((__nonnull__ (2)))
+bool bmm_msg_preread(size_t* const ptr, struct bmm_msg_head const* const head,
+    size_t const size);
+
+__attribute__ ((__nonnull__))
+bool bmm_msg_prewrite(struct bmm_msg_head const* const bad_head,
+    size_t const size);
+
 __attribute__ ((__nonnull__))
 void bmm_defhead(struct bmm_msg_head*);
 

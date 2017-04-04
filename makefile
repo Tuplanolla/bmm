@@ -40,7 +40,7 @@ build: bmm-dem bmm-filter bmm-sdl
 
 run: build
 	GSL_RNG_TYPE=mt19937 GSL_RNG_SEED=42 time -v \
-	./bmm-dem | ./bmm-sdl
+	./bmm-dem | ./bmm-filter | ./bmm-sdl
 	# ./bmm-dem | ./bmm-filter --mask parts | ./bmm-sdl
 
 start-server: bmm-sdl
