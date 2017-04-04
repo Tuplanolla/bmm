@@ -61,6 +61,8 @@ struct bmm_dem_opts {
   double ymodul;
   // Elasticity $\gamma$.
   double yelast;
+  // Nonphysical ambient damping factor.
+  double damp;
   // Particle size mean.
   double rmean;
   // Particle size standard deviation.

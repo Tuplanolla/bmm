@@ -126,7 +126,7 @@ void bmm_dem_forces(struct bmm_dem* const dem) {
         listy->thingy[ineigh].x[0] = x;
 
         // TODO Write a thing for this too.
-        double const dx = listy->thingy[ineigh].x[1] - listy->thingy[ineigh].x[0];
+        double const dx = listy->thingy[ineigh].x[0] - listy->thingy[ineigh].x[1];
         double const v = dx / dem->opts.tstep;
 
         // TODO Use getters.
@@ -185,9 +185,6 @@ void bmm_dem_forces(struct bmm_dem* const dem) {
 void bmm_dem_euler(struct bmm_dem* const dem) {
   struct bmm_dem_buf* const buf = bmm_dem_getbuf(dem);
 
-  // TODO Dissipate energy elsewhere.
-  double const damp = 0.986;
-
   double const dt = dem->opts.tstep;
 
   for (size_t ipart = 0; ipart < buf->npart; ++ipart)
@@ -200,7 +197,7 @@ void bmm_dem_euler(struct bmm_dem* const dem) {
             buf->parts[ipart].lin.v[idim] * dt, dem->rext[idim]);
 
         buf->parts[ipart].lin.v[idim] =
-          damp * (buf->parts[ipart].lin.v[idim] + a * dt);
+          dem->opts.damp * (buf->parts[ipart].lin.v[idim] + a * dt);
       }
 
       double const a = buf->parts[ipart].ang.tau / buf->partcs[ipart].moi;
@@ -210,7 +207,7 @@ void bmm_dem_euler(struct bmm_dem* const dem) {
           buf->parts[ipart].ang.omega * dt, M_2PI);
 
       buf->parts[ipart].ang.omega =
-        damp * (buf->parts[ipart].ang.omega + a * dt);
+        dem->opts.damp * (buf->parts[ipart].ang.omega + a * dt);
     }
 }
 
@@ -308,6 +305,8 @@ bool bmm_dem_relink(struct bmm_dem* const dem) {
       }
     }
   }
+
+  return true;
 }
 
 // TODO Check triangulation quality and compare with Delaunay.
@@ -487,19 +486,21 @@ void bmm_dem_defopts(struct bmm_dem_opts* const opts) {
   opts->rmax = 0.2;
   // opts->tend = ...;
   // opts->tadv = ...;
-  opts->tstep = 0.006;
+  opts->tstep = 0.004;
   opts->tstepcomm = 1.0;
   opts->nstep = (size_t) (500 / opts->tstep); // ??
   opts->tcomm = 0.0;
   opts->vleeway = 0.01;
-  opts->linkslurp = 1.2;
+  opts->linkslurp = 1.1;
   opts->klink = 120.0;
-  opts->fcohes = 0.04;
-  opts->faccel = 0.02;
+  opts->fcohes = 0.02;
+  opts->faccel = 0.01;
   opts->gravy[0] = 0.0;
   opts->gravy[1] = -0.005;
   opts->ymodul = 2.0e+4;
-  opts->yelast = 1.0e+2;
+  opts->yelast = 1.4e+2;
+  // TODO Dissipate energy elsewhere.
+  opts->damp = 0.999;
   opts->rmean = 0.04;
   opts->rsd = opts->rmean * 0.2;
 }
@@ -697,7 +698,7 @@ static bool bmm_dem_step(struct bmm_dem* const dem) {
 
       break;
     case BMM_DEM_ACCEL:
-      bmm_dem_relink(dem);
+      (void) bmm_dem_relink(dem);
 
       break;
   }

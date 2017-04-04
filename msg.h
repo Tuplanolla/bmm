@@ -20,14 +20,14 @@ struct bmm_msg_head {
 
 enum bmm_msg {
   BMM_MSG_NOP = 0,
-  BMM_MSG_NPART = 42,
-  BMM_MSG_NSTEP = 43,
-  BMM_MSG_PARTS = 44,
-  BMM_MSG_EKINE = 45,
-  BMM_MSG_ESMOM = 46,
-  BMM_MSG_EVMOM = 47,
-  BMM_MSG_NEIGH = 48,
-  BMM_MSG_URGH = 80
+  BMM_MSG_NSTEP = 60,
+  BMM_MSG_NPART = 142,
+  BMM_MSG_PARTS = 144,
+  BMM_MSG_NEIGH = 168,
+  BMM_MSG_EKINE = 185,
+  BMM_MSG_ESMOM = 186,
+  BMM_MSG_EVMOM = 187,
+  BMM_MSG_URGH = 200
 };
 
 static_assert(BMM_MSG_URGH < BMM_MSG_MAX, "Too many messages");

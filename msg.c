@@ -6,10 +6,25 @@
 #include "size.h"
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 
 void bmm_defhead(struct bmm_msg_head* const head) {
   head->flags = 0;
   head->type = 0;
+}
+
+// TODO Put this elsewhere.
+bool bmm_msg_precheck(size_t const size, size_t const bodysize) {
+  if (size < bodysize) {
+    BMM_ERR_FWARN(bmm_size_from_buffer, "Message body would overflow");
+
+    return false;
+  }
+
+  if (size != bodysize)
+    BMM_ERR_FWARN(bmm_size_from_buffer, "Message body size mismatch");
+
+  return true;
 }
 
 // Assuming `head` has already been read...
@@ -51,18 +66,6 @@ bool bmm_msg_preread(size_t* const ptr, struct bmm_msg_head const* const head,
 
       // fprintf(stderr, "Prefix has size %zu, contents '%02x %02x %02x %02x %02x %02x %02x %02x'.\n",
       //     bodysize, buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7]);
-
-      if (size < bodysize) {
-        BMM_ERR_FWARN(bmm_size_from_buffer, "Message body would overflow");
-
-        return false;
-      }
-
-      // TODO Safety first...
-      /*
-      if (size != bodysize)
-        BMM_ERR_FWARN(bmm_size_from_buffer, "Message body size mismatch");
-      */
 
       if (ptr != NULL)
         *ptr = bodysize;
@@ -107,6 +110,9 @@ bool bmm_msg_read(struct bmm_msg_head const* const head,
     void* const ptr, size_t const size) {
   size_t bodysize;
   if (!bmm_msg_preread(&bodysize, head, size))
+    return false;
+
+  if (!bmm_msg_precheck(size, bodysize))
     return false;
 
   switch (bmm_io_readin(ptr, bodysize)) {
