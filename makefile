@@ -7,6 +7,9 @@ flags=-D_GNU_SOURCE -DDEBUG -O0 -g \
 	-Wno-aggregate-return -Wno-bad-function-cast -Wno-disabled-macro-expansion \
 	-Wno-switch
 endif
+ifeq ($(CONFIG), profile)
+flags=-DNDEBUG -O3 -g
+endif
 ifeq ($(CONFIG), release)
 flags=-DNDEBUG -O3 -Wl,-s -w
 endif
@@ -23,6 +26,9 @@ flags=-D_GNU_SOURCE -DDEBUG -Og -g \
 	-Wno-address -Wno-aggregate-return \
 	-Wno-switch -Wno-switch-enum -Wno-switch-default \
 	-Wno-missing-declarations -Wno-missing-prototypes
+endif
+ifeq ($(CONFIG), profile)
+flags=-D_GNU_SOURCE -DNDEBUG -O3 -g -pg
 endif
 ifeq ($(CONFIG), release)
 flags=-D_GNU_SOURCE -DNDEBUG -O3 -s -w
@@ -41,7 +47,7 @@ build: bmm-dem bmm-filter bmm-sdl
 run: build
 	GSL_RNG_TYPE=mt19937 GSL_RNG_SEED=42 time -v \
 	./bmm-dem | \
-	./bmm-filter --basis 0 --with 42 --with 44 --with 48 | \
+	./bmm-filter --basis 0 --with 142 --with 144 --with 168 | \
 	./bmm-sdl
 
 start-server: bmm-sdl
@@ -57,6 +63,15 @@ stop-server: bmm.fifo
 check: build
 	cppcheck -I/usr/include --enable=all *.c *.h
 	valgrind --leak-check=full --tool=memcheck ./bmm-dem > /dev/null
+
+profile-valgrind: build
+	valgrind --tool=callgrind --callgrind-out-file=callgrind.out \
+	./bmm-dem > /dev/null
+	callgrind_annotate callgrind.out
+
+profile-gprof: build
+	./bmm-dem > /dev/null
+	gprof ./bmm-dem
 
 deep-clean: clean
 	$(RM) *.log *.run
