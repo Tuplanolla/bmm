@@ -10,7 +10,6 @@
 
 struct bmm_filter_opts {
   bool mask[0x100];
-  int dummy;
 };
 
 struct bmm_filter {

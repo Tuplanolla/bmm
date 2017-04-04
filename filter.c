@@ -5,10 +5,8 @@
 #include "io.h"
 #include "msg.h"
 #include "size.h"
-#include <stdint.h> // Temporary SIZE_MAX.
+#include <stdint.h> // TODO Remove temporary SIZE_MAX.
 #include <stdio.h>
-
-// TODO Make use of procedures from `msg.c`.
 
 void bmm_filter_defopts(struct bmm_filter_opts* const opts) {
   for (size_t imsg = 0; imsg < BMM_MSG_MAX; ++imsg)
@@ -40,14 +38,14 @@ bool bmm_filter_run_with(struct bmm_filter* const filter) {
         return true;
     }
 
+    size_t bodysize;
+    if (!bmm_msg_preread(&bodysize, &head, SIZE_MAX)) {
+      BMM_ERR_FWARN(bmm_io_readin, "Failed to read prefix (and do stuff)");
+
+      return false;
+    }
+
     if (f(filter, &head)) {
-      size_t bodysize;
-      if (!bmm_msg_preread(&bodysize, &head, SIZE_MAX)) {
-        BMM_ERR_FWARN(bmm_io_readin, "Failed to read prefix (and do stuff)");
-
-        return false;
-      }
-
       if (!bmm_msg_prewrite(&head, bodysize))
         BMM_ERR_FWARN(NULL, "Failed to write stuff");
 
@@ -60,6 +58,12 @@ bool bmm_filter_run_with(struct bmm_filter* const filter) {
       if (bmm_bit_test(head.flags, BMM_FBIT_FLUSH))
         if (fflush(stdout) == EOF)
           return false;
+    } else {
+      if (!bmm_io_fastfwin(bodysize)) {
+        BMM_ERR_FWARN(bmm_io_fastfwin, "Failed to fast-forward body");
+
+        return false;
+      }
     }
   }
 

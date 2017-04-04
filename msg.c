@@ -12,8 +12,6 @@ void bmm_defhead(struct bmm_msg_head* const head) {
   head->type = 0;
 }
 
-// TODO Expose these and reuse them in `filter.c`.
-
 // Assuming `head` has already been read...
 // TODO Passing `size` is not strictly necessary.
 // TODO Handle terminating characters.
@@ -165,8 +163,7 @@ bool bmm_msg_write(struct bmm_msg_head const* const head,
   return bmm_io_writeout(ptr, size);
 }
 
-bool bmm_msg_get(struct bmm_msg_head* const head, struct bmm_dem* const dem,
-    bool (* const f)(struct bmm_msg_head const*, void*), void* const ptr) {
+bool bmm_msg_get(struct bmm_msg_head* const head, struct bmm_dem* const dem) {
   switch (bmm_io_readin(head, sizeof *head)) {
     case BMM_IO_READ_ERROR:
       BMM_ERR_FWARN(NULL, "Failed to read message header");

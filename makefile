@@ -40,8 +40,9 @@ build: bmm-dem bmm-filter bmm-sdl
 
 run: build
 	GSL_RNG_TYPE=mt19937 GSL_RNG_SEED=42 time -v \
-	./bmm-dem | ./bmm-filter | ./bmm-sdl
-	# ./bmm-dem | ./bmm-filter --mask parts | ./bmm-sdl
+	./bmm-dem | \
+	./bmm-filter --basis 0 --with 42 --with 44 --with 48 | \
+	./bmm-sdl
 
 start-server: bmm-sdl
 	mkfifo bmm.fifo

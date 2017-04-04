@@ -66,7 +66,7 @@ enum bmm_io_wait bmm_io_waitin(struct timeval*);
 
 extern inline bool bmm_io_redirio(size_t);
 
-extern inline enum bmm_io_read bmm_io_fastfwin(void*, size_t);
+extern inline enum bmm_io_read bmm_io_fastfwin(size_t);
 
 extern inline enum bmm_io_read bmm_io_readin(void*, size_t);
 

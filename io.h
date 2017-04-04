@@ -40,8 +40,7 @@ enum bmm_io_read {
 };
 
 __attribute__ ((__nonnull__))
-inline enum bmm_io_read bmm_io_fastfwin(
-    __attribute__ ((__unused__)) void* const ptr, size_t const size) {
+inline enum bmm_io_read bmm_io_fastfwin(size_t const size) {
   if (bmm_io_fastfw(stdin, size) == size)
     return BMM_IO_READ_SUCCESS;
   else if (feof(stdin) != 0)

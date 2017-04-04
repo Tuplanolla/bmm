@@ -298,13 +298,6 @@ static bool bmm_sdl_video(struct bmm_sdl* const sdl,
   return true;
 }
 
-static bool filter(struct bmm_msg_head const* const head,
-    __attribute__ ((__unused__)) void* const ptr) {
-  return head->type == BMM_MSG_NPART ||
-    head->type == BMM_MSG_PARTS ||
-    head->type == BMM_MSG_NEIGH;
-}
-
 static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
   if (!bmm_sdl_video(sdl, sdl->width, sdl->height))
     return false;
@@ -418,7 +411,7 @@ static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
     trem = bmm_sdl_trem(tnow, tnext);
 
     // TODO Think about a better way to express this thing.
-    // TODO This sleeps too much with the current definition of `filter`.
+    // TODO Currently this sleeps too much.
 
     if (sdl->active) {
       // Use the remaining time to wait for input.
@@ -432,7 +425,7 @@ again:
         case BMM_IO_WAIT_ERROR:
           return false;
         case BMM_IO_WAIT_READY:
-          if (bmm_msg_get(&head, &sdl->dem, filter, NULL))
+          if (bmm_msg_get(&head, &sdl->dem))
             sdl->stale = false;
           else {
             trem = bmm_sdl_t_from_timeval(&timeout);

@@ -19,15 +19,15 @@ struct bmm_msg_head {
 #define BMM_FBIT_PREFIX 2
 
 enum bmm_msg {
-  BMM_MSG_NOP = 0x0,
-  BMM_MSG_NPART = 0x42,
-  BMM_MSG_NSTEP = 0x43,
-  BMM_MSG_PARTS = 0x44,
-  BMM_MSG_EKINE = 0x45,
-  BMM_MSG_ESMOM = 0x46,
-  BMM_MSG_EVMOM = 0x47,
-  BMM_MSG_NEIGH = 0x48,
-  BMM_MSG_URGH = 0x80
+  BMM_MSG_NOP = 0,
+  BMM_MSG_NPART = 42,
+  BMM_MSG_NSTEP = 43,
+  BMM_MSG_PARTS = 44,
+  BMM_MSG_EKINE = 45,
+  BMM_MSG_ESMOM = 46,
+  BMM_MSG_EVMOM = 47,
+  BMM_MSG_NEIGH = 48,
+  BMM_MSG_URGH = 80
 };
 
 static_assert(BMM_MSG_URGH < BMM_MSG_MAX, "Too many messages");
@@ -45,16 +45,10 @@ bool bmm_msg_prewrite(struct bmm_msg_head const* const bad_head,
 __attribute__ ((__nonnull__))
 void bmm_defhead(struct bmm_msg_head*);
 
-// Read a message and call `f` on the header.
-// Return `false` in case of an error.
-// Return `true` otherwise.
-// With `EOF` return `true`, but do not call `f`.
-// TODO Maybe change this?
-__attribute__ ((__nonnull__ (1, 2, 3)))
-bool bmm_msg_get(struct bmm_msg_head*, struct bmm_dem*,
-    bool (*)(struct bmm_msg_head const*, void*), void*);
+__attribute__ ((__deprecated__, __nonnull__))
+bool bmm_msg_get(struct bmm_msg_head*, struct bmm_dem*);
 
-__attribute__ ((__nonnull__))
+__attribute__ ((__deprecated__, __nonnull__))
 void bmm_msg_put(struct bmm_msg_head const*, struct bmm_dem const*);
 
 #endif
