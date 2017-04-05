@@ -32,7 +32,7 @@ struct bmm_dem_opts {
   // Cell extents by dimension, expressed in divs.
   size_t ncell[2];
   size_t nbin;
-  __attribute__ ((__deprecated__))
+  // __attribute__ ((__deprecated__))
   size_t nstep;
   // Maximum distance for qualifying as a neighbor.
   double rmax;
@@ -40,9 +40,9 @@ struct bmm_dem_opts {
   struct bmm_dem_time tend;
   struct bmm_dem_time tadv;
   // Simulated time step.
-  __attribute__ ((__deprecated__))
+  // __attribute__ ((__deprecated__))
   double tstep;
-  __attribute__ ((__deprecated__))
+  // __attribute__ ((__deprecated__))
   double tstepcomm;
   double tcomm;
   // Link length creation multiplier.
@@ -293,10 +293,10 @@ inline void bmm_dem_swapbuf(struct bmm_dem* const dem) {
 }
 
 __attribute__ ((__nonnull__))
-void bmm_dem_defopts(struct bmm_dem_opts*);
+void bmm_dem_opts_def(struct bmm_dem_opts*);
 
 __attribute__ ((__nonnull__))
-void bmm_dem_defpart(struct bmm_dem_part*);
+void bmm_dem_part_def(struct bmm_dem_part*);
 
 __attribute__ ((__nonnull__))
 void bmm_dem_def(struct bmm_dem*, struct bmm_dem_opts const*);
@@ -314,6 +314,15 @@ __attribute__ ((__nonnull__))
 double bmm_dem_cor(struct bmm_dem const*);
 
 __attribute__ ((__nonnull__))
-bool bmm_dem_run(struct bmm_dem_opts const*);
+bool bmm_dem_step(struct bmm_dem*);
+
+__attribute__ ((__nonnull__))
+bool bmm_dem_comm(struct bmm_dem*);
+
+__attribute__ ((__nonnull__))
+bool bmm_dem_run(struct bmm_dem*);
+
+__attribute__ ((__nonnull__))
+bool bmm_dem_run_with(struct bmm_dem_opts const*);
 
 #endif

@@ -4,7 +4,7 @@ extern inline double bmm_geom2d_norm2(double const*);
 
 extern inline double bmm_geom2d_norm(double const*);
 
-extern inline double bmm_geom2d_angle(double const*);
+extern inline double bmm_geom2d_dir(double const*);
 
 extern inline void bmm_geom2d_add(double*, double const*, double const*);
 
@@ -28,13 +28,13 @@ extern inline void bmm_geom2d_from_polar(double*, double const*);
 
 extern inline void bmm_geom2d_from_polar2(double*, double const*);
 
-// TODO Organize these.
-
 extern inline void bmm_geom2d_diff(double*, double const*, double const*);
 
 extern inline double bmm_geom2d_dist2(double const*, double const*);
 
 extern inline double bmm_geom2d_dist(double const*, double const*);
+
+extern inline double bmm_geom2d_angle(double const*, double const*);
 
 extern inline void bmm_geom2d_pdiff(double*,
     double const*, double const*, double const*);

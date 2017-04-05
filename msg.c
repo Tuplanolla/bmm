@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 
-void bmm_defhead(struct bmm_msg_head* const head) {
+void bmm_head_def(struct bmm_msg_head* const head) {
   head->flags = 0;
   head->type = 0;
 }
@@ -31,9 +31,9 @@ bool bmm_msg_precheck(size_t const size, size_t const bodysize) {
 // TODO Passing `size` is not strictly necessary.
 // TODO Handle terminating characters.
 __attribute__ ((__nonnull__ (2)))
-bool bmm_msg_preread(size_t* const ptr, struct bmm_msg_head const* const head,
-    size_t const size) {
-  // fprintf(stderr, "Prereading message %02x, bufsize %zu!\n", head->type, size);
+bool bmm_msg_preread(size_t* const ptr,
+    struct bmm_msg_head const* const head) {
+  // fprintf(stderr, "Prereading message %02x!\n", head->type);
 
   if (bmm_bit_test(head->flags, BMM_FBIT_BODY)) {
     if (bmm_bit_test(head->flags, BMM_FBIT_PREFIX)) {
@@ -70,6 +70,7 @@ bool bmm_msg_preread(size_t* const ptr, struct bmm_msg_head const* const head,
       if (ptr != NULL)
         *ptr = bodysize;
     } /* else {
+      // TODO This would require an extra argument or more refactoring.
       unsigned char term;
       switch (bmm_io_readin(&term, 1)) {
         case BMM_IO_READ_ERROR:
@@ -79,6 +80,7 @@ bool bmm_msg_preread(size_t* const ptr, struct bmm_msg_head const* const head,
           return false;
       }
 
+      // TODO This would be split into `bmm_msg_read` equivalent.
       // This is slow by design.
       for ever {
         unsigned char buf;
@@ -109,7 +111,7 @@ __attribute__ ((__nonnull__ (1)))
 bool bmm_msg_read(struct bmm_msg_head const* const head,
     void* const ptr, size_t const size) {
   size_t bodysize;
-  if (!bmm_msg_preread(&bodysize, head, size))
+  if (!bmm_msg_preread(&bodysize, head))
     return false;
 
   if (!bmm_msg_precheck(size, bodysize))
@@ -189,7 +191,8 @@ bool bmm_msg_get(struct bmm_msg_head* const head, struct bmm_dem* const dem) {
         BMM_ERR_FWARN(NULL, "Failed to read nothing");
       break;
     case BMM_MSG_EKINE:
-      if (!bmm_msg_preread(&bodysize, head, sizeof dem->istep + sizeof dem->est)) {
+      // sizeof dem->istep + sizeof dem->est
+      if (!bmm_msg_preread(&bodysize, head)) {
         BMM_ERR_FWARN(bmm_io_readin, "Failed to read estimators");
 
         return false;
@@ -214,8 +217,8 @@ bool bmm_msg_get(struct bmm_msg_head* const head, struct bmm_dem* const dem) {
         BMM_ERR_FWARN(NULL, "Failed to read number of particles");
       break;
     case BMM_MSG_PARTS:
-      if (!bmm_msg_preread(&bodysize, head,
-            sizeof dem->istep + sizeof buf->parts + sizeof buf->partcs)) {
+      // sizeof dem->istep + sizeof buf->parts + sizeof buf->partcs
+      if (!bmm_msg_preread(&bodysize, head)) {
         BMM_ERR_FWARN(bmm_io_readin, "Failed to read particles");
 
         return false;
@@ -243,8 +246,8 @@ bool bmm_msg_get(struct bmm_msg_head* const head, struct bmm_dem* const dem) {
       }
       break;
     case BMM_MSG_NEIGH:
-      if (!bmm_msg_preread(&bodysize, head,
-            sizeof buf->neigh + sizeof buf->links)) {
+      // sizeof buf->neigh + sizeof buf->links
+      if (!bmm_msg_preread(&bodysize, head)) {
         BMM_ERR_FWARN(bmm_io_readin, "Failed to read neighbors");
 
         return false;

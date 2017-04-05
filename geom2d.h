@@ -25,23 +25,23 @@ inline double bmm_geom2d_norm(double const* const r) {
   return sqrt(bmm_geom2d_norm2(r));
 }
 
-// The call `bmm_geom2d_angle(r)` returns the signed angle $\phi$
+// The call `bmm_geom2d_dir(r)` returns the signed angle $\phi$
 // of the vector `r`.
 __attribute__ ((__pure__))
-inline double bmm_geom2d_angle(double const* const r) {
+inline double bmm_geom2d_dir(double const* const r) {
   return atan2(r[1], r[0]);
 }
 
-// The call `bmm_geom2d_add(a, r0, r1)` sets
-// the vector `a` to the vector `r0` plus `r1`.
+// The call `bmm_geom2d_add(a, r0, r1)`
+// sets the vector `a` to the vector `r0` plus `r1`.
 inline void bmm_geom2d_add(double* const a,
     double const* const r0, double const* const r1) {
   for (size_t idim = 0; idim < 2; ++idim)
     a[idim] = r0[idim] + r1[idim];
 }
 
-// The call `bmm_geom2d_scale(s, r, x)` sets
-// the vector `s` to the vector `r` scaled by `x`.
+// The call `bmm_geom2d_scale(s, r, x)`
+// sets the vector `s` to the vector `r` scaled by `x`.
 inline void bmm_geom2d_scale(double* const s,
     double const* const r, double const x) {
   for (size_t idim = 0; idim < 2; ++idim)
@@ -96,7 +96,7 @@ inline void bmm_geom2d_lperp(double* const p, double const* const r) {
 inline void bmm_geom2d_to_polar2(double* const polar2,
     double const* const cart) {
   polar2[0] = bmm_geom2d_norm2(cart);
-  polar2[1] = bmm_geom2d_angle(cart);
+  polar2[1] = bmm_geom2d_dir(cart);
 }
 
 // The call `bmm_geom2d_to_polar(polar, cart)` maps
@@ -105,7 +105,7 @@ inline void bmm_geom2d_to_polar2(double* const polar2,
 inline void bmm_geom2d_to_polar(double* const polar,
     double const* const cart) {
   polar[0] = bmm_geom2d_norm(cart);
-  polar[1] = bmm_geom2d_angle(cart);
+  polar[1] = bmm_geom2d_dir(cart);
 }
 
 // The call `bmm_geom2d_from_polar(cart, polar)` maps
@@ -128,16 +128,16 @@ inline void bmm_geom2d_from_polar2(double* const cart,
   cart[1] = r * sin(polar2[1]);
 }
 
-// The call `bmm_geom2d_diff(rdiff, r0, r1)` sets
-// the vector `rdiff` to the difference between the vectors `r0` and `r1`.
+// The call `bmm_geom2d_diff(rdiff, r0, r1)`
+// sets the vector `rdiff` to the difference between the vectors `r0` and `r1`.
 inline void bmm_geom2d_diff(double* const rdiff,
     double const* const r0, double const* const r1) {
   for (size_t idim = 0; idim < 2; ++idim)
     rdiff[idim] = r1[idim] - r0[idim];
 }
 
-// The call `bmm_geom2d_dist2(r0, r1)` returns
-// the distance $r^2$ between the vectors `r0` and `r1`.
+// The call `bmm_geom2d_dist2(r0, r1)`
+// returns the distance $r^2$ between the vectors `r0` and `r1`.
 __attribute__ ((__pure__))
 inline double bmm_geom2d_dist2(double const* const r0,
     double const* const r1) {
@@ -147,8 +147,8 @@ inline double bmm_geom2d_dist2(double const* const r0,
   return bmm_geom2d_norm2(r);
 }
 
-// The call `bmm_geom2d_dist(r0, r1)` returns
-// the distance $r$ between the vectors `r0` and `r1`.
+// The call `bmm_geom2d_dist(r0, r1)`
+// returns the distance $r$ between the vectors `r0` and `r1`.
 __attribute__ ((__pure__))
 inline double bmm_geom2d_dist(double const* const r0, double const* const r1) {
   double r[2];
@@ -157,8 +157,21 @@ inline double bmm_geom2d_dist(double const* const r0, double const* const r1) {
   return bmm_geom2d_norm(r);
 }
 
-// The call `bmm_geom2d_pdiff(rdiff, r0, r1, rper)` sets
-// the vector `rdiff` to the `rper`-periodic difference
+// The call `bmm_geom2d_angle(r0, r1)`
+// returns the signed angle $\phi$
+// between the vectors `r0` and `r1`
+// according to the minimum image convention.
+__attribute__ ((__pure__))
+inline double bmm_geom2d_angle(double const* const r0,
+    double const* const r1) {
+  double r[2];
+  bmm_geom2d_diff(r, r0, r1);
+
+  return bmm_geom2d_dir(r);
+}
+
+// The call `bmm_geom2d_pdiff(rdiff, r0, r1, rper)`
+// sets the vector `rdiff` to the `rper`-periodic difference
 // between the vectors `r0` and `r1` by following the minimum image convention.
 inline void bmm_geom2d_pdiff(double* const rdiff,
     double const* const r0, double const* const r1,
@@ -167,8 +180,8 @@ inline void bmm_geom2d_pdiff(double* const rdiff,
     rdiff[idim] = bmm_fp_swrap(r1[idim] - r0[idim], rper[idim]);
 }
 
-// The call `bmm_geom2d_pdist2(r0, r1, rper)` returns
-// the `rper`-periodic distance $r^2$
+// The call `bmm_geom2d_pdist2(r0, r1, rper)`
+// returns the `rper`-periodic distance $r^2$
 // between the vectors `r0` and `r1` by following the minimum image convention.
 __attribute__ ((__pure__))
 inline double bmm_geom2d_pdist2(double const* const r0, double const* const r1,
@@ -179,8 +192,8 @@ inline double bmm_geom2d_pdist2(double const* const r0, double const* const r1,
   return bmm_geom2d_norm2(r);
 }
 
-// The call `bmm_geom2d_pdist(r0, r1, rper)` returns
-// the `rper`-periodic distance $r$
+// The call `bmm_geom2d_pdist(r0, r1, rper)`
+// returns the `rper`-periodic distance $r$
 // between the vectors `r0` and `r1` by following the minimum image convention.
 __attribute__ ((__pure__))
 inline double bmm_geom2d_pdist(double const* const r0, double const* const r1,
@@ -191,8 +204,8 @@ inline double bmm_geom2d_pdist(double const* const r0, double const* const r1,
   return bmm_geom2d_norm(r);
 }
 
-// The call `bmm_geom2d_pangle(r0, r1, rper)` returns
-// the `rper`-periodic signed angle $\phi$
+// The call `bmm_geom2d_pangle(r0, r1, rper)`
+// returns the `rper`-periodic signed angle $\phi$
 // between the vectors `r0` and `r1`
 // according to the minimum image convention.
 __attribute__ ((__pure__))
@@ -201,7 +214,7 @@ inline double bmm_geom2d_pangle(double const* const r0, double const* const r1,
   double r[2];
   bmm_geom2d_pdiff(r, r0, r1, rper);
 
-  return bmm_geom2d_angle(r);
+  return bmm_geom2d_dir(r);
 }
 
 #endif

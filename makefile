@@ -47,7 +47,7 @@ build: bmm-dem bmm-filter bmm-sdl
 run: build
 	GSL_RNG_TYPE=mt19937 GSL_RNG_SEED=42 time -v \
 	./bmm-dem | \
-	./bmm-filter --basis 0 --with 142 --with 144 --with 168 | \
+	./bmm-filter --mode whitelist --pass 142 --pass 144 --pass 168 | \
 	./bmm-sdl
 
 start-server: bmm-sdl
@@ -60,9 +60,11 @@ run-client: bmm-dem bmm.fifo
 stop-server: bmm.fifo
 	$(RM) bmm.fifo
 
-check: build
+check-static: build
 	cppcheck -I/usr/include --enable=all *.c *.h
-	valgrind --leak-check=full --tool=memcheck ./bmm-dem > /dev/null
+
+check-dynamic: build
+	valgrind --tool=memcheck --leak-check=full ./bmm-dem > /dev/null
 
 profile-valgrind: build
 	valgrind --tool=callgrind --callgrind-out-file=callgrind.out \

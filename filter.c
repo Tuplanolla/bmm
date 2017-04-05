@@ -4,21 +4,21 @@
 #include "filter.h"
 #include "io.h"
 #include "msg.h"
+#include "sig.h"
 #include "size.h"
-#include <stdint.h> // TODO Remove temporary SIZE_MAX.
+#include <signal.h>
 #include <stdio.h>
 
-void bmm_filter_defopts(struct bmm_filter_opts* const opts) {
+void bmm_filter_opts_def(struct bmm_filter_opts* const opts) {
   for (size_t imsg = 0; imsg < BMM_MSG_MAX; ++imsg)
-    opts->mask[imsg] = true;
+    opts->mask[imsg] = false;
 }
 
 void bmm_filter_def(struct bmm_filter* const filter,
     struct bmm_filter_opts const* const opts) {
-  struct bmm_dem_opts defopts;
-  bmm_dem_defopts(&defopts);
-
   filter->opts = *opts;
+  filter->passed = 0;
+  filter->stopped = 0;
 }
 
 static bool f(struct bmm_filter const* const filter,
@@ -26,8 +26,27 @@ static bool f(struct bmm_filter const* const filter,
   return filter->opts.mask[head->type];
 }
 
-bool bmm_filter_run_with(struct bmm_filter* const filter) {
+bool bmm_filter_run(struct bmm_filter* const filter) {
+  int const sigs[] = {SIGINT, SIGQUIT, SIGTERM, SIGPIPE};
+  if (bmm_sig_register(sigs, sizeof sigs / sizeof *sigs) != SIZE_MAX) {
+    BMM_ERR_WARN(bmm_sig_register);
+
+    return false;
+  }
+
   for ever {
+    int signum;
+    if (bmm_sig_use(&signum))
+      switch (signum) {
+        case SIGINT:
+        case SIGQUIT:
+        case SIGTERM:
+        case SIGPIPE:
+          BMM_ERR_FWARN(NULL, "Filtering interrupted");
+
+          return false;
+      }
+
     struct bmm_msg_head head;
     switch (bmm_io_readin(&head, sizeof head)) {
       case BMM_IO_READ_ERROR:
@@ -39,7 +58,7 @@ bool bmm_filter_run_with(struct bmm_filter* const filter) {
     }
 
     size_t bodysize;
-    if (!bmm_msg_preread(&bodysize, &head, SIZE_MAX)) {
+    if (!bmm_msg_preread(&bodysize, &head)) {
       BMM_ERR_FWARN(bmm_io_readin, "Failed to read prefix (and do stuff)");
 
       return false;
@@ -58,30 +77,25 @@ bool bmm_filter_run_with(struct bmm_filter* const filter) {
       if (bmm_bit_test(head.flags, BMM_FBIT_FLUSH))
         if (fflush(stdout) == EOF)
           return false;
+
+      ++filter->passed;
     } else {
       if (!bmm_io_fastfwin(bodysize)) {
         BMM_ERR_FWARN(bmm_io_fastfwin, "Failed to fast-forward body");
 
         return false;
       }
+
+      ++filter->stopped;
     }
   }
 
   return true;
 }
 
-bool bmm_filter_run(struct bmm_filter_opts const* const opts) {
-  struct bmm_filter* const filter = malloc(sizeof *filter);
-  if (filter == NULL) {
-    BMM_ERR_WARN(malloc);
+bool bmm_filter_run_with(struct bmm_filter_opts const* const opts) {
+  struct bmm_filter filter;
+  bmm_filter_def(&filter, opts);
 
-    return false;
-  }
-
-  bmm_filter_def(filter, opts);
-  bool const result = bmm_filter_run_with(filter);
-
-  free(filter);
-
-  return result;
+  return bmm_filter_run(&filter);
 }

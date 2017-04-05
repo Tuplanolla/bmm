@@ -18,7 +18,8 @@
 #define BEGIN do {
 #define END } while (false)
 
-// This preprocessor directive disables GNU extensions if they are unsupported.
+// These preprocessor directives quietly disable GNU extensions
+// if they are unsupported.
 #if !defined __GNUC__ || __GNUC__ < 4
 #ifndef __attribute__
 #define __attribute__(_)
@@ -44,11 +45,11 @@
 #define dynamic_assert(p, _) assert(p)
 #endif
 
-// This preprocessor directive ensures
+// These preprocessor directives ensure
 // that exactly one of `NDEBUG` or `DEBUG` is defined.
 #ifdef DEBUG
 #ifdef NDEBUG
-static_assert(false, "contradictory debug directives");
+static_assert(false, "Contradictory debug directives");
 #else
 #endif
 #else

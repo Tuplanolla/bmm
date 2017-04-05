@@ -19,7 +19,7 @@ void bmm_err_warn(char const* const func, char const* const file,
   double const t1 = bmm_sec_now();
 
   if (fprintf(stderr, "[%f] (%zu) <%s> %s:%zu: ",
-      t1 - t0, (size_t) getpid(), func, file, line) == EOF)
+      t1 - t0, (size_t) getpid(), func, file, line) < 0)
     return;
 
   errno = tmp;
@@ -33,14 +33,14 @@ void bmm_err_vfwarn(char const* const func, char const* const file,
   double const t1 = bmm_sec_now();
 
   if (fprintf(stderr, "[%f] (%zu) <%s> %s:%zu: ",
-      t1 - t0, (size_t) getpid(), func, file, line) == EOF)
+      t1 - t0, (size_t) getpid(), func, file, line) < 0)
     return;
 
   if (str != NULL)
-    if (fprintf(stderr, "%s: ", str) == EOF)
+    if (fprintf(stderr, "%s: ", str) < 0)
       return;
 
-  if (vfprintf(stderr, fmt, ap) == EOF)
+  if (vfprintf(stderr, fmt, ap) < 0)
     return;
 
   (void) fputc('\n', stderr);

@@ -479,7 +479,7 @@ double bmm_dem_cor(struct bmm_dem const* const dem) {
   return e / (double) buf->npart;
 }
 
-void bmm_dem_defopts(struct bmm_dem_opts* const opts) {
+void bmm_dem_opts_def(struct bmm_dem_opts* const opts) {
   opts->ncell[0] = 6;
   opts->ncell[1] = 6;
   opts->nbin = 1;
@@ -505,14 +505,14 @@ void bmm_dem_defopts(struct bmm_dem_opts* const opts) {
   opts->rsd = opts->rmean * 0.2;
 }
 
-void bmm_dem_defpartc(struct bmm_dem_partc* const partc) {
+void bmm_dem_partc_def(struct bmm_dem_partc* const partc) {
   partc->rrad = 0.0125;
   partc->mass = 1.0;
   partc->moi = bmm_geom_ballmoi(partc->rrad, 3) * partc->mass;
   partc->free = true;
 }
 
-void bmm_dem_defpart(struct bmm_dem_part* const part) {
+void bmm_dem_part_def(struct bmm_dem_part* const part) {
   for (size_t idim = 0; idim < 2; ++idim) {
     part->lin.r[idim] = 0.5;
     part->lin.v[idim] = 0.0;
@@ -539,8 +539,8 @@ static void bmm_bottom(struct bmm_dem* const dem) {
     struct bmm_dem_partc* const partc = &buf->partcs[buf->npart];
     struct bmm_dem_part* const part = &buf->parts[buf->npart];
 
-    bmm_dem_defpartc(partc);
-    bmm_dem_defpart(part);
+    bmm_dem_partc_def(partc);
+    bmm_dem_part_def(part);
 
     partc->rrad = r;
     partc->free = false;
@@ -610,8 +610,8 @@ static bool bmm_disperse(struct bmm_dem* const dem) {
     struct bmm_dem_partc* const partc = &buf->partcs[buf->npart];
     struct bmm_dem_part* const part = &buf->parts[buf->npart];
 
-    bmm_dem_defpartc(partc);
-    bmm_dem_defpart(part);
+    bmm_dem_partc_def(partc);
+    bmm_dem_part_def(part);
 
     partc->rrad = r;
     partc->free = true;
@@ -659,7 +659,7 @@ void bmm_dem_def(struct bmm_dem* const dem,
 static void bmm_dem_put(struct bmm_dem const* const dem,
     enum bmm_msg const msg) {
   struct bmm_msg_head head;
-  bmm_defhead(&head);
+  bmm_head_def(&head);
   bmm_bit_pset(&head.flags, BMM_FBIT_INTLE);
   bmm_bit_pset(&head.flags, BMM_FBIT_FPLE);
   bmm_bit_pset(&head.flags, BMM_FBIT_FLUSH);
@@ -669,7 +669,7 @@ static void bmm_dem_put(struct bmm_dem const* const dem,
   bmm_msg_put(&head, dem);
 }
 
-static bool bmm_dem_step(struct bmm_dem* const dem) {
+bool bmm_dem_step(struct bmm_dem* const dem) {
   struct bmm_dem_buf* const buf = bmm_dem_getbuf(dem);
 
   switch (dem->mode) {
@@ -720,7 +720,8 @@ static bool bmm_dem_step(struct bmm_dem* const dem) {
   return true;
 }
 
-static bool bmm_dem_comm(struct bmm_dem* const dem) {
+// TODO This ought to be const-qualified.
+bool bmm_dem_comm(struct bmm_dem* const dem) {
   double const tnow = dem->istep * dem->opts.tstep;
 
   if (tnow < dem->opts.tcomm + dem->opts.tstepcomm)
@@ -746,10 +747,25 @@ static bool bmm_dem_comm(struct bmm_dem* const dem) {
   return true;
 }
 
-static bool bmm_dem_run_for_real(struct bmm_dem* const dem) {
+// TODO Would it be beneficial to be higher-order?
+bool bmm_dem_run(struct bmm_dem* const dem) {
+  int const sigs[] = {SIGINT, SIGQUIT, SIGTERM, SIGPIPE};
+  if (bmm_sig_register(sigs, sizeof sigs / sizeof *sigs) != SIZE_MAX) {
+    BMM_ERR_WARN(bmm_sig_register);
+
+    return false;
+  }
+
   bmm_dem_put(dem, BMM_MSG_NPART);
 
-  // TODO Remove these test messages.
+#ifdef _GNU_SOURCE
+#ifdef DEBUG
+  int const excepts = feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
+  if (excepts == -1)
+    BMM_ERR_WARN(feenableexcept);
+#endif
+#endif
+
   while (dem->istep < dem->opts.nstep) {
     int signum;
     if (bmm_sig_use(&signum))
@@ -772,10 +788,39 @@ static bool bmm_dem_run_for_real(struct bmm_dem* const dem) {
     ++dem->istep;
   }
 
+#ifdef _GNU_SOURCE
+#ifdef DEBUG
+  if (feenableexcept(excepts) == -1)
+    BMM_ERR_WARN(feenableexcept);
+#endif
+#endif
+
   return true;
 }
 
-static bool bmm_dem_run_now(struct bmm_dem_opts const* const opts) {
+static bool bmm_dem_run_rng(struct bmm_dem* const dem) {
+  gsl_rng_type const* const t = gsl_rng_env_setup();
+  if (t == NULL) {
+    BMM_ERR_WARN(gsl_rng_env_setup);
+
+    return false;
+  }
+
+  dem->rng = gsl_rng_alloc(t);
+  if (dem->rng == NULL) {
+    BMM_ERR_WARN(gsl_rng_alloc);
+
+    return false;
+  }
+
+  bool const result = bmm_dem_run(dem);
+
+  gsl_rng_free(dem->rng);
+
+  return result;
+}
+
+bool bmm_dem_run_with(struct bmm_dem_opts const* const opts) {
   struct bmm_dem* const dem = malloc(sizeof *dem);
   if (dem == NULL) {
     BMM_ERR_WARN(malloc);
@@ -785,49 +830,9 @@ static bool bmm_dem_run_now(struct bmm_dem_opts const* const opts) {
 
   bmm_dem_def(dem, opts);
 
-  // TODO Stack frame.
-  gsl_rng_type const* const t = gsl_rng_env_setup();
-  dem->rng = gsl_rng_alloc(t);
-  if (dem->rng == NULL) {
-    BMM_ERR_WARN(gsl_rng_alloc);
-
-    free(dem);
-    return false;
-  }
-
-  bool const result = bmm_dem_run_for_real(dem);
-
-  gsl_rng_free(dem->rng);
+  bool const result = bmm_dem_run_rng(dem);
 
   free(dem);
-
-  return result;
-}
-
-bool bmm_dem_run(struct bmm_dem_opts const* const opts) {
-  int const sigs[] = {SIGINT, SIGQUIT, SIGTERM, SIGPIPE};
-  if (bmm_sig_register(sigs, sizeof sigs / sizeof *sigs) != SIZE_MAX) {
-    BMM_ERR_WARN(bmm_sig_register);
-
-    return false;
-  }
-
-#ifdef _GNU_SOURCE
-#ifdef DEBUG
-  int const excepts = feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
-  if (excepts == -1)
-    BMM_ERR_WARN(feenableexcept);
-#endif
-#endif
-
-  bool const result = bmm_dem_run_now(opts);
-
-#ifdef _GNU_SOURCE
-#ifdef DEBUG
-  if (feenableexcept(excepts) == -1)
-    BMM_ERR_WARN(feenableexcept);
-#endif
-#endif
 
   return result;
 }

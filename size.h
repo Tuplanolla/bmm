@@ -141,8 +141,8 @@ inline size_t bmm_size_cirt(size_t const n, size_t const k) {
   return n <= 1 ? n : bmm_size_firt(n - 1, k) + 1;
 }
 
-// The call `bmm_size_filog(n, k)` returns the floor
-// of the base `k` logarithm of `n`.
+// The call `bmm_size_filog(n, k)`
+// returns the floor of the base `k` logarithm of `n`.
 // This is analogous to `bmm_fp_log`.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_filog(size_t n, size_t const k) {
@@ -204,8 +204,8 @@ inline size_t bmm_size_dec(size_t const n, size_t const k) {
   return n == 0 ? k - 1 : n - 1;
 }
 
-// The call `bmm_size_sum(n, k)` returns
-// the sum of the array `n` of length `k`.
+// The call `bmm_size_sum(n, k)`
+// returns the sum of the array `n` of length `k`.
 __attribute__ ((__pure__))
 inline size_t bmm_size_sum(size_t const* const n, size_t const k) {
   size_t m = 0;
@@ -216,8 +216,8 @@ inline size_t bmm_size_sum(size_t const* const n, size_t const k) {
   return m;
 }
 
-// The call `bmm_size_prod(n, k)` returns
-// the product of the array `n` of length `k`.
+// The call `bmm_size_prod(n, k)`
+// returns the product of the array `n` of length `k`.
 __attribute__ ((__pure__))
 inline size_t bmm_size_prod(size_t const* const n, size_t const k) {
   size_t m = 1;
@@ -228,10 +228,14 @@ inline size_t bmm_size_prod(size_t const* const n, size_t const k) {
   return m;
 }
 
+// This enumeration specifies a packing format for the size type.
+// The supported formats as of now are big endian and little endian.
 enum bmm_size_format {
   BMM_SIZE_FORMAT_BE,
   BMM_SIZE_FORMAT_LE
 };
+
+// TODO Test big-endian.
 
 // The call `bmm_size_to_buffer(ptr, buf, n, k, fmt)`
 // writes the size `k` in the format `fmt`
@@ -252,13 +256,13 @@ inline bool bmm_size_to_buffer(size_t* const ptr,
     case BMM_SIZE_FORMAT_LE:
       if (buf != NULL)
         for (size_t i = 0; i < m; ++i)
-          buf[i] = (unsigned char) (k >> i * CHAR_BIT & 0xff);
+          buf[i] = (unsigned char) (k >> i * CHAR_BIT & UCHAR_MAX);
 
       break;
     case BMM_SIZE_FORMAT_BE:
       if (buf != NULL)
         for (size_t i = 0; i < m; ++i)
-          buf[m - 1 - i] = (unsigned char) (k >> i * CHAR_BIT & 0xff);
+          buf[m - 1 - i] = (unsigned char) (k >> i * CHAR_BIT & UCHAR_MAX);
 
       break;
   }

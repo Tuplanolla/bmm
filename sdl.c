@@ -30,7 +30,7 @@ void glString(char const* str, int const x, int const y,
     glutBitmapCharacter(font, *str++);
 }
 
-void bmm_sdl_defopts(struct bmm_sdl_opts* const opts) {
+void bmm_sdl_opts_def(struct bmm_sdl_opts* const opts) {
   opts->width = 640;
   opts->height = 480;
   opts->fps = 20;
@@ -53,7 +53,7 @@ void bmm_sdl_def(struct bmm_sdl* const sdl,
   sdl->active = true;
 
   struct bmm_dem_opts defopts;
-  bmm_dem_defopts(&defopts);
+  bmm_dem_opts_def(&defopts);
   bmm_dem_def(&sdl->dem, &defopts);
 }
 

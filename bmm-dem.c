@@ -40,8 +40,10 @@ int main(int const argc, char** const argv) {
   bmm_err_reset();
 
   struct bmm_dem_opts opts;
-  bmm_dem_defopts(&opts);
+  bmm_dem_opts_def(&opts);
+
+  // TODO Check for errors.
   bmm_opt_parse((char const* const*) &argv[1], (size_t) (argc - 1), f, &opts);
 
-  return bmm_dem_run(&opts) ? EXIT_SUCCESS : EXIT_FAILURE;
+  return bmm_dem_run_with(&opts) ? EXIT_SUCCESS : EXIT_FAILURE;
 }

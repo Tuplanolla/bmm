@@ -26,24 +26,20 @@ enum bmm_msg {
   BMM_MSG_NEIGH = 168,
   BMM_MSG_EKINE = 185,
   BMM_MSG_ESMOM = 186,
-  BMM_MSG_EVMOM = 187,
-  BMM_MSG_URGH = 200
+  BMM_MSG_EVMOM = 187
 };
-
-static_assert(BMM_MSG_URGH < BMM_MSG_MAX, "Too many messages");
 
 // TODO Wrangle prototypes.
 
 __attribute__ ((__nonnull__ (2)))
-bool bmm_msg_preread(size_t* const ptr, struct bmm_msg_head const* const head,
-    size_t const size);
+bool bmm_msg_preread(size_t* const ptr, struct bmm_msg_head const* const head);
 
 __attribute__ ((__nonnull__))
 bool bmm_msg_prewrite(struct bmm_msg_head const* const bad_head,
     size_t const size);
 
 __attribute__ ((__nonnull__))
-void bmm_defhead(struct bmm_msg_head*);
+void bmm_head_def(struct bmm_msg_head*);
 
 __attribute__ ((__deprecated__, __nonnull__))
 bool bmm_msg_get(struct bmm_msg_head*, struct bmm_dem*);

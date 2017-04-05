@@ -145,6 +145,9 @@ there is an extra prefix to signal the size of the body.
 
 TODO Consider network order for sizes.
 
+TODO Separate user-controlled flags
+from message content-related flags (like size).
+
 ### Separation of Concerns (Relating to Messaging)
 
 The current design has the following procedures.
@@ -162,6 +165,11 @@ to receive messages relating to small parts of it.
 Here is a proposal: remove such procedures.
 Only related utility functions actually need to be called,
 which makes life easier.
+
+Sending data through the network works fine.
+
+    $ ncat -l 9001 | ./bmm-sdl
+    $ ./bmm-dem | ncat 127.0.0.1 9001
 
 ### Program Options
 
@@ -221,6 +229,22 @@ These things need better explanations.
 ### Implementation Details
 
 Here be notes.
+
+#### Error Messages
+
+Since printing error messages taints library procedures and
+`errno` and `strerror` cannot carry dynamic error information,
+it could be useful to have another mechanism.
+The proposal in the `tlerr` translation unit could work.
+
+#### Index Files
+
+To make browsing past simulations easier and more efficient,
+one could generate index files from the recorded streams.
+These would consist of fixed chunks that contain
+the message type and flags as usual,
+but instead of the message body there would simply be an offset number
+to the message within the record (always eight bytes).
 
 #### Allocation
 

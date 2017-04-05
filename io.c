@@ -34,7 +34,7 @@ size_t bmm_io_redir(FILE* const out, FILE* const in, size_t const size) {
       break;
 
     size_t const nwritten = fwrite(buf, 1, nmemb, out);
-    if (nwritten == 0)
+    if (nwritten < nread)
       break;
 
     progress += nread;

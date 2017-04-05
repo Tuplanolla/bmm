@@ -53,3 +53,25 @@ bool bmm_str_strtod(double* const ptr, char const* const str) {
     return true;
   }
 }
+
+bool bmm_str_strtob(bool* const ptr, char const* const str) {
+  bool x;
+  if (strcmp(str, "0") == 0 ||
+      strcmp(str, "false") == 0 ||
+      strcmp(str, "no") == 0)
+    x = false;
+  else if (strcmp(str, "1") == 0 ||
+      strcmp(str, "true") == 0 ||
+      strcmp(str, "yes") == 0)
+    x = true;
+  else {
+    BMM_ERR_FWARN(NULL, "Cannot parse '%s' as a truth value", str);
+
+    return false;
+  }
+
+  if (ptr != NULL)
+    *ptr = x;
+
+  return true;
+}

@@ -39,7 +39,9 @@ int main(int const argc, char** const argv) {
   bmm_err_reset();
 
   struct bmm_sdl_opts opts;
-  bmm_sdl_defopts(&opts);
+  bmm_sdl_opts_def(&opts);
+
+  // TODO Check for errors.
   bmm_opt_parse((char const* const*) &argv[1], (size_t) (argc - 1), f, &opts);
 
   return bmm_sdl_run(&opts) ? EXIT_SUCCESS : EXIT_FAILURE;
