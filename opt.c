@@ -1,5 +1,6 @@
 #include "opt.h"
 #include "err.h"
+#include "ext.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
@@ -44,6 +45,6 @@ bool bmm_opt_parse(char const* const* const args, size_t const narg,
       return false;
   }
 
-  BMM_ERR_ABORT(NULL);
+  dynamic_assert(false, "Impossible");
 }
 

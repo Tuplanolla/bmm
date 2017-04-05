@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include <string.h>
 
 bool bmm_str_strtou(unsigned int* const ptr, char const* const str) {
   char* endptr;

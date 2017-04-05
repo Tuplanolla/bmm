@@ -7,6 +7,8 @@
 #include <stddef.h>
 #include <stdlib.h>
 
+// TODO Rename to avoid conflicting with `err.h`.
+
 // The call `bmm_err_reset()` initializes the timing mechanism
 // `BMM_ERR_WARN` and `BMM_ERR_ABORT` are based on.
 // Calling `bmm_err_reset` before using any other error handling procedures
