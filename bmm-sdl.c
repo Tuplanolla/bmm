@@ -37,7 +37,7 @@ static bool f(char const* const key, char const* const value,
 
 __attribute__ ((__nonnull__))
 int main(int const argc, char** const argv) {
-  bmm_err_reset();
+  bmm_err_reset(argv[0]);
 
   struct bmm_sdl_opts opts;
   bmm_sdl_opts_def(&opts);

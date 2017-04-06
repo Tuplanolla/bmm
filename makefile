@@ -85,7 +85,7 @@ shallow-clean:
 	$(RM) *.gch *.o
 
 bmm-dem: bmm-dem.o \
-	bit.o dem.o err.o fp.o geom.o geom2d.o io.o msg.o opt.o sec.o sig.o size.o str.o tle.o
+	bit.o dem.o err.o fp.o geom.o geom2d.o hack.o io.o msg.o opt.o sec.o sig.o size.o str.o tle.o
 	$(CC) $(CFLAGS) $(CFLAGSGSL) -o $@ $^ $(LDLIBS) $(LDLIBSGSL)
 
 bmm-filter: bmm-filter.o \

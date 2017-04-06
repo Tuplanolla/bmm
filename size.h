@@ -160,8 +160,8 @@ inline size_t bmm_size_filog(size_t n, size_t const k) {
   return m;
 }
 
-// The call `bmm_size_cilog(n, k)` returns the ceiling
-// of the base `k` logarithm of `n`.
+// The call `bmm_size_cilog(n, k)`
+// returns the ceiling of the base `k` logarithm of `n`.
 // This is analogous to `bmm_fp_log`.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_cilog(size_t const n, size_t const k) {
@@ -182,8 +182,8 @@ inline size_t bmm_size_uclamp(size_t const n, size_t const k) {
   return n >= k ? k - 1 : n;
 }
 
-// The call `m = bmm_size_uwrap(n, k)` solves
-// the periodic equation `m == n - p * k` for `m`,
+// The call `m = bmm_size_uwrap(n, k)`
+// solves the periodic equation `m == n - p * k` for `m`,
 // where `0 <= m < k` and `p` is some integer.
 // This is analogous to `bmm_fp_uwrap`.
 __attribute__ ((__const__, __pure__))
@@ -191,15 +191,15 @@ inline size_t bmm_size_uwrap(size_t const n, size_t const k) {
   return n % k;
 }
 
-// The call `bmm_size_inc(n, k)` is equivalent
-// to `bmm_size_uwrap(n + 1, k)` without wrapping.
+// The call `bmm_size_inc(n, k)`
+// is equivalent to `bmm_size_uwrap(n + 1, k)` without wrapping.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_inc(size_t const n, size_t const k) {
   return n == k - 1 ? 0 : n + 1;
 }
 
-// The call `bmm_size_dec(n, k)` is equivalent
-// to `bmm_size_uwrap(n - 1, k)` without wrapping.
+// The call `bmm_size_dec(n, k)`
+// is equivalent to `bmm_size_uwrap(n - 1, k)` without wrapping.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_dec(size_t const n, size_t const k) {
   return n == 0 ? k - 1 : n - 1;
@@ -235,6 +235,8 @@ enum bmm_size_format {
   BMM_SIZE_FORMAT_BE,
   BMM_SIZE_FORMAT_LE
 };
+
+// TODO These are subtly wrong, because buffer sizes are not always pots.
 
 // TODO Test big-endian.
 

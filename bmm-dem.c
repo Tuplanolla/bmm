@@ -9,6 +9,9 @@
 #include "opt.h"
 #include "sdl.h"
 #include "str.h"
+#include "tle.h"
+
+#include <errno.h>
 
 __attribute__ ((__nonnull__ (1, 2)))
 static bool f(char const* const key, char const* const value,
@@ -38,7 +41,53 @@ static bool f(char const* const key, char const* const value,
 
 __attribute__ ((__nonnull__))
 int main(int const argc, char** const argv) {
-  bmm_err_reset();
+  // TODO Reset `tle` instead.
+
+  bmm_err_reset(argv[0]);
+
+  // TODO Remove this junk.
+
+  errno = ENOMEM;
+  bmm_tle_std();
+  fprintf(stderr, "<%s>\n", bmm_tle_msg());
+
+  bmm_tle_ext(BMM_TLE_VERYBAD, "(%d, %d)", 42, 13);
+  fprintf(stderr, "<%s>\n", bmm_tle_msg());
+
+  bmm_tle_ext(BMM_TLE_VERYBAD, "(%d, %d) |---------------------------------------------------------|", 42, 13);
+  fprintf(stderr, "<%s>\n", bmm_tle_msg());
+
+  errno = ENOMEM;
+  BMM_TLE_STDS();
+  fprintf(stderr, "<%s>\n", bmm_tle_msg());
+
+  BMM_TLE_EXTS(BMM_TLE_VERYBAD, "(%d, %d)", 42, 13);
+  fprintf(stderr, "<%s>\n", bmm_tle_msg());
+
+  BMM_TLE_EXTS(BMM_TLE_VERYBAD, "(%d, %d) |---------------------------------------------------------|", 42, 13);
+  fprintf(stderr, "<%s>\n", bmm_tle_msg());
+
+  bmm_tle_reset(argv[0]);
+
+  errno = ENOMEM;
+  bmm_tle_std();
+  fprintf(stderr, "<%s>\n", bmm_tle_msg());
+
+  bmm_tle_ext(BMM_TLE_VERYBAD, "(%d, %d)", 42, 13);
+  fprintf(stderr, "<%s>\n", bmm_tle_msg());
+
+  bmm_tle_ext(BMM_TLE_VERYBAD, "(%d, %d) |---------------------------------------------------------|", 42, 13);
+  fprintf(stderr, "<%s>\n", bmm_tle_msg());
+
+  errno = ENOMEM;
+  BMM_TLE_STDS();
+  fprintf(stderr, "<%s>\n", bmm_tle_msg());
+
+  BMM_TLE_EXTS(BMM_TLE_VERYBAD, "(%d, %d)", 42, 13);
+  fprintf(stderr, "<%s>\n", bmm_tle_msg());
+
+  BMM_TLE_EXTS(BMM_TLE_VERYBAD, "(%d, %d) |---------------------------------------------------------|", 42, 13);
+  fprintf(stderr, "<%s>\n", bmm_tle_msg());
 
   struct bmm_dem_opts opts;
   bmm_dem_opts_def(&opts);

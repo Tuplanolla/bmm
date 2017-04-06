@@ -2,14 +2,20 @@
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "err.h"
 #include "sec.h"
 
+static char const* prog = NULL;
+
 static double t0 = 0.0;
 
-void bmm_err_reset(void) {
+void bmm_err_reset(char const* const str) {
+  char const* const chr = strrchr(str, '/');
+  prog = chr == NULL ? prog : &chr[1];
+
   t0 = bmm_sec_now();
 }
 
@@ -17,10 +23,17 @@ void bmm_err_warn(char const* const func, char const* const file,
     size_t const line, char const* const str) {
   int const tmp = errno;
 
+  if (prog == NULL)
+#ifdef _GNU_SOURCE
+    prog = program_invocation_name;
+#else
+    prog = "a.out";
+#endif
+
   double const t1 = bmm_sec_now();
 
-  if (fprintf(stderr, "[%f] (%zu) <%s> %s:%zu: ",
-      t1 - t0, (size_t) getpid(), func, file, line) < 0)
+  if (fprintf(stderr, "[%f] %s (%zu): %s (%s:%zu): ",
+      t1 - t0, prog, (size_t) getpid(), func, file, line) < 0)
     return;
 
   errno = tmp;
@@ -33,8 +46,15 @@ void bmm_err_vfwarn(char const* const func, char const* const file,
     char const* const fmt, va_list ap) {
   double const t1 = bmm_sec_now();
 
-  if (fprintf(stderr, "[%f] (%zu) <%s> %s:%zu: ",
-      t1 - t0, (size_t) getpid(), func, file, line) < 0)
+  if (prog == NULL)
+#ifdef _GNU_SOURCE
+    prog = program_invocation_name;
+#else
+    prog = "a.out";
+#endif
+
+  if (fprintf(stderr, "[%f] %s (%zu): %s (%s:%zu): ",
+      t1 - t0, prog, (size_t) getpid(), func, file, line) < 0)
     return;
 
   if (str != NULL)

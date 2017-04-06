@@ -10,13 +10,13 @@
 
 // TODO Rename to avoid conflicting with `err.h`.
 
-// The call `bmm_err_reset()` initializes the timing mechanism
-// `BMM_ERR_WARN` and `BMM_ERR_ABORT` are based on.
+// The call `bmm_err_reset(str)` initializes the timing mechanism
+// `BMM_ERR_WARN` and `BMM_ERR_ABORT` are based on for a program named `str`.
 // Calling `bmm_err_reset` before using any other error handling procedures
 // from this compilation unit is not necessary.
 // If `bmm_err_reset` is never called,
 // the reference point for timestamps in error messages is chosen arbitrarily.
-void bmm_err_reset(void);
+void bmm_err_reset(char const*);
 
 // The call `bmm_err_warn(func, file, line, str)`
 // prints a detailed error message
@@ -29,10 +29,16 @@ void bmm_err_reset(void);
 //
 // The format of the error message consists of
 //
-// * `"[time]"` and `"(pid)"`, mimicking `dmesg`;
-// * `"<procedure>"`, mimicking `objdump`;
-// * `"file:line: message"`, mimicking `cc` and
+// * `"[time]"`, mimicking `dmesg`,
+// * `"file:line"`, mimicking `cc` and
 // * `"procedure: message"`, mimicking `perror`.
+//
+// An example message follows (sans wrapping).
+//
+//     [1.048576]
+//     bmm-dem (16384):
+//     bmm_dem_run (dem.c:420):
+//     malloc: Cannot allocate memory
 //
 // Note that it may be more convenient to use `BMM_ERR_WARN`
 // instead of calling `bmm_err_warn` directly.

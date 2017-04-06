@@ -10,9 +10,11 @@
 // These preprocessor directives quietly disable GNU extensions
 // if they are unsupported.
 #if !defined __GNUC__ || __GNUC__ < 4
+
 #ifndef __attribute__
 #define __attribute__(_)
 #endif
+
 #endif
 
 // The preprocessor directive `ever` makes it possible to write `for ever`.
@@ -49,14 +51,18 @@
 // These preprocessor directives ensure
 // that exactly one of `NDEBUG` or `DEBUG` is defined.
 #ifdef DEBUG
+
 #ifdef NDEBUG
 static_assert(false, "Contradictory debug directives");
 #else
 #endif
+
 #else
+
 #ifndef NDEBUG
 #define NDEBUG
 #endif
+
 #endif
 
 #endif

@@ -21,8 +21,8 @@ typedef struct {
   double rem;
 } bmm_fp_div_t;
 
-// The call `z = bmm_fp_div(x, y)` solves
-// the division equation `z.quot * y + z.rem == x` for `z`,
+// The call `z = bmm_fp_div(x, y)`
+// solves the division equation `z.quot * y + z.rem == x` for `z`,
 // where `z.quot` is the quotient and `z.rem` is the remainder
 // of the expression `x / y`.
 // This is analogous to `div` or `bmm_size_div`.
@@ -139,8 +139,8 @@ inline double bmm_fp_uclamp(double const x, double const b) {
   return x < 0.0 ? 0.0: x >= b ? b : x;
 }
 
-// The call `z = bmm_fp_wrap(x, a, b)` solves
-// the periodic equation `z == x - a + n * a` for `z`,
+// The call `z = bmm_fp_wrap(x, a, b)`
+// solves the periodic equation `z == x - a + n * a` for `z`,
 // where `a <= z < b` and `n` is some integer.
 __attribute__ ((__const__, __pure__))
 inline double bmm_fp_wrap(double const x, double const a, double const b) {
@@ -149,8 +149,8 @@ inline double bmm_fp_wrap(double const x, double const a, double const b) {
   return x - c * floor((x - a) / c);
 }
 
-// The call `z = bmm_fp_swrap(x, b)` solves
-// the periodic equation `z == x + n * b` for `z`,
+// The call `z = bmm_fp_swrap(x, b)`
+// solves the periodic equation `z == x + n * b` for `z`,
 // where `-b / 2 <= z < b / 2` and `n` is some integer.
 // The `s` prefix means signed or symmetric.
 __attribute__ ((__const__, __pure__))
@@ -158,8 +158,8 @@ inline double bmm_fp_swrap(double const x, double const b) {
   return x - b * nearbyint(x / b);
 }
 
-// The call `z = bmm_fp_uwrap(x, b)` solves
-// the periodic equation `z == x + n * b` for `z`,
+// The call `z = bmm_fp_uwrap(x, b)`
+// solves the periodic equation `z == x + n * b` for `z`,
 // where `0 <= z < b` and `n` is some integer.
 // This is analogous to `bmm_size_uwrap`.
 // The `u` prefix means unsigned or unsymmetric (asymmetric).
@@ -168,8 +168,8 @@ inline double bmm_fp_uwrap(double const x, double const b) {
   return x - b * floor(x / b);
 }
 
-// The call `y = bmm_fp_lerp(x, x0, x1, y0, y1)` solves
-// the linear interpolation equation
+// The call `y = bmm_fp_lerp(x, x0, x1, y0, y1)`
+// solves the linear interpolation equation
 // `(x - x0) / (x1 - x0) == (y - y0) / (y1 - y0)` for `y`.
 __attribute__ ((__const__, __pure__))
 inline double bmm_fp_lerp(double const x,
@@ -177,8 +177,8 @@ inline double bmm_fp_lerp(double const x,
   return y0 + (y1 - y0) * (x - x0) / (x1 - x0);
 }
 
-// The call `y = bmm_fp_lorp(x, x0, x1, y0, y1)` solves
-// the logarithmic interpolation equation and is equivalent to
+// The call `y = bmm_fp_lorp(x, x0, x1, y0, y1)`
+// solves the logarithmic interpolation equation and is equivalent to
 // `y = log(bmm_fp_lerp(exp(x), exp(x0), exp(x1), exp(y0), exp(y1)))`.
 __attribute__ ((__const__, __pure__))
 inline double bmm_fp_lorp(double const x,
