@@ -1,12 +1,14 @@
+#include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
+
 #include "bit.h"
+#include "cpp.h"
 #include "dem.h"
 #include "err.h"
 #include "io.h"
 #include "msg.h"
 #include "size.h"
-#include <stdbool.h>
-#include <stdio.h>
-#include <string.h>
 
 void bmm_head_def(struct bmm_msg_head* const head) {
   head->flags = 0;

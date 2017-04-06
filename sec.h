@@ -2,10 +2,11 @@
 #ifndef BMM_SEC_H
 #define BMM_SEC_H
 
-#include "ext.h"
 #include <math.h>
 #include <sys/time.h>
 #include <time.h>
+
+#include "ext.h"
 
 // The call `bmm_sec_to_timeval(tp, s)`
 // sets the time structure `tp` to approximately `s` seconds.

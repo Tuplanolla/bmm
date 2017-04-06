@@ -1,6 +1,7 @@
-#include "sec.h"
 #include <sys/time.h>
 #include <time.h>
+
+#include "sec.h"
 
 extern inline void bmm_sec_to_timeval(struct timeval*, double);
 

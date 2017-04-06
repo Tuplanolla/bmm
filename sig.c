@@ -1,8 +1,9 @@
-#include "sig.h"
 #include <limits.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stddef.h>
+
+#include "sig.h"
 
 #define BMM_SIG_UNSET (BMM_SIG_MIN - 2)
 #define BMM_SIG_UNDER (BMM_SIG_MIN - 1)

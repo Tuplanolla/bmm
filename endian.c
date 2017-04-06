@@ -18,6 +18,6 @@ static bool litend(void) {
 int main(void) {
   return puts(bigend() ? "This system is in big endian." :
       litend() ? "This system is in little endian." :
-      "This system is not in big or little endian.") == EOF ? EXIT_FAILURE :
-    EXIT_SUCCESS;
+      "This system is not in big or little endian.") == EOF ?
+    EXIT_FAILURE : EXIT_SUCCESS;
 }

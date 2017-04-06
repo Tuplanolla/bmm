@@ -1,9 +1,10 @@
-#include "opt.h"
-#include "err.h"
-#include "ext.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
+
+#include "opt.h"
+#include "err.h"
+#include "ext.h"
 
 bool bmm_opt_parse(char const* const* const args, size_t const narg,
     bool (* const f)(char const*, char const*, void*), void* const ptr) {

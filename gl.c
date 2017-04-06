@@ -1,8 +1,9 @@
-#include "fp.h"
-#include "gl.h"
 #include <GL/gl.h>
 #include <math.h>
 #include <stddef.h>
+
+#include "fp.h"
+#include "gl.h"
 
 extern inline void glClearColor4fv(GLfloat const*);
 

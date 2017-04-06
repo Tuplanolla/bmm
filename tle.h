@@ -2,8 +2,9 @@
 #ifndef BMM_TLE_H
 #define BMM_TLE_H
 
-#include "ext.h"
 #include <stdarg.h>
+
+#include "ext.h"
 
 // This enumeration complements std thread-local error numbers.
 enum bmm_tle {

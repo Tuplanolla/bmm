@@ -1,3 +1,12 @@
+#include <GL/gl.h>
+#include <GL/glut.h>
+#include <SDL/SDL.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <sys/time.h>
+
 #include "dem.h"
 #include "err.h"
 #include "ext.h"
@@ -7,14 +16,6 @@
 #include "msg.h"
 #include "sdl.h"
 #include "size.h"
-#include <GL/gl.h>
-#include <GL/glut.h>
-#include <SDL/SDL.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <sys/time.h>
 
 extern inline void bmm_sdl_t_to_timeval(struct timeval*, Uint32);
 

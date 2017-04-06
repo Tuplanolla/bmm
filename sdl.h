@@ -2,13 +2,14 @@
 #ifndef BMM_SDL_H
 #define BMM_SDL_H
 
-#include "dem.h"
-#include "ext.h"
 #include <SDL/SDL.h>
 #include <limits.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <sys/time.h>
+
+#include "dem.h"
+#include "ext.h"
 
 // The call `bmm_sdl_t_to_timeval(tp, t)`
 // sets the time structure `tp` to approximately `t` ticks.

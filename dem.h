@@ -2,11 +2,12 @@
 #ifndef BMM_DEM_H
 #define BMM_DEM_H
 
-#include "conf.h"
-#include "ext.h"
 #include <gsl/gsl_rng.h>
 #include <stdbool.h>
 #include <stddef.h>
+
+#include "conf.h"
+#include "ext.h"
 
 enum bmm_dem_mode {
   BMM_DEM_BEGIN,

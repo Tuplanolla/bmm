@@ -1,12 +1,13 @@
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "err.h"
 #include "ext.h"
 #include "opt.h"
 #include "sdl.h"
 #include "str.h"
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <string.h>
 
 __attribute__ ((__nonnull__ (1, 2)))
 static bool f(char const* const key, char const* const value,

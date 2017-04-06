@@ -2,9 +2,10 @@
 #ifndef BMM_GL_H
 #define BMM_GL_H
 
-#include "ext.h"
 #include <GL/gl.h>
 #include <stddef.h>
+
+#include "ext.h"
 
 // Primaries based on ITU-R BT.601 weights.
 static GLfloat const glBlack[] = {0.0f, 0.0f, 0.0f};

@@ -1,10 +1,11 @@
-#include "err.h"
-#include "str.h"
 #include <errno.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "err.h"
+#include "str.h"
 
 bool bmm_str_strtou(unsigned int* const ptr, char const* const str) {
   char* endptr;

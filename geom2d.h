@@ -2,10 +2,11 @@
 #ifndef BMM_GEOM2D_H
 #define BMM_GEOM2D_H
 
-#include "ext.h"
-#include "fp.h"
 #include <math.h>
 #include <stddef.h>
+
+#include "ext.h"
+#include "fp.h"
 
 // The call `bmm_geom2d_norm2(r)` returns the length $r^2$
 // of the vector `r`.

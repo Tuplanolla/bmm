@@ -2,8 +2,9 @@
 #ifndef BMM_FP_H
 #define BMM_FP_H
 
-#include "ext.h"
 #include <math.h>
+
+#include "ext.h"
 
 #ifndef M_PI
 #define M_PI 3.141592653589793

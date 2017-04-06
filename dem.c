@@ -1,3 +1,13 @@
+#include <gsl/gsl_rng.h>
+#include <gsl/gsl_randist.h>
+#include <math.h>
+#include <signal.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "bit.h"
 #include "conf.h"
 #include "dem.h"
@@ -8,15 +18,6 @@
 #include "msg.h"
 #include "sig.h"
 #include "size.h"
-#include <gsl/gsl_rng.h>
-#include <gsl/gsl_randist.h>
-#include <math.h>
-#include <signal.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
 
 #ifdef _GNU_SOURCE
 #ifdef DEBUG
@@ -601,7 +602,7 @@ static bool bmm_disperse(struct bmm_dem* const dem) {
 
       if (d2 < r2) {
         ++fail;
-        goto end;
+        goto ret;
       }
     }
 
@@ -621,7 +622,7 @@ static bool bmm_disperse(struct bmm_dem* const dem) {
     ++buf->npart;
 
     ++success;
-end: ;
+ret: ;
   }
 
   // TODO The lucky 13.

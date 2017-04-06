@@ -2,10 +2,11 @@
 #ifndef BMM_ERR_H
 #define BMM_ERR_H
 
-#include "ext.h"
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdlib.h>
+
+#include "ext.h"
 
 // TODO Rename to avoid conflicting with `err.h`.
 

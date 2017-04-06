@@ -2,12 +2,13 @@
 #ifndef BMM_IO_H
 #define BMM_IO_H
 
-#include "ext.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <sys/time.h>
 #include <unistd.h>
+
+#include "ext.h"
 
 // This enumeration is returned by waiting operations.
 enum bmm_io_wait {

@@ -1,22 +1,11 @@
 // Language extensions.
+// This header defines symbols beyond its own namespace,
+// so this header should not be included before standard library headers.
 #ifndef BMM_EXT_H
 #define BMM_EXT_H
 
 #include <assert.h>
 #include <stdbool.h>
-
-// The preprocessor directive `ever` makes it possible to write `for ever`.
-// This is essential.
-#ifndef ever
-#define ever (;;)
-#endif
-
-// The preprocessor directives `BEGIN` and `END` allow converting
-// multiple statements into a single statement
-// with local scope and no redundant semicolons.
-// They must always appear together.
-#define BEGIN do {
-#define END } while (false)
 
 // These preprocessor directives quietly disable GNU extensions
 // if they are unsupported.
@@ -25,6 +14,18 @@
 #define __attribute__(_)
 #endif
 #endif
+
+// The preprocessor directive `ever` makes it possible to write `for ever`.
+#ifndef ever
+#define ever (;;)
+#endif
+
+// The preprocessor directives `begin` and `end` allow converting
+// multiple statements into a single statement
+// with local scope and no redundant semicolons.
+// They must always appear together.
+#define begin do {
+#define end } while (false)
 
 // The preprocessor directive `static_assert(p, s)`
 // imitates the standard library function with the same name
@@ -39,8 +40,8 @@
 #endif
 
 // The preprocessor directive `dynamic_assert(p, s)`
-// is equivalent to `assert(p)` and
-// exists just for the sake of consistency with `static_assert`.
+// is equivalent to `assert(p)` with the comment `s`.
+// It exists for the sake of consistency with `static_assert`.
 #ifndef dynamic_assert
 #define dynamic_assert(p, _) assert(p)
 #endif
@@ -57,13 +58,5 @@ static_assert(false, "Contradictory debug directives");
 #define NDEBUG
 #endif
 #endif
-
-// The preprocessor directive `MIN(x, y)`
-// expands to the lesser of `x` and `y`.
-#define MIN(x, y) ((x) < (y) ? (x) : (y))
-
-// The preprocessor directive `MAX(x, y)`
-// expands to the greater of `x` and `y`.
-#define MAX(x, y) ((x) > (y) ? (x) : (y))
 
 #endif

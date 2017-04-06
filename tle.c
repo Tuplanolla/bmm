@@ -1,12 +1,12 @@
 // These preprocessor directives try to get `strerror_r`
 // with XSI compliance instead of GNU compliance.
-// They have to be the very first thing in this file.
+// They have to be the very first thing in the file.
 #ifdef _GNU_SOURCE
-#define BMM_TLE_GNU_SOURCE _GNU_SOURCE
+#define _tmp_GNU_SOURCE _GNU_SOURCE
 #undef _GNU_SOURCE
 #include <string.h>
-#define _GNU_SOURCE BMM_TLE_GNU_SOURCE
-#undef BMM_TLE_GNU_SOURCE
+#define _GNU_SOURCE _tmp_GNU_SOURCE
+#undef _tmp_GNU_SOURCE
 #else
 #include <string.h>
 #endif
@@ -14,12 +14,13 @@
 // This redundant prototype ensures that the attempt was successful.
 int strerror_r(int, char*, size_t);
 
-#include "ext.h"
-#include "tle.h"
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
+
+#include "ext.h"
+#include "tle.h"
 
 enum tag {
   STANDARD,

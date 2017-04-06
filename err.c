@@ -1,10 +1,11 @@
-#include "err.h"
-#include "sec.h"
 #include <errno.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <unistd.h>
+
+#include "err.h"
+#include "sec.h"
 
 static double t0 = 0.0;
 

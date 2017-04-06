@@ -2,9 +2,10 @@
 #ifndef BMM_STR_H
 #define BMM_STR_H
 
-#include "ext.h"
 #include <stdbool.h>
 #include <stddef.h>
+
+#include "ext.h"
 
 // The call `bmm_str_strtou(ptr, str)`
 // parses an unsigned integer from the string `str` and saves it into `ptr`.

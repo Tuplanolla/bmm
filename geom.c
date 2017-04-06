@@ -1,5 +1,6 @@
-#include "geom.h"
 #include <stddef.h>
+
+#include "geom.h"
 
 extern inline double bmm_geom_ballvol(double, size_t);
 

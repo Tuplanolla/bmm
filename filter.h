@@ -2,11 +2,12 @@
 #ifndef BMM_FILTER_H
 #define BMM_FILTER_H
 
+#include <stdbool.h>
+
 #include "conf.h"
 #include "dem.h"
 #include "ext.h"
 #include "msg.h"
-#include <stdbool.h>
 
 struct bmm_filter_opts {
   bool mask[BMM_MSG_MAX];

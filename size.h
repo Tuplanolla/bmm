@@ -2,9 +2,10 @@
 #ifndef BMM_SIZE_H
 #define BMM_SIZE_H
 
-#include "ext.h"
 #include <limits.h>
 #include <stddef.h>
+
+#include "ext.h"
 
 // This structure holds the quotient and remainder of a division
 // in unspecified order.
@@ -13,11 +14,11 @@ typedef struct {
   size_t rem;
 } bmm_size_div_t;
 
-// The call `m = bmm_size_div(n, k)` solves
-// the division equation `m.quot * k + m.rem == n` for `m`,
+// The call `m = bmm_size_div(n, k)`
+// solves the division equation `m.quot * k + m.rem == n` for `m`,
 // where `m.quot` is the quotient and `m.rem` is the remainder
 // of the expression `n / k`.
-// This is analogous to `div`.
+// This is analogous to `div` or `bmm_fp_div`.
 __attribute__ ((__const__, __pure__))
 inline bmm_size_div_t bmm_size_div(size_t const n, size_t const k) {
   bmm_size_div_t const qr = {

@@ -1,6 +1,7 @@
-#include "size.h"
 #include <stdbool.h>
 #include <stddef.h>
+
+#include "size.h"
 
 extern inline bmm_size_div_t bmm_size_div(size_t, size_t);
 

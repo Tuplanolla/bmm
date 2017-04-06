@@ -1,8 +1,9 @@
-#include "io.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <sys/select.h>
+
+#include "io.h"
 
 enum bmm_io_wait bmm_io_wait(int const fd, struct timeval* const timeout) {
   fd_set fds;

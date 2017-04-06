@@ -1,3 +1,6 @@
+#include <signal.h>
+#include <stdio.h>
+
 #include "bit.h"
 #include "dem.h"
 #include "err.h"
@@ -6,8 +9,6 @@
 #include "msg.h"
 #include "sig.h"
 #include "size.h"
-#include <signal.h>
-#include <stdio.h>
 
 void bmm_filter_opts_def(struct bmm_filter_opts* const opts) {
   for (size_t imsg = 0; imsg < BMM_MSG_MAX; ++imsg)

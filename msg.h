@@ -2,10 +2,11 @@
 #ifndef BMM_MSG_H
 #define BMM_MSG_H
 
-#include "ext.h"
-#include "dem.h"
 #include <stdbool.h>
 #include <stdio.h>
+
+#include "ext.h"
+#include "dem.h"
 
 struct bmm_msg_head {
   unsigned char flags;

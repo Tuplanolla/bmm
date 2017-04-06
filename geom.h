@@ -2,10 +2,11 @@
 #ifndef BMM_GEOM_H
 #define BMM_GEOM_H
 
-#include "ext.h"
-#include "fp.h"
 #include <math.h>
 #include <stddef.h>
+
+#include "ext.h"
+#include "fp.h"
 
 // The call `bmm_geom_ballvol(r, d)` returns the volume
 // of the `d`-dimensional ball of radius `r`.
