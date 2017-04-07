@@ -68,6 +68,8 @@ struct bmm_dem_opts {
   double rmean;
   // Particle size standard deviation.
   double rsd;
+  // Number of particles that can be "neglected".
+  size_t lucky;
 };
 
 // A terrible name for constant particle data.

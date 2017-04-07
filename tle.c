@@ -22,7 +22,7 @@ struct bmm_tle {
   char buf[BUFSIZ];
 };
 
-static _Thread_local struct bmm_tle tle = {
+static thread_local struct bmm_tle tle = {
   .prog = NULL,
   .sec = NAN,
   .tag = BMM_TLE_TAG_EXT,

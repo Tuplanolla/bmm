@@ -361,20 +361,26 @@ bool bmm_dem_break(struct bmm_dem* const dem) {
         }
       }
     }
+
+    // TODO This requires fundamental rebuilding of indices,
+    // which deserves to be done separately.
+    if (fabs(buf->parts[ipart].lin.r[1] - dem->rext[1] * 0.5) <
+        0.1 * dem->rext[1]) {
+      double p = gsl_rng_uniform(dem->rng);
+
+      if (p > 1.0) {
+        // TODO Copy-pasted from up there...
+        --buf->npart;
+        buf->parts[ipart] = buf->parts[buf->npart];
+        buf->partcs[ipart] = buf->partcs[buf->npart];
+        buf->neigh.neighs[ipart] = buf->neigh.neighs[buf->npart];
+        buf->links[ipart] = buf->links[buf->npart];
+        --ipart;
+      }
+    }
   }
 
   return true;
-}
-
-// Horse says neigh.
-void bmm_dem_horse(struct bmm_dem* const dem) {
-  struct bmm_dem_buf const* const buf = bmm_dem_getrbuf(dem);
-  struct bmm_dem_buf* const wbuf = bmm_dem_getwbuf(dem);
-
-  // TODO Something.
-  (void) memmove(&wbuf->parts, &buf->parts, sizeof wbuf->parts);
-  (void) memmove(&wbuf->neigh, &buf->neigh, sizeof wbuf->neigh);
-  (void) memmove(&wbuf->partcs, &buf->partcs, sizeof wbuf->partcs);
 }
 
 // TODO These are dubious for empty sets.
@@ -489,7 +495,6 @@ void bmm_dem_opts_def(struct bmm_dem_opts* const opts) {
   // opts->tadv = ...;
   opts->tstep = 0.004;
   opts->tstepcomm = 1.0;
-  opts->nstep = (size_t) (500 / opts->tstep); // ??
   opts->tcomm = 0.0;
   opts->vleeway = 0.01;
   opts->linkslurp = 1.1;
@@ -503,6 +508,19 @@ void bmm_dem_opts_def(struct bmm_dem_opts* const opts) {
   // TODO Dissipate energy elsewhere.
   opts->damp = 0.999;
   opts->rmean = 0.04;
+  opts->lucky = 13;
+
+#ifdef NDEBUG
+  for (size_t idim = 0; idim < 2; ++idim)
+    opts->ncell[idim] *= 2;
+  opts->tstep /= 2.0;
+  opts->klink *= 4.0;
+  opts->fcohes /= 2.0;
+  opts->rmean /= 2.0;
+  opts->lucky *= 8;
+#endif
+
+  opts->nstep = (size_t) (500 / opts->tstep); // ??
   opts->rsd = opts->rmean * 0.2;
 }
 
@@ -625,8 +643,8 @@ static bool bmm_disperse(struct bmm_dem* const dem) {
 ret: ;
   }
 
-  // TODO The lucky 13.
-  return success > 13;
+  // TODO The lucky number.
+  return success > dem->opts.lucky;
 }
 
 void bmm_dem_def(struct bmm_dem* const dem,
@@ -713,10 +731,9 @@ bool bmm_dem_step(struct bmm_dem* const dem) {
   dem->forcesch(dem);
   dem->intsch(dem);
 
-  if (dem->dblbuf)
-    bmm_dem_horse(dem);
-
   bmm_dem_swapbuf(dem);
+
+  ++dem->istep;
 
   return true;
 }
@@ -785,8 +802,6 @@ bool bmm_dem_run(struct bmm_dem* const dem) {
 
     if (!bmm_dem_comm(dem))
       return false;
-
-    ++dem->istep;
   }
 
 #ifdef _GNU_SOURCE

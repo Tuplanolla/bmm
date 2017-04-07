@@ -12,16 +12,16 @@
 
 /// This enumeration is returned by waiting operations.
 enum bmm_io_wait {
-  BMM_IO_WAIT_ERROR = -1,
-  BMM_IO_WAIT_TIMEOUT = 0,
-  BMM_IO_WAIT_READY = 1
+  BMM_IO_WAIT_ERROR,
+  BMM_IO_WAIT_TIMEOUT,
+  BMM_IO_WAIT_READY
 };
 
 /// This enumeration is returned by reading and fast-forwarding operations.
 enum bmm_io_read {
-  BMM_IO_READ_ERROR = -1,
-  BMM_IO_READ_EOF = 0,
-  BMM_IO_READ_SUCCESS = 1
+  BMM_IO_READ_ERROR,
+  BMM_IO_READ_EOF,
+  BMM_IO_READ_SUCCESS
 };
 
 /// The call `bmm_io_wait(fd, timeout)`

@@ -18,6 +18,14 @@
 
 #endif
 
+/// The preprocessor directive `thread_local`
+/// expands to the optimal thread-local storage specifier.
+#ifdef _GNU_SOURCE
+#define thread_local __thread
+#else
+#define thread_local _Thread_local
+#endif
+
 /// The preprocessor directive `ever` makes it possible to write `for ever`.
 #ifndef ever
 #define ever (;;)
