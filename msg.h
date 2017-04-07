@@ -1,4 +1,4 @@
-// Messaging protocol.
+/// Messaging protocol.
 #ifndef BMM_MSG_H
 #define BMM_MSG_H
 

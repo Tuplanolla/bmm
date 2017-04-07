@@ -1,14 +1,14 @@
-// Language extensions.
-// This header defines symbols beyond its own namespace,
-// so this header should not be included before standard library headers.
+/// Language extensions.
+/// This header defines symbols beyond its own namespace,
+/// so this header should not be included before standard library headers.
 #ifndef BMM_EXT_H
 #define BMM_EXT_H
 
 #include <assert.h>
 #include <stdbool.h>
 
-// These preprocessor directives quietly disable GNU extensions
-// if they are unsupported.
+/// These preprocessor directives quietly disable GNU extensions
+/// if they are unsupported.
 #if !defined __GNUC__ || __GNUC__ < 4
 
 #ifndef __attribute__
@@ -17,23 +17,23 @@
 
 #endif
 
-// The preprocessor directive `ever` makes it possible to write `for ever`.
+/// The preprocessor directive `ever` makes it possible to write `for ever`.
 #ifndef ever
 #define ever (;;)
 #endif
 
-// The preprocessor directives `begin` and `end` allow converting
-// multiple statements into a single statement
-// with local scope and no redundant semicolons.
-// They must always appear together.
+/// The preprocessor directives `begin` and `end` allow converting
+/// multiple statements into a single statement
+/// with local scope and no redundant semicolons.
+/// They must always appear together.
 #define begin do {
 #define end } while (false)
 
-// The preprocessor directive `static_assert(p, s)`
-// imitates the standard library function with the same name
-// if it is not available.
-// Due to technical limitations each `static_assert` must be on its own line
-// to avoid naming conflicts.
+/// The preprocessor directive `static_assert(p, s)`
+/// imitates the standard library function with the same name
+/// if it is not available.
+/// Due to technical limitations each `static_assert` must be on its own line
+/// to avoid naming conflicts.
 #ifndef static_assert
 #define _static_assert_line(p, n) __attribute__ ((__unused__)) \
   static int const _static_assert_##n[(p) ? 1 : -1]
@@ -41,15 +41,15 @@
 #define static_assert(p, _) _static_assert((p), __LINE__)
 #endif
 
-// The preprocessor directive `dynamic_assert(p, s)`
-// is equivalent to `assert(p)` with the comment `s`.
-// It exists for the sake of consistency with `static_assert`.
+/// The preprocessor directive `dynamic_assert(p, s)`
+/// is equivalent to `assert(p)` with the comment `s`.
+/// It exists for the sake of consistency with `static_assert`.
 #ifndef dynamic_assert
 #define dynamic_assert(p, _) assert(p)
 #endif
 
-// These preprocessor directives ensure
-// that exactly one of `NDEBUG` or `DEBUG` is defined.
+/// These preprocessor directives ensure
+/// that exactly one of `NDEBUG` or `DEBUG` is defined.
 #ifdef DEBUG
 
 #ifdef NDEBUG

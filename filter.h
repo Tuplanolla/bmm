@@ -1,4 +1,4 @@
-// Message filter.
+/// Message filter.
 #ifndef BMM_FILTER_H
 #define BMM_FILTER_H
 

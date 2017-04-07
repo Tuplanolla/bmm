@@ -14,6 +14,16 @@
 < EXTRACT_ALL            = NO
 ---
 > EXTRACT_ALL            = YES
+180,181c180,181
+< USE_MATHJAX            = NO
+< MATHJAX_FORMAT         = NativeMML
+---
+> USE_MATHJAX            = YES
+> MATHJAX_FORMAT         = HTML-CSS
+184c184
+< MATHJAX_CODEFILE       = doxygen.js
+---
+> MATHJAX_CODEFILE       =
 195c195
 < GENERATE_LATEX         = YES
 ---

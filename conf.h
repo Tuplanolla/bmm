@@ -1,4 +1,4 @@
-// Configuration constants.
+/// Configuration constants.
 #ifndef BMM_CONF_H
 #define BMM_CONF_H
 
