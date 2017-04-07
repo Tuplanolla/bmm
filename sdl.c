@@ -8,7 +8,6 @@
 #include <sys/time.h>
 
 #include "dem.h"
-#include "err.h"
 #include "ext.h"
 #include "fp.h"
 #include "gl.h"
@@ -16,6 +15,7 @@
 #include "msg.h"
 #include "sdl.h"
 #include "size.h"
+#include "tle.h"
 
 extern inline void bmm_sdl_t_to_timeval(struct timeval*, Uint32);
 
@@ -277,7 +277,7 @@ static bool bmm_sdl_video(struct bmm_sdl* const sdl,
     int const width, int const height) {
   SDL_VideoInfo const* const info = SDL_GetVideoInfo();
   if (info == NULL) {
-    BMM_ERR_FWARN(SDL_GetVideoInfo, "SDL error: %s", SDL_GetError());
+    BMM_TLE_EXTS(BMM_TLE_SDL, "SDL error: %s", SDL_GetError());
 
     return false;
   }
@@ -285,7 +285,7 @@ static bool bmm_sdl_video(struct bmm_sdl* const sdl,
   int const bpp = info->vfmt->BitsPerPixel;
   Uint32 const flags = SDL_OPENGL | SDL_RESIZABLE;
   if (SDL_SetVideoMode(width, height, bpp, flags) == NULL) {
-    BMM_ERR_FWARN(SDL_SetVideoMode, "SDL error: %s", SDL_GetError());
+    BMM_TLE_EXTS(BMM_TLE_SDL, "SDL error: %s", SDL_GetError());
 
     return false;
   }
@@ -376,7 +376,7 @@ static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
             case SDLK_3:
               {
                 struct bmm_dem_buf const* const buf = bmm_dem_getrbuf(&sdl->dem);
-                sdl->itarget = (size_t) (rand() % buf->npart);
+                sdl->itarget = (size_t) rand() % buf->npart;
               }
               break;
           }
@@ -463,7 +463,7 @@ bool bmm_sdl_run(struct bmm_sdl* const sdl) {
       SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8) == -1 ||
       SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 8) == -1 ||
       SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1) == -1) {
-    BMM_ERR_FWARN(SDL_GL_SetAttribute, "SDL error: %s", SDL_GetError());
+    BMM_TLE_EXTS(BMM_TLE_SDL, "SDL error: %s", SDL_GetError());
 
     return false;
   }
@@ -472,7 +472,7 @@ bool bmm_sdl_run(struct bmm_sdl* const sdl) {
     if (SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1) == -1 ||
         SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES,
           (int) sdl->opts.ms) == -1) {
-      BMM_ERR_FWARN(SDL_GL_SetAttribute, "SDL error: %s", SDL_GetError());
+      BMM_TLE_EXTS(BMM_TLE_SDL, "SDL error: %s", SDL_GetError());
 
       return false;
     }
@@ -492,7 +492,7 @@ bool bmm_sdl_run(struct bmm_sdl* const sdl) {
 static bool bmm_sdl_run_sdl(struct bmm_sdl_opts const* const opts) {
   struct bmm_sdl* const sdl = malloc(sizeof *sdl);
   if (sdl == NULL) {
-    BMM_ERR_WARN(malloc);
+    BMM_TLE_STDS();
 
     return false;
   }
@@ -507,7 +507,7 @@ static bool bmm_sdl_run_sdl(struct bmm_sdl_opts const* const opts) {
 
 bool bmm_sdl_run_with(struct bmm_sdl_opts const* const opts) {
   if (SDL_Init(SDL_INIT_VIDEO) == -1) {
-    BMM_ERR_FWARN(SDL_Init, "SDL error: %s", SDL_GetError());
+    BMM_TLE_EXTS(BMM_TLE_SDL, "SDL error: %s", SDL_GetError());
 
     return false;
   }

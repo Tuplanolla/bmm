@@ -11,13 +11,13 @@
 #include "bit.h"
 #include "conf.h"
 #include "dem.h"
-#include "err.h"
 #include "fp.h"
 #include "geom.h"
 #include "geom2d.h"
 #include "msg.h"
 #include "sig.h"
 #include "size.h"
+#include "tle.h"
 
 #ifdef _GNU_SOURCE
 #ifdef DEBUG
@@ -752,7 +752,7 @@ bool bmm_dem_comm(struct bmm_dem* const dem) {
 bool bmm_dem_run(struct bmm_dem* const dem) {
   int const sigs[] = {SIGINT, SIGQUIT, SIGTERM, SIGPIPE};
   if (bmm_sig_register(sigs, sizeof sigs / sizeof *sigs) != SIZE_MAX) {
-    BMM_ERR_WARN(bmm_sig_register);
+    BMM_TLE_STDS();
 
     return false;
   }
@@ -763,7 +763,7 @@ bool bmm_dem_run(struct bmm_dem* const dem) {
 #ifdef DEBUG
   int const excepts = feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
   if (excepts == -1)
-    BMM_ERR_WARN(feenableexcept);
+    BMM_TLE_STDS();
 #endif
 #endif
 
@@ -775,7 +775,7 @@ bool bmm_dem_run(struct bmm_dem* const dem) {
         case SIGQUIT:
         case SIGTERM:
         case SIGPIPE:
-          BMM_ERR_FWARN(NULL, "Simulation interrupted");
+          BMM_TLE_EXTS(BMM_TLE_ASYNC, "Simulation interrupted");
 
           return false;
       }
@@ -792,7 +792,7 @@ bool bmm_dem_run(struct bmm_dem* const dem) {
 #ifdef _GNU_SOURCE
 #ifdef DEBUG
   if (feenableexcept(excepts) == -1)
-    BMM_ERR_WARN(feenableexcept);
+    BMM_TLE_STDS();
 #endif
 #endif
 
@@ -802,14 +802,14 @@ bool bmm_dem_run(struct bmm_dem* const dem) {
 static bool bmm_dem_run_rng(struct bmm_dem* const dem) {
   gsl_rng_type const* const t = gsl_rng_env_setup();
   if (t == NULL) {
-    BMM_ERR_WARN(gsl_rng_env_setup);
+    BMM_TLE_STDS();
 
     return false;
   }
 
   dem->rng = gsl_rng_alloc(t);
   if (dem->rng == NULL) {
-    BMM_ERR_WARN(gsl_rng_alloc);
+    BMM_TLE_STDS();
 
     return false;
   }
@@ -824,7 +824,7 @@ static bool bmm_dem_run_rng(struct bmm_dem* const dem) {
 bool bmm_dem_run_with(struct bmm_dem_opts const* const opts) {
   struct bmm_dem* const dem = malloc(sizeof *dem);
   if (dem == NULL) {
-    BMM_ERR_WARN(malloc);
+    BMM_TLE_STDS();
 
     return false;
   }

@@ -5,10 +5,10 @@
 #include "bit.h"
 #include "cpp.h"
 #include "dem.h"
-#include "err.h"
 #include "io.h"
 #include "msg.h"
 #include "size.h"
+#include "tle.h"
 
 void bmm_head_def(struct bmm_msg_head* const head) {
   head->flags = 0;
@@ -18,13 +18,13 @@ void bmm_head_def(struct bmm_msg_head* const head) {
 // TODO Put this elsewhere.
 bool bmm_msg_precheck(size_t const size, size_t const bodysize) {
   if (size < bodysize) {
-    BMM_ERR_FWARN(bmm_size_from_buffer, "Message body would overflow");
+    BMM_TLE_EXTS(BMM_TLE_IO, "Message body would overflow");
 
     return false;
   }
 
   if (size != bodysize)
-    BMM_ERR_FWARN(bmm_size_from_buffer, "Message body size mismatch");
+    BMM_TLE_EXTS(BMM_TLE_IO, "Message body size mismatch");
 
   return true;
 }
@@ -49,7 +49,7 @@ bool bmm_msg_preread(size_t* const ptr,
       switch (bmm_io_readin(buf, powsize)) {
         case BMM_IO_READ_ERROR:
         case BMM_IO_READ_EOF:
-          BMM_ERR_FWARN(bmm_io_readin, "Failed to read size prefix");
+          BMM_TLE_EXTS(BMM_TLE_IO, "Failed to read size prefix");
 
           return false;
       }
@@ -61,7 +61,7 @@ bool bmm_msg_preread(size_t* const ptr,
       size_t bodysize;
       if (!bmm_size_from_buffer(&bodysize, buf,
             MAX(sizeof buf, sizeof bodysize), fmt)) {
-        BMM_ERR_FWARN(bmm_size_from_buffer, "Message body too large");
+        BMM_TLE_EXTS(BMM_TLE_IO, "Message body too large");
 
         return false;
       }
@@ -77,7 +77,7 @@ bool bmm_msg_preread(size_t* const ptr,
       switch (bmm_io_readin(&term, 1)) {
         case BMM_IO_READ_ERROR:
         case BMM_IO_READ_EOF:
-          BMM_ERR_FWARN(bmm_io_readin, "Failed to read terminator");
+          BMM_TLE_EXTS(BMM_TLE_IO, "Failed to read terminator");
 
           return false;
       }
@@ -89,7 +89,7 @@ bool bmm_msg_preread(size_t* const ptr,
         switch (bmm_io_readin(&buf, 1)) {
           case BMM_IO_READ_ERROR:
           case BMM_IO_READ_EOF:
-            BMM_ERR_FWARN(bmm_io_readin, "Failed to read body");
+            BMM_TLE_EXTS(BMM_TLE_IO, "Failed to read body");
 
             return false;
         }
@@ -98,7 +98,7 @@ bool bmm_msg_preread(size_t* const ptr,
           break;
 
         if (!bmm_io_writeout(&buf, 1)) {
-          BMM_ERR_FWARN(bmm_io_writeout, "Failed to write body");
+          BMM_TLE_EXTS(BMM_TLE_IO, "Failed to write body");
 
           return false;
         }
@@ -122,7 +122,7 @@ bool bmm_msg_read(struct bmm_msg_head const* const head,
   switch (bmm_io_readin(ptr, bodysize)) {
     case BMM_IO_READ_ERROR:
     case BMM_IO_READ_EOF:
-      BMM_ERR_FWARN(bmm_io_readin, "Failed to read body");
+      BMM_TLE_EXTS(BMM_TLE_IO, "Failed to read body");
 
       return false;
   }
@@ -176,7 +176,7 @@ bool bmm_msg_write(struct bmm_msg_head const* const head,
 bool bmm_msg_get(struct bmm_msg_head* const head, struct bmm_dem* const dem) {
   switch (bmm_io_readin(head, sizeof *head)) {
     case BMM_IO_READ_ERROR:
-      BMM_ERR_FWARN(NULL, "Failed to read message header");
+      BMM_TLE_EXTS(BMM_TLE_IO, "Failed to read message header");
 
       return false;
     case BMM_IO_READ_EOF:
@@ -190,59 +190,59 @@ bool bmm_msg_get(struct bmm_msg_head* const head, struct bmm_dem* const dem) {
   switch (head->type) {
     case BMM_MSG_NOP:
       if (!bmm_msg_read(head, NULL, 0))
-        BMM_ERR_FWARN(NULL, "Failed to read nothing");
+        BMM_TLE_EXTS(BMM_TLE_IO, "Failed to read nothing");
       break;
     case BMM_MSG_EKINE:
       // sizeof dem->istep + sizeof dem->est
       if (!bmm_msg_preread(&bodysize, head)) {
-        BMM_ERR_FWARN(bmm_io_readin, "Failed to read estimators");
+        BMM_TLE_EXTS(BMM_TLE_IO, "Failed to read estimators");
 
         return false;
       }
       switch (bmm_io_readin(&dem->istep, sizeof dem->istep)) {
         case BMM_IO_READ_ERROR:
         case BMM_IO_READ_EOF:
-          BMM_ERR_FWARN(bmm_io_readin, "Failed to read estimators");
+          BMM_TLE_EXTS(BMM_TLE_IO, "Failed to read estimators");
 
           return false;
       }
       switch (bmm_io_readin(&dem->est, sizeof dem->est)) {
         case BMM_IO_READ_ERROR:
         case BMM_IO_READ_EOF:
-          BMM_ERR_FWARN(bmm_io_readin, "Failed to read estimators");
+          BMM_TLE_EXTS(BMM_TLE_IO, "Failed to read estimators");
 
           return false;
       }
       break;
     case BMM_MSG_NPART:
       if (!bmm_msg_read(head, &buf->npart, sizeof buf->npart))
-        BMM_ERR_FWARN(NULL, "Failed to read number of particles");
+        BMM_TLE_EXTS(BMM_TLE_IO, "Failed to read number of particles");
       break;
     case BMM_MSG_PARTS:
       // sizeof dem->istep + sizeof buf->parts + sizeof buf->partcs
       if (!bmm_msg_preread(&bodysize, head)) {
-        BMM_ERR_FWARN(bmm_io_readin, "Failed to read particles");
+        BMM_TLE_EXTS(BMM_TLE_IO, "Failed to read particles");
 
         return false;
       }
       switch (bmm_io_readin(&dem->istep, sizeof dem->istep)) {
         case BMM_IO_READ_ERROR:
         case BMM_IO_READ_EOF:
-          BMM_ERR_FWARN(bmm_io_readin, "Failed to read particles");
+          BMM_TLE_EXTS(BMM_TLE_IO, "Failed to read particles");
 
           return false;
       }
       switch (bmm_io_readin(&buf->parts, sizeof buf->parts)) {
         case BMM_IO_READ_ERROR:
         case BMM_IO_READ_EOF:
-          BMM_ERR_FWARN(bmm_io_readin, "Failed to read particles");
+          BMM_TLE_EXTS(BMM_TLE_IO, "Failed to read particles");
 
           return false;
       }
       switch (bmm_io_readin(&buf->partcs, sizeof buf->partcs)) {
         case BMM_IO_READ_ERROR:
         case BMM_IO_READ_EOF:
-          BMM_ERR_FWARN(bmm_io_readin, "Failed to read particles");
+          BMM_TLE_EXTS(BMM_TLE_IO, "Failed to read particles");
 
           return false;
       }
@@ -250,27 +250,27 @@ bool bmm_msg_get(struct bmm_msg_head* const head, struct bmm_dem* const dem) {
     case BMM_MSG_NEIGH:
       // sizeof buf->neigh + sizeof buf->links
       if (!bmm_msg_preread(&bodysize, head)) {
-        BMM_ERR_FWARN(bmm_io_readin, "Failed to read neighbors");
+        BMM_TLE_EXTS(BMM_TLE_IO, "Failed to read neighbors");
 
         return false;
       }
       switch (bmm_io_readin(&buf->neigh, sizeof buf->neigh)) {
         case BMM_IO_READ_ERROR:
         case BMM_IO_READ_EOF:
-          BMM_ERR_FWARN(bmm_io_readin, "Failed to read neighbors");
+          BMM_TLE_EXTS(BMM_TLE_IO, "Failed to read neighbors");
 
           return false;
       }
       switch (bmm_io_readin(&buf->links, sizeof buf->links)) {
         case BMM_IO_READ_ERROR:
         case BMM_IO_READ_EOF:
-          BMM_ERR_FWARN(bmm_io_readin, "Failed to read neighbors");
+          BMM_TLE_EXTS(BMM_TLE_IO, "Failed to read neighbors");
 
           return false;
       }
       break;
     default:
-      BMM_ERR_FWARN(NULL, "Unsupported message type");
+      BMM_TLE_EXTS(BMM_TLE_IO, "Unsupported message type");
   }
 
   return true;
@@ -283,44 +283,44 @@ void bmm_msg_put(struct bmm_msg_head const* const head,
   switch (head->type) {
     case BMM_MSG_NOP:
       if (!bmm_msg_write(head, NULL, 0))
-        BMM_ERR_FWARN(NULL, "Failed to write nothing");
+        BMM_TLE_EXTS(BMM_TLE_IO, "Failed to write nothing");
       break;
     case BMM_MSG_EKINE:
       if (!bmm_msg_prewrite(head, sizeof dem->istep + sizeof dem->est))
-        BMM_ERR_FWARN(NULL, "Failed to write stuff");
+        BMM_TLE_EXTS(BMM_TLE_IO, "Failed to write stuff");
       if (!bmm_io_writeout(&dem->istep, sizeof dem->istep))
-        BMM_ERR_FWARN(NULL, "Failed to write particles");
+        BMM_TLE_EXTS(BMM_TLE_IO, "Failed to write particles");
       if (!bmm_io_writeout(&dem->est, sizeof dem->est))
-        BMM_ERR_FWARN(NULL, "Failed to write estimators");
+        BMM_TLE_EXTS(BMM_TLE_IO, "Failed to write estimators");
       break;
     case BMM_MSG_NPART:
       if (!bmm_msg_write(head, &buf->npart, sizeof buf->npart))
-        BMM_ERR_FWARN(NULL, "Failed to write number of particles");
+        BMM_TLE_EXTS(BMM_TLE_IO, "Failed to write number of particles");
       break;
     case BMM_MSG_PARTS:
       if (!bmm_msg_prewrite(head,
             sizeof dem->istep + sizeof buf->parts + sizeof buf->partcs))
-        BMM_ERR_FWARN(NULL, "Failed to write stuff");
+        BMM_TLE_EXTS(BMM_TLE_IO, "Failed to write stuff");
       if (!bmm_io_writeout(&dem->istep, sizeof dem->istep))
-        BMM_ERR_FWARN(NULL, "Failed to write particles");
+        BMM_TLE_EXTS(BMM_TLE_IO, "Failed to write particles");
       if (!bmm_io_writeout(&buf->parts, sizeof buf->parts))
-        BMM_ERR_FWARN(NULL, "Failed to write particles");
+        BMM_TLE_EXTS(BMM_TLE_IO, "Failed to write particles");
       if (!bmm_io_writeout(&buf->partcs, sizeof buf->partcs))
-        BMM_ERR_FWARN(NULL, "Failed to write particles");
+        BMM_TLE_EXTS(BMM_TLE_IO, "Failed to write particles");
       break;
     case BMM_MSG_NEIGH:
       if (!bmm_msg_prewrite(head, sizeof buf->neigh + sizeof buf->links))
-        BMM_ERR_FWARN(NULL, "Failed to write stuff");
+        BMM_TLE_EXTS(BMM_TLE_IO, "Failed to write stuff");
       if (!bmm_io_writeout(&buf->neigh, sizeof buf->neigh))
-        BMM_ERR_FWARN(NULL, "Failed to write neighbors");
+        BMM_TLE_EXTS(BMM_TLE_IO, "Failed to write neighbors");
       if (!bmm_io_writeout(&buf->links, sizeof buf->links))
-        BMM_ERR_FWARN(NULL, "Failed to write links");
+        BMM_TLE_EXTS(BMM_TLE_IO, "Failed to write links");
       break;
     default:
-      BMM_ERR_FWARN(NULL, "Unsupported message type");
+      BMM_TLE_EXTS(BMM_TLE_IO, "Unsupported message type");
   }
 
   if (bmm_bit_test(head->flags, BMM_FBIT_FLUSH))
     if (fflush(stdout) == EOF)
-      BMM_ERR_FWARN(NULL, "Failed to flush output stream");
+      BMM_TLE_EXTS(BMM_TLE_IO, "Failed to flush output stream");
 }

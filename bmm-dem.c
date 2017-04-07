@@ -4,10 +4,8 @@
 #include <string.h>
 
 #include "dem.h"
-#include "err.h"
 #include "ext.h"
 #include "opt.h"
-#include "sdl.h"
 #include "str.h"
 #include "tle.h"
 
@@ -45,11 +43,17 @@ int main(int const argc, char** const argv) {
   bmm_dem_opts_def(&opts);
 
   if (!bmm_opt_parse((char const* const*) &argv[1], (size_t) (argc - 1),
-        f, &opts))
-    return EXIT_FAILURE;
+        f, &opts)) {
+    bmm_tle_put();
 
-  if (!bmm_dem_run_with(&opts))
     return EXIT_FAILURE;
+  }
+
+  if (!bmm_dem_run_with(&opts)) {
+    bmm_tle_put();
+
+    return EXIT_FAILURE;
+  }
 
   return EXIT_SUCCESS;
 }

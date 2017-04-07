@@ -11,21 +11,21 @@
 #include "sec.h"
 #include "tle.h"
 
-struct tle {
+struct bmm_tle {
   char const* prog;
   double sec;
-  enum {STD, EXT} tag;
+  enum bmm_tle_tag tag;
   union {
     int std;
-    enum bmm_tle ext;
+    enum bmm_tle_num ext;
   } num;
   char buf[BUFSIZ];
 };
 
-static _Thread_local struct tle tle = {
+static _Thread_local struct bmm_tle tle = {
   .prog = NULL,
   .sec = NAN,
-  .tag = EXT,
+  .tag = BMM_TLE_TAG_EXT,
   .num.std = BMM_TLE_SUCCESS,
   .buf = "Success"
 };
@@ -38,26 +38,38 @@ void bmm_tle_reset(char const* const prog) {
   tle.sec = bmm_sec_now();
 }
 
+enum bmm_tle_tag bmm_tle_tag(void) {
+  return tle.tag;
+}
+
 int bmm_tle_num_std(void) {
   switch (tle.tag) {
-    case STD:
+    case BMM_TLE_TAG_STD:
       return tle.num.std;
-    case EXT:
+    case BMM_TLE_TAG_EXT:
       return 0;
   }
 }
 
-enum bmm_tle bmm_tle_num_ext(void) {
+enum bmm_tle_num bmm_tle_num_ext(void) {
   switch (tle.tag) {
-    case STD:
+    case BMM_TLE_TAG_STD:
       return BMM_TLE_SUCCESS;
-    case EXT:
+    case BMM_TLE_TAG_EXT:
       return tle.num.ext;
   }
 }
 
 char const* bmm_tle_msg(void) {
   return tle.buf;
+}
+
+void bmm_tle_fput(FILE* const stream) {
+  (void) fprintf(stream, "%s\n", tle.buf);
+}
+
+void bmm_tle_put(void) {
+  (void) fprintf(stderr, "%s\n", tle.buf);
 }
 
 static void init(void) {
@@ -100,7 +112,7 @@ static void suffix(void) {
 }
 
 static bool suffix_std(size_t const n) {
-  tle.tag = STD;
+  tle.tag = BMM_TLE_TAG_STD;
 
   tle.num.std = errno;
 
@@ -118,9 +130,9 @@ static bool suffix_std(size_t const n) {
 }
 
 __attribute__ ((__format__ (__printf__, 3, 0), __nonnull__))
-static bool suffix_ext(size_t const n,
-    enum bmm_tle const num, char const* const fmt, va_list ap) {
-  tle.tag = EXT;
+static bool suffix_ext(size_t const n, enum bmm_tle_num const num,
+    char const* const fmt, va_list ap) {
+  tle.tag = BMM_TLE_TAG_EXT;
 
   tle.num.ext = num;
 
@@ -158,8 +170,9 @@ void bmm_tle_stds(char const* const file, size_t const line,
     suffix();
 }
 
-void bmm_tle_vext(enum bmm_tle const num, char const* const fmt, va_list ap) {
-  tle.tag = EXT;
+void bmm_tle_vext(enum bmm_tle_num const num,
+    char const* const fmt, va_list ap) {
+  tle.tag = BMM_TLE_TAG_EXT;
 
   tle.num.ext = num;
 
@@ -168,7 +181,7 @@ void bmm_tle_vext(enum bmm_tle const num, char const* const fmt, va_list ap) {
     bmm_tle_std();
 }
 
-void bmm_tle_ext(enum bmm_tle const num, char const* const fmt, ...) {
+void bmm_tle_ext(enum bmm_tle_num const num, char const* const fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
   bmm_tle_vext(num, fmt, ap);
@@ -176,8 +189,8 @@ void bmm_tle_ext(enum bmm_tle const num, char const* const fmt, ...) {
 }
 
 void bmm_tle_vexts(char const* const file, size_t const line,
-    char const* const proc,
-    enum bmm_tle const num, char const* const fmt, va_list ap) {
+    char const* const proc, enum bmm_tle_num const num,
+    char const* const fmt, va_list ap) {
   size_t n;
 
   if (!prefix(&n, file, line, proc)) {
@@ -193,8 +206,8 @@ void bmm_tle_vexts(char const* const file, size_t const line,
 }
 
 void bmm_tle_exts(char const* const file, size_t const line,
-    char const* const proc,
-    enum bmm_tle const num, char const* const fmt, ...) {
+    char const* const proc, enum bmm_tle_num const num,
+    char const* const fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
   bmm_tle_vexts(file, line, proc, num, fmt, ap);

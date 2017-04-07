@@ -3,12 +3,12 @@
 
 #include "bit.h"
 #include "dem.h"
-#include "err.h"
 #include "filter.h"
 #include "io.h"
 #include "msg.h"
 #include "sig.h"
 #include "size.h"
+#include "tle.h"
 
 void bmm_filter_opts_def(struct bmm_filter_opts* const opts) {
   for (size_t imsg = 0; imsg < BMM_MSG_MAX; ++imsg)
@@ -30,7 +30,7 @@ static bool f(struct bmm_filter const* const filter,
 bool bmm_filter_run(struct bmm_filter* const filter) {
   int const sigs[] = {SIGINT, SIGQUIT, SIGTERM, SIGPIPE};
   if (bmm_sig_register(sigs, sizeof sigs / sizeof *sigs) != SIZE_MAX) {
-    BMM_ERR_WARN(bmm_sig_register);
+    BMM_TLE_STDS();
 
     return false;
   }
@@ -43,7 +43,7 @@ bool bmm_filter_run(struct bmm_filter* const filter) {
         case SIGQUIT:
         case SIGTERM:
         case SIGPIPE:
-          BMM_ERR_FWARN(NULL, "Filtering interrupted");
+          BMM_TLE_EXTS(BMM_TLE_ASYNC, "Filtering interrupted");
 
           return false;
       }
@@ -51,7 +51,7 @@ bool bmm_filter_run(struct bmm_filter* const filter) {
     struct bmm_msg_head head;
     switch (bmm_io_readin(&head, sizeof head)) {
       case BMM_IO_READ_ERROR:
-        BMM_ERR_FWARN(bmm_io_readin, "Failed to read header");
+        BMM_TLE_EXTS(BMM_TLE_IO, "Failed to read header");
 
         return false;
       case BMM_IO_READ_EOF:
@@ -60,17 +60,17 @@ bool bmm_filter_run(struct bmm_filter* const filter) {
 
     size_t bodysize;
     if (!bmm_msg_preread(&bodysize, &head)) {
-      BMM_ERR_FWARN(bmm_io_readin, "Failed to read prefix (and do stuff)");
+      BMM_TLE_EXTS(BMM_TLE_IO, "Failed to read prefix (and do stuff)");
 
       return false;
     }
 
     if (f(filter, &head)) {
       if (!bmm_msg_prewrite(&head, bodysize))
-        BMM_ERR_FWARN(NULL, "Failed to write stuff");
+        BMM_TLE_EXTS(BMM_TLE_IO, "Failed to write stuff");
 
       if (!bmm_io_redirio(bodysize)) {
-        BMM_ERR_FWARN(bmm_io_redirio, "Failed to redirect body");
+        BMM_TLE_EXTS(BMM_TLE_IO, "Failed to redirect body");
 
         return false;
       }
@@ -82,7 +82,7 @@ bool bmm_filter_run(struct bmm_filter* const filter) {
       ++filter->passed;
     } else {
       if (!bmm_io_fastfwin(bodysize)) {
-        BMM_ERR_FWARN(bmm_io_fastfwin, "Failed to fast-forward body");
+        BMM_TLE_EXTS(BMM_TLE_IO, "Failed to fast-forward body");
 
         return false;
       }
