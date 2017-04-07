@@ -20,6 +20,8 @@ enum bmm_tle {
 // from this compilation unit is not necessary,
 // but neglecting to do so will result in a default program name and
 // an arbitrary timestamp offset.
+//
+// Note that as of now this is only compatible with ASCII strings.
 void bmm_tle_reset(char const*);
 
 // The call `bmm_tle_num_std()`
@@ -40,6 +42,12 @@ enum bmm_tle bmm_tle_num_ext(void);
 // returns the thread-local error message.
 __attribute__ ((__pure__))
 char const* bmm_tle_msg(void);
+
+// The call `bmm_tle_std()`
+// sets the thread-local error number to the standard error number `errno` and
+// copies the corresponding error message
+// with the assistance of `strerror_r`.
+void bmm_tle_std(void);
 
 // The call `bmm_tle_stds(file, line, proc)`
 // sets the thread-local error number to the standard error number `errno` and
@@ -69,13 +77,16 @@ void bmm_tle_stds(char const*, size_t, char const*);
 #define BMM_TLE_STDS() \
   (bmm_tle_stds(__FILE__, (size_t) __LINE__, __func__))
 
-// The call `bmm_tle_std()`
-// sets the thread-local error number to the standard error number `errno` and
-// copies the corresponding error message
-// with the assistance of `strerror_r`.
-//
-// See `bmm_tle_stds`.
-void bmm_tle_std(void);
+// The call `bmm_tle_vext(num, fmt, ap)`
+// sets the thread-local error number to the extended error number `num` and
+// builds the corresponding error message
+// with the format string `fmt` and arguments `ap`.
+__attribute__ ((__format__ (__printf__, 2, 0), __nonnull__))
+void bmm_tle_vext(enum bmm_tle, char const*, va_list);
+
+// See `bmm_tle_vext`.
+__attribute__ ((__format__ (__printf__, 2, 3), __nonnull__))
+void bmm_tle_ext(enum bmm_tle, char const*, ...);
 
 // The call `bmm_tle_vext(num, file, line, proc, fmt, ap)`
 // sets the thread-local error number to the extended error number `num` and
@@ -100,18 +111,5 @@ void bmm_tle_exts(char const*, size_t, char const*,
 // See `bmm_tle_exts`.
 #define BMM_TLE_EXTS(num, fmt, ...) \
   (bmm_tle_exts(__FILE__, (size_t) __LINE__, __func__, num, fmt, __VA_ARGS__))
-
-// The call `bmm_tle_vext(num, fmt, ap)`
-// sets the thread-local error number to the extended error number `num` and
-// builds the corresponding error message
-// with the format string `fmt` and arguments `ap`.
-//
-// See `bmm_tle_vexts`.
-__attribute__ ((__format__ (__printf__, 2, 0), __nonnull__))
-void bmm_tle_vext(enum bmm_tle, char const*, va_list);
-
-// See `bmm_tle_vext`.
-__attribute__ ((__format__ (__printf__, 2, 3), __nonnull__))
-void bmm_tle_ext(enum bmm_tle, char const*, ...);
 
 #endif

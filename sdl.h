@@ -68,10 +68,10 @@ void bmm_sdl_opts_def(struct bmm_sdl_opts*);
 __attribute__ ((__nonnull__))
 void bmm_sdl_def(struct bmm_sdl*, struct bmm_sdl_opts const*);
 
-// Something like this:
-// Monitor `stdin` and draw at `fps`.
-// This works whether `stdin` is stalled or not.
 __attribute__ ((__nonnull__))
-bool bmm_sdl_run(struct bmm_sdl_opts const*);
+bool bmm_sdl_run(struct bmm_sdl*);
+
+__attribute__ ((__nonnull__))
+bool bmm_sdl_run_with(struct bmm_sdl_opts const*);
 
 #endif

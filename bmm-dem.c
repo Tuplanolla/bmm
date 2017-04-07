@@ -11,8 +11,6 @@
 #include "str.h"
 #include "tle.h"
 
-#include <errno.h>
-
 __attribute__ ((__nonnull__ (1, 2)))
 static bool f(char const* const key, char const* const value,
     void* const ptr) {
@@ -41,59 +39,17 @@ static bool f(char const* const key, char const* const value,
 
 __attribute__ ((__nonnull__))
 int main(int const argc, char** const argv) {
-  // TODO Reset `tle` instead.
-
-  bmm_err_reset(argv[0]);
-
-  // TODO Remove this junk.
-
-  errno = ENOMEM;
-  bmm_tle_std();
-  fprintf(stderr, "<%s>\n", bmm_tle_msg());
-
-  bmm_tle_ext(BMM_TLE_VERYBAD, "(%d, %d)", 42, 13);
-  fprintf(stderr, "<%s>\n", bmm_tle_msg());
-
-  bmm_tle_ext(BMM_TLE_VERYBAD, "(%d, %d) |---------------------------------------------------------|", 42, 13);
-  fprintf(stderr, "<%s>\n", bmm_tle_msg());
-
-  errno = ENOMEM;
-  BMM_TLE_STDS();
-  fprintf(stderr, "<%s>\n", bmm_tle_msg());
-
-  BMM_TLE_EXTS(BMM_TLE_VERYBAD, "(%d, %d)", 42, 13);
-  fprintf(stderr, "<%s>\n", bmm_tle_msg());
-
-  BMM_TLE_EXTS(BMM_TLE_VERYBAD, "(%d, %d) |---------------------------------------------------------|", 42, 13);
-  fprintf(stderr, "<%s>\n", bmm_tle_msg());
-
   bmm_tle_reset(argv[0]);
-
-  errno = ENOMEM;
-  bmm_tle_std();
-  fprintf(stderr, "<%s>\n", bmm_tle_msg());
-
-  bmm_tle_ext(BMM_TLE_VERYBAD, "(%d, %d)", 42, 13);
-  fprintf(stderr, "<%s>\n", bmm_tle_msg());
-
-  bmm_tle_ext(BMM_TLE_VERYBAD, "(%d, %d) |---------------------------------------------------------|", 42, 13);
-  fprintf(stderr, "<%s>\n", bmm_tle_msg());
-
-  errno = ENOMEM;
-  BMM_TLE_STDS();
-  fprintf(stderr, "<%s>\n", bmm_tle_msg());
-
-  BMM_TLE_EXTS(BMM_TLE_VERYBAD, "(%d, %d)", 42, 13);
-  fprintf(stderr, "<%s>\n", bmm_tle_msg());
-
-  BMM_TLE_EXTS(BMM_TLE_VERYBAD, "(%d, %d) |---------------------------------------------------------|", 42, 13);
-  fprintf(stderr, "<%s>\n", bmm_tle_msg());
 
   struct bmm_dem_opts opts;
   bmm_dem_opts_def(&opts);
 
-  // TODO Check for errors.
-  bmm_opt_parse((char const* const*) &argv[1], (size_t) (argc - 1), f, &opts);
+  if (!bmm_opt_parse((char const* const*) &argv[1], (size_t) (argc - 1),
+        f, &opts))
+    return EXIT_FAILURE;
 
-  return bmm_dem_run_with(&opts) ? EXIT_SUCCESS : EXIT_FAILURE;
+  if (!bmm_dem_run_with(&opts))
+    return EXIT_FAILURE;
+
+  return EXIT_SUCCESS;
 }

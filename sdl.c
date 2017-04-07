@@ -454,7 +454,7 @@ again:
   }
 }
 
-static bool bmm_sdl_run_for_real(struct bmm_sdl* const sdl) {
+bool bmm_sdl_run(struct bmm_sdl* const sdl) {
   SDL_WM_SetCaption("BMM", NULL);
 
   if (SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8) == -1 ||
@@ -489,7 +489,7 @@ static bool bmm_sdl_run_for_real(struct bmm_sdl* const sdl) {
   return true;
 }
 
-static bool bmm_sdl_run_now(struct bmm_sdl_opts const* const opts) {
+static bool bmm_sdl_run_sdl(struct bmm_sdl_opts const* const opts) {
   struct bmm_sdl* const sdl = malloc(sizeof *sdl);
   if (sdl == NULL) {
     BMM_ERR_WARN(malloc);
@@ -498,21 +498,21 @@ static bool bmm_sdl_run_now(struct bmm_sdl_opts const* const opts) {
   }
 
   bmm_sdl_def(sdl, opts);
-  bool const result = bmm_sdl_run_for_real(sdl);
+  bool const result = bmm_sdl_run(sdl);
 
   free(sdl);
 
   return result;
 }
 
-bool bmm_sdl_run(struct bmm_sdl_opts const* const opts) {
+bool bmm_sdl_run_with(struct bmm_sdl_opts const* const opts) {
   if (SDL_Init(SDL_INIT_VIDEO) == -1) {
     BMM_ERR_FWARN(SDL_Init, "SDL error: %s", SDL_GetError());
 
     return false;
   }
 
-  bool const result = bmm_sdl_run_now(opts);
+  bool const result = bmm_sdl_run_sdl(opts);
 
   SDL_Quit();
 

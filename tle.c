@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <math.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -18,35 +19,16 @@ struct tle {
     int std;
     enum bmm_tle ext;
   } num;
-  char buf[70];
-  // char buf[BUFSIZ];
+  char buf[BUFSIZ];
 };
-
-// TODO Reduce repetition and horrible control flow.
-// TODO Rethink order afterwards.
 
 static _Thread_local struct tle tle = {
   .prog = NULL,
-  .sec = 0.0,
-  .tag = STD,
-  .num.std = 0
+  .sec = NAN,
+  .tag = EXT,
+  .num.std = BMM_TLE_SUCCESS,
+  .buf = "Success"
 };
-
-static void panic(void) {
-  static char const str[] = "Cannot report error";
-
-  static_assert(sizeof tle.buf >= sizeof str, "Buffer too short");
-
-  (void) strcpy(tle.buf, str);
-}
-
-static void prepare(void) {
-  if (tle.prog == NULL) {
-    tle.prog = "a.out";
-
-    tle.sec = bmm_sec_now();
-  }
-}
 
 void bmm_tle_reset(char const* const prog) {
   char const* const str = strrchr(prog, '/');
@@ -78,134 +60,102 @@ char const* bmm_tle_msg(void) {
   return tle.buf;
 }
 
-static int common_s(char const* const file, size_t const line,
-    char const* const proc) {
-  prepare();
+static void init(void) {
+  if (tle.prog == NULL) {
+    tle.prog = "a.out";
 
-  double const sec = bmm_sec_now();
+    tle.sec = bmm_sec_now();
+  }
+}
 
-  return snprintf(tle.buf, sizeof tle.buf,
+__attribute__ ((__nonnull__))
+static bool prefix(size_t* const ptr,
+    char const* const file, size_t const line, char const* const proc) {
+  init();
+
+  int const i = snprintf(tle.buf, sizeof tle.buf,
       "[%f] %s (%zu): %s (%s:%zu): ",
-      sec - tle.sec, tle.prog, (size_t) getpid(), proc, file, line);
-}
+      bmm_sec_now() - tle.sec, tle.prog, (size_t) getpid(), proc, file, line);
 
-// The basic idea for long-formatting:
-// try to long-format prefix
-// on error try to short-format sprintf error
-//          on error try to short-format strerror error
-//                   on error short-format strerror error
-// try to short-format suffix
-// on error try to short-format suffix sprintf error
-//          on error try to short-format suffix strerror error
-//                   on error short-format strerror error.
-
-void bmm_tle_stds(char const* const file, size_t const line,
-    char const* const proc) {
-  tle.tag = STD;
-
-  int const j = common_s(file, line, proc);
-  if (j < 0) {
-    bmm_tle_std();
-
-    return;
-  }
-
-  size_t const n = (size_t) j;
-
-  if (n >= sizeof tle.buf) {
-    bmm_tle_std();
-
-    return;
-  }
-
-  size_t const m = sizeof tle.buf - n;
-
-  // Diff point.
-
-  size_t tries = 2;
-
-try:
-  tle.num.std = errno;
-
-  if (tries == 0)
-    panic();
-  else {
-    if (!bmm_hack_strerror_r(errno, &tle.buf[n], m)) {
-      --tries;
-
-      goto try;
-    }
-  }
-}
-
-void bmm_tle_std(void) {
-  tle.tag = STD;
-
-  size_t tries = 2;
-
-try:
-  tle.num.std = errno;
-
-  if (tries == 0)
-    panic();
-  else {
-    if (!bmm_hack_strerror_r(errno, tle.buf, sizeof tle.buf)) {
-      --tries;
-
-      goto try;
-    }
-  }
-}
-
-void bmm_tle_vexts(char const* const file, size_t const line,
-    char const* const proc,
-    enum bmm_tle const num, char const* const fmt, va_list ap) {
-  tle.tag = EXT;
-
-  int const i = common_s(file, line, proc);
-  if (i < 0) {
-    bmm_tle_std();
-
-    return;
-  }
+  if (i < 0)
+    return false;
 
   size_t const n = (size_t) i;
 
-  if (n >= sizeof tle.buf) {
+  if (n >= sizeof tle.buf)
+    return false;
+
+  if (ptr != NULL)
+    *ptr = n;
+
+  return true;
+}
+
+static void suffix(void) {
+  static char const buf[] = "Cannot report error";
+
+  static_assert(sizeof tle.buf >= sizeof buf, "Buffer too short");
+
+  (void) strcpy(tle.buf, buf);
+}
+
+static bool suffix_std(size_t const n) {
+  tle.tag = STD;
+
+  tle.num.std = errno;
+
+  if (!bmm_hack_strerror_r(errno, &tle.buf[n], sizeof tle.buf - n)) {
+    tle.num.std = errno;
+
+    if (!bmm_hack_strerror_r(errno, &tle.buf[n], sizeof tle.buf - n)) {
+      tle.num.std = errno;
+
+      return false;
+    }
+  }
+
+  return true;
+}
+
+__attribute__ ((__format__ (__printf__, 3, 0), __nonnull__))
+static bool suffix_ext(size_t const n,
+    enum bmm_tle const num, char const* const fmt, va_list ap) {
+  tle.tag = EXT;
+
+  tle.num.ext = num;
+
+  size_t const m = sizeof tle.buf - n;
+
+  int const i = vsnprintf(&tle.buf[n], m, fmt, ap);
+
+  if (i < 0)
+    return false;
+
+  size_t const k = (size_t) i;
+
+  if (k >= m)
+    return false;
+
+  return true;
+}
+
+void bmm_tle_std(void) {
+  if (!suffix_std(0))
+    suffix();
+}
+
+void bmm_tle_stds(char const* const file, size_t const line,
+    char const* const proc) {
+  size_t n;
+
+  if (!prefix(&n, file, line, proc)) {
     bmm_tle_std();
 
     return;
   }
 
-  size_t const m = sizeof tle.buf - n;
-
-  int const j = vsnprintf(&tle.buf[n], m, fmt, ap);
-  if (j < 0) {
-    BMM_TLE_STDS();
-
-    return;
-  }
-
-  size_t const k = (size_t) j;
-
-  if (k >= m) {
-    BMM_TLE_STDS();
-
-    return;
-  }
-
-  // Diff point.
-
-  tle.num.ext = num;
-}
-
-void bmm_tle_exts(char const* const file, size_t const line,
-    char const* const proc,
-    enum bmm_tle const num, char const* const fmt, ...) {
-  va_list ap;
-  va_start(ap, fmt);
-  bmm_tle_vexts(file, line, proc, num, fmt, ap);
-  va_end(ap);
+  if (!suffix_std(n))
+    suffix();
 }
 
 void bmm_tle_vext(enum bmm_tle const num, char const* const fmt, va_list ap) {
@@ -222,5 +172,31 @@ void bmm_tle_ext(enum bmm_tle const num, char const* const fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
   bmm_tle_vext(num, fmt, ap);
+  va_end(ap);
+}
+
+void bmm_tle_vexts(char const* const file, size_t const line,
+    char const* const proc,
+    enum bmm_tle const num, char const* const fmt, va_list ap) {
+  size_t n;
+
+  if (!prefix(&n, file, line, proc)) {
+    if (!suffix_std(0))
+      suffix();
+
+    return;
+  }
+
+  if (!suffix_ext(n, num, fmt, ap))
+    if (!suffix_std(n))
+      suffix();
+}
+
+void bmm_tle_exts(char const* const file, size_t const line,
+    char const* const proc,
+    enum bmm_tle const num, char const* const fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  bmm_tle_vexts(file, line, proc, num, fmt, ap);
   va_end(ap);
 }
