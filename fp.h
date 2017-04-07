@@ -1,5 +1,5 @@
-/// Floating-point operations.
 #ifndef BMM_FP_H
+/// Floating-point operations.
 #define BMM_FP_H
 
 #include <math.h>

@@ -1,5 +1,5 @@
-/// Bitwise operations.
 #ifndef BMM_BIT_H
+/// Bitwise operations.
 #define BMM_BIT_H
 
 #include <stdbool.h>

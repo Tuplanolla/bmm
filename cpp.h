@@ -1,5 +1,5 @@
-/// Preprocessor directives.
 #ifndef BMM_CPP_H
+/// Preprocessor directives.
 #define BMM_CPP_H
 
 /// The preprocessor directive `MIN(x, y)`

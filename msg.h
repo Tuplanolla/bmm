@@ -1,5 +1,5 @@
-/// Messaging protocol.
 #ifndef BMM_MSG_H
+/// Messaging protocol.
 #define BMM_MSG_H
 
 #include <stdbool.h>

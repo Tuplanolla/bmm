@@ -1,5 +1,5 @@
-/// Planar geometry.
 #ifndef BMM_GEOM2D_H
+/// Planar geometry.
 #define BMM_GEOM2D_H
 
 #include <math.h>

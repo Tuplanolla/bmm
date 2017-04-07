@@ -1,5 +1,5 @@
-/// Support for thread-local error handling.
 #ifndef BMM_TLE_H
+/// Support for thread-local error handling.
 #define BMM_TLE_H
 
 #include <stdarg.h>

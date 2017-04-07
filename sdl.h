@@ -1,5 +1,5 @@
-/// Interactive viewer based on SDL and OpenGL.
 #ifndef BMM_SDL_H
+/// Interactive viewer based on SDL and OpenGL.
 #define BMM_SDL_H
 
 #include <SDL/SDL.h>

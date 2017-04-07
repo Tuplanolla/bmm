@@ -1,5 +1,5 @@
-/// Ugly hacks.
 #ifndef BMM_HACK_H
+/// Ugly hacks.
 #define BMM_HACK_H
 
 #include <stdbool.h>

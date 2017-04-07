@@ -1,5 +1,5 @@
-/// Geometry.
 #ifndef BMM_GEOM_H
+/// Geometry.
 #define BMM_GEOM_H
 
 #include <math.h>

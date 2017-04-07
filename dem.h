@@ -1,5 +1,5 @@
-/// Discrete element method with some assumptions.
 #ifndef BMM_DEM_H
+/// Discrete element method with some assumptions.
 #define BMM_DEM_H
 
 #include <gsl/gsl_rng.h>

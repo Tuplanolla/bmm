@@ -1,7 +1,8 @@
-/// Language extensions.
-/// This header defines symbols beyond its own namespace,
-/// so this header should not be included before standard library headers.
 #ifndef BMM_EXT_H
+/// Language extensions.
+///
+/// Note that this header defines symbols beyond its own namespace,
+/// so it header should not be included before standard library headers.
 #define BMM_EXT_H
 
 #include <assert.h>

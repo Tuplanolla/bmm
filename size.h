@@ -1,5 +1,5 @@
-/// Index space operations.
 #ifndef BMM_SIZE_H
+/// Index space operations.
 #define BMM_SIZE_H
 
 #include <limits.h>

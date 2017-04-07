@@ -1,5 +1,5 @@
-/// Configuration constants.
 #ifndef BMM_CONF_H
+/// Configuration constants.
 #define BMM_CONF_H
 
 #include <limits.h>

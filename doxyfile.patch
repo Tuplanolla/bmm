@@ -1,40 +1,44 @@
 7c7
-< PROJECT_NAME           = "My Project"
+< PROJECT_NAME           = "Brittle Matter Matters"
 ---
-> PROJECT_NAME           = "Brittle Matter Matters"
+> PROJECT_NAME           = "My Project"
 28c28
-< TAB_SIZE               = 4
+< TAB_SIZE               = 2
 ---
-> TAB_SIZE               = 2
+> TAB_SIZE               = 4
 31c31
-< OPTIMIZE_OUTPUT_FOR_C  = NO
+< OPTIMIZE_OUTPUT_FOR_C  = YES
 ---
-> OPTIMIZE_OUTPUT_FOR_C  = YES
+> OPTIMIZE_OUTPUT_FOR_C  = NO
 51c51
-< EXTRACT_ALL            = NO
+< EXTRACT_ALL            = YES
 ---
-> EXTRACT_ALL            = YES
+> EXTRACT_ALL            = NO
 180,181c180,181
-< USE_MATHJAX            = NO
+< USE_MATHJAX            = YES
 < MATHJAX_FORMAT         = NativeMML
 ---
-> USE_MATHJAX            = YES
+> USE_MATHJAX            = NO
 > MATHJAX_FORMAT         = HTML-CSS
 184c184
 < MATHJAX_CODEFILE       = doxygen.js
 ---
 > MATHJAX_CODEFILE       =
 195c195
-< GENERATE_LATEX         = YES
+< GENERATE_LATEX         = NO
 ---
-> GENERATE_LATEX         = NO
+> GENERATE_LATEX         = YES
+255c255
+< MACRO_EXPANSION        = YES
+---
+> MACRO_EXPANSION        = NO
 278c278
-< HAVE_DOT               = NO
+< HAVE_DOT               = YES
 ---
-> HAVE_DOT               = YES
+> HAVE_DOT               = NO
 295,296c295,296
-< DOT_IMAGE_FORMAT       = png
-< INTERACTIVE_SVG        = NO
+< DOT_IMAGE_FORMAT       = svg
+< INTERACTIVE_SVG        = YES
 ---
-> DOT_IMAGE_FORMAT       = svg
-> INTERACTIVE_SVG        = YES
+> DOT_IMAGE_FORMAT       = png
+> INTERACTIVE_SVG        = NO
