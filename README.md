@@ -119,34 +119,89 @@ sending or attempting to interpret such a thing is a protocol violation.
 
 | Bit Pattern | Meaning
 |:------------|:--------
-| `0bbbaaaaD` | Integers are in big-endian (network order).
-| `1bbbaaaaD` | Integers are in little-endian.
-| `b00baaaaD` | Floating-point numbers are in IEEE 754 big-endian.
-| `b01baaaaD` | Floating-point numbers are in IEEE 754 little-endian.
-| `bbb0aaaaD` | Message delivery happens later.
-| `bbb1aaaaD` | Message delivery happens immediately.
-| `aaaa0bbbD` | Message has no body.
-| `aaaa1bbbD` | Message has a body.
-| `aaaa10bbDH` | Message body is terminated by a literal `h`.
-| `aaaa11bbD` | Message body has a size that fits into `b` bytes.
-| `aaaa1100DH` | Message body has a size of `h` bytes (256 B).
-| `aaaa1101DHH` | Message body has a size of `h` bytes (64 kiB).
-| `aaaa1110DHHHH` | Message body has a size of `h` bytes (4 GiB).
-| `aaaa1111DHHHHHHHH` | Message body has a size of `h` bytes (16 EiB).
-| `A0eeeeeee` | Initialization information.
-| `A1eeeeeee` | Runtime information.
+| `aaaaaaaa B` | Flags for representation and delivery.
+| `00000000 B` | Integers are in little-endian (stream order).
+| `00000001 B` | Integers are in middle-endian where 2-byte blocks are swapped.
+| `00000010 B` | Integers are in middle-endian where 4-byte blocks are swapped.
+| `00000011 B` | Integers are in middle-endian where 2-byte and 4-byte blocks are swapped.
+| `00000100 B` | Integers are in middle-endian where 8-byte blocks are swapped.
+| `00000101 B` | Integers are in middle-endian where 2-byte and 8-byte blocks are swapped.
+| `00000110 B` | Integers are in middle-endian where 4-byte and 8-byte blocks are swapped.
+| `00000111 B` | Integers are in big-endian (network order).
+| `aaaa0aaa B` | Message delivery happens later (buffered).
+| `aaaa1aaa B` | Message delivery happens immediately (unbuffered).
+| `aaaaaaaa B` | Free patterns for remaining `a` (240).
+| `A bbbbbbbb` | Flags derived from `a` and the message body.
+| `A 0000bbbb` | Size information for message body.
+| `A 00000bbb` | Message body has a fixed size of `b` bytes.
+| `A 00000000` | Message body is empty (0 B).
+| `A 00000001` | Message body is very small (1 B).
+| `A 00000010` | Message body is small (2 B).
+| `A 00000011` | Message body is medium small (3 B).
+| `A 00000100` | Message body is medium (4 B).
+| `A 00000101` | Message body is medium large (5 B).
+| `A 00000110` | Message body is large (6 B).
+| `A 00000111` | Message body is very large (7 B).
+| `A 00001bbb` | Message body has a variable size.
+| `A 000010bb` | Message body is terminated by a literal that spans `b` bytes.
+| `A 00001000 C` | Message body is terminated by a literal `c` (1 B).
+| `A 00001001 C C` | Message body is terminated by a literal `c` (2 B).
+| `A 00001010 C C C C` | Message body is terminated by a literal `c` (4 B).
+| `A 00001011 C C C C C C C C` | Message body is terminated by a literal `c` (8 B).
+| `A 000011bb` Message body has a size that fits into `b` bytes.
+| `A 00001100 C` | Message body has a size of `c` bytes (256 B).
+| `A 00001101 C C` | Message body has a size of `c` bytes (64 kiB).
+| `A 00001110 C C C C` | Message body has a size of `c` bytes (4 GiB).
+| `A 00001111 C C C C C C C C` | Message body has a size of `c` bytes (16 EiB).
+| `A bbbbbbbb` | Free patterns for remaining `b` (240).
+
+The purposes of some of the patterns overlap intentionally,
+so that one can neglect to implement the more complex parts
+(higher in bits to indicate) if the simpler ones are sufficient.
+There is also free pattern space for purposes not listed here.
+If they are not needed, the first first two bytes can be merged together.
 
 To summarize the table informally,
 each message is prefixed by two bytes,
-the first of which sets various flags and
-the second of which contains the message type.
+the first of which contains user-set flags,
+the second of which contains derived flags.
 Additionally, for those messages whose bodies may vary in size,
-there is an extra prefix to signal the size of the body.
+there is an extra prefix to signal the size of the message.
+The next byte contains the message type and after that comes the message body.
 
-TODO Consider network order for sizes.
+In GNU C it would go as follows.
 
-TODO Separate user-controlled flags
-from message content-related flags (like size).
+    struct bmm_msg {
+      uint8_t userset;
+      uint8_t derived;
+      union {
+        union {};
+        uint8_t octets0;
+        uint16_t octets1;
+        uint32_t octets2;
+        uint64_t octets3;
+      } size;
+      enum bmm_msg_type type;
+      unsigned char body[];
+    };
+
+For words of length $n$ bytes there are $n!$ byte ordering schemes.
+To enumerate all byte orderings for words of $m = 8$ bytes,
+as is the maximal message length,
+one would need $b = \lceil\log_2 m!\rceil = 16$ bits.
+
+It is better to assume that byte ordering schemes are built from pair swaps,
+so the permutations form a binary tree.
+Now $d = \lceil\log_2 n\rceil$ is the tree depth, starting from zero.
+There are $2^{d + 1} - 1$ orderings and
+enumerating them only takes $b = 4$ bits.
+
+If all the swaps per level are constant,
+that would result in $n$ choices and an enumeration of $b = 3$ bits.
+
+One more cut could be made by requiring all the swaps are constant,
+giving $2$ options and an enumeration of $b = 1$ bits.
+These are known as little and big endian.
 
 ### Separation of Concerns (Relating to Messaging)
 
@@ -266,6 +321,24 @@ to guarantee no stale data is left behind when the buffers are swapped.
 In case a message writer dies in the middle of a message,
 the receiver has no way to detect and correct for this.
 This is by design.
+
+Failure also occurs if a consumer is fed a message it does not care about.
+This could be mitigated with the following reception system,
+but that might not be worth the effort (both programming and computational).
+
+    typedef bool (* bmm_recv_proc)(unsigned char*, void*);
+    struct bmm_recv_list {
+      size_t n;
+      bmm_recv_proc procs[BMM_PROC_MAX];
+    };
+    struct bmm_recv_mask {
+      struct bmm_recv_list lists[BMM_MSG_MAX];
+    };
+    bool bmm_recv_reg(struct bmm_recv_mask*, enum bmm_msg, bmm_recv_proc);
+    bool bmm_recv_unreg(struct bmm_recv_mask*, enum bmm_msg, bmm_recv_proc);
+    bool bmm_recv_unreg_for(struct bmm_recv_mask*, enum bmm_msg);
+    bool bmm_recv_unreg_all(struct bmm_recv_mask*);
+    bool bmm_recv(struct bmm_recv_mask const*);
 
 #### Interesting Idea
 

@@ -236,14 +236,13 @@ enum bmm_size_format {
   BMM_SIZE_FORMAT_LE
 };
 
-// TODO These are subtly wrong, because buffer sizes are not always pots.
-
-// TODO Test big-endian.
+// TODO These were a bad idea; throw away.
 
 /// The call `bmm_size_to_buffer(ptr, buf, n, k, fmt)`
 /// writes the size `k` in the format `fmt`
 /// into the byte buffer `buf` of length `n` and
 /// sets `ptr` to the number of bytes written.
+/// The number of bytes written is always a power of two.
 inline bool bmm_size_to_buffer(size_t* const ptr,
     unsigned char* const buf, size_t const n,
     size_t const k, enum bmm_size_format const fmt) {
@@ -276,6 +275,7 @@ inline bool bmm_size_to_buffer(size_t* const ptr,
 /// The call `bmm_size_from_buffer(ptr, buf, n, fmt)`
 /// reads a size in the format `fmt`
 /// from the byte buffer `buf` of length `n` and saves it into `ptr`.
+/// The length of the buffer should always be a power of two.
 __attribute__ ((__nonnull__ (2)))
 inline bool bmm_size_from_buffer(size_t* const ptr,
     unsigned char const* const buf, size_t const n,
