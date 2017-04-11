@@ -10,17 +10,22 @@
 #include "ext.h"
 #include "dem.h"
 
+/// This preprocessor directive refers to
+/// the maximal number of octets in the flag part of a message header.
+#define BMM_MSG_FLAGSIZE 2
+
+/// This preprocessor directive refers to
+/// the maximal number of octets in the prefix part of a message header.
+#define BMM_MSG_BUFSIZE 8
+
+/// This preprocessor directive refers to
+/// the maximal number of octets in a message header.
+#define BMM_MSG_HEADSIZE (BMM_MSG_FLAGSIZE + BMM_MSG_BUFSIZE)
+
 /// This enumeration specifies message header size.
 enum bmm_msg_width {
   BMM_MSG_WIDTH_NARROW,
   BMM_MSG_WIDTH_WIDE
-};
-
-/// This enumeration distinguishes
-/// literal-terminated messages from size-prefixed messages.
-enum bmm_msg_tag {
-  BMM_MSG_TAG_LT,
-  BMM_MSG_TAG_SP
 };
 
 /// This enumeration specifies integer endianness.
@@ -29,33 +34,41 @@ enum bmm_msg_endian {
   BMM_MSG_ENDIAN_BIG
 };
 
+/// This enumeration distinguishes
+/// size-prefixed messages from literal-terminated messages.
+enum bmm_msg_tag {
+  BMM_MSG_TAG_SP,
+  BMM_MSG_TAG_LT
+};
+
 /// This structure allows the user to signal
 /// what kind of message they want to send.
 /// Middle-endianness or free patterns are not supported.
 struct bmm_msg_spec {
   enum bmm_msg_width width;
   enum bmm_msg_endian endian;
-  enum bmm_msg_tag tag;
   union {
-    struct {
-      size_t nmemb;
-      uint8_t buf[8];
-    } term;
     size_t size;
+    struct {
+      size_t e;
+      uint8_t buf[BMM_MSG_BUFSIZE];
+    } term;
   } msg;
+  enum bmm_msg_tag tag;
 };
 
-#define BMM_MSG_BIT_WIDE 7
-#define BMM_MSG_MASK_ENDIAN (BMM_MASKBITS(3, 6, 5, 4))
-#define BMM_MSG_BIT_VAR 3
-#define BMM_MSG_BIT_TAG 2
-#define BMM_MSG_MASK_FIXSIZE (BMM_MASKBITS(3, 2, 1, 0))
-#define BMM_MSG_MASK_VARSIZE (BMM_MASKBITS(2, 1, 0))
+/// These preprocessor directives help work with bits in message headers.
+#define BMM_MSG_MASK_WIDE (BMM_MASKBITS_1(7))
+#define BMM_MSG_MASK_ENDIAN (BMM_MASKBITS_3(6, 5, 4))
+#define BMM_MSG_MASK_VAR (BMM_MASKBITS_1(3))
+#define BMM_MSG_MASK_TAG (BMM_MASKBITS_1(2))
+#define BMM_MSG_MASK_FIXSIZE (BMM_MASKBITS_3(2, 1, 0))
+#define BMM_MSG_MASK_VARSIZE (BMM_MASKBITS_2(1, 0))
 
 /// The call `bmm_msg_spec_read(spec, f, ptr)`
 /// extracts the message specification `spec`
 /// from the message header `buf` of length `n`
-/// that is obtained by sequentially calling `f(buf[i], ptr)` for all `i`.
+/// that is obtained by sequentially calling `f(&buf[i], ptr)` for all `i`.
 /// It is guaranteed that `n <= 10`.
 __attribute__ ((__nonnull__ (1, 2)))
 bool bmm_msg_spec_read(struct bmm_msg_spec*,
@@ -64,7 +77,7 @@ bool bmm_msg_spec_read(struct bmm_msg_spec*,
 /// The call `bmm_msg_spec_write(spec, f, ptr)`
 /// builds the message header `buf` of length `n`
 /// for the message specification `spec` and
-/// sequentially calls `f(buf[i], ptr)` for all `i`.
+/// sequentially calls `f(&buf[i], ptr)` for all `i`.
 /// It is guaranteed that `n <= 10`.
 __attribute__ ((__nonnull__ (1, 2)))
 bool bmm_msg_spec_write(struct bmm_msg_spec const*,

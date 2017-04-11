@@ -143,16 +143,16 @@ sending or attempting to interpret such a thing is a protocol violation.
 | `A 00000110` | Message body is large (6 B).
 | `A 00000111` | Message body is very large (7 B).
 | `A 00001bbb` | Message body has a variable size.
-| `A 000010bb` | Message body is terminated by a literal that spans `b` bytes.
-| `A 00001000 D` | Message body is terminated by a literal `d` (1 B).
-| `A 00001001 D D` | Message body is terminated by a literal `d` (2 B).
-| `A 00001010 D D D D` | Message body is terminated by a literal `d` (4 B).
-| `A 00001011 D D D D D D D D` | Message body is terminated by a literal `d` (8 B).
-| `A 000011bb` | Message body size fits into `b` bytes.
-| `A 00001100 D` | Message body has a size of `d` bytes (256 B).
-| `A 00001101 D D` | Message body has a size of `d` bytes (64 kiB).
-| `A 00001110 D D D D` | Message body has a size of `d` bytes (4 GiB).
-| `A 00001111 D D D D D D D D` | Message body has a size of `d` bytes (16 EiB).
+| `A 000010bb` | Message body size fits into `b` bytes.
+| `A 00001000 D` | Message body has a size of `d` bytes (256 B).
+| `A 00001001 D D` | Message body has a size of `d` bytes (64 kiB).
+| `A 00001010 D D D D` | Message body has a size of `d` bytes (4 GiB).
+| `A 00001011 D D D D D D D D` | Message body has a size of `d` bytes (16 EiB).
+| `A 000011bb` | Message body is terminated by a literal that spans `b` bytes.
+| `A 00001100 D` | Message body is terminated by a literal `d` (1 B).
+| `A 00001101 D D` | Message body is terminated by a literal `d` (2 B).
+| `A 00001110 D D D D` | Message body is terminated by a literal `d` (4 B).
+| `A 00001111 D D D D D D D D` | Message body is terminated by a literal `d` (8 B).
 | `A bbbbbbbb` | Free patterns (240).
 
 The purposes of some of the patterns overlap intentionally,

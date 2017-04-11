@@ -11,9 +11,11 @@
 #include "size.h"
 #include "tle.h"
 
-void bmm_head_def(struct bmm_msg_head* const head) {
-  head->flags = 0;
-  head->type = 0;
+void bmm_msg_spec_def(struct bmm_msg_spec* const spec) {
+  spec->width = BMM_MSG_WIDTH_NARROW;
+  spec->endian = BMM_MSG_ENDIAN_LITTLE;
+  spec->tag = BMM_MSG_TAG_SP;
+  spec->msg.size = 0;
 }
 
 bool bmm_msg_spec_read(struct bmm_msg_spec* const spec,
@@ -26,7 +28,7 @@ bool bmm_msg_spec_read(struct bmm_msg_spec* const spec,
   uint8_t userset0 = head & 0xf0;
   uint8_t derived0;
 
-  if (BMM_TESTBIT(head, BMM_MSG_BIT_WIDE)) {
+  if (BMM_MASKALL(head, BMM_MSG_MASK_WIDE)) {
     spec->width = BMM_MSG_WIDTH_WIDE;
 
     uint8_t snd;
@@ -41,7 +43,7 @@ bool bmm_msg_spec_read(struct bmm_msg_spec* const spec,
     derived0 = head & 0x0f;
   }
 
-  switch (BMM_CLEARBIT(userset0, BMM_MSG_BIT_WIDE) >> 4) {
+  switch ((userset0 & BMM_MSG_MASK_ENDIAN) >> 4) {
     case 0:
       spec->endian = BMM_MSG_ENDIAN_LITTLE;
 
@@ -56,7 +58,7 @@ bool bmm_msg_spec_read(struct bmm_msg_spec* const spec,
       return false;
   }
 
-  if (BMM_TESTBIT(derived0, BMM_MSG_BIT_VAR)) {
+  if (BMM_MASKALL(derived0, BMM_MSG_MASK_VAR)) {
     // TODO Mask the others too.
     size_t const log2size = (size_t) (derived0 & BMM_MSG_MASK_VARSIZE);
     size_t const logsize = bmm_size_pow(2, log2size);
@@ -70,7 +72,14 @@ bool bmm_msg_spec_read(struct bmm_msg_spec* const spec,
       if (!f(&buf[i], ptr))
         return false;
 
-    if (BMM_TESTBIT(derived0, BMM_MSG_BIT_TAG)) {
+    if (BMM_MASKALL(derived0, BMM_MSG_MASK_TAG)) {
+      spec->tag = BMM_MSG_TAG_LT;
+
+      spec->msg.term.e = log2size;
+
+      for (size_t i = 0; i < logsize; ++i)
+        spec->msg.term.buf[i] = buf[i];
+    } else {
       spec->tag = BMM_MSG_TAG_SP;
 
       // TODO Yeah...
@@ -89,13 +98,6 @@ bool bmm_msg_spec_read(struct bmm_msg_spec* const spec,
       }
 
       spec->msg.size = k;
-    } else {
-      spec->tag = BMM_MSG_TAG_LT;
-
-      spec->msg.term.nmemb = logsize;
-
-      for (size_t i = 0; i < logsize; ++i)
-        spec->msg.term.buf[i] = buf[i];
     }
   } else {
     spec->tag = BMM_MSG_TAG_SP;
@@ -132,26 +134,6 @@ bool bmm_msg_spec_write(struct bmm_msg_spec const* const spec,
     buf[i] = 0;
 
   switch (spec->tag) {
-    case BMM_MSG_TAG_LT:
-      {
-        dynamic_assert(spec->msg.term.nmemb <=
-            sizeof spec->msg.term.buf / sizeof *spec->msg.term.buf,
-            "Buffer would overflow");
-
-        // TODO Ensure power-of-twoness.
-
-        size_t const logsize = bmm_size_cilog(spec->msg.term.nmemb, 2);
-
-        (void) memcpy(buf, spec->msg.term.buf, spec->msg.term.nmemb);
-
-        nmemb = spec->msg.term.nmemb;
-
-        derived0 = (uint8_t) logsize;
-
-        derived0 = BMM_SETBIT(derived0, BMM_MSG_BIT_VAR);
-      }
-
-      break;
     case BMM_MSG_TAG_SP:
       {
         size_t const size = spec->msg.size;
@@ -161,16 +143,11 @@ bool bmm_msg_spec_write(struct bmm_msg_spec const* const spec,
 
           nmemb = 0;
         } else {
-          // TODO This is still wrong.
-          size_t const logsize = bmm_size_cilog(size, 2) / 8;
+          size_t const logsize = bmm_size_cilog(size, 8);
           size_t const log2size = bmm_size_cilog(logsize, 2);
           size_t const powsize = bmm_size_pow(2, log2size);
 
-          printf("[%zu,%zu,%zu]\n", logsize, log2size, powsize);
-
           derived0 = (uint8_t) log2size;
-
-          derived0 = BMM_SETBIT(derived0, BMM_MSG_BIT_TAG);
 
           // TODO Yeah...
           switch (spec->endian) {
@@ -188,8 +165,29 @@ bool bmm_msg_spec_write(struct bmm_msg_spec const* const spec,
 
           nmemb = powsize;
 
-          derived0 = BMM_SETBIT(derived0, BMM_MSG_BIT_VAR);
+          derived0 |= BMM_MSG_MASK_VAR;
         }
+      }
+
+      break;
+    case BMM_MSG_TAG_LT:
+      {
+        size_t const logsize = spec->msg.term.e;
+        size_t const size = bmm_size_pow(2, logsize);
+
+        dynamic_assert(size <=
+            sizeof spec->msg.term.buf / sizeof *spec->msg.term.buf,
+            "Buffer would overflow");
+
+        (void) memcpy(buf, spec->msg.term.buf, size);
+
+        nmemb = size;
+
+        derived0 = (uint8_t) logsize;
+
+        derived0 |= BMM_MSG_MASK_TAG;
+
+        derived0 |= BMM_MSG_MASK_VAR;
       }
 
       break;
@@ -227,6 +225,11 @@ bool bmm_msg_spec_write(struct bmm_msg_spec const* const spec,
       return false;
 
   return true;
+}
+
+void bmm_head_def(struct bmm_msg_head* const head) {
+  head->flags = 0;
+  head->type = 0;
 }
 
 // TODO Put this elsewhere.

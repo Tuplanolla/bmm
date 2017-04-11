@@ -3,7 +3,14 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "cpp.h"
 #include "msg.h"
+#include "size.h"
+
+CHEAT_TEST(cpp_testbit,
+  for (size_t i = 0; i < 8; ++i)
+    cheat_assert(BMM_TESTBIT(1 << i, i));
+)
 
 CHEAT_DECLARE(
   static uint64_t const sample = 0xfadedacebeeffeed;
@@ -32,65 +39,72 @@ CHEAT_DECLARE(
   }
 )
 
-CHEAT_TEST(msg,
+CHEAT_TEST(msg_spec_sp_iso,
   for (enum bmm_msg_width width = BMM_MSG_WIDTH_NARROW;
       width < BMM_MSG_WIDTH_WIDE;
       ++width)
     for (enum bmm_msg_endian endian = BMM_MSG_ENDIAN_LITTLE;
         endian < BMM_MSG_ENDIAN_BIG;
-        ++endian) {
+        ++endian)
+      for (size_t size = 0; size < 1000; ++size) {
+        struct bmm_msg_spec in;
+
+        in.width = width;
+        in.endian = endian;
+        in.tag = BMM_MSG_TAG_SP;
+        in.msg.size = size;
+
+        struct bmm_msg_test test;
+
+        test.i = 0;
+        bmm_msg_spec_write(&in, bmm_msg_test_write, &test);
+
+        struct bmm_msg_spec out;
+
+        test.i = 0;
+        bmm_msg_spec_read(&out, bmm_msg_test_read, &test);
+
+        cheat_assert_int(in.width, out.width);
+        cheat_assert_int(in.endian, out.endian);
+        cheat_assert_int(in.tag, out.tag);
+        cheat_assert_size(in.msg.size, out.msg.size);
+      }
+)
+
+CHEAT_TEST(msg_spec_lt_iso,
+  for (enum bmm_msg_width width = BMM_MSG_WIDTH_NARROW;
+      width < BMM_MSG_WIDTH_WIDE;
+      ++width)
+    for (enum bmm_msg_endian endian = BMM_MSG_ENDIAN_LITTLE;
+        endian < BMM_MSG_ENDIAN_BIG;
+        ++endian)
       for (size_t e = 0; e < 4; ++e) {
-        size_t const nmemb = 1 << e;
+        struct bmm_msg_spec in;
 
-        struct bmm_msg_spec specin;
-        struct bmm_msg_spec specout;
+        in.width = width;
+        in.endian = endian;
+        in.tag = BMM_MSG_TAG_LT;
+        in.msg.term.e = e;
 
-        specin.width = width;
-        specin.endian = endian;
-        specin.tag = BMM_MSG_TAG_LT;
-        specin.msg.term.nmemb = nmemb;
-
-        for (size_t i = 0; i < nmemb; ++i)
-          specin.msg.term.buf[i] = sample << i * 8 & 0xff;
+        for (size_t i = 0; i < bmm_size_pow(2, e); ++i)
+          in.msg.term.buf[i] = sample << i * 8 & 0xff;
 
         struct bmm_msg_test test;
 
         test.i = 0;
-        bmm_msg_spec_write(&specin, bmm_msg_test_write, &test);
+        bmm_msg_spec_write(&in, bmm_msg_test_write, &test);
+
+        struct bmm_msg_spec out;
 
         test.i = 0;
-        bmm_msg_spec_read(&specout, bmm_msg_test_read, &test);
+        bmm_msg_spec_read(&out, bmm_msg_test_read, &test);
 
-        cheat_assert_int(specin.width, specout.width);
-        cheat_assert_int(specin.endian, specout.endian);
-        cheat_assert_int(specin.tag, specout.tag);
-        cheat_assert_size(specin.msg.term.nmemb, specout.msg.term.nmemb);
+        cheat_assert_int(in.width, out.width);
+        cheat_assert_int(in.endian, out.endian);
+        cheat_assert_int(in.tag, out.tag);
+        cheat_assert_size(in.msg.term.e, out.msg.term.e);
 
-        for (size_t i = 0; i < specin.msg.term.nmemb; ++i)
-          cheat_assert_unsigned_char(specin.msg.term.buf[i], specout.msg.term.buf[i]);
+        for (size_t i = 0; i < in.msg.term.e; ++i)
+          cheat_assert_unsigned_char(in.msg.term.buf[i], out.msg.term.buf[i]);
       }
-
-      for (size_t size = 0; size < 300; ++size) {
-        struct bmm_msg_spec specin;
-        struct bmm_msg_spec specout;
-
-        specin.width = width;
-        specin.endian = endian;
-        specin.tag = BMM_MSG_TAG_SP;
-        specin.msg.size = size;
-
-        struct bmm_msg_test test;
-
-        test.i = 0;
-        bmm_msg_spec_write(&specin, bmm_msg_test_write, &test);
-
-        test.i = 0;
-        bmm_msg_spec_read(&specout, bmm_msg_test_read, &test);
-
-        cheat_assert_int(specin.width, specout.width);
-        cheat_assert_int(specin.endian, specout.endian);
-        cheat_assert_int(specin.tag, specout.tag);
-        cheat_assert_size(specin.msg.size, specout.msg.size);
-      }
-    }
 )

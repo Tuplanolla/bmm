@@ -24,7 +24,7 @@ struct bmm_tle {
 
 static thread_local struct bmm_tle tle = {
   .prog = NULL,
-  .sec = NAN,
+  .sec = (double) NAN,
   .tag = BMM_TLE_TAG_EXT,
   .num.std = BMM_TLE_SUCCESS,
   .buf = "Success"
@@ -80,7 +80,7 @@ static void init(void) {
   }
 }
 
-__attribute__ ((__nonnull__))
+__attribute__ ((__nonnull__ (2, 4)))
 static bool prefix(size_t* const ptr,
     char const* const file, size_t const line, char const* const proc) {
   init();
