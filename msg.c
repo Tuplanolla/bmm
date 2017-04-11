@@ -60,7 +60,7 @@ bool bmm_msg_preread(size_t* const ptr,
 
       size_t bodysize;
       if (!bmm_size_from_buffer(&bodysize, buf,
-            MAX(sizeof buf, sizeof bodysize), fmt)) {
+            BMM_MAX(sizeof buf, sizeof bodysize), fmt)) {
         BMM_TLE_EXTS(BMM_TLE_IO, "Message body too large");
 
         return false;

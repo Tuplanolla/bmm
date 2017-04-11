@@ -95,7 +95,7 @@ so line-buffering should be sufficient.
 
 ### Messaging Protocol
 
-To attain maximal throughput,
+To achieve maximal throughput,
 information is passed around in a compact binary format,
 which is specifically designed for this use case.
 Conceptually the format consists of streams,
@@ -120,17 +120,17 @@ sending or attempting to interpret such a thing is a protocol violation.
 | Bit Pattern | Meaning
 |:------------|:--------
 | `aaaaaaaa B` | Flags for representation and delivery.
-| `00000000 B` | Integers are in little-endian (stream order).
-| `00000001 B` | Integers are in middle-endian where 2-byte blocks are swapped.
-| `00000010 B` | Integers are in middle-endian where 4-byte blocks are swapped.
-| `00000011 B` | Integers are in middle-endian where 2-byte and 4-byte blocks are swapped.
-| `00000100 B` | Integers are in middle-endian where 8-byte blocks are swapped.
-| `00000101 B` | Integers are in middle-endian where 2-byte and 8-byte blocks are swapped.
-| `00000110 B` | Integers are in middle-endian where 4-byte and 8-byte blocks are swapped.
-| `00000111 B` | Integers are in big-endian (network order).
-| `aaaa0aaa B` | Message delivery happens later (buffered).
-| `aaaa1aaa B` | Message delivery happens immediately (unbuffered).
-| `aaaaaaaa B` | Free patterns for remaining `a` (240).
+| `0aaaaaaa B` | The message is narrow (one byte).
+| `1aaaaaaa B` | The message is wide (two bytes).
+| `a0000000 B` | Integers are in little-endian (stream order).
+| `a0010000 B` | Integers are in middle-endian with 2-byte blocks swapped.
+| `a0100000 B` | Integers are in middle-endian with 4-byte blocks are swapped.
+| `a0110000 B` | Integers are in middle-endian with 2-byte and 4-byte blocks swapped.
+| `a1000000 B` | Integers are in middle-endian with 8-byte blocks swapped.
+| `a1010000 B` | Integers are in middle-endian with 2-byte and 8-byte blocks swapped.
+| `a1100000 B` | Integers are in middle-endian with 4-byte and 8-byte blocks swapped.
+| `a1110000 B` | Integers are in big-endian (network order).
+| `aaaaaaaa B` | Free patterns (240).
 | `A bbbbbbbb` | Flags derived from `a` and the message body.
 | `A 0000bbbb` | Size information for message body.
 | `A 00000bbb` | Message body has a fixed size of `b` bytes.
@@ -144,21 +144,21 @@ sending or attempting to interpret such a thing is a protocol violation.
 | `A 00000111` | Message body is very large (7 B).
 | `A 00001bbb` | Message body has a variable size.
 | `A 000010bb` | Message body is terminated by a literal that spans `b` bytes.
-| `A 00001000 C` | Message body is terminated by a literal `c` (1 B).
-| `A 00001001 C C` | Message body is terminated by a literal `c` (2 B).
-| `A 00001010 C C C C` | Message body is terminated by a literal `c` (4 B).
-| `A 00001011 C C C C C C C C` | Message body is terminated by a literal `c` (8 B).
-| `A 000011bb` Message body has a size that fits into `b` bytes.
-| `A 00001100 C` | Message body has a size of `c` bytes (256 B).
-| `A 00001101 C C` | Message body has a size of `c` bytes (64 kiB).
-| `A 00001110 C C C C` | Message body has a size of `c` bytes (4 GiB).
-| `A 00001111 C C C C C C C C` | Message body has a size of `c` bytes (16 EiB).
-| `A bbbbbbbb` | Free patterns for remaining `b` (240).
+| `A 00001000 D` | Message body is terminated by a literal `d` (1 B).
+| `A 00001001 D D` | Message body is terminated by a literal `d` (2 B).
+| `A 00001010 D D D D` | Message body is terminated by a literal `d` (4 B).
+| `A 00001011 D D D D D D D D` | Message body is terminated by a literal `d` (8 B).
+| `A 000011bb` Message body size fits into `b` bytes.
+| `A 00001100 D` | Message body has a size of `d` bytes (256 B).
+| `A 00001101 D D` | Message body has a size of `d` bytes (64 kiB).
+| `A 00001110 D D D D` | Message body has a size of `d` bytes (4 GiB).
+| `A 00001111 D D D D D D D D` | Message body has a size of `d` bytes (16 EiB).
+| `A bbbbbbbb` | Free patterns (240).
 
 The purposes of some of the patterns overlap intentionally,
 so that one can neglect to implement the more complex parts
 (higher in bits to indicate) if the simpler ones are sufficient.
-There is also free pattern space for purposes not listed here.
+There is also free pattern space available for purposes not listed here.
 If they are not needed, the first first two bytes can be merged together.
 
 To summarize the table informally,
