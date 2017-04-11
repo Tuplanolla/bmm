@@ -676,7 +676,7 @@ void bmm_dem_def(struct bmm_dem* const dem,
 }
 
 static void bmm_dem_put(struct bmm_dem const* const dem,
-    enum bmm_msg const msg) {
+    enum bmm_msg_id const msg) {
   struct bmm_msg_head head;
   bmm_head_def(&head);
   bmm_bit_pset(&head.flags, BMM_FBIT_INTLE);

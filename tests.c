@@ -15,56 +15,56 @@ CHEAT_TEST(cpp_testbit,
 CHEAT_DECLARE(
   static uint64_t const sample = 0xfadedacebeeffeed;
 
-  struct bmm_msg_test {
+  struct msg_buf {
     size_t i;
-    uint8_t buf[10];
+    uint8_t buf[BMM_MSG_HEADSIZE];
   };
 
-  bool bmm_msg_test_read(uint8_t* const x, void* const ptr) {
-    struct bmm_msg_test* const test = ptr;
+  static bool msg_read(uint8_t* const x, void* const ptr) {
+    struct msg_buf* const buf = ptr;
 
-    *x = test->buf[test->i];
-    ++test->i;
+    *x = buf->buf[buf->i];
+    ++buf->i;
 
     return true;
   }
 
-  bool bmm_msg_test_write(uint8_t const* x, void* const ptr) {
-    struct bmm_msg_test* const test = ptr;
+  static bool msg_write(uint8_t const* x, void* const ptr) {
+    struct msg_buf* const buf = ptr;
 
-    test->buf[test->i] = *x;
-    ++test->i;
+    buf->buf[buf->i] = *x;
+    ++buf->i;
 
     return true;
   }
 )
 
 CHEAT_TEST(msg_spec_sp_iso,
-  for (enum bmm_msg_width width = BMM_MSG_WIDTH_NARROW;
-      width < BMM_MSG_WIDTH_WIDE;
-      ++width)
+  for (enum bmm_msg_prio prio = BMM_MSG_PRIO_LOW;
+      prio < BMM_MSG_PRIO_HIGH;
+      ++prio)
     for (enum bmm_msg_endian endian = BMM_MSG_ENDIAN_LITTLE;
         endian < BMM_MSG_ENDIAN_BIG;
         ++endian)
       for (size_t size = 0; size < 1000; ++size) {
         struct bmm_msg_spec in;
 
-        in.width = width;
+        in.prio = prio;
         in.endian = endian;
         in.tag = BMM_MSG_TAG_SP;
         in.msg.size = size;
 
-        struct bmm_msg_test test;
+        struct msg_buf buf;
 
-        test.i = 0;
-        bmm_msg_spec_write(&in, bmm_msg_test_write, &test);
+        buf.i = 0;
+        bmm_msg_spec_write(&in, msg_write, &buf);
 
         struct bmm_msg_spec out;
 
-        test.i = 0;
-        bmm_msg_spec_read(&out, bmm_msg_test_read, &test);
+        buf.i = 0;
+        bmm_msg_spec_read(&out, msg_read, &buf);
 
-        cheat_assert_int(in.width, out.width);
+        cheat_assert_int(in.prio, out.prio);
         cheat_assert_int(in.endian, out.endian);
         cheat_assert_int(in.tag, out.tag);
         cheat_assert_size(in.msg.size, out.msg.size);
@@ -72,16 +72,16 @@ CHEAT_TEST(msg_spec_sp_iso,
 )
 
 CHEAT_TEST(msg_spec_lt_iso,
-  for (enum bmm_msg_width width = BMM_MSG_WIDTH_NARROW;
-      width < BMM_MSG_WIDTH_WIDE;
-      ++width)
+  for (enum bmm_msg_prio prio = BMM_MSG_PRIO_LOW;
+      prio < BMM_MSG_PRIO_HIGH;
+      ++prio)
     for (enum bmm_msg_endian endian = BMM_MSG_ENDIAN_LITTLE;
         endian < BMM_MSG_ENDIAN_BIG;
         ++endian)
       for (size_t e = 0; e < 4; ++e) {
         struct bmm_msg_spec in;
 
-        in.width = width;
+        in.prio = prio;
         in.endian = endian;
         in.tag = BMM_MSG_TAG_LT;
         in.msg.term.e = e;
@@ -89,17 +89,17 @@ CHEAT_TEST(msg_spec_lt_iso,
         for (size_t i = 0; i < bmm_size_pow(2, e); ++i)
           in.msg.term.buf[i] = sample << i * 8 & 0xff;
 
-        struct bmm_msg_test test;
+        struct msg_buf buf;
 
-        test.i = 0;
-        bmm_msg_spec_write(&in, bmm_msg_test_write, &test);
+        buf.i = 0;
+        bmm_msg_spec_write(&in, msg_write, &buf);
 
         struct bmm_msg_spec out;
 
-        test.i = 0;
-        bmm_msg_spec_read(&out, bmm_msg_test_read, &test);
+        buf.i = 0;
+        bmm_msg_spec_read(&out, msg_read, &buf);
 
-        cheat_assert_int(in.width, out.width);
+        cheat_assert_int(in.prio, out.prio);
         cheat_assert_int(in.endian, out.endian);
         cheat_assert_int(in.tag, out.tag);
         cheat_assert_size(in.msg.term.e, out.msg.term.e);

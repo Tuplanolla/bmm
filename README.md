@@ -119,57 +119,54 @@ sending or attempting to interpret such a thing is a protocol violation.
 
 | Bit Pattern | Meaning
 |:------------|:--------
-| `aaaaaaaa B` | Flags for representation and delivery.
-| `0aaaaaaa B` | The message is narrow (one byte).
-| `1aaaaaaa B` | The message is wide (two bytes).
-| `a0000000 B` | Integers are in little-endian (stream order).
-| `a0010000 B` | Integers are in middle-endian with 2-byte blocks swapped.
-| `a0100000 B` | Integers are in middle-endian with 4-byte blocks are swapped.
-| `a0110000 B` | Integers are in middle-endian with 2-byte and 4-byte blocks swapped.
-| `a1000000 B` | Integers are in middle-endian with 8-byte blocks swapped.
-| `a1010000 B` | Integers are in middle-endian with 2-byte and 8-byte blocks swapped.
-| `a1100000 B` | Integers are in middle-endian with 4-byte and 8-byte blocks swapped.
-| `a1110000 B` | Integers are in big-endian (network order).
-| `aaaaaaaa B` | Free patterns (240).
-| `A bbbbbbbb` | Flags derived from `a` and the message body.
-| `A 0000bbbb` | Size information for the message body.
-| `A 00000bbb` | Message body has a fixed size of `b` bytes.
-| `A 00000000` | Message body is empty (0 B).
-| `A 00000001` | Message body is very small (1 B).
-| `A 00000010` | Message body is small (2 B).
-| `A 00000011` | Message body is medium small (3 B).
-| `A 00000100` | Message body is medium (4 B).
-| `A 00000101` | Message body is medium large (5 B).
-| `A 00000110` | Message body is large (6 B).
-| `A 00000111` | Message body is very large (7 B).
-| `A 00001bbb` | Message body has a variable size.
-| `A 000010bb` | Message body size fits into `b` bytes.
-| `A 00001000 D` | Message body has a size of `d` bytes (256 B).
-| `A 00001001 D D` | Message body has a size of `d` bytes (64 kiB).
-| `A 00001010 D D D D` | Message body has a size of `d` bytes (4 GiB).
-| `A 00001011 D D D D D D D D` | Message body has a size of `d` bytes (16 EiB).
-| `A 000011bb` | Message body is terminated by a literal that spans `b` bytes.
-| `A 00001100 D` | Message body is terminated by a literal `d` (1 B).
-| `A 00001101 D D` | Message body is terminated by a literal `d` (2 B).
-| `A 00001110 D D D D` | Message body is terminated by a literal `d` (4 B).
-| `A 00001111 D D D D D D D D` | Message body is terminated by a literal `d` (8 B).
-| `A bbbbbbbb` | Free patterns (240).
+| `0bbbdddd` | The message has low priority.
+| `1bbbdddd` | The message has high priority.
+| `a000dddd` | Integers are in little-endian (stream order).
+| `a001dddd` | Integers are in middle-endian with 2-byte blocks swapped.
+| `a010dddd` | Integers are in middle-endian with 4-byte blocks are swapped.
+| `a011dddd` | Integers are in middle-endian with 2-byte and 4-byte blocks swapped.
+| `a100dddd` | Integers are in middle-endian with 8-byte blocks swapped.
+| `a101dddd` | Integers are in middle-endian with 2-byte and 8-byte blocks swapped.
+| `a110dddd` | Integers are in middle-endian with 4-byte and 8-byte blocks swapped.
+| `a111dddd` | Integers are in big-endian (network order).
+| `abbb0ddd` | Message body has a fixed size of `d` bytes.
+| `abbb0000` | Message body is empty (0 B).
+| `abbb0001` | Message body is very small (1 B).
+| `abbb0010` | Message body is small (2 B).
+| `abbb0011` | Message body is medium small (3 B).
+| `abbb0100` | Message body is medium (4 B).
+| `abbb0101` | Message body is medium large (5 B).
+| `abbb0110` | Message body is large (6 B).
+| `abbb0111` | Message body is very large (7 B).
+| `abbb1ddd` | Message body has a variable size.
+| `abbb10dd` | Message body size fits into `d` bytes.
+| `abbb1000 E` | Message body has a size of `e` bytes (256 B).
+| `abbb1001 E E` | Message body has a size of `e` bytes (64 kiB).
+| `abbb1010 E E E E` | Message body has a size of `e` bytes (4 GiB).
+| `abbb1011 E E E E E E E E` | Message body has a size of `e` bytes (16 EiB).
+| `abbb11dd` | Message body is terminated by a literal that spans `d` bytes.
+| `abbb1100 E` | Message body is terminated by a literal `e` (1 B).
+| `abbb1101 E E` | Message body is terminated by a literal `e` (2 B).
+| `abbb1110 E E E E` | Message body is terminated by a literal `e` (4 B).
+| `abbb1111 E E E E E E E E` | Message body is terminated by a literal `e` (8 B).
 
 The purposes of some of the patterns overlap intentionally,
 so that one can neglect to implement the more complex parts
 (higher in bits to indicate) if the simpler ones are sufficient.
-There is also free pattern space available for purposes not listed here.
-If they are not needed, the first first two bytes can be merged together.
+
+The first octet is called the flags and then comes the prefix.
+Together they form the header.
+Afterwards is the body.
 
 To summarize the table informally,
-each message is prefixed by two bytes,
+each message is prefixed by two nibbles,
 the first of which contains user-set flags,
 the second of which contains derived flags.
 Additionally, for those messages whose bodies may vary in size,
 there is an extra prefix to signal the size of the message.
 The next byte contains the message type and after that comes the message body.
 
-In GNU C it would go as follows.
+In GNU C it would not go as follows.
 
     struct bmm_msg {
       uint8_t userset;

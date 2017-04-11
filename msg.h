@@ -8,24 +8,23 @@
 
 #include "cpp.h"
 #include "ext.h"
-#include "dem.h"
 
 /// This preprocessor directive refers to
 /// the maximal number of octets in the flag part of a message header.
-#define BMM_MSG_FLAGSIZE 2
+#define BMM_MSG_FLAGSIZE 1
 
 /// This preprocessor directive refers to
 /// the maximal number of octets in the prefix part of a message header.
-#define BMM_MSG_BUFSIZE 8
+#define BMM_MSG_PRESIZE 8
 
 /// This preprocessor directive refers to
 /// the maximal number of octets in a message header.
-#define BMM_MSG_HEADSIZE (BMM_MSG_FLAGSIZE + BMM_MSG_BUFSIZE)
+#define BMM_MSG_HEADSIZE (BMM_MSG_FLAGSIZE + BMM_MSG_PRESIZE)
 
-/// This enumeration specifies message header size.
-enum bmm_msg_width {
-  BMM_MSG_WIDTH_NARROW,
-  BMM_MSG_WIDTH_WIDE
+/// This enumeration specifies message priority.
+enum bmm_msg_prio {
+  BMM_MSG_PRIO_LOW,
+  BMM_MSG_PRIO_HIGH
 };
 
 /// This enumeration specifies integer endianness.
@@ -45,25 +44,30 @@ enum bmm_msg_tag {
 /// what kind of message they want to send.
 /// Middle-endianness or free patterns are not supported.
 struct bmm_msg_spec {
-  enum bmm_msg_width width;
+  enum bmm_msg_prio prio;
   enum bmm_msg_endian endian;
   union {
     size_t size;
     struct {
       size_t e;
-      uint8_t buf[BMM_MSG_BUFSIZE];
+      uint8_t buf[BMM_MSG_PRESIZE];
     } term;
   } msg;
   enum bmm_msg_tag tag;
 };
 
 /// These preprocessor directives help work with bits in message headers.
-#define BMM_MSG_MASK_WIDE (BMM_MASKBITS_1(7))
+#define BMM_MSG_MASK_PRIO (BMM_MASKBITS_1(7))
 #define BMM_MSG_MASK_ENDIAN (BMM_MASKBITS_3(6, 5, 4))
 #define BMM_MSG_MASK_VAR (BMM_MASKBITS_1(3))
 #define BMM_MSG_MASK_TAG (BMM_MASKBITS_1(2))
 #define BMM_MSG_MASK_FIXSIZE (BMM_MASKBITS_3(2, 1, 0))
 #define BMM_MSG_MASK_VARSIZE (BMM_MASKBITS_2(1, 0))
+
+/// The call `bmm_msg_spec_def(spec)`
+/// writes the default message specification into `spec`.
+__attribute__ ((__nonnull__))
+void bmm_msg_spec_def(struct bmm_msg_spec*);
 
 /// The call `bmm_msg_spec_read(spec, f, ptr)`
 /// extracts the message specification `spec`
@@ -83,18 +87,8 @@ __attribute__ ((__nonnull__ (1, 2)))
 bool bmm_msg_spec_write(struct bmm_msg_spec const*,
     bool (*)(uint8_t const*, void*), void*);
 
-struct bmm_msg_head {
-  unsigned char flags;
-  unsigned char type;
-};
-
-#define BMM_FBIT_INTLE 7
-#define BMM_FBIT_FPLE 5
-#define BMM_FBIT_FLUSH 4
-#define BMM_FBIT_BODY 3
-#define BMM_FBIT_PREFIX 2
-
-enum bmm_msg {
+// TODO Tune this.
+enum bmm_msg_id {
   BMM_MSG_NOP = 0,
   BMM_MSG_NSTEP = 60,
   BMM_MSG_NPART = 142,
@@ -105,7 +99,20 @@ enum bmm_msg {
   BMM_MSG_EVMOM = 187
 };
 
-// TODO Wrangle prototypes.
+// TODO Deprecate the rest.
+
+#include "dem.h"
+
+struct bmm_msg_head {
+  unsigned char flags;
+  unsigned char type;
+};
+
+#define BMM_FBIT_INTLE 7
+#define BMM_FBIT_FPLE 5
+#define BMM_FBIT_FLUSH 4
+#define BMM_FBIT_BODY 3
+#define BMM_FBIT_PREFIX 2
 
 __attribute__ ((__nonnull__ (2)))
 bool bmm_msg_preread(size_t* const ptr, struct bmm_msg_head const* const head);
