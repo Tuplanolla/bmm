@@ -1,6 +1,9 @@
+*.gch
+*.i
 *.log
 *.o
 *.out
+*.s
 *.tar.gz
 /*.run
 /bmm-dem

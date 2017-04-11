@@ -14,6 +14,7 @@ enum bmm_tle_num {
   BMM_TLE_PARSE,
   BMM_TLE_IO,
   BMM_TLE_ASYNC,
+  BMM_TLE_UNIMPL,
   BMM_TLE_SDL,
   BMM_TLE_UNKNOWN
 };

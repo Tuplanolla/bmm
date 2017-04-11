@@ -8,11 +8,13 @@ flags=-D_GNU_SOURCE -DDEBUG -O0 -g \
 	-Wno-switch
 endif
 ifeq ($(CONFIG), profile)
-flags=-DNDEBUG -O3 -g
+flags=-DNDEBUG -O3 -g -save-temps
 endif
 ifeq ($(CONFIG), release)
 flags=-DNDEBUG -O3 -Wl,-s -w
 endif
+# TODO Remove this.
+flags+=-Wno-used-but-marked-unused
 endif
 
 ifeq ($(CC), gcc)
@@ -28,7 +30,7 @@ flags=-D_GNU_SOURCE -DDEBUG -Og -g \
 	-Wno-missing-declarations -Wno-missing-prototypes
 endif
 ifeq ($(CONFIG), profile)
-flags=-D_GNU_SOURCE -DNDEBUG -O3 -g -pg
+flags=-D_GNU_SOURCE -DNDEBUG -O3 -g -pg -save-temps
 endif
 ifeq ($(CONFIG), release)
 flags=-D_GNU_SOURCE -DNDEBUG -O3 -s -w
@@ -87,7 +89,7 @@ clean: shallow-clean
 	$(RM) bmm-dem bmm-sdl tests
 
 shallow-clean:
-	$(RM) *.gch *.o
+	$(RM) *.gch *.i *.o *.s
 
 bmm-dem: bmm-dem.o \
 	bit.o dem.o fp.o geom.o geom2d.o hack.o io.o msg.o \
@@ -104,7 +106,9 @@ bmm-sdl: bmm-sdl.o \
 	opt.o sdl.o sec.o sig.o size.o str.o tle.o
 	$(CC) $(CFLAGS) $(CFLAGSSDL) -o $@ $^ $(LDLIBS) $(LDLIBSSDL)
 
-tests: tests.o
+tests: tests.o \
+	bit.o dem.o fp.o geom.o geom2d.o hack.o io.o msg.o \
+	opt.o sec.o sig.o size.o str.o tle.o
 	$(CC) $(CFLAGS) $(CFLAGSGSL) -o $@ $^ $(LDLIBS) $(LDLIBSGSL)
 
 %.o: %.c *.h

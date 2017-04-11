@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -13,6 +14,219 @@
 void bmm_head_def(struct bmm_msg_head* const head) {
   head->flags = 0;
   head->type = 0;
+}
+
+bool bmm_msg_spec_read(struct bmm_msg_spec* const spec,
+    bool (* const f)(uint8_t*, void*), void* const ptr) {
+  uint8_t head;
+
+  if (!f(&head, ptr))
+    return false;
+
+  uint8_t userset0 = head & 0xf0;
+  uint8_t derived0;
+
+  if (BMM_TESTBIT(head, BMM_MSG_BIT_WIDE)) {
+    spec->width = BMM_MSG_WIDTH_WIDE;
+
+    uint8_t snd;
+
+    if (!f(&snd, ptr))
+      return false;
+
+    derived0 = snd & 0x0f;
+  } else {
+    spec->width = BMM_MSG_WIDTH_NARROW;
+
+    derived0 = head & 0x0f;
+  }
+
+  switch (BMM_CLEARBIT(userset0, BMM_MSG_BIT_WIDE) >> 4) {
+    case 0:
+      spec->endian = BMM_MSG_ENDIAN_LITTLE;
+
+      break;
+    case 7:
+      spec->endian = BMM_MSG_ENDIAN_BIG;
+
+      break;
+    default:
+      BMM_TLE_EXTS(BMM_TLE_UNIMPL, "Unsupported endianness");
+
+      return false;
+  }
+
+  if (BMM_TESTBIT(derived0, BMM_MSG_BIT_VAR)) {
+    // TODO Mask the others too.
+    size_t const log2size = (size_t) (derived0 & BMM_MSG_MASK_VARSIZE);
+    size_t const logsize = bmm_size_pow(2, log2size);
+
+    uint8_t buf[8];
+
+    for (size_t i = 0; i < sizeof buf / sizeof *buf; ++i)
+      buf[i] = 0;
+
+    for (size_t i = 0; i < logsize; ++i)
+      if (!f(&buf[i], ptr))
+        return false;
+
+    if (BMM_TESTBIT(derived0, BMM_MSG_BIT_TAG)) {
+      spec->tag = BMM_MSG_TAG_SP;
+
+      // TODO Yeah...
+      size_t k = 0;
+      switch (spec->endian) {
+        case BMM_MSG_ENDIAN_LITTLE:
+          for (size_t i = 0; i < logsize; ++i)
+            k |= (size_t) buf[i] << i * 8;
+
+          break;
+        case BMM_MSG_ENDIAN_BIG:
+          for (size_t i = 0; i < logsize; ++i)
+            k |= (size_t) buf[logsize - 1 - i] << i * 8;
+
+          break;
+      }
+
+      spec->msg.size = k;
+    } else {
+      spec->tag = BMM_MSG_TAG_LT;
+
+      spec->msg.term.nmemb = logsize;
+
+      for (size_t i = 0; i < logsize; ++i)
+        spec->msg.term.buf[i] = buf[i];
+    }
+  } else {
+    spec->tag = BMM_MSG_TAG_SP;
+
+    spec->msg.size = (size_t) derived0;
+  }
+
+  return true;
+}
+
+bool bmm_msg_spec_write(struct bmm_msg_spec const* const spec,
+    bool (* const f)(uint8_t const*, void*), void* const ptr) {
+  uint8_t userset0;
+
+  switch (spec->endian) {
+    case BMM_MSG_ENDIAN_LITTLE:
+      userset0 = 0;
+
+      break;
+    case BMM_MSG_ENDIAN_BIG:
+      userset0 = 7;
+
+      break;
+  }
+
+  userset0 <<= 4;
+
+  uint8_t derived0;
+
+  uint8_t buf[8];
+  size_t nmemb;
+
+  for (size_t i = 0; i < sizeof buf / sizeof *buf; ++i)
+    buf[i] = 0;
+
+  switch (spec->tag) {
+    case BMM_MSG_TAG_LT:
+      {
+        dynamic_assert(spec->msg.term.nmemb <=
+            sizeof spec->msg.term.buf / sizeof *spec->msg.term.buf,
+            "Buffer would overflow");
+
+        // TODO Ensure power-of-twoness.
+
+        size_t const logsize = bmm_size_cilog(spec->msg.term.nmemb, 2);
+
+        (void) memcpy(buf, spec->msg.term.buf, spec->msg.term.nmemb);
+
+        nmemb = spec->msg.term.nmemb;
+
+        derived0 = (uint8_t) logsize;
+
+        derived0 = BMM_SETBIT(derived0, BMM_MSG_BIT_VAR);
+      }
+
+      break;
+    case BMM_MSG_TAG_SP:
+      {
+        size_t const size = spec->msg.size;
+
+        if (spec->msg.size < 8) {
+          derived0 = (uint8_t) size;
+
+          nmemb = 0;
+        } else {
+          // TODO This is still wrong.
+          size_t const logsize = bmm_size_cilog(size, 2) / 8;
+          size_t const log2size = bmm_size_cilog(logsize, 2);
+          size_t const powsize = bmm_size_pow(2, log2size);
+
+          printf("[%zu,%zu,%zu]\n", logsize, log2size, powsize);
+
+          derived0 = (uint8_t) log2size;
+
+          derived0 = BMM_SETBIT(derived0, BMM_MSG_BIT_TAG);
+
+          // TODO Yeah...
+          switch (spec->endian) {
+            case BMM_MSG_ENDIAN_LITTLE:
+              for (size_t i = 0; i < powsize; ++i)
+                buf[i] = (uint8_t) (size >> i * 8 & 0xff);
+
+              break;
+            case BMM_MSG_ENDIAN_BIG:
+              for (size_t i = 0; i < powsize; ++i)
+                buf[powsize - 1 - i] = (uint8_t) (size >> i * 8 & 0xff);
+
+              break;
+          }
+
+          nmemb = powsize;
+
+          derived0 = BMM_SETBIT(derived0, BMM_MSG_BIT_VAR);
+        }
+      }
+
+      break;
+  }
+
+  size_t width0;
+
+  size_t j = 1;
+
+  uint8_t pbuf[10];
+
+  switch (spec->width) {
+    case BMM_MSG_WIDTH_NARROW:
+      width0 = 0;
+
+      pbuf[0] = width0 | userset0 | derived0;
+
+      break;
+    case BMM_MSG_WIDTH_WIDE:
+      width0 = 1 << 7;
+
+      pbuf[0] = width0 | userset0;
+      pbuf[1] = derived0;
+
+      ++j;
+
+      break;
+  }
+
+  for (size_t i = 0; i < nmemb; ++i)
+    pbuf[j + i] = buf[i];
+
+  for (size_t i = 0; i < nmemb + j; ++i)
+    if (!f(&pbuf[i], ptr))
+      return false;
+
+  return true;
 }
 
 // TODO Put this elsewhere.

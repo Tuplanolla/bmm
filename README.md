@@ -132,7 +132,7 @@ sending or attempting to interpret such a thing is a protocol violation.
 | `a1110000 B` | Integers are in big-endian (network order).
 | `aaaaaaaa B` | Free patterns (240).
 | `A bbbbbbbb` | Flags derived from `a` and the message body.
-| `A 0000bbbb` | Size information for message body.
+| `A 0000bbbb` | Size information for the message body.
 | `A 00000bbb` | Message body has a fixed size of `b` bytes.
 | `A 00000000` | Message body is empty (0 B).
 | `A 00000001` | Message body is very small (1 B).
@@ -148,7 +148,7 @@ sending or attempting to interpret such a thing is a protocol violation.
 | `A 00001001 D D` | Message body is terminated by a literal `d` (2 B).
 | `A 00001010 D D D D` | Message body is terminated by a literal `d` (4 B).
 | `A 00001011 D D D D D D D D` | Message body is terminated by a literal `d` (8 B).
-| `A 000011bb` Message body size fits into `b` bytes.
+| `A 000011bb` | Message body size fits into `b` bytes.
 | `A 00001100 D` | Message body has a size of `d` bytes (256 B).
 | `A 00001101 D D` | Message body has a size of `d` bytes (64 kiB).
 | `A 00001110 D D D D` | Message body has a size of `d` bytes (4 GiB).
