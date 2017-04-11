@@ -2,7 +2,7 @@
 /// Interactive viewer based on SDL and OpenGL.
 #define BMM_SDL_H
 
-#include <SDL/SDL.h>
+#include <SDL2/SDL.h>
 #include <limits.h>
 #include <stdbool.h>
 #include <stddef.h>

@@ -3,9 +3,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+// TODO Include order.
+#include "sdl.h"
+
 #include "ext.h"
 #include "opt.h"
-#include "sdl.h"
 #include "str.h"
 #include "tle.h"
 

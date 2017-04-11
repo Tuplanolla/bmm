@@ -35,12 +35,14 @@ flags=-D_GNU_SOURCE -DNDEBUG -O3 -s -w
 endif
 endif
 
+# TODO These are a bit messy.
+
 CFLAGS=-D_POSIX_C_SOURCE=200809L -std=c11 $(flags)
 LDLIBS=-lm -lrt
-CFLAGSGSL=`pkg-config --cflags gsl`
-LDLIBSGSL=`pkg-config --libs gsl`
-CFLAGSSDL=`pkg-config --cflags freeglut gl gsl sdl`
-LDLIBSSDL=`pkg-config --libs freeglut gl gsl sdl`
+CFLAGSGSL=`pkg-config --cflags cheat gsl`
+LDLIBSGSL=`pkg-config --libs cheat gsl`
+CFLAGSSDL=`pkg-config --cflags freeglut gl gsl sdl2`
+LDLIBSSDL=`pkg-config --libs freeglut gl gsl sdl2`
 
 build: bmm-dem bmm-filter bmm-sdl
 
@@ -75,11 +77,14 @@ profile-gprof: build
 	./bmm-dem > /dev/null
 	gprof ./bmm-dem
 
+test: tests
+	./tests
+
 deep-clean: clean
 	$(RM) *.log *.run
 
 clean: shallow-clean
-	$(RM) bmm-dem bmm-sdl
+	$(RM) bmm-dem bmm-sdl tests
 
 shallow-clean:
 	$(RM) *.gch *.o
@@ -99,5 +104,8 @@ bmm-sdl: bmm-sdl.o \
 	opt.o sdl.o sec.o sig.o size.o str.o tle.o
 	$(CC) $(CFLAGS) $(CFLAGSSDL) -o $@ $^ $(LDLIBS) $(LDLIBSSDL)
 
+tests: tests.o
+	$(CC) $(CFLAGS) $(CFLAGSGSL) -o $@ $^ $(LDLIBS) $(LDLIBSGSL)
+
 %.o: %.c *.h
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) $(CFLAGSGSL) -c -o $@ $<

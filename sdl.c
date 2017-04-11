@@ -1,6 +1,6 @@
 #include <GL/gl.h>
 #include <GL/glut.h>
-#include <SDL/SDL.h>
+#include <SDL2/SDL.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -16,6 +16,9 @@
 #include "sdl.h"
 #include "size.h"
 #include "tle.h"
+
+static SDL_Window* window;
+static SDL_GLContext glcontext;
 
 extern inline void bmm_sdl_t_to_timeval(struct timeval*, Uint32);
 
@@ -270,25 +273,22 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
       buf->npart);
   glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
 
-  SDL_GL_SwapBuffers();
+  SDL_GL_SwapWindow(window);
 }
 
 static bool bmm_sdl_video(struct bmm_sdl* const sdl,
     int const width, int const height) {
-  SDL_VideoInfo const* const info = SDL_GetVideoInfo();
-  if (info == NULL) {
+  Uint32 const flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
+  window = SDL_CreateWindow("BMM",
+      SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+      width, height, flags);
+  if (window == NULL) {
     BMM_TLE_EXTS(BMM_TLE_SDL, "SDL error: %s", SDL_GetError());
 
     return false;
   }
 
-  int const bpp = info->vfmt->BitsPerPixel;
-  Uint32 const flags = SDL_OPENGL | SDL_RESIZABLE;
-  if (SDL_SetVideoMode(width, height, bpp, flags) == NULL) {
-    BMM_TLE_EXTS(BMM_TLE_SDL, "SDL error: %s", SDL_GetError());
-
-    return false;
-  }
+  glcontext = SDL_GL_CreateContext(window);
 
   glViewport(0, 0, width, height);
 
@@ -318,8 +318,8 @@ static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
       switch (event.type) {
         case SDL_QUIT:
           return true;
-        case SDL_VIDEORESIZE:
-          if (!bmm_sdl_video(sdl, event.resize.w, event.resize.h))
+        case SDL_WINDOWEVENT_RESIZED:
+          if (!bmm_sdl_video(sdl, event.window.data1, event.window.data2))
             return false;
           break;
         case SDL_KEYDOWN:
@@ -364,7 +364,7 @@ static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
                   (double) sdl->width * 0.5, (double) sdl->height * 0.25);
               break;
             case SDLK_0:
-            case SDLK_KP0:
+            case SDLK_KP_0:
               bmm_sdl_reset(sdl);
               break;
             case SDLK_1:
@@ -387,19 +387,19 @@ static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
               bmm_sdl_move(sdl,
                   (double) event.button.x, (double) event.button.y);
               break;
-            case SDL_BUTTON_WHEELDOWN:
-              bmm_sdl_zoom(sdl,
-                  (double) event.button.x, (double) event.button.y,
-                  1.0 / sdl->opts.zoomfac);
-              break;
-            case SDL_BUTTON_WHEELUP:
-              bmm_sdl_zoom(sdl,
-                  (double) event.button.x, (double) event.button.y,
-                  sdl->opts.zoomfac);
-              break;
             case SDL_BUTTON_MIDDLE:
               bmm_sdl_reset(sdl);
               break;
+          }
+        case SDL_MOUSEWHEEL:
+          if (event.wheel.y < 0) {
+            bmm_sdl_zoom(sdl,
+                (double) event.button.x, (double) event.button.y,
+                1.0 / sdl->opts.zoomfac);
+          } else if (event.wheel.y > 0) {
+            bmm_sdl_zoom(sdl,
+                (double) event.button.x, (double) event.button.y,
+                sdl->opts.zoomfac);
           }
       }
 
@@ -455,8 +455,6 @@ again:
 }
 
 bool bmm_sdl_run(struct bmm_sdl* const sdl) {
-  SDL_WM_SetCaption("BMM", NULL);
-
   if (SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8) == -1 ||
       SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8) == -1 ||
       SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8) == -1 ||
