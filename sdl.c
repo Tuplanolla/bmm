@@ -278,14 +278,16 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
 
 static bool bmm_sdl_video(struct bmm_sdl* const sdl,
     int const width, int const height) {
-  Uint32 const flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
-  window = SDL_CreateWindow("BMM",
-      SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-      width, height, flags);
   if (window == NULL) {
-    BMM_TLE_EXTS(BMM_TLE_SDL, "SDL error: %s", SDL_GetError());
+    Uint32 const flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
+    window = SDL_CreateWindow("BMM",
+        SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+        width, height, flags);
+    if (window == NULL) {
+      BMM_TLE_EXTS(BMM_TLE_SDL, "SDL error: %s", SDL_GetError());
 
-    return false;
+      return false;
+    }
   }
 
   glcontext = SDL_GL_CreateContext(window);
@@ -318,10 +320,13 @@ static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
       switch (event.type) {
         case SDL_QUIT:
           return true;
-        case SDL_WINDOWEVENT_RESIZED:
-          if (!bmm_sdl_video(sdl, event.window.data1, event.window.data2))
-            return false;
-          break;
+        case SDL_WINDOWEVENT:
+          switch (event.window.event) {
+            case SDL_WINDOWEVENT_RESIZED:
+              if (!bmm_sdl_video(sdl, event.window.data1, event.window.data2))
+                return false;
+              break;
+          }
         case SDL_KEYDOWN:
           switch (event.key.keysym.sym) {
             case SDLK_ESCAPE:
