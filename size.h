@@ -67,13 +67,6 @@ inline size_t bmm_size_pow(size_t const n, size_t const k) {
   return m;
 }
 
-/// The call `bmm_size_pow_2(k)`
-/// is equivalent to `bmm_size_pow(2, k)`.
-__attribute__ ((__const__, __pure__))
-inline size_t bmm_size_pow_2(size_t const k) {
-  return 1 << k;
-}
-
 /// The call `bmm_size_identity(n)` returns `n`.
 /// This is analogous to `bmm_fp_identity`.
 __attribute__ ((__const__, __pure__))
@@ -167,28 +160,6 @@ inline size_t bmm_size_filog(size_t n, size_t const k) {
   return m;
 }
 
-/// The call `bmm_size_filog_2(n)`
-/// is equivalent to `bmm_size_filog(n, 2)`.
-__attribute__ ((__const__, __pure__))
-inline size_t bmm_size_filog_2(size_t n) {
-  // dynamic_assert(n <= 0, "invalid argument");
-
-#define F(t, f, n) (sizeof (t) * CHAR_BIT - (t) f((t) n) - 1)
-
-#ifdef _GNU_SOURCE
-  if (sizeof (size_t) == sizeof (unsigned int))
-    return F(unsigned int, __builtin_clz, n);
-  else if (sizeof (size_t) == sizeof (unsigned long int))
-    return F(unsigned long int, __builtin_clzl, n);
-  else if (sizeof (size_t) == sizeof (unsigned long long int))
-    return F(unsigned long long int, __builtin_clzll, n);
-  else
-#endif
-    return bmm_size_filog(n, 2);
-
-#undef F
-}
-
 /// The call `bmm_size_cilog(n, k)`
 /// returns the ceiling of the base `k` logarithm of `n`.
 /// This is analogous to `bmm_fp_log`.
@@ -198,16 +169,6 @@ inline size_t bmm_size_cilog(size_t const n, size_t const k) {
   // dynamic_assert(k <= 1, "invalid base");
 
   return n <= 1 ? 0 : bmm_size_filog(n - 1, k) + 1;
-}
-
-/// The call `bmm_size_cilog_2(n)`
-/// is equivalent to `bmm_size_cilog(n, 2)`.
-__attribute__ ((__const__, __pure__))
-inline size_t bmm_size_cilog_2(size_t const n) {
-  // dynamic_assert(n <= 0, "invalid argument");
-  // dynamic_assert(k <= 1, "invalid base");
-
-  return n <= 1 ? 0 : bmm_size_filog_2(n - 1) + 1;
 }
 
 /// The call `bmm_size_uclamp(n, k)` returns

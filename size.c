@@ -13,8 +13,6 @@ extern inline size_t bmm_size_max(size_t, size_t);
 
 extern inline size_t bmm_size_pow(size_t, size_t);
 
-extern inline size_t bmm_size_pow_2(size_t);
-
 extern inline size_t bmm_size_identity(size_t);
 
 extern inline size_t bmm_size_constant(size_t, size_t);
@@ -33,11 +31,7 @@ extern inline size_t bmm_size_cirt(size_t, size_t);
 
 extern inline size_t bmm_size_filog(size_t, size_t);
 
-extern inline size_t bmm_size_filog_2(size_t);
-
 extern inline size_t bmm_size_cilog(size_t, size_t);
-
-extern inline size_t bmm_size_cilog_2(size_t);
 
 extern inline size_t bmm_size_uclamp(size_t, size_t);
 
