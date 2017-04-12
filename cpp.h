@@ -20,6 +20,7 @@
 
 /// The preprocessor directive `BMM_MASKBITS_n(...)`
 /// builds a bit mask from `n` exponents.
+// These were generated with `./maskbits 64`.
 #define BMM_MASKBITS_0() (0)
 #define BMM_MASKBITS_1(x0) (0 | (1 << (x0)))
 #define BMM_MASKBITS_2(x0, x1) (0 | (1 << (x0)) | (1 << (x1)))

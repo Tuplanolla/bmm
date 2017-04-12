@@ -24,6 +24,18 @@ enum bmm_io_read {
   BMM_IO_READ_SUCCESS
 };
 
+/// The call `bmm_io_read_to_bool(result)`
+/// converts the status code `result` into a truth value.
+inline bool bmm_io_read_to_bool(enum bmm_io_read const result) {
+  switch (result) {
+    case BMM_IO_READ_ERROR:
+    case BMM_IO_READ_EOF:
+      return false;
+    case BMM_IO_READ_SUCCESS:
+      return true;
+  }
+}
+
 /// The call `bmm_io_wait(fd, timeout)`
 /// waits for input from the file descriptor `fd` or times out after `timeout`.
 /// The remaining time is written into `timeout`.

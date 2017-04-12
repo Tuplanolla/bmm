@@ -397,6 +397,7 @@ static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
               bmm_sdl_reset(sdl);
               break;
           }
+          break;
         case SDL_MOUSEWHEEL:
           {
             int x;

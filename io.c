@@ -5,6 +5,8 @@
 
 #include "io.h"
 
+extern inline bool bmm_io_read_to_bool(enum bmm_io_read);
+
 enum bmm_io_wait bmm_io_wait(int const fd, struct timeval* const timeout) {
   fd_set fds;
   FD_ZERO(&fds);

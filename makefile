@@ -83,7 +83,7 @@ test: tests
 	./tests
 
 deep-clean: clean
-	$(RM) *.log *.run
+	$(RM) *.log *.out *.run
 
 clean: shallow-clean
 	$(RM) bmm-dem bmm-sdl tests

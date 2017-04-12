@@ -6,6 +6,8 @@
 
 #include "ext.h"
 
+// TODO Deprecate this translation unit.
+
 /// The call `bmm_bit_test(x, n)`
 /// checks whether `x` has the bit at index `n` set.
 __attribute__ ((__const__, __pure__))

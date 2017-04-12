@@ -3,14 +3,8 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "cpp.h"
 #include "msg.h"
 #include "size.h"
-
-CHEAT_TEST(cpp_testbit,
-  for (size_t i = 0; i < 8; ++i)
-    cheat_assert(BMM_TESTBIT(1 << i, i));
-)
 
 CHEAT_DECLARE(
   static uint64_t const sample = 0xfadedacebeeffeed;

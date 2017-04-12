@@ -50,6 +50,8 @@ struct bmm_dem_opts {
   double tcomm;
   // Link length creation multiplier.
   double linkslurp;
+  // Link length shrink multiplier.
+  double linkoff;
   // Link strength (according to Hooke's law).
   double klink;
   // Drift leeway velocity.

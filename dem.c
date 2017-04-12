@@ -360,7 +360,7 @@ bool bmm_dem_link(struct bmm_dem* const dem) {
       if (d2 < bmm_fp_sq(dem->opts.linkslurp *
             (buf->partcs[ipart].rrad + buf->partcs[jpart].rrad)))
         if (bmm_dem_pushl(list, jpart))
-          list->linkl[list->n - 1].x0 = sqrt(d2);
+          list->linkl[list->n - 1].x0 = dem->opts.linkoff * sqrt(d2);
     }
   }
 
@@ -552,7 +552,8 @@ void bmm_dem_opts_def(struct bmm_dem_opts* const opts) {
   opts->tstepcomm = 1.0;
   opts->tcomm = 0.0;
   opts->vleeway = 0.01;
-  opts->linkslurp = 1.02;
+  opts->linkslurp = 1.1;
+  opts->linkoff = 0.95;
   opts->klink = 120.0;
   opts->fcohes = 0.02;
   opts->vcrunch[0] = 5e-16;
@@ -574,7 +575,7 @@ void bmm_dem_opts_def(struct bmm_dem_opts* const opts) {
   opts->klink *= 4.0;
   opts->fcohes /= 2.0;
   opts->rmean /= 2.0;
-  opts->vcrunch[0] /= 1e+4;
+  opts->vcrunch[0] /= 4e+4;
   opts->lucky *= 8;
 #endif
 

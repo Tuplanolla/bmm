@@ -1,59 +1,57 @@
 #include <limits.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-static int cheat_print_parameters(size_t const parameters) {
-  size_t index;
+static bool pars(size_t const n) {
+  for (size_t i = 0; i < n; ++i) {
+    if (i != 0)
+      if (printf(", ") < 0)
+        return false;
 
-  for (index = 0;
-      index < parameters;
-      ++index) {
-    if (index != 0)
-      (void )printf(", ");
-    (void )printf("x%zu", index);
+    if (printf("x%zu", i) < 0)
+      return false;
   }
-  return 0;
+
+  return true;
 }
 
-static int cheat_print_parametersx(size_t const parameters) {
-  size_t index;
+static bool terms(size_t const n) {
+  if (printf("(0") < 0)
+    return false;
 
-  (void )printf("(0");
-  for (index = 0;
-      index < parameters;
-      ++index) {
-    (void )printf(" | (1 << (x%zu))", index);
-  }
-  (void )printf(")");
-  return 0;
+  for (size_t i = 0; i < n; ++i)
+    if (printf(" | (1 << (x%zu))", i) < 0)
+      return false;
+
+  if (printf(")") < 0)
+    return false;
+
+  return true;
 }
 
-static int cheat_print_definitions(size_t const parameters) {
-  size_t index;
+static bool dirs(size_t const n) {
+  for (size_t i = 0; i <= n; ++i)
+    if (printf("#define BMM_MASKBITS_%zu(", i) < 0 ||
+        !pars(i) ||
+        printf(") ") < 0 ||
+        !terms(i) ||
+        printf("\n") < 0)
+      return false;
 
-  for (index = 0;
-      index <= parameters;
-      ++index) {
-    (void )printf("#define BMM_MASKBITS_%zu(", index);
-    (void )cheat_print_parameters(index);
-    (void )printf(") ");
-    (void )cheat_print_parametersx(index);
-    (void )printf("\n");
-  }
-  return 0;
+  return true;
 }
 
-int main(int const count, char** const arguments) {
-  long int index;
-
-  if (count != 2)
+int main(int const argc, char** const argv) {
+  if (argc != 2)
     return EXIT_FAILURE;
 
-  index = strtol(arguments[1], NULL, 10);
-  if (index < 1 || index == LONG_MAX)
+  unsigned long int n = strtoul(argv[1], NULL, 10);
+  if (n == ULONG_MAX)
     return EXIT_FAILURE;
 
-  (void )cheat_print_definitions((size_t )index);
+  if (!dirs((size_t) n))
+    return EXIT_FAILURE;
 
   return EXIT_SUCCESS;
 }
