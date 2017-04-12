@@ -14,9 +14,9 @@ void bmm_msg_spec_def(struct bmm_msg_spec* const spec) {
 }
 
 bool bmm_msg_spec_read(struct bmm_msg_spec* const spec,
-    bool (* const f)(uint8_t*, void*), void* const ptr) {
+    bmm_msg_reader const f, void* const ptr) {
   uint8_t flags;
-  if (!f(&flags, ptr))
+  if (!f(&flags, 1, ptr))
     return false;
 
   if (BMM_MASKALL(flags, BMM_MSG_MASK_PRIO))
@@ -44,9 +44,8 @@ bool bmm_msg_spec_read(struct bmm_msg_spec* const spec,
     size_t const presize = bmm_size_pow(2, flagsize);
 
     uint8_t buf[BMM_MSG_PRESIZE];
-    for (size_t i = 0; i < presize; ++i)
-      if (!f(&buf[i], ptr))
-        return false;
+    if (!f(buf, presize, ptr))
+      return false;
 
     if (BMM_MASKALL(flags, BMM_MSG_MASK_TAG)) {
       spec->tag = BMM_MSG_TAG_LT;
@@ -84,7 +83,7 @@ bool bmm_msg_spec_read(struct bmm_msg_spec* const spec,
 }
 
 bool bmm_msg_spec_write(struct bmm_msg_spec const* const spec,
-    bool (* const f)(uint8_t const*, void*), void* const ptr) {
+    bmm_msg_writer const f, void* const ptr) {
   uint8_t flags = BMM_MASKBITS_0();
 
   switch (spec->prio) {
@@ -159,12 +158,33 @@ bool bmm_msg_spec_write(struct bmm_msg_spec const* const spec,
       break;
   }
 
-  if (!f(&flags, ptr))
+  if (!f(&flags, 1, ptr))
     return false;
 
-  for (size_t i = 0; i < presize; ++i)
-    if (!f(&buf[i], ptr))
-      return false;
+  if (!f(buf, presize, ptr))
+    return false;
+
+  return true;
+}
+
+bool bmm_msg_type_read(enum bmm_msg_type* const type,
+    bmm_msg_reader const f, void* const ptr) {
+  uint8_t buf;
+  if (!f(&buf, 1, ptr))
+    return false;
+
+  *type = (enum bmm_msg_type) buf;
+
+  return true;
+}
+
+bool bmm_msg_type_write(enum bmm_msg_type const* const type,
+    bmm_msg_writer const f, void* const ptr) {
+  dynamic_assert(*type <= 0xff, "Type would be truncated");
+
+  uint8_t buf = (uint8_t) *type;
+  if (!f(&buf, 1, ptr))
+    return false;
 
   return true;
 }

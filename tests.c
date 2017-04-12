@@ -20,20 +20,24 @@ CHEAT_DECLARE(
     uint8_t buf[BMM_MSG_HEADSIZE];
   };
 
-  static bool msg_read(uint8_t* const x, void* const ptr) {
+  static bool msg_read(uint8_t* const x, size_t const n, void* const ptr) {
     struct msg_buf* const buf = ptr;
 
-    *x = buf->buf[buf->i];
-    ++buf->i;
+    for (size_t i = 0; i < n; ++i) {
+      x[i] = buf->buf[buf->i];
+      ++buf->i;
+    }
 
     return true;
   }
 
-  static bool msg_write(uint8_t const* x, void* const ptr) {
+  static bool msg_write(uint8_t const* x, size_t const n, void* const ptr) {
     struct msg_buf* const buf = ptr;
 
-    buf->buf[buf->i] = *x;
-    ++buf->i;
+    for (size_t i = 0; i < n; ++i) {
+      buf->buf[buf->i] = x[i];
+      ++buf->i;
+    }
 
     return true;
   }

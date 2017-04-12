@@ -9,17 +9,12 @@
 #include "cpp.h"
 #include "ext.h"
 
-/// This preprocessor directive refers to
-/// the maximal number of octets in the flag part of a message header.
+/// These preprocessor directives define
+/// the maximal number of octets for various parts of a message.
 #define BMM_MSG_FLAGSIZE 1
-
-/// This preprocessor directive refers to
-/// the maximal number of octets in the prefix part of a message header.
 #define BMM_MSG_PRESIZE 8
-
-/// This preprocessor directive refers to
-/// the maximal number of octets in a message header.
 #define BMM_MSG_HEADSIZE (BMM_MSG_FLAGSIZE + BMM_MSG_PRESIZE)
+#define BMM_MSG_TYPESIZE 1
 
 /// This enumeration specifies message priority.
 enum bmm_msg_prio {
@@ -69,26 +64,30 @@ struct bmm_msg_spec {
 __attribute__ ((__nonnull__))
 void bmm_msg_spec_def(struct bmm_msg_spec*);
 
+typedef bool (* bmm_msg_reader)(uint8_t*, size_t, void*);
+
+typedef bool (* bmm_msg_writer)(uint8_t const*, size_t, void*);
+
 /// The call `bmm_msg_spec_read(spec, f, ptr)`
 /// extracts the message specification `spec`
 /// from the message header `buf` of length `n`
-/// that is obtained by sequentially calling `f(&buf[i], ptr)` for all `i`.
-/// It is guaranteed that `n <= 10`.
+/// that is read by calling `f(buf, n, ptr)` as shown or
+/// in chunks of size `0 < k < n`.
+/// It is guaranteed that `n <= BMM_MSG_HEADSIZE`.
 __attribute__ ((__nonnull__ (1, 2)))
-bool bmm_msg_spec_read(struct bmm_msg_spec*,
-    bool (*)(uint8_t*, void*), void*);
+bool bmm_msg_spec_read(struct bmm_msg_spec*, bmm_msg_reader, void*);
 
 /// The call `bmm_msg_spec_write(spec, f, ptr)`
 /// builds the message header `buf` of length `n`
 /// for the message specification `spec` and
-/// sequentially calls `f(&buf[i], ptr)` for all `i`.
-/// It is guaranteed that `n <= 10`.
+/// writes it by sequentially calling `f(buf, n, ptr)` as shown or
+/// in chunks of size `0 < k < n`.
+/// It is guaranteed that `n <= BMM_MSG_HEADSIZE`.
 __attribute__ ((__nonnull__ (1, 2)))
-bool bmm_msg_spec_write(struct bmm_msg_spec const*,
-    bool (*)(uint8_t const*, void*), void*);
+bool bmm_msg_spec_write(struct bmm_msg_spec const*, bmm_msg_writer, void*);
 
 // TODO Tune this.
-enum bmm_msg_id {
+enum bmm_msg_type {
   BMM_MSG_NOP = 0,
   BMM_MSG_NSTEP = 60,
   BMM_MSG_NPART = 142,
@@ -98,6 +97,24 @@ enum bmm_msg_id {
   BMM_MSG_ESMOM = 186,
   BMM_MSG_EVMOM = 187
 };
+
+/// The call `bmm_msg_type_read(type, f, ptr)`
+/// extracts the message type `type`
+/// from the message header `buf` of length `n`
+/// that is read by calling `f(buf, n, ptr)` as shown or
+/// in chunks of size `0 < k < n`.
+/// It is guaranteed that `n <= BMM_MSG_TYPESIZE`.
+__attribute__ ((__nonnull__ (1, 2)))
+bool bmm_msg_type_read(enum bmm_msg_type*, bmm_msg_reader, void*);
+
+/// The call `bmm_msg_type_write(type, f, ptr)`
+/// builds the message type `buf` of length `n`
+/// for the message specification `type` and
+/// writes it by sequentially calling `f(buf, n, ptr)` as shown or
+/// in chunks of size `0 < k < n`.
+/// It is guaranteed that `n <= BMM_MSG_TYPESIZE`.
+__attribute__ ((__nonnull__ (1, 2)))
+bool bmm_msg_type_write(enum bmm_msg_type const*, bmm_msg_writer, void*);
 
 // TODO Deprecate the rest.
 

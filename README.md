@@ -154,9 +154,13 @@ The purposes of some of the patterns overlap intentionally,
 so that one can neglect to implement the more complex parts
 (higher in bits to indicate) if the simpler ones are sufficient.
 
-The first octet is called the flags and then comes the prefix.
+The first octet is called the flags and then comes the (possibly empty) prefix.
 Together they form the header.
-Afterwards is the body.
+Afterwards comes the body, which begins with a (possibly empty) type.
+The size in the prefix covers the whole body.
+
+    | Header         | Body
+    | Flags | Prefix | Type | Value
 
 To summarize the table informally,
 each message is prefixed by two nibbles,
