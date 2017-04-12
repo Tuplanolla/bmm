@@ -2,6 +2,7 @@
 #include <stdint.h>
 
 #include "cpp.h"
+#include "io.h"
 #include "msg.h"
 #include "size.h"
 #include "tle.h"
@@ -13,7 +14,7 @@ void bmm_msg_spec_def(struct bmm_msg_spec* const spec) {
   spec->msg.size = 0;
 }
 
-bool bmm_msg_spec_read(struct bmm_msg_spec* const spec,
+enum bmm_io_read bmm_msg_spec_read(struct bmm_msg_spec* const spec,
     bmm_msg_reader const f, void* const ptr) {
   uint8_t flags;
   if (!f(&flags, 1, ptr))
@@ -36,7 +37,7 @@ bool bmm_msg_spec_read(struct bmm_msg_spec* const spec,
     default:
       BMM_TLE_EXTS(BMM_TLE_UNIMPL, "Unsupported endianness");
 
-      return false;
+      return BMM_IO_READ_ERROR;
   }
 
   if (BMM_MASKALL(flags, BMM_MSG_MASK_VAR)) {
@@ -167,7 +168,7 @@ bool bmm_msg_spec_write(struct bmm_msg_spec const* const spec,
   return true;
 }
 
-bool bmm_msg_type_read(enum bmm_msg_type* const type,
+enum bmm_io_read bmm_msg_type_read(enum bmm_msg_type* const type,
     bmm_msg_reader const f, void* const ptr) {
   uint8_t buf;
   if (!f(&buf, 1, ptr))
@@ -189,7 +190,7 @@ bool bmm_msg_type_write(enum bmm_msg_type const* const type,
   return true;
 }
 
-bool bmm_msg_data_read(void* const data,
+enum bmm_io_read bmm_msg_data_read(void* const data,
     bmm_msg_reader const f, size_t const size) {
   return f(data, size, NULL);
 }

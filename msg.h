@@ -8,6 +8,7 @@
 
 #include "cpp.h"
 #include "ext.h"
+#include "io.h"
 
 /// These preprocessor directives define
 /// the maximal number of octets for various parts of a message.
@@ -64,7 +65,7 @@ struct bmm_msg_spec {
 __attribute__ ((__nonnull__))
 void bmm_msg_spec_def(struct bmm_msg_spec*);
 
-typedef bool (* bmm_msg_reader)(uint8_t*, size_t, void*);
+typedef enum bmm_io_read (* bmm_msg_reader)(uint8_t*, size_t, void*);
 
 typedef bool (* bmm_msg_writer)(uint8_t const*, size_t, void*);
 
@@ -75,7 +76,8 @@ typedef bool (* bmm_msg_writer)(uint8_t const*, size_t, void*);
 /// in chunks of size `0 < k < n`.
 /// It is guaranteed that `n <= BMM_MSG_HEADSIZE`.
 __attribute__ ((__nonnull__ (1, 2)))
-bool bmm_msg_spec_read(struct bmm_msg_spec*, bmm_msg_reader, void*);
+enum bmm_io_read bmm_msg_spec_read(struct bmm_msg_spec*,
+    bmm_msg_reader, void*);
 
 /// The call `bmm_msg_spec_write(spec, f, ptr)`
 /// builds the message header `buf` of length `n`
@@ -105,7 +107,7 @@ enum bmm_msg_type {
 /// in chunks of size `0 < k < n`.
 /// It is guaranteed that `n <= BMM_MSG_TYPESIZE`.
 __attribute__ ((__nonnull__ (1, 2)))
-bool bmm_msg_type_read(enum bmm_msg_type*, bmm_msg_reader, void*);
+enum bmm_io_read bmm_msg_type_read(enum bmm_msg_type*, bmm_msg_reader, void*);
 
 /// The call `bmm_msg_type_write(type, f, ptr)`
 /// builds the message header `buf` of length `n`
@@ -122,7 +124,7 @@ bool bmm_msg_type_write(enum bmm_msg_type const*, bmm_msg_writer, void*);
 /// that is read by calling `f(buf, n, NULL)` as shown or
 /// in chunks of size `0 < k < n`.
 __attribute__ ((__nonnull__ (1, 2)))
-bool bmm_msg_data_read(void*, bmm_msg_reader, size_t);
+enum bmm_io_read bmm_msg_data_read(void*, bmm_msg_reader, size_t);
 
 /// The call `bmm_msg_data_write(data, f, n)`
 /// builds the message body `buf` of length `n`
