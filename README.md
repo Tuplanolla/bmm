@@ -160,7 +160,7 @@ Afterwards comes the body, which begins with a (possibly empty) type.
 The size in the prefix covers the whole body.
 
     | Header         | Body
-    | Flags | Prefix | Type | Value
+    | Flags | Prefix | Type | Data
 
 To summarize the table informally,
 each message is prefixed by two nibbles,

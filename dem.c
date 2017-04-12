@@ -14,6 +14,7 @@
 #include "fp.h"
 #include "geom.h"
 #include "geom2d.h"
+#include "io.h"
 #include "msg.h"
 #include "sig.h"
 #include "size.h"
@@ -673,6 +674,117 @@ void bmm_dem_def(struct bmm_dem* const dem,
   buf->npart = 0;
 
   buf->neigh.tnext = 0.0;
+}
+
+// TODO Is this error handling bad?
+static bool msg_read(uint8_t const* buf, size_t const n,
+    __attribute__ ((__unused__)) void* const ptr) {
+  switch (bmm_io_readin(buf, n)) {
+    case BMM_IO_READ_ERROR:
+    case BMM_IO_READ_EOF:
+      return false;
+    case BMM_IO_READ_SUCCESS:
+      return true;
+  }
+}
+
+static bool msg_write(uint8_t const* buf, size_t const n,
+    __attribute__ ((__unused__)) void* const ptr) {
+  return bmm_io_writeout(buf, n);
+}
+
+static size_t bmm_dem_sniff_size(struct bmm_dem const* const dem,
+    enum bmm_msg_type const type) {
+  struct bmm_dem_buf const* const buf = bmm_dem_getrbuf(dem);
+
+  switch (type) {
+    case BMM_MSG_NPART:
+      return sizeof buf->npart;
+    case BMM_MSG_EKINE:
+      return sizeof dem->istep + sizeof dem->est;
+  }
+
+  dynamic_assert(false, "Unsupported message type");
+}
+
+static bool bmm_dem_gets_stuff(struct bmm_dem* const dem,
+    enum bmm_msg_type const type, size_t const size) {
+  struct bmm_dem_buf* const buf = bmm_dem_getbuf(dem);
+
+  switch (type) {
+    case BMM_MSG_NPART:
+      return bmm_msg_data_read(&buf->npart, msg_read, size);
+    case BMM_MSG_EKINE:
+      return bmm_msg_data_read(&dem->istep, msg_read, size) &&
+        bmm_msg_data_write(&dem->est, msg_write, size);
+  }
+
+  dynamic_assert(false, "Unsupported message type");
+}
+
+static bool bmm_dem_gets(struct bmm_dem* const dem,
+    enum bmm_msg_type* const type) {
+  struct bmm_msg_spec spec;
+  if (!bmm_msg_spec_read(&spec, msg_read, NULL))
+    return false;
+
+  if (spec.endian != BMM_MSG_ENDIAN_LITTLE) {
+    BMM_TLE_EXTS(BMM_TLE_UNIMPL, "Unsupported endianness");
+
+    return false;
+  }
+
+  if (spec.tag != BMM_MSG_TAG_SP) {
+    BMM_TLE_EXTS(BMM_TLE_UNIMPL, "Unsupported tag");
+
+    return false;
+  }
+
+  size_t const asize = spec.msg.size - BMM_MSG_TYPESIZE;
+
+  if (!bmm_msg_type_read(type, msg_read, NULL))
+    return false;
+
+  size_t const esize = bmm_dem_sniff_size(dem, *type);
+
+  if (esize != asize)
+    BMM_TLE_EXTS(BMM_TLE_UNKNOWN, "Size mismatch");
+  else if (esize < asize) {
+    BMM_TLE_EXTS(BMM_TLE_UNKNOWN, "Buffer would overflow");
+
+    return false;
+  }
+
+  return bmm_dem_gets_stuff(dem, *type, asize);
+}
+
+static bool bmm_dem_puts_stuff(struct bmm_dem const* const dem,
+    enum bmm_msg_type const type, size_t const size) {
+  struct bmm_dem_buf const* const buf = bmm_dem_getrbuf(dem);
+
+  switch (type) {
+    case BMM_MSG_NPART:
+      return bmm_msg_data_write(&buf->npart, msg_write, size);
+    case BMM_MSG_EKINE:
+      return bmm_msg_data_write(&dem->istep, msg_write, size) &&
+        bmm_msg_data_write(&dem->est, msg_write, size);
+  }
+
+  dynamic_assert(false, "Unsupported message type");
+}
+
+static bool bmm_dem_puts(struct bmm_dem const* const dem,
+    enum bmm_msg_type const type) {
+  size_t const size = bmm_dem_sniff_size(dem, type);
+
+  struct bmm_msg_spec spec;
+  bmm_msg_spec_def(&spec);
+  spec.endian = BMM_MSG_ENDIAN_LITTLE;
+  spec.msg.size = size + BMM_MSG_TYPESIZE;
+
+  return bmm_msg_spec_write(&spec, msg_write, NULL) &&
+    bmm_msg_type_write(&type, msg_write, NULL) &&
+    bmm_dem_puts_stuff(dem, type, size);
 }
 
 static void bmm_dem_put(struct bmm_dem const* const dem,

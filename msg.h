@@ -108,13 +108,29 @@ __attribute__ ((__nonnull__ (1, 2)))
 bool bmm_msg_type_read(enum bmm_msg_type*, bmm_msg_reader, void*);
 
 /// The call `bmm_msg_type_write(type, f, ptr)`
-/// builds the message type `buf` of length `n`
-/// for the message specification `type` and
+/// builds the message header `buf` of length `n`
+/// for the message type `type` and
 /// writes it by sequentially calling `f(buf, n, ptr)` as shown or
 /// in chunks of size `0 < k < n`.
 /// It is guaranteed that `n <= BMM_MSG_TYPESIZE`.
 __attribute__ ((__nonnull__ (1, 2)))
 bool bmm_msg_type_write(enum bmm_msg_type const*, bmm_msg_writer, void*);
+
+/// The call `bmm_msg_data_read(data, f, n)`
+/// extracts the message data `data`
+/// from the message body `buf` of length `n`
+/// that is read by calling `f(buf, n, NULL)` as shown or
+/// in chunks of size `0 < k < n`.
+__attribute__ ((__nonnull__ (1, 2)))
+bool bmm_msg_data_read(void*, bmm_msg_reader, size_t);
+
+/// The call `bmm_msg_data_write(data, f, n)`
+/// builds the message body `buf` of length `n`
+/// for the message data `data` and
+/// writes it by sequentially calling `f(buf, n, NULL)` as shown or
+/// in chunks of size `0 < k < n`.
+__attribute__ ((__nonnull__ (1, 2)))
+bool bmm_msg_data_write(void const*, bmm_msg_writer, size_t);
 
 // TODO Deprecate the rest.
 

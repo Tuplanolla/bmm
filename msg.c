@@ -112,9 +112,9 @@ bool bmm_msg_spec_write(struct bmm_msg_spec const* const spec,
         size_t const size = spec->msg.size;
 
         if (size < 8) {
-          presize = 0;
-
           flags |= (uint8_t) size & BMM_MSG_MASK_FIXSIZE;
+
+          presize = 0;
         } else {
           size_t const flagsize = bmm_size_cilog(bmm_size_cilog(size, 8), 2);
 
@@ -187,6 +187,16 @@ bool bmm_msg_type_write(enum bmm_msg_type const* const type,
     return false;
 
   return true;
+}
+
+bool bmm_msg_data_read(void* const data,
+    bmm_msg_reader const f, size_t const size) {
+  return f(data, size, NULL);
+}
+
+bool bmm_msg_data_write(void const* const data,
+    bmm_msg_writer const f, size_t const size) {
+  return f(data, size, NULL);
 }
 
 #include <stdio.h>
