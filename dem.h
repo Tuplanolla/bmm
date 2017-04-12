@@ -8,6 +8,8 @@
 
 #include "conf.h"
 #include "ext.h"
+#include "io.h"
+#include "msg.h"
 
 enum bmm_dem_mode {
   BMM_DEM_BEGIN,
@@ -54,8 +56,8 @@ struct bmm_dem_opts {
   double vleeway;
   // Cohesive force multiplier during sedimentation.
   double fcohes;
-  // Accelerative force during crunching.
-  double faccel;
+  // Velocity during crunching.
+  double vcrunch[2];
   // Acceleration for sedimentation (gravity).
   double gravy[2];
   // Young's modulus $Y$.
@@ -68,6 +70,8 @@ struct bmm_dem_opts {
   double rmean;
   // Particle size standard deviation.
   double rsd;
+  // Pull-apart distance (fraction).
+  double yoink;
   // Number of particles that can be "neglected".
   size_t lucky;
 };
@@ -79,6 +83,8 @@ struct bmm_dem_partc {
   double moi;
   // Fixed or moving.
   bool free;
+  // Driven or not.
+  bool nondr;
 };
 
 struct bmm_dem_part {
@@ -134,6 +140,7 @@ struct bmm_dem_listl {
 
 struct bmm_dem_buf {
   size_t npart;
+  double fcrunch[2];
   struct bmm_dem_neigh neigh;
   struct bmm_dem_partc partcs[BMM_PART_MAX];
   struct bmm_dem_part parts[BMM_PART_MAX];
@@ -327,5 +334,22 @@ bool bmm_dem_run(struct bmm_dem*);
 
 __attribute__ ((__nonnull__))
 bool bmm_dem_run_with(struct bmm_dem_opts const*);
+
+// TODO These are questionable to expose.
+
+size_t bmm_dem_sniff_size(struct bmm_dem const* const dem,
+    enum bmm_msg_type const type);
+
+enum bmm_io_read bmm_dem_gets_stuff(struct bmm_dem* const dem,
+    enum bmm_msg_type const type, size_t const size);
+
+bool bmm_dem_puts_stuff(struct bmm_dem const* const dem,
+    enum bmm_msg_type const type, size_t const size);
+
+enum bmm_io_read bmm_dem_gets(struct bmm_dem* const dem,
+    enum bmm_msg_type* const type);
+
+bool bmm_dem_puts(struct bmm_dem const* const dem,
+    enum bmm_msg_type const type);
 
 #endif

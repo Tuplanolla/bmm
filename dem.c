@@ -78,15 +78,6 @@ void bmm_dem_forces(struct bmm_dem* const dem) {
       buf->parts[ipart].lin.f[1] +=
         dem->opts.fcohes * (dem->rext[1] / 2.0 - buf->parts[ipart].lin.r[1]);
 
-  // Accelerating (currently fictitious) forces.
-  if (dem->mode == BMM_DEM_ACCEL)
-    for (size_t ipart = 0; ipart < buf->npart; ++ipart) {
-      if (buf->parts[ipart].lin.r[1] > 0.8 * dem->rext[1])
-        buf->parts[ipart].lin.f[0] += dem->opts.faccel;
-      else if (buf->parts[ipart].lin.r[1] < 0.2 * dem->rext[1])
-        buf->parts[ipart].lin.f[0] -= dem->opts.faccel;
-    }
-
   // Gravitational forces.
 #ifdef GRAVY
   if (dem->mode == BMM_DEM_SEDIMENT)
@@ -182,6 +173,43 @@ void bmm_dem_forces(struct bmm_dem* const dem) {
       bmm_geom2d_add(buf->parts[ipart].lin.f, buf->parts[ipart].lin.f, df);
     }
   }
+
+  // TODO Calculate force feedback from the residuals.
+
+  // Accelerating (currently fictitious) forces.
+  if (dem->mode == BMM_DEM_ACCEL) {
+    // TODO Make an estimator for this driven total velocity?
+
+    size_t ntotal;
+    double vtotal[2];
+    for (size_t idim = 0; idim < 2; ++idim)
+      vtotal[idim] = 0.0;
+
+    for (size_t ipart = 0; ipart < buf->npart; ++ipart)
+      if (!buf->partcs[ipart].nondr) {
+        ++ntotal;
+
+        for (size_t idim = 0; idim < 2; ++idim)
+          vtotal[idim] += buf->parts[ipart].lin.v[idim];
+      }
+
+    double const adjust = 1e-6;
+    for (size_t idim = 0; idim < 2; ++idim) {
+      if (vtotal[idim] / (double) ntotal < dem->opts.vcrunch[idim])
+        buf->fcrunch[idim] += adjust;
+      else
+        buf->fcrunch[idim] -= adjust;
+    }
+
+    for (size_t ipart = 0; ipart < buf->npart; ++ipart) {
+      if (!buf->partcs[ipart].free)
+        for (size_t idim = 0; idim < 2; ++idim)
+          buf->parts[ipart].lin.f[idim] = 0.0;
+      if (!buf->partcs[ipart].nondr)
+        for (size_t idim = 0; idim < 2; ++idim)
+          buf->parts[ipart].lin.f[idim] += buf->fcrunch[idim];
+    }
+  }
 }
 
 void bmm_dem_euler(struct bmm_dem* const dem) {
@@ -189,28 +217,27 @@ void bmm_dem_euler(struct bmm_dem* const dem) {
 
   double const dt = dem->opts.tstep;
 
-  for (size_t ipart = 0; ipart < buf->npart; ++ipart)
-    if (buf->partcs[ipart].free) {
-      for (size_t idim = 0; idim < 2; ++idim) {
-        double const a = buf->parts[ipart].lin.f[idim] / buf->partcs[ipart].mass;
+  for (size_t ipart = 0; ipart < buf->npart; ++ipart) {
+    for (size_t idim = 0; idim < 2; ++idim) {
+      double const a = buf->parts[ipart].lin.f[idim] / buf->partcs[ipart].mass;
 
-        buf->parts[ipart].lin.r[idim] = bmm_fp_uwrap(
-            buf->parts[ipart].lin.r[idim] +
-            buf->parts[ipart].lin.v[idim] * dt, dem->rext[idim]);
+      buf->parts[ipart].lin.r[idim] = bmm_fp_uwrap(
+          buf->parts[ipart].lin.r[idim] +
+          buf->parts[ipart].lin.v[idim] * dt, dem->rext[idim]);
 
-        buf->parts[ipart].lin.v[idim] =
-          dem->opts.damp * (buf->parts[ipart].lin.v[idim] + a * dt);
-      }
-
-      double const a = buf->parts[ipart].ang.tau / buf->partcs[ipart].moi;
-
-      buf->parts[ipart].ang.alpha = bmm_fp_uwrap(
-          buf->parts[ipart].ang.alpha +
-          buf->parts[ipart].ang.omega * dt, M_2PI);
-
-      buf->parts[ipart].ang.omega =
-        dem->opts.damp * (buf->parts[ipart].ang.omega + a * dt);
+      buf->parts[ipart].lin.v[idim] =
+        dem->opts.damp * (buf->parts[ipart].lin.v[idim] + a * dt);
     }
+
+    double const a = buf->parts[ipart].ang.tau / buf->partcs[ipart].moi;
+
+    buf->parts[ipart].ang.alpha = bmm_fp_uwrap(
+        buf->parts[ipart].ang.alpha +
+        buf->parts[ipart].ang.omega * dt, M_2PI);
+
+    buf->parts[ipart].ang.omega =
+      dem->opts.damp * (buf->parts[ipart].ang.omega + a * dt);
+  }
 }
 
 void bmm_dem_cell(size_t* const icell,
@@ -384,6 +411,33 @@ bool bmm_dem_break(struct bmm_dem* const dem) {
   return true;
 }
 
+bool bmm_dem_fix(struct bmm_dem* const dem) {
+  struct bmm_dem_buf* const buf = bmm_dem_getbuf(dem);
+
+  for (size_t ipart = 0; ipart < buf->npart; ++ipart) {
+    if (buf->parts[ipart].lin.r[1] > 0.8 * dem->rext[1]) {
+      buf->partcs[ipart].free = false;
+      buf->partcs[ipart].nondr = false;
+    } else if (buf->parts[ipart].lin.r[1] < 0.2 * dem->rext[1])
+      buf->partcs[ipart].free = false;
+  }
+
+  return true;
+}
+
+bool bmm_dem_fault(struct bmm_dem* const dem) {
+  struct bmm_dem_buf* const buf = bmm_dem_getbuf(dem);
+
+  for (size_t ipart = 0; ipart < buf->npart; ++ipart) {
+    if (buf->parts[ipart].lin.r[1] > 0.5 * dem->rext[1])
+      buf->parts[ipart].lin.r[1] += dem->opts.yoink * dem->rext[1];
+    else
+      buf->parts[ipart].lin.r[1] -= dem->opts.yoink * dem->rext[1];
+  }
+
+  return true;
+}
+
 // TODO These are dubious for empty sets.
 
 // Maximum velocity estimator.
@@ -498,10 +552,11 @@ void bmm_dem_opts_def(struct bmm_dem_opts* const opts) {
   opts->tstepcomm = 1.0;
   opts->tcomm = 0.0;
   opts->vleeway = 0.01;
-  opts->linkslurp = 1.1;
+  opts->linkslurp = 1.02;
   opts->klink = 120.0;
   opts->fcohes = 0.02;
-  opts->faccel = 0.01;
+  opts->vcrunch[0] = 5e-16;
+  opts->vcrunch[1] = 0.0;
   opts->gravy[0] = 0.0;
   opts->gravy[1] = -0.005;
   opts->ymodul = 2.0e+4;
@@ -509,6 +564,7 @@ void bmm_dem_opts_def(struct bmm_dem_opts* const opts) {
   // TODO Dissipate energy elsewhere.
   opts->damp = 0.999;
   opts->rmean = 0.04;
+  opts->yoink = 0.01;
   opts->lucky = 13;
 
 #ifdef NDEBUG
@@ -518,6 +574,7 @@ void bmm_dem_opts_def(struct bmm_dem_opts* const opts) {
   opts->klink *= 4.0;
   opts->fcohes /= 2.0;
   opts->rmean /= 2.0;
+  opts->vcrunch[0] /= 1e+4;
   opts->lucky *= 8;
 #endif
 
@@ -530,6 +587,7 @@ void bmm_dem_partc_def(struct bmm_dem_partc* const partc) {
   partc->mass = 1.0;
   partc->moi = bmm_geom_ballmoi(partc->rrad, 3) * partc->mass;
   partc->free = true;
+  partc->nondr = true;
 }
 
 void bmm_dem_part_def(struct bmm_dem_part* const part) {
@@ -671,6 +729,9 @@ void bmm_dem_def(struct bmm_dem* const dem,
 
   struct bmm_dem_buf* const buf = bmm_dem_getbuf(dem);
 
+  for (size_t idim = 0; idim < 2; ++idim)
+    buf->fcrunch[idim] = 0.0;
+
   buf->npart = 0;
 
   buf->neigh.tnext = 0.0;
@@ -688,7 +749,8 @@ static bool msg_write(uint8_t const* buf, size_t const n,
   return bmm_io_writeout(buf, n);
 }
 
-static size_t bmm_dem_sniff_size(struct bmm_dem const* const dem,
+// TODO This might have to be copied to keep dependencies in check.
+size_t bmm_dem_sniff_size(struct bmm_dem const* const dem,
     enum bmm_msg_type const type) {
   struct bmm_dem_buf const* const buf = bmm_dem_getrbuf(dem);
 
@@ -702,7 +764,7 @@ static size_t bmm_dem_sniff_size(struct bmm_dem const* const dem,
   dynamic_assert(false, "Unsupported message type");
 }
 
-static enum bmm_io_read bmm_dem_gets_stuff(struct bmm_dem* const dem,
+enum bmm_io_read bmm_dem_gets_stuff(struct bmm_dem* const dem,
     enum bmm_msg_type const type, size_t const size) {
   struct bmm_dem_buf* const buf = bmm_dem_getbuf(dem);
 
@@ -723,7 +785,7 @@ static enum bmm_io_read bmm_dem_gets_stuff(struct bmm_dem* const dem,
   dynamic_assert(false, "Unsupported message type");
 }
 
-static bool bmm_dem_puts_stuff(struct bmm_dem const* const dem,
+bool bmm_dem_puts_stuff(struct bmm_dem const* const dem,
     enum bmm_msg_type const type, size_t const size) {
   struct bmm_dem_buf const* const buf = bmm_dem_getrbuf(dem);
 
@@ -738,7 +800,7 @@ static bool bmm_dem_puts_stuff(struct bmm_dem const* const dem,
   dynamic_assert(false, "Unsupported message type");
 }
 
-static enum bmm_io_read bmm_dem_gets(struct bmm_dem* const dem,
+enum bmm_io_read bmm_dem_gets(struct bmm_dem* const dem,
     enum bmm_msg_type* const type) {
   struct bmm_msg_spec spec;
   switch (bmm_msg_spec_read(&spec, msg_read, NULL)) {
@@ -778,7 +840,7 @@ static enum bmm_io_read bmm_dem_gets(struct bmm_dem* const dem,
   return bmm_dem_gets_stuff(dem, *type, size);
 }
 
-static bool bmm_dem_puts(struct bmm_dem const* const dem,
+bool bmm_dem_puts(struct bmm_dem const* const dem,
     enum bmm_msg_type const type) {
   size_t const size = bmm_dem_sniff_size(dem, type);
 
@@ -792,6 +854,7 @@ static bool bmm_dem_puts(struct bmm_dem const* const dem,
     bmm_dem_puts_stuff(dem, type, size);
 }
 
+__attribute__ ((__deprecated__))
 static void bmm_dem_put(struct bmm_dem const* const dem,
     enum bmm_msg_type const msg) {
   struct bmm_msg_head head;
@@ -829,8 +892,12 @@ bool bmm_dem_step(struct bmm_dem* const dem) {
       break;
     case BMM_DEM_BREAK:
       if (fmod(dem->istep * dem->opts.tstep, 70.0) < dem->opts.tstep / 2.0)
-        if (bmm_dem_break(dem))
+        if (bmm_dem_break(dem)) {
+          (void) bmm_dem_fix(dem);
+          (void) bmm_dem_fault(dem);
+
           dem->mode = BMM_DEM_ACCEL;
+        }
 
       break;
     case BMM_DEM_ACCEL:

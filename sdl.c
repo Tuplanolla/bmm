@@ -167,12 +167,13 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
   struct bmm_dem_buf const* const buf = bmm_dem_getrbuf(&sdl->dem);
 
   // Particles.
-  glColor4fv(glYellow);
   for (size_t ipart = 0; ipart < buf->npart; ++ipart) {
     float const x = (float) buf->parts[ipart].lin.r[0];
     float const y = (float) buf->parts[ipart].lin.r[1];
     float const r = (float) buf->partcs[ipart].rrad;
     float const a = (float) buf->parts[ipart].ang.alpha;
+
+    glColor4fv(buf->partcs[ipart].free ? glYellow : glWhite);
 
     glSkewedAnnulus(x, y, r, r * 0.25f, r * 0.5f, a, ncorner);
   }
@@ -397,14 +398,18 @@ static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
               break;
           }
         case SDL_MOUSEWHEEL:
-          if (event.wheel.y < 0) {
-            bmm_sdl_zoom(sdl,
-                (double) event.button.x, (double) event.button.y,
-                1.0 / sdl->opts.zoomfac);
-          } else if (event.wheel.y > 0) {
-            bmm_sdl_zoom(sdl,
-                (double) event.button.x, (double) event.button.y,
-                sdl->opts.zoomfac);
+          {
+            int x;
+            int y;
+            SDL_GetMouseState(&x, &y);
+
+            if (event.wheel.y < 0) {
+              bmm_sdl_zoom(sdl, (double) x, (double) y,
+                  1.0 / sdl->opts.zoomfac);
+            } else if (event.wheel.y > 0) {
+              bmm_sdl_zoom(sdl, (double) x, (double) y,
+                  sdl->opts.zoomfac);
+            }
           }
       }
 
