@@ -204,28 +204,21 @@ One more cut could be made by requiring all the swaps are constant,
 giving $2$ options and an enumeration of $b = 1$ bits.
 These are known as little and big endian.
 
-### Separation of Concerns (Relating to Messaging)
+### Streaming
 
-The current design has the following procedures.
+Compressing movies is easy.
 
-    bool bmm_msg_get(struct bmm_msg_head*, struct bmm_dem*,
-        bool (*)(struct bmm_msg_head const*, void*), void*);
-
-    void bmm_msg_put(struct bmm_msg_head const*, struct bmm_dem const*);
-
-This is not ideal,
-because now every component has to know the definition of `bmm_dem`.
-This also means that one has to allocate the whole thing just
-to receive messages relating to small parts of it.
-
-Here is a proposal: remove such procedures.
-Only related utility functions actually need to be called,
-which makes life easier.
+    $ ./bmm-dem | gzip -c > bmm.run.gz
+    $ gunzip -c < bmm.run.gz | ./bmm-sdl
 
 Sending data through the network works fine.
 
     $ ncat -l 9001 | ./bmm-sdl
     $ ./bmm-dem | ncat 127.0.0.1 9001
+
+TODO Try producing high-quality images and movies with OVITO.
+
+    http://www.ovito.org/manual/usage.import.html
 
 ### Program Options
 

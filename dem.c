@@ -180,7 +180,7 @@ void bmm_dem_forces(struct bmm_dem* const dem) {
   if (dem->mode == BMM_DEM_ACCEL) {
     // TODO Make an estimator for this driven total velocity?
 
-    size_t ntotal;
+    size_t ntotal = 0;
     double vtotal[2];
     for (size_t idim = 0; idim < 2; ++idim)
       vtotal[idim] = 0.0;
@@ -193,12 +193,11 @@ void bmm_dem_forces(struct bmm_dem* const dem) {
           vtotal[idim] += buf->parts[ipart].lin.v[idim];
       }
 
-    double const adjust = 1e-6;
     for (size_t idim = 0; idim < 2; ++idim) {
       if (vtotal[idim] / (double) ntotal < dem->opts.vcrunch[idim])
-        buf->fcrunch[idim] += adjust;
+        buf->fcrunch[idim] += dem->opts.fadjust;
       else
-        buf->fcrunch[idim] -= adjust;
+        buf->fcrunch[idim] -= dem->opts.fadjust;
     }
 
     for (size_t ipart = 0; ipart < buf->npart; ++ipart) {
@@ -556,7 +555,8 @@ void bmm_dem_opts_def(struct bmm_dem_opts* const opts) {
   opts->linkoff = 0.95;
   opts->klink = 120.0;
   opts->fcohes = 0.02;
-  opts->vcrunch[0] = 5e-16;
+  opts->fadjust = 1e-7;
+  opts->vcrunch[0] = 0.005;
   opts->vcrunch[1] = 0.0;
   opts->gravy[0] = 0.0;
   opts->gravy[1] = -0.005;
@@ -575,7 +575,7 @@ void bmm_dem_opts_def(struct bmm_dem_opts* const opts) {
   opts->klink *= 4.0;
   opts->fcohes /= 2.0;
   opts->rmean /= 2.0;
-  opts->vcrunch[0] /= 4e+4;
+  opts->vcrunch[0] /= 2.0;
   opts->lucky *= 8;
 #endif
 

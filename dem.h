@@ -58,6 +58,8 @@ struct bmm_dem_opts {
   double vleeway;
   // Cohesive force multiplier during sedimentation.
   double fcohes;
+  // Force increment during crunching.
+  double fadjust;
   // Velocity during crunching.
   double vcrunch[2];
   // Acceleration for sedimentation (gravity).
