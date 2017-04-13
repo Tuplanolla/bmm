@@ -7,6 +7,7 @@
 #include <stdio.h>
 
 #include "cpp.h"
+#include "endy.h"
 #include "ext.h"
 #include "io.h"
 
@@ -23,12 +24,6 @@ enum bmm_msg_prio {
   BMM_MSG_PRIO_HIGH
 };
 
-/// This enumeration specifies integer endianness.
-enum bmm_msg_endian {
-  BMM_MSG_ENDIAN_LITTLE,
-  BMM_MSG_ENDIAN_BIG
-};
-
 /// This enumeration distinguishes
 /// size-prefixed messages from literal-terminated messages.
 enum bmm_msg_tag {
@@ -41,7 +36,7 @@ enum bmm_msg_tag {
 /// Middle-endianness or free patterns are not supported.
 struct bmm_msg_spec {
   enum bmm_msg_prio prio;
-  enum bmm_msg_endian endian;
+  enum bmm_endy endy;
   union {
     size_t size;
     struct {
@@ -133,36 +128,5 @@ enum bmm_io_read bmm_msg_data_read(void*, bmm_msg_reader, size_t);
 /// in chunks of size `0 < k < n`.
 __attribute__ ((__nonnull__ (1, 2)))
 bool bmm_msg_data_write(void const*, bmm_msg_writer, size_t);
-
-// TODO Deprecate the rest.
-
-#include "dem.h"
-
-struct bmm_msg_head {
-  unsigned char flags;
-  unsigned char type;
-};
-
-#define BMM_FBIT_INTLE 7
-#define BMM_FBIT_FPLE 5
-#define BMM_FBIT_FLUSH 4
-#define BMM_FBIT_BODY 3
-#define BMM_FBIT_PREFIX 2
-
-__attribute__ ((__nonnull__ (2)))
-bool bmm_msg_preread(size_t* const ptr, struct bmm_msg_head const* const head);
-
-__attribute__ ((__nonnull__))
-bool bmm_msg_prewrite(struct bmm_msg_head const* const bad_head,
-    size_t const size);
-
-__attribute__ ((__nonnull__))
-void bmm_head_def(struct bmm_msg_head*);
-
-__attribute__ ((__deprecated__, __nonnull__))
-bool bmm_msg_get(struct bmm_msg_head*, struct bmm_dem*);
-
-__attribute__ ((__deprecated__, __nonnull__))
-void bmm_msg_put(struct bmm_msg_head const*, struct bmm_dem const*);
 
 #endif

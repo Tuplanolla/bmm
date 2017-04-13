@@ -6,6 +6,7 @@
 *.s
 *.tar.gz
 /*.run
+/*.run.gz
 /bmm-dem
 /bmm-filter
 /bmm-sdl

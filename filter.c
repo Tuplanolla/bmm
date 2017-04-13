@@ -2,7 +2,6 @@
 #include <stdio.h>
 
 #include "bit.h"
-#include "dem.h"
 #include "filter.h"
 #include "io.h"
 #include "msg.h"
@@ -22,9 +21,19 @@ void bmm_filter_def(struct bmm_filter* const filter,
   filter->stopped = 0;
 }
 
-static bool f(struct bmm_filter const* const filter,
-    struct bmm_msg_head const* const head) {
-  return filter->opts.mask[head->type];
+static bool pass(struct bmm_filter const* const filter,
+    enum bmm_msg_type const type) {
+  return filter->opts.mask[(size_t) type];
+}
+
+static enum bmm_io_read msg_read(uint8_t* buf, size_t const n,
+    __attribute__ ((__unused__)) void* const ptr) {
+  return bmm_io_readin(buf, n);
+}
+
+static bool msg_write(uint8_t const* buf, size_t const n,
+    __attribute__ ((__unused__)) void* const ptr) {
+  return bmm_io_writeout(buf, n);
 }
 
 bool bmm_filter_run(struct bmm_filter* const filter) {
@@ -48,8 +57,8 @@ bool bmm_filter_run(struct bmm_filter* const filter) {
           return false;
       }
 
-    struct bmm_msg_head head;
-    switch (bmm_io_readin(&head, sizeof head)) {
+    struct bmm_msg_spec spec;
+    switch (bmm_msg_spec_read(&spec, msg_read, NULL)) {
       case BMM_IO_READ_ERROR:
         BMM_TLE_EXTS(BMM_TLE_IO, "Failed to read header");
 
@@ -58,33 +67,57 @@ bool bmm_filter_run(struct bmm_filter* const filter) {
         return true;
     }
 
-    size_t bodysize;
-    if (!bmm_msg_preread(&bodysize, &head)) {
-      BMM_TLE_EXTS(BMM_TLE_IO, "Failed to read prefix (and do stuff)");
+    enum bmm_msg_type type;
+    switch (bmm_msg_type_read(&type, msg_read, NULL)) {
+      case BMM_IO_READ_ERROR:
+      case BMM_IO_READ_EOF:
+        BMM_TLE_EXTS(BMM_TLE_IO, "Failed to read type");
 
-      return false;
+        return false;
     }
 
-    if (f(filter, &head)) {
-      if (!bmm_msg_prewrite(&head, bodysize))
+    if (pass(filter, type)) {
+      if (!bmm_msg_spec_write(&spec, msg_write, NULL) ||
+          !bmm_msg_type_write(&type, msg_write, NULL)) {
         BMM_TLE_EXTS(BMM_TLE_IO, "Failed to write stuff");
-
-      if (!bmm_io_redirio(bodysize)) {
-        BMM_TLE_EXTS(BMM_TLE_IO, "Failed to redirect body");
 
         return false;
       }
 
-      if (bmm_bit_test(head.flags, BMM_FBIT_FLUSH))
-        if (fflush(stdout) == EOF)
+      switch (spec.tag) {
+        case BMM_MSG_TAG_SP:
+          if (!bmm_io_redirio(spec.msg.size - BMM_MSG_TYPESIZE)) {
+            BMM_TLE_EXTS(BMM_TLE_IO, "Failed to redirect body");
+
+            return false;
+          }
+
+          break;
+        case BMM_MSG_TAG_LT:
+          BMM_TLE_EXTS(BMM_TLE_UNIMPL, "Not implemented (yet?)");
+
           return false;
+
+          break;
+      }
 
       ++filter->passed;
     } else {
-      if (!bmm_io_fastfwin(bodysize)) {
-        BMM_TLE_EXTS(BMM_TLE_IO, "Failed to fast-forward body");
+      switch (spec.tag) {
+        case BMM_MSG_TAG_SP:
+          if (!bmm_io_fastfwin(spec.msg.size - BMM_MSG_TYPESIZE)) {
+            BMM_TLE_EXTS(BMM_TLE_IO, "Failed to fast-forward body");
 
-        return false;
+            return false;
+          }
+
+          break;
+        case BMM_MSG_TAG_LT:
+          BMM_TLE_EXTS(BMM_TLE_UNIMPL, "Not implemented (yet?)");
+
+          return false;
+
+          break;
       }
 
       ++filter->stopped;

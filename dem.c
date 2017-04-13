@@ -740,17 +740,11 @@ void bmm_dem_def(struct bmm_dem* const dem,
 
 // TODO Relocate these.
 
-static enum bmm_io_read msg_read(uint8_t* buf, size_t const n,
-    __attribute__ ((__unused__)) void* const ptr) {
-  return bmm_io_readin(buf, n);
-}
-
 static bool msg_write(uint8_t const* buf, size_t const n,
     __attribute__ ((__unused__)) void* const ptr) {
   return bmm_io_writeout(buf, n);
 }
 
-// TODO This might have to be copied to keep dependencies in check.
 size_t bmm_dem_sniff_size(struct bmm_dem const* const dem,
     enum bmm_msg_type const type) {
   struct bmm_dem_buf const* const buf = bmm_dem_getrbuf(dem);
@@ -760,27 +754,10 @@ size_t bmm_dem_sniff_size(struct bmm_dem const* const dem,
       return sizeof buf->npart;
     case BMM_MSG_EKINE:
       return sizeof dem->istep + sizeof dem->est;
-  }
-
-  dynamic_assert(false, "Unsupported message type");
-}
-
-enum bmm_io_read bmm_dem_gets_stuff(struct bmm_dem* const dem,
-    enum bmm_msg_type const type, size_t const size) {
-  struct bmm_dem_buf* const buf = bmm_dem_getbuf(dem);
-
-  switch (type) {
-    case BMM_MSG_NPART:
-      return bmm_msg_data_read(&buf->npart, msg_read, size);
-    case BMM_MSG_EKINE:
-      switch (bmm_msg_data_read(&dem->istep, msg_read, size)) {
-        case BMM_IO_READ_ERROR:
-          return BMM_IO_READ_ERROR;
-        case BMM_IO_READ_EOF:
-          return BMM_IO_READ_EOF;
-      }
-
-      return bmm_msg_data_write(&dem->est, msg_write, size);
+    case BMM_MSG_NEIGH:
+      return sizeof buf->neigh + sizeof buf->links;
+    case BMM_MSG_PARTS:
+      return sizeof dem->istep + sizeof buf->parts + sizeof buf->partcs;
   }
 
   dynamic_assert(false, "Unsupported message type");
@@ -792,53 +769,20 @@ bool bmm_dem_puts_stuff(struct bmm_dem const* const dem,
 
   switch (type) {
     case BMM_MSG_NPART:
-      return bmm_msg_data_write(&buf->npart, msg_write, size);
+      return bmm_msg_data_write(&buf->npart, msg_write, sizeof buf->npart);
     case BMM_MSG_EKINE:
-      return bmm_msg_data_write(&dem->istep, msg_write, size) &&
-        bmm_msg_data_write(&dem->est, msg_write, size);
+      return bmm_msg_data_write(&dem->istep, msg_write, sizeof dem->istep) &&
+        bmm_msg_data_write(&dem->est, msg_write, sizeof dem->est);
+    case BMM_MSG_NEIGH:
+      return bmm_msg_data_write(&buf->neigh, msg_write, sizeof buf->neigh) &&
+        bmm_msg_data_write(&buf->links, msg_write, sizeof buf->links);
+    case BMM_MSG_PARTS:
+      return bmm_msg_data_write(&dem->istep, msg_write, sizeof dem->istep) &&
+        bmm_msg_data_write(&buf->parts, msg_write, sizeof buf->parts) &&
+        bmm_msg_data_write(&buf->partcs, msg_write, sizeof buf->partcs);
   }
 
   dynamic_assert(false, "Unsupported message type");
-}
-
-enum bmm_io_read bmm_dem_gets(struct bmm_dem* const dem,
-    enum bmm_msg_type* const type) {
-  struct bmm_msg_spec spec;
-  switch (bmm_msg_spec_read(&spec, msg_read, NULL)) {
-    case BMM_IO_READ_ERROR:
-      return BMM_IO_READ_ERROR;
-    case BMM_IO_READ_EOF:
-      return BMM_IO_READ_EOF;
-  }
-
-  if (spec.endian != BMM_MSG_ENDIAN_LITTLE) {
-    BMM_TLE_EXTS(BMM_TLE_UNIMPL, "Unsupported endianness");
-
-    return BMM_IO_READ_ERROR;
-  }
-
-  if (spec.tag != BMM_MSG_TAG_SP) {
-    BMM_TLE_EXTS(BMM_TLE_UNIMPL, "Unsupported tag");
-
-    return BMM_IO_READ_ERROR;
-  }
-
-  size_t const size = spec.msg.size - BMM_MSG_TYPESIZE;
-
-  switch (bmm_msg_type_read(type, msg_read, NULL)) {
-    case BMM_IO_READ_ERROR:
-      return BMM_IO_READ_ERROR;
-    case BMM_IO_READ_EOF:
-      return BMM_IO_READ_EOF;
-  }
-
-  if (bmm_dem_sniff_size(dem, *type) != size) {
-    BMM_TLE_EXTS(BMM_TLE_UNKNOWN, "Size mismatch");
-
-    return BMM_IO_READ_ERROR;
-  }
-
-  return bmm_dem_gets_stuff(dem, *type, size);
 }
 
 bool bmm_dem_puts(struct bmm_dem const* const dem,
@@ -847,26 +791,11 @@ bool bmm_dem_puts(struct bmm_dem const* const dem,
 
   struct bmm_msg_spec spec;
   bmm_msg_spec_def(&spec);
-  spec.endian = BMM_MSG_ENDIAN_LITTLE;
   spec.msg.size = size + BMM_MSG_TYPESIZE;
 
   return bmm_msg_spec_write(&spec, msg_write, NULL) &&
     bmm_msg_type_write(&type, msg_write, NULL) &&
     bmm_dem_puts_stuff(dem, type, size);
-}
-
-__attribute__ ((__deprecated__))
-static void bmm_dem_put(struct bmm_dem const* const dem,
-    enum bmm_msg_type const msg) {
-  struct bmm_msg_head head;
-  bmm_head_def(&head);
-  bmm_bit_pset(&head.flags, BMM_FBIT_INTLE);
-  bmm_bit_pset(&head.flags, BMM_FBIT_FPLE);
-  bmm_bit_pset(&head.flags, BMM_FBIT_FLUSH);
-
-  head.type = msg;
-
-  bmm_msg_put(&head, dem);
 }
 
 bool bmm_dem_step(struct bmm_dem* const dem) {
@@ -934,18 +863,18 @@ bool bmm_dem_comm(struct bmm_dem* const dem) {
 
   // TODO This timing is bogus.
   if (dem->istep % 20 == 0)
-    bmm_dem_put(dem, BMM_MSG_NEIGH);
+    bmm_dem_puts(dem, BMM_MSG_NEIGH);
 
   // TODO Make a mechanism to automate retransmission of differences only.
 
-  bmm_dem_put(dem, BMM_MSG_NPART);
-  bmm_dem_put(dem, BMM_MSG_PARTS);
+  bmm_dem_puts(dem, BMM_MSG_NPART);
+  bmm_dem_puts(dem, BMM_MSG_PARTS);
 
   dem->est.ekinetic = bmm_dem_ekinetic(dem);
   dem->est.pvector = bmm_dem_pvector(dem);
   dem->est.pscalar = bmm_dem_pscalar(dem);
 
-  bmm_dem_put(dem, BMM_MSG_EKINE);
+  bmm_dem_puts(dem, BMM_MSG_EKINE);
 
   return true;
 }
@@ -959,7 +888,7 @@ bool bmm_dem_run(struct bmm_dem* const dem) {
     return false;
   }
 
-  bmm_dem_put(dem, BMM_MSG_NPART);
+  bmm_dem_puts(dem, BMM_MSG_NPART);
 
 #ifdef _GNU_SOURCE
 #ifdef DEBUG

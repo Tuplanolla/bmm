@@ -8,6 +8,7 @@
 #include <sys/time.h>
 
 #include "dem.h"
+#include "endy.h"
 #include "ext.h"
 #include "fp.h"
 #include "gl.h"
@@ -32,6 +33,97 @@ void glString(char const* str, int const x, int const y,
   glRasterPos2i(x, y);
   while (*str != '\0')
     glutBitmapCharacter(font, *str++);
+}
+
+static enum bmm_io_read msg_read(uint8_t* buf, size_t const n,
+    __attribute__ ((__unused__)) void* const ptr) {
+  return bmm_io_readin(buf, n);
+}
+
+enum bmm_io_read bmm_dem_gets_stuff(struct bmm_dem* const dem,
+    enum bmm_msg_type const type, size_t const size) {
+  struct bmm_dem_buf* const buf = bmm_dem_getbuf(dem);
+
+  switch (type) {
+    case BMM_MSG_NPART:
+      return bmm_msg_data_read(&buf->npart, msg_read, sizeof buf->npart);
+    case BMM_MSG_EKINE:
+      switch (bmm_msg_data_read(&dem->istep, msg_read, sizeof dem->istep)) {
+        case BMM_IO_READ_ERROR:
+          return BMM_IO_READ_ERROR;
+        case BMM_IO_READ_EOF:
+          return BMM_IO_READ_EOF;
+      }
+
+      return bmm_msg_data_read(&dem->est, msg_read, sizeof dem->est);
+    case BMM_MSG_NEIGH:
+      switch (bmm_msg_data_read(&buf->neigh, msg_read, sizeof buf->neigh)) {
+        case BMM_IO_READ_ERROR:
+          return BMM_IO_READ_ERROR;
+        case BMM_IO_READ_EOF:
+          return BMM_IO_READ_EOF;
+      }
+
+      return bmm_msg_data_read(&buf->links, msg_read, sizeof buf->links);
+    case BMM_MSG_PARTS:
+      switch (bmm_msg_data_read(&dem->istep, msg_read, sizeof dem->istep)) {
+        case BMM_IO_READ_ERROR:
+          return BMM_IO_READ_ERROR;
+        case BMM_IO_READ_EOF:
+          return BMM_IO_READ_EOF;
+      }
+
+      switch (bmm_msg_data_read(&buf->parts, msg_read, sizeof buf->parts)) {
+        case BMM_IO_READ_ERROR:
+          return BMM_IO_READ_ERROR;
+        case BMM_IO_READ_EOF:
+          return BMM_IO_READ_EOF;
+      }
+
+      return bmm_msg_data_read(&buf->partcs, msg_read, sizeof buf->partcs);
+  }
+
+  dynamic_assert(false, "Unsupported message type");
+}
+
+enum bmm_io_read bmm_dem_gets(struct bmm_dem* const dem,
+    enum bmm_msg_type* const type) {
+  struct bmm_msg_spec spec;
+  switch (bmm_msg_spec_read(&spec, msg_read, NULL)) {
+    case BMM_IO_READ_ERROR:
+      return BMM_IO_READ_ERROR;
+    case BMM_IO_READ_EOF:
+      return BMM_IO_READ_EOF;
+  }
+
+  if (spec.endy != bmm_endy_get()) {
+    BMM_TLE_EXTS(BMM_TLE_UNIMPL, "Unsupported endianness");
+
+    return BMM_IO_READ_ERROR;
+  }
+
+  if (spec.tag != BMM_MSG_TAG_SP) {
+    BMM_TLE_EXTS(BMM_TLE_UNIMPL, "Unsupported tag");
+
+    return BMM_IO_READ_ERROR;
+  }
+
+  size_t const size = spec.msg.size - BMM_MSG_TYPESIZE;
+
+  switch (bmm_msg_type_read(type, msg_read, NULL)) {
+    case BMM_IO_READ_ERROR:
+      return BMM_IO_READ_ERROR;
+    case BMM_IO_READ_EOF:
+      return BMM_IO_READ_EOF;
+  }
+
+  if (bmm_dem_sniff_size(dem, *type) != size) {
+    BMM_TLE_EXTS(BMM_TLE_UNKNOWN, "Size mismatch");
+
+    return BMM_IO_READ_ERROR;
+  }
+
+  return bmm_dem_gets_stuff(dem, *type, size);
 }
 
 void bmm_sdl_opts_def(struct bmm_sdl_opts* const opts) {
@@ -423,7 +515,7 @@ static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
     trem = bmm_sdl_trem(tnow, tnext);
 
     // TODO Think about a better way to express this thing.
-    // TODO Currently this sleeps too much.
+    // TODO Currently this sleeps too much due to no message type inspection.
 
     if (sdl->active) {
       // Use the remaining time to wait for input.
@@ -432,12 +524,12 @@ static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
       struct timeval timeout;
 again:
       bmm_sdl_t_to_timeval(&timeout, trem);
-      struct bmm_msg_head head;
+      enum bmm_msg_type type;
       switch (bmm_io_waitin(&timeout)) {
         case BMM_IO_WAIT_ERROR:
           return false;
         case BMM_IO_WAIT_READY:
-          if (bmm_msg_get(&head, &sdl->dem))
+          if (bmm_dem_gets(&sdl->dem, &type) == BMM_IO_READ_SUCCESS)
             sdl->stale = false;
           else {
             trem = bmm_sdl_t_from_timeval(&timeout);

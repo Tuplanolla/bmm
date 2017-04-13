@@ -185,6 +185,9 @@ struct bmm_dem {
   } pool;
 };
 
+// TODO This might have to be deprecated to keep dependencies in check.
+size_t bmm_dem_sniff_size(struct bmm_dem const*, enum bmm_msg_type);
+
 // TODO Combine list types.
 
 // Index lists.

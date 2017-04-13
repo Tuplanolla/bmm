@@ -54,6 +54,16 @@ run: build
 	./bmm-filter --mode whitelist --pass 142 --pass 144 --pass 168 | \
 	./bmm-sdl
 
+run-to: build
+	GSL_RNG_TYPE=mt19937 GSL_RNG_SEED=42 time -v \
+	./bmm-dem | \
+	./bmm-filter --mode whitelist --pass 142 --pass 144 --pass 168 | \
+	gzip -c > bmm.run.gz
+
+run-from: build
+	gunzip -c < bmm.run.gz | \
+	./bmm-sdl
+
 start-server: bmm-sdl
 	mkfifo bmm.fifo
 	./bmm-sdl < bmm.fifo &
@@ -92,22 +102,22 @@ shallow-clean:
 	$(RM) *.gch *.i *.o *.s
 
 bmm-dem: bmm-dem.o \
-	bit.o dem.o fp.o geom.o geom2d.o hack.o io.o msg.o \
+	bit.o dem.o endy.o fp.o geom.o geom2d.o hack.o io.o msg.o \
 	opt.o sec.o sig.o size.o str.o tle.o
 	$(CC) $(CFLAGS) $(CFLAGSGSL) -o $@ $^ $(LDLIBS) $(LDLIBSGSL)
 
 bmm-filter: bmm-filter.o \
-	bit.o dem.o filter.o fp.o geom.o geom2d.o hack.o io.o msg.o \
+	bit.o dem.o endy.o filter.o fp.o geom.o geom2d.o hack.o io.o msg.o \
 	opt.o sec.o sig.o size.o str.o tle.o
 	$(CC) $(CFLAGS) $(CFLAGSGSL) -o $@ $^ $(LDLIBS) $(LDLIBSGSL)
 
 bmm-sdl: bmm-sdl.o \
-	bit.o dem.o fp.o geom.o geom2d.o gl.o hack.o io.o msg.o \
+	bit.o dem.o endy.o fp.o geom.o geom2d.o gl.o hack.o io.o msg.o \
 	opt.o sdl.o sec.o sig.o size.o str.o tle.o
 	$(CC) $(CFLAGS) $(CFLAGSSDL) -o $@ $^ $(LDLIBS) $(LDLIBSSDL)
 
 tests: tests.o \
-	bit.o dem.o fp.o geom.o geom2d.o hack.o io.o msg.o \
+	bit.o dem.o endy.o fp.o geom.o geom2d.o hack.o io.o msg.o \
 	opt.o sec.o sig.o size.o str.o tle.o
 	$(CC) $(CFLAGS) $(CFLAGSGSL) -o $@ $^ $(LDLIBS) $(LDLIBSGSL)
 
