@@ -129,7 +129,7 @@ enum bmm_io_read bmm_dem_gets(struct bmm_dem* const dem,
 void bmm_sdl_opts_def(struct bmm_sdl_opts* const opts) {
   opts->width = 640;
   opts->height = 480;
-  opts->fps = 20;
+  opts->fps = 16;
   opts->ms = 0;
   opts->zoomfac = 1.5;
 }
@@ -515,7 +515,7 @@ static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
     trem = bmm_sdl_trem(tnow, tnext);
 
     // TODO Think about a better way to express this thing.
-    // TODO Currently this sleeps too much due to no message type inspection.
+    // TODO Currently this does staleness analysis wrong.
 
     if (sdl->active) {
       // Use the remaining time to wait for input.
@@ -529,15 +529,16 @@ again:
         case BMM_IO_WAIT_ERROR:
           return false;
         case BMM_IO_WAIT_READY:
-          if (bmm_dem_gets(&sdl->dem, &type) == BMM_IO_READ_SUCCESS)
+          (void) bmm_dem_gets(&sdl->dem, &type);
+
+          if (type == BMM_MSG_PARTS)
             sdl->stale = false;
           else {
             trem = bmm_sdl_t_from_timeval(&timeout);
             if (trem > 0)
               goto again;
-            else
-              sdl->stale = true;
           }
+
           break;
         case BMM_IO_WAIT_TIMEOUT:
           sdl->stale = true;
@@ -551,9 +552,7 @@ again:
 
     // Sleep the remaining time and allow the tick counter to wrap.
     SDL_Delay(trem);
-    // TODO Fix the effect of `filter` on the vfps.
-    // tnext += bmm_sdl_tstep(sdl);
-    tnext += (bmm_sdl_tstep(sdl) - 1) / 2 + 1;
+    tnext += bmm_sdl_tstep(sdl);
   }
 }
 
