@@ -99,7 +99,7 @@ inline double bmm_fp_rt(double const x, double const y) {
 }
 
 /// The call `bmm_fp_log(x, y)` returns the the base `y` logarithm of `x`.
-/// This is analogous to `bmm_size_filog` or `bmm_size_cilog`.
+/// This is analogous to `bmm_size_flog` or `bmm_size_clog`.
 __attribute__ ((__const__, __pure__))
 inline double bmm_fp_log(double const x, double const y) {
   return log2(x) / log2(y);

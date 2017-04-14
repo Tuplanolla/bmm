@@ -41,28 +41,34 @@ struct bmm_msg_spec {
     size_t size;
     struct {
       size_t e;
-      uint8_t buf[BMM_MSG_PRESIZE];
+      unsigned char buf[BMM_MSG_PRESIZE];
     } term;
   } msg;
   enum bmm_msg_tag tag;
 };
 
 /// These preprocessor directives help work with bits in message headers.
-#define BMM_MSG_MASK_PRIO (BMM_MASKBITS_1(7))
-#define BMM_MSG_MASK_ENDIAN (BMM_MASKBITS_3(6, 5, 4))
-#define BMM_MSG_MASK_VAR (BMM_MASKBITS_1(3))
-#define BMM_MSG_MASK_TAG (BMM_MASKBITS_1(2))
-#define BMM_MSG_MASK_FIXSIZE (BMM_MASKBITS_3(2, 1, 0))
-#define BMM_MSG_MASK_VARSIZE (BMM_MASKBITS_2(1, 0))
+#define BMM_MSG_BITS_PRIO 1
+#define BMM_MSG_MASK_PRIO (BMM_MASKBITS(BMM_MSG_BITS_PRIO, 7))
+#define BMM_MSG_BITS_ENDY 3
+#define BMM_MSG_MASK_ENDY (BMM_MASKBITS(BMM_MSG_BITS_ENDY, 6, 5, 4))
+#define BMM_MSG_BITS_VAR 1
+#define BMM_MSG_MASK_VAR (BMM_MASKBITS(BMM_MSG_BITS_VAR, 3))
+#define BMM_MSG_BITS_TAG 1
+#define BMM_MSG_MASK_TAG (BMM_MASKBITS(BMM_MSG_BITS_TAG, 2))
+#define BMM_MSG_BITS_FIXSIZE 3
+#define BMM_MSG_MASK_FIXSIZE (BMM_MASKBITS(BMM_MSG_BITS_FIXSIZE, 2, 1, 0))
+#define BMM_MSG_BITS_VARSIZE 2
+#define BMM_MSG_MASK_VARSIZE (BMM_MASKBITS(BMM_MSG_BITS_VARSIZE, 1, 0))
 
 /// The call `bmm_msg_spec_def(spec)`
 /// writes the default message specification into `spec`.
 __attribute__ ((__nonnull__))
 void bmm_msg_spec_def(struct bmm_msg_spec*);
 
-typedef enum bmm_io_read (* bmm_msg_reader)(uint8_t*, size_t, void*);
+typedef enum bmm_io_read (* bmm_msg_reader)(unsigned char*, size_t, void*);
 
-typedef bool (* bmm_msg_writer)(uint8_t const*, size_t, void*);
+typedef bool (* bmm_msg_writer)(unsigned char const*, size_t, void*);
 
 /// The call `bmm_msg_spec_read(spec, f, ptr)`
 /// extracts the message specification `spec`
@@ -112,21 +118,5 @@ enum bmm_io_read bmm_msg_type_read(enum bmm_msg_type*, bmm_msg_reader, void*);
 /// It is guaranteed that `n <= BMM_MSG_TYPESIZE`.
 __attribute__ ((__nonnull__ (1, 2)))
 bool bmm_msg_type_write(enum bmm_msg_type const*, bmm_msg_writer, void*);
-
-/// The call `bmm_msg_data_read(data, f, n)`
-/// extracts the message data `data`
-/// from the message body `buf` of length `n`
-/// that is read by calling `f(buf, n, NULL)` as shown or
-/// in chunks of size `0 < k < n`.
-__attribute__ ((__nonnull__ (1, 2)))
-enum bmm_io_read bmm_msg_data_read(void*, bmm_msg_reader, size_t);
-
-/// The call `bmm_msg_data_write(data, f, n)`
-/// builds the message body `buf` of length `n`
-/// for the message data `data` and
-/// writes it by sequentially calling `f(buf, n, NULL)` as shown or
-/// in chunks of size `0 < k < n`.
-__attribute__ ((__nonnull__ (1, 2)))
-bool bmm_msg_data_write(void const*, bmm_msg_writer, size_t);
 
 #endif

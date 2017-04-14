@@ -26,10 +26,10 @@ CHEAT_DECLARE(
 
   struct msg {
     size_t i;
-    uint8_t buf[BMM_MSG_HEADSIZE];
+    unsigned char buf[BMM_MSG_HEADSIZE];
   };
 
-  static enum bmm_io_read msg_read(uint8_t* const buf, size_t const n,
+  static enum bmm_io_read msg_read(unsigned char* const buf, size_t const n,
       void* const ptr) {
     struct msg* const msg = ptr;
 
@@ -41,7 +41,8 @@ CHEAT_DECLARE(
     return BMM_IO_READ_SUCCESS;
   }
 
-  static bool msg_write(uint8_t const* buf, size_t const n, void* const ptr) {
+  static bool msg_write(unsigned char const* buf, size_t const n,
+      void* const ptr) {
     struct msg* const msg = ptr;
 
     for (size_t i = 0; i < n; ++i) {

@@ -740,7 +740,7 @@ void bmm_dem_def(struct bmm_dem* const dem,
 
 // TODO Relocate these.
 
-static bool msg_write(uint8_t const* buf, size_t const n,
+static bool msg_write(unsigned char const* buf, size_t const n,
     __attribute__ ((__unused__)) void* const ptr) {
   return bmm_io_writeout(buf, n);
 }
@@ -769,17 +769,17 @@ bool bmm_dem_puts_stuff(struct bmm_dem const* const dem,
 
   switch (type) {
     case BMM_MSG_NPART:
-      return bmm_msg_data_write(&buf->npart, msg_write, sizeof buf->npart);
+      return msg_write(&buf->npart, sizeof buf->npart, NULL);
     case BMM_MSG_EKINE:
-      return bmm_msg_data_write(&dem->istep, msg_write, sizeof dem->istep) &&
-        bmm_msg_data_write(&dem->est, msg_write, sizeof dem->est);
+      return msg_write(&dem->istep, sizeof dem->istep, NULL) &&
+        msg_write(&dem->est, sizeof dem->est, NULL);
     case BMM_MSG_NEIGH:
-      return bmm_msg_data_write(&buf->neigh, msg_write, sizeof buf->neigh) &&
-        bmm_msg_data_write(&buf->links, msg_write, sizeof buf->links);
+      return msg_write(&buf->neigh, sizeof buf->neigh, NULL) &&
+        msg_write(&buf->links, sizeof buf->links, NULL);
     case BMM_MSG_PARTS:
-      return bmm_msg_data_write(&dem->istep, msg_write, sizeof dem->istep) &&
-        bmm_msg_data_write(&buf->parts, msg_write, sizeof buf->parts) &&
-        bmm_msg_data_write(&buf->partcs, msg_write, sizeof buf->partcs);
+      return msg_write(&dem->istep, sizeof dem->istep, NULL) &&
+        msg_write(&buf->parts, sizeof buf->parts, NULL) &&
+        msg_write(&buf->partcs, sizeof buf->partcs, NULL);
   }
 
   dynamic_assert(false, "Unsupported message type");

@@ -142,11 +142,11 @@ inline size_t bmm_size_cirt(size_t const n, size_t const k) {
   return n <= 1 ? n : bmm_size_firt(n - 1, k) + 1;
 }
 
-/// The call `bmm_size_filog(n, k)`
+/// The call `bmm_size_flog(n, k)`
 /// returns the floor of the base `k` logarithm of `n`.
 /// This is analogous to `bmm_fp_log`.
 __attribute__ ((__const__, __pure__))
-inline size_t bmm_size_filog(size_t n, size_t const k) {
+inline size_t bmm_size_flog(size_t n, size_t const k) {
   // dynamic_assert(n <= 0, "invalid argument");
   // dynamic_assert(k <= 1, "invalid base");
 
@@ -160,15 +160,15 @@ inline size_t bmm_size_filog(size_t n, size_t const k) {
   return m;
 }
 
-/// The call `bmm_size_cilog(n, k)`
+/// The call `bmm_size_clog(n, k)`
 /// returns the ceiling of the base `k` logarithm of `n`.
 /// This is analogous to `bmm_fp_log`.
 __attribute__ ((__const__, __pure__))
-inline size_t bmm_size_cilog(size_t const n, size_t const k) {
+inline size_t bmm_size_clog(size_t const n, size_t const k) {
   // dynamic_assert(n <= 0, "invalid argument");
   // dynamic_assert(k <= 1, "invalid base");
 
-  return n <= 1 ? 0 : bmm_size_filog(n - 1, k) + 1;
+  return n <= 1 ? 0 : bmm_size_flog(n - 1, k) + 1;
 }
 
 /// The call `bmm_size_uclamp(n, k)` returns
@@ -246,7 +246,7 @@ enum bmm_size_format {
 inline bool bmm_size_to_buffer(size_t* const ptr,
     unsigned char* const buf, size_t const n,
     size_t const k, enum bmm_size_format const fmt) {
-  size_t const m = k == 0 ? 1 : bmm_size_filog(k, 2) / CHAR_BIT + 1;
+  size_t const m = k == 0 ? 1 : bmm_size_flog(k, 2) / CHAR_BIT + 1;
 
   if (n < m)
     return false;

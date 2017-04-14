@@ -29,9 +29,9 @@ extern inline size_t bmm_size_firt(size_t, size_t);
 
 extern inline size_t bmm_size_cirt(size_t, size_t);
 
-extern inline size_t bmm_size_filog(size_t, size_t);
+extern inline size_t bmm_size_flog(size_t, size_t);
 
-extern inline size_t bmm_size_cilog(size_t, size_t);
+extern inline size_t bmm_size_clog(size_t, size_t);
 
 extern inline size_t bmm_size_uclamp(size_t, size_t);
 

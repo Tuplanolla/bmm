@@ -259,12 +259,19 @@ It is a bit picky about file formats according to the documentation and code.
 | `ovito/src/plugins/particles/fhi_aims` | FHI-Aims | Yes | Yes | No
 | `ovito/src/plugins/particles/parcas` | PARCAS | Yes | No | Yes
 | `ovito/src/plugins/netcdf` | NetCDF | Yes | No | Yes
-| `ovito/src/plugins/particles/gsd` | GSD/HOOMD | Yes | No | Yes
+| `ovito/src/plugins/particles/gsd` | GSD / HOOMD | Yes | No | Yes
 | `ovito/src/plugins/particles/cfg` | CFG | Yes | No | No
 | `ovito/src/plugins/particles/pdb` | PDB | Yes | No | No
 | `ovito/src/plugins/crystalanalysis` | Crystal Analysis | No | Yes | No
 | `ovito/src/core/dataset/importexport` | Calculation Results File | No | Yes | No
 | `ovito/src/plugins/povray` | POV-Ray Scene | No | Yes | No
+
+Of the binary formats, NetCDF has a formal specification
+while LAMMPS, POSCAR and GSD / HOOMD do not, although GSD / HOOMD tries to.
+
+TODO See if better sedimentation algorithms exist.
+
+    http://www.ime.unicamp.br/~martinez/packmol/
 
 ### Program Options
 

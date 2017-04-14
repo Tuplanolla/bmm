@@ -1,3 +1,4 @@
+#include <limits.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -17,7 +18,7 @@ void bmm_msg_spec_def(struct bmm_msg_spec* const spec) {
 
 enum bmm_io_read bmm_msg_spec_read(struct bmm_msg_spec* const spec,
     bmm_msg_reader const f, void* const ptr) {
-  uint8_t flags;
+  unsigned char flags;
   switch (f(&flags, 1, ptr)) {
     case BMM_IO_READ_ERROR:
       return BMM_IO_READ_ERROR;
@@ -30,12 +31,12 @@ enum bmm_io_read bmm_msg_spec_read(struct bmm_msg_spec* const spec,
   else
     spec->prio = BMM_MSG_PRIO_LOW;
 
-  switch (flags & BMM_MSG_MASK_ENDIAN) {
+  switch (flags & BMM_MSG_MASK_ENDY) {
     case BMM_MASKBITS_0():
       spec->endy = BMM_ENDY_LITTLE;
 
       break;
-    case ~BMM_MASKBITS_0() & BMM_MSG_MASK_ENDIAN:
+    case ~BMM_MASKBITS_0() & BMM_MSG_MASK_ENDY:
       spec->endy = BMM_ENDY_BIG;
 
       break;
@@ -49,7 +50,7 @@ enum bmm_io_read bmm_msg_spec_read(struct bmm_msg_spec* const spec,
     size_t const flagsize = (size_t) (flags & BMM_MSG_MASK_VARSIZE);
     size_t const presize = bmm_size_pow(2, flagsize);
 
-    uint8_t buf[BMM_MSG_PRESIZE];
+    unsigned char buf[BMM_MSG_PRESIZE];
     switch (f(buf, presize, ptr)) {
       case BMM_IO_READ_ERROR:
         return BMM_IO_READ_ERROR;
@@ -71,12 +72,12 @@ enum bmm_io_read bmm_msg_spec_read(struct bmm_msg_spec* const spec,
       switch (spec->endy) {
         case BMM_ENDY_LITTLE:
           for (size_t i = 0; i < presize; ++i)
-            size |= (size_t) buf[i] << i * 8;
+            size |= (size_t) buf[i] << i * CHAR_BIT;
 
           break;
         case BMM_ENDY_BIG:
           for (size_t i = 0; i < presize; ++i)
-            size |= (size_t) buf[presize - 1 - i] << i * 8;
+            size |= (size_t) buf[presize - 1 - i] << i * CHAR_BIT;
 
           break;
       }
@@ -94,7 +95,7 @@ enum bmm_io_read bmm_msg_spec_read(struct bmm_msg_spec* const spec,
 
 bool bmm_msg_spec_write(struct bmm_msg_spec const* const spec,
     bmm_msg_writer const f, void* const ptr) {
-  uint8_t flags = BMM_MASKBITS_0();
+  unsigned char flags = BMM_MASKBITS_0();
 
   switch (spec->prio) {
     case BMM_MSG_PRIO_LOW:
@@ -113,39 +114,41 @@ bool bmm_msg_spec_write(struct bmm_msg_spec const* const spec,
 
       return false;
     case BMM_ENDY_BIG:
-      flags |= ~BMM_MASKBITS_0() & BMM_MSG_MASK_ENDIAN;
+      flags |= ~BMM_MASKBITS_0() & BMM_MSG_MASK_ENDY;
 
       break;
   }
 
   size_t presize;
-  uint8_t buf[BMM_MSG_PRESIZE];
+  unsigned char buf[BMM_MSG_PRESIZE];
   switch (spec->tag) {
     case BMM_MSG_TAG_SP:
       {
         size_t const size = spec->msg.size;
 
-        if (size < 8) {
-          flags |= (uint8_t) size & BMM_MSG_MASK_FIXSIZE;
+        if (size < bmm_size_pow(2, BMM_MSG_BITS_FIXSIZE)) {
+          flags |= (unsigned char) size & BMM_MSG_MASK_FIXSIZE;
 
           presize = 0;
         } else {
-          size_t const flagsize = bmm_size_cilog(bmm_size_cilog(size, 8), 2);
+          size_t const flagsize =
+            bmm_size_clog(bmm_size_clog(size, CHAR_BIT), 2);
 
           flags |= BMM_MSG_MASK_VAR;
-          flags |= (uint8_t) flagsize & BMM_MSG_MASK_VARSIZE;
+          flags |= (unsigned char) flagsize & BMM_MSG_MASK_VARSIZE;
 
           presize = bmm_size_pow(2, flagsize);
 
           switch (spec->endy) {
             case BMM_ENDY_LITTLE:
               for (size_t i = 0; i < presize; ++i)
-                buf[i] = (uint8_t) (size >> i * 8 & 0xff);
+                buf[i] = (unsigned char) (size >> i * CHAR_BIT & 0xff);
 
               break;
             case BMM_ENDY_BIG:
               for (size_t i = 0; i < presize; ++i)
-                buf[presize - 1 - i] = (uint8_t) (size >> i * 8 & 0xff);
+                buf[presize - 1 - i] = (unsigned char)
+                  (size >> i * CHAR_BIT & 0xff);
 
               break;
           }
@@ -159,7 +162,7 @@ bool bmm_msg_spec_write(struct bmm_msg_spec const* const spec,
 
         flags |= BMM_MSG_MASK_TAG;
         flags |= BMM_MSG_MASK_VAR;
-        flags |= (uint8_t) flagsize & BMM_MSG_MASK_VARSIZE;
+        flags |= (unsigned char) flagsize & BMM_MSG_MASK_VARSIZE;
 
         presize = bmm_size_pow(2, flagsize);
 
@@ -183,7 +186,7 @@ bool bmm_msg_spec_write(struct bmm_msg_spec const* const spec,
 
 enum bmm_io_read bmm_msg_type_read(enum bmm_msg_type* const type,
     bmm_msg_reader const f, void* const ptr) {
-  uint8_t buf;
+  unsigned char buf;
   switch (f(&buf, 1, ptr)) {
     case BMM_IO_READ_ERROR:
       return BMM_IO_READ_ERROR;
@@ -200,23 +203,9 @@ bool bmm_msg_type_write(enum bmm_msg_type const* const type,
     bmm_msg_writer const f, void* const ptr) {
   dynamic_assert(*type <= 0xff, "Type would be truncated");
 
-  uint8_t buf = (uint8_t) *type;
+  unsigned char buf = (unsigned char) *type;
   if (!f(&buf, 1, ptr))
     return false;
 
   return true;
-}
-
-// TODO This requires `CHAR_BIT == 8`, which is bad.
-// TODO Perhaps using `uint8_t` instead of `unsigned char`
-// with the lsb trimmed off is misguided.
-
-enum bmm_io_read bmm_msg_data_read(void* const data,
-    bmm_msg_reader const f, size_t const size) {
-  return f(data, size, NULL);
-}
-
-bool bmm_msg_data_write(void const* const data,
-    bmm_msg_writer const f, size_t const size) {
-  return f(data, size, NULL);
 }

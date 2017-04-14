@@ -35,7 +35,7 @@ void glString(char const* str, int const x, int const y,
     glutBitmapCharacter(font, *str++);
 }
 
-static enum bmm_io_read msg_read(uint8_t* buf, size_t const n,
+static enum bmm_io_read msg_read(unsigned char* buf, size_t const n,
     __attribute__ ((__unused__)) void* const ptr) {
   return bmm_io_readin(buf, n);
 }
@@ -46,41 +46,41 @@ enum bmm_io_read bmm_dem_gets_stuff(struct bmm_dem* const dem,
 
   switch (type) {
     case BMM_MSG_NPART:
-      return bmm_msg_data_read(&buf->npart, msg_read, sizeof buf->npart);
+      return msg_read(&buf->npart, sizeof buf->npart, NULL);
     case BMM_MSG_EKINE:
-      switch (bmm_msg_data_read(&dem->istep, msg_read, sizeof dem->istep)) {
+      switch (msg_read(&dem->istep, sizeof dem->istep, NULL)) {
         case BMM_IO_READ_ERROR:
           return BMM_IO_READ_ERROR;
         case BMM_IO_READ_EOF:
           return BMM_IO_READ_EOF;
       }
 
-      return bmm_msg_data_read(&dem->est, msg_read, sizeof dem->est);
+      return msg_read(&dem->est, sizeof dem->est, NULL);
     case BMM_MSG_NEIGH:
-      switch (bmm_msg_data_read(&buf->neigh, msg_read, sizeof buf->neigh)) {
+      switch (msg_read(&buf->neigh, sizeof buf->neigh, NULL)) {
         case BMM_IO_READ_ERROR:
           return BMM_IO_READ_ERROR;
         case BMM_IO_READ_EOF:
           return BMM_IO_READ_EOF;
       }
 
-      return bmm_msg_data_read(&buf->links, msg_read, sizeof buf->links);
+      return msg_read(&buf->links, sizeof buf->links, NULL);
     case BMM_MSG_PARTS:
-      switch (bmm_msg_data_read(&dem->istep, msg_read, sizeof dem->istep)) {
+      switch (msg_read(&dem->istep, sizeof dem->istep, NULL)) {
         case BMM_IO_READ_ERROR:
           return BMM_IO_READ_ERROR;
         case BMM_IO_READ_EOF:
           return BMM_IO_READ_EOF;
       }
 
-      switch (bmm_msg_data_read(&buf->parts, msg_read, sizeof buf->parts)) {
+      switch (msg_read(&buf->parts, sizeof buf->parts, NULL)) {
         case BMM_IO_READ_ERROR:
           return BMM_IO_READ_ERROR;
         case BMM_IO_READ_EOF:
           return BMM_IO_READ_EOF;
       }
 
-      return bmm_msg_data_read(&buf->partcs, msg_read, sizeof buf->partcs);
+      return msg_read(&buf->partcs, sizeof buf->partcs, NULL);
   }
 
   dynamic_assert(false, "Unsupported message type");
