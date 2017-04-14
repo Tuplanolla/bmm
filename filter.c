@@ -26,12 +26,12 @@ static bool pass(struct bmm_filter const* const filter,
   return filter->opts.mask[(size_t) type];
 }
 
-static enum bmm_io_read msg_read(uint8_t* buf, size_t const n,
+static enum bmm_io_read msg_read(void* buf, size_t const n,
     __attribute__ ((__unused__)) void* const ptr) {
   return bmm_io_readin(buf, n);
 }
 
-static bool msg_write(uint8_t const* buf, size_t const n,
+static bool msg_write(void const* buf, size_t const n,
     __attribute__ ((__unused__)) void* const ptr) {
   return bmm_io_writeout(buf, n);
 }
@@ -97,8 +97,6 @@ bool bmm_filter_run(struct bmm_filter* const filter) {
           BMM_TLE_EXTS(BMM_TLE_UNIMPL, "Not implemented (yet?)");
 
           return false;
-
-          break;
       }
 
       ++filter->passed;
@@ -116,8 +114,6 @@ bool bmm_filter_run(struct bmm_filter* const filter) {
           BMM_TLE_EXTS(BMM_TLE_UNIMPL, "Not implemented (yet?)");
 
           return false;
-
-          break;
       }
 
       ++filter->stopped;

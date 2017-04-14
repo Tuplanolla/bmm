@@ -35,13 +35,13 @@ void glString(char const* str, int const x, int const y,
     glutBitmapCharacter(font, *str++);
 }
 
-static enum bmm_io_read msg_read(unsigned char* buf, size_t const n,
+static enum bmm_io_read msg_read(void* buf, size_t const n,
     __attribute__ ((__unused__)) void* const ptr) {
   return bmm_io_readin(buf, n);
 }
 
 enum bmm_io_read bmm_dem_gets_stuff(struct bmm_dem* const dem,
-    enum bmm_msg_type const type, size_t const size) {
+    enum bmm_msg_type const type) {
   struct bmm_dem_buf* const buf = bmm_dem_getbuf(dem);
 
   switch (type) {
@@ -108,8 +108,6 @@ enum bmm_io_read bmm_dem_gets(struct bmm_dem* const dem,
     return BMM_IO_READ_ERROR;
   }
 
-  size_t const size = spec.msg.size - BMM_MSG_TYPESIZE;
-
   switch (bmm_msg_type_read(type, msg_read, NULL)) {
     case BMM_IO_READ_ERROR:
       return BMM_IO_READ_ERROR;
@@ -117,13 +115,13 @@ enum bmm_io_read bmm_dem_gets(struct bmm_dem* const dem,
       return BMM_IO_READ_EOF;
   }
 
-  if (bmm_dem_sniff_size(dem, *type) != size) {
+  if (bmm_dem_sniff_size(dem, *type) != spec.msg.size - BMM_MSG_TYPESIZE) {
     BMM_TLE_EXTS(BMM_TLE_UNKNOWN, "Size mismatch");
 
     return BMM_IO_READ_ERROR;
   }
 
-  return bmm_dem_gets_stuff(dem, *type, size);
+  return bmm_dem_gets_stuff(dem, *type);
 }
 
 void bmm_sdl_opts_def(struct bmm_sdl_opts* const opts) {

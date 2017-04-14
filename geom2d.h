@@ -119,7 +119,7 @@ inline void bmm_geom2d_from_polar(double* const cart,
 }
 
 /// The call `bmm_geom2d_from_polar2(cart, polar2)` maps
-/// the polar coordinates `polar2` of the form $(r^2, \phi)$
+/// the polar coordinates `polar2` of the form $(r^2, \\phi)$
 /// to the corresponding cartesian coordinates `cart` of the form $(x, y)$.
 inline void bmm_geom2d_from_polar2(double* const cart,
     double const* const polar2) {
@@ -130,7 +130,8 @@ inline void bmm_geom2d_from_polar2(double* const cart,
 }
 
 /// The call `bmm_geom2d_diff(rdiff, r0, r1)`
-/// sets the vector `rdiff` to the difference between the vectors `r0` and `r1`.
+/// sets the vector `rdiff` to the difference
+/// between the vectors `r0` and `r1`.
 inline void bmm_geom2d_diff(double* const rdiff,
     double const* const r0, double const* const r1) {
   for (size_t idim = 0; idim < 2; ++idim)
@@ -159,7 +160,7 @@ inline double bmm_geom2d_dist(double const* const r0, double const* const r1) {
 }
 
 /// The call `bmm_geom2d_angle(r0, r1)`
-/// returns the signed angle $\phi$
+/// returns the signed angle $\\phi$
 /// between the vectors `r0` and `r1`
 /// according to the minimum image convention.
 __attribute__ ((__pure__))

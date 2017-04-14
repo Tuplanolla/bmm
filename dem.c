@@ -465,7 +465,7 @@ double bmm_dem_maxrad(struct bmm_dem const* const dem) {
 
 // Drift time estimator.
 double bmm_dem_drift(struct bmm_dem const* const dem) {
-  double t = INFINITY;
+  double t = (double) INFINITY;
 
   double const rad = bmm_dem_maxrad(dem);
 
@@ -740,7 +740,7 @@ void bmm_dem_def(struct bmm_dem* const dem,
 
 // TODO Relocate these.
 
-static bool msg_write(unsigned char const* buf, size_t const n,
+static bool msg_write(void const* buf, size_t const n,
     __attribute__ ((__unused__)) void* const ptr) {
   return bmm_io_writeout(buf, n);
 }
@@ -764,7 +764,7 @@ size_t bmm_dem_sniff_size(struct bmm_dem const* const dem,
 }
 
 bool bmm_dem_puts_stuff(struct bmm_dem const* const dem,
-    enum bmm_msg_type const type, size_t const size) {
+    enum bmm_msg_type const type) {
   struct bmm_dem_buf const* const buf = bmm_dem_getrbuf(dem);
 
   switch (type) {
@@ -787,15 +787,13 @@ bool bmm_dem_puts_stuff(struct bmm_dem const* const dem,
 
 bool bmm_dem_puts(struct bmm_dem const* const dem,
     enum bmm_msg_type const type) {
-  size_t const size = bmm_dem_sniff_size(dem, type);
-
   struct bmm_msg_spec spec;
   bmm_msg_spec_def(&spec);
-  spec.msg.size = size + BMM_MSG_TYPESIZE;
+  spec.msg.size = bmm_dem_sniff_size(dem, type) + BMM_MSG_TYPESIZE;
 
   return bmm_msg_spec_write(&spec, msg_write, NULL) &&
     bmm_msg_type_write(&type, msg_write, NULL) &&
-    bmm_dem_puts_stuff(dem, type, size);
+    bmm_dem_puts_stuff(dem, type);
 }
 
 bool bmm_dem_step(struct bmm_dem* const dem) {

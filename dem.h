@@ -347,14 +347,8 @@ bool bmm_dem_run_with(struct bmm_dem_opts const*);
 size_t bmm_dem_sniff_size(struct bmm_dem const* const dem,
     enum bmm_msg_type const type);
 
-enum bmm_io_read bmm_dem_gets_stuff(struct bmm_dem* const dem,
-    enum bmm_msg_type const type, size_t const size);
-
 bool bmm_dem_puts_stuff(struct bmm_dem const* const dem,
-    enum bmm_msg_type const type, size_t const size);
-
-enum bmm_io_read bmm_dem_gets(struct bmm_dem* const dem,
-    enum bmm_msg_type* const type);
+    enum bmm_msg_type const type);
 
 bool bmm_dem_puts(struct bmm_dem const* const dem,
     enum bmm_msg_type const type);
