@@ -42,11 +42,9 @@ static enum bmm_io_read msg_read(void* buf, size_t const n,
 
 enum bmm_io_read bmm_dem_gets_stuff(struct bmm_dem* const dem,
     enum bmm_msg_type const type) {
-  struct bmm_dem_buf* const buf = bmm_dem_getbuf(dem);
-
   switch (type) {
     case BMM_MSG_NPART:
-      return msg_read(&buf->npart, sizeof buf->npart, NULL);
+      return msg_read(&dem->buf.npart, sizeof dem->buf.npart, NULL);
     case BMM_MSG_EKINE:
       switch (msg_read(&dem->istep, sizeof dem->istep, NULL)) {
         case BMM_IO_READ_ERROR:
@@ -57,14 +55,14 @@ enum bmm_io_read bmm_dem_gets_stuff(struct bmm_dem* const dem,
 
       return msg_read(&dem->est, sizeof dem->est, NULL);
     case BMM_MSG_NEIGH:
-      switch (msg_read(&buf->neigh, sizeof buf->neigh, NULL)) {
+      switch (msg_read(&dem->buf.neigh, sizeof dem->buf.neigh, NULL)) {
         case BMM_IO_READ_ERROR:
           return BMM_IO_READ_ERROR;
         case BMM_IO_READ_EOF:
           return BMM_IO_READ_EOF;
       }
 
-      return msg_read(&buf->links, sizeof buf->links, NULL);
+      return msg_read(&dem->buf.links, sizeof dem->buf.links, NULL);
     case BMM_MSG_PARTS:
       switch (msg_read(&dem->istep, sizeof dem->istep, NULL)) {
         case BMM_IO_READ_ERROR:
@@ -73,14 +71,14 @@ enum bmm_io_read bmm_dem_gets_stuff(struct bmm_dem* const dem,
           return BMM_IO_READ_EOF;
       }
 
-      switch (msg_read(&buf->parts, sizeof buf->parts, NULL)) {
+      switch (msg_read(&dem->buf.parts, sizeof dem->buf.parts, NULL)) {
         case BMM_IO_READ_ERROR:
           return BMM_IO_READ_ERROR;
         case BMM_IO_READ_EOF:
           return BMM_IO_READ_EOF;
       }
 
-      return msg_read(&buf->partcs, sizeof buf->partcs, NULL);
+      return msg_read(&dem->buf.partcs, sizeof dem->buf.partcs, NULL);
   }
 
   dynamic_assert(false, "Unsupported message type");
@@ -254,16 +252,14 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
   double const w = sdl->dem.rext[0] / (double) sdl->dem.opts.ncell[0];
   double const h = sdl->dem.rext[1] / (double) sdl->dem.opts.ncell[1];
 
-  struct bmm_dem_buf const* const buf = bmm_dem_getrbuf(&sdl->dem);
-
   // Particles.
-  for (size_t ipart = 0; ipart < buf->npart; ++ipart) {
-    float const x = (float) buf->parts[ipart].lin.r[0];
-    float const y = (float) buf->parts[ipart].lin.r[1];
-    float const r = (float) buf->partcs[ipart].rrad;
-    float const a = (float) buf->parts[ipart].ang.alpha;
+  for (size_t ipart = 0; ipart < sdl->dem.buf.npart; ++ipart) {
+    float const x = (float) sdl->dem.buf.parts[ipart].lin.r[0];
+    float const y = (float) sdl->dem.buf.parts[ipart].lin.r[1];
+    float const r = (float) sdl->dem.buf.partcs[ipart].rrad;
+    float const a = (float) sdl->dem.buf.parts[ipart].ang.alpha;
 
-    glColor4fv(buf->partcs[ipart].free ? glYellow : glWhite);
+    glColor4fv(sdl->dem.buf.partcs[ipart].free ? glYellow : glWhite);
 
     glSkewedAnnulus(x, y, r, r * 0.25f, r * 0.5f, a, ncorner);
   }
@@ -275,18 +271,18 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
 
     // Neighbor markers.
     glBegin(GL_LINES);
-    for (size_t ineigh = 0; ineigh < bmm_dem_sizey(&buf->neigh.neighs[ipart]); ++ineigh) {
-      size_t const jpart = bmm_dem_gety(&buf->neigh.neighs[ipart], ineigh);
+    for (size_t ineigh = 0; ineigh < bmm_dem_sizey(&sdl->dem.buf.neigh.neighs[ipart]); ++ineigh) {
+      size_t const jpart = bmm_dem_gety(&sdl->dem.buf.neigh.neighs[ipart], ineigh);
 
       bool p = true;
       for (size_t idim = 0; idim < 2; ++idim)
         p = p &&
-          fabs(buf->parts[ipart].lin.r[idim] - buf->parts[jpart].lin.r[idim]) <
+          fabs(sdl->dem.buf.parts[ipart].lin.r[idim] - sdl->dem.buf.parts[jpart].lin.r[idim]) <
           sdl->dem.rext[idim] / 2.0;
 
       if (p) {
-        glVertex2dv(buf->parts[ipart].lin.r);
-        glVertex2dv(buf->parts[jpart].lin.r);
+        glVertex2dv(sdl->dem.buf.parts[ipart].lin.r);
+        glVertex2dv(sdl->dem.buf.parts[jpart].lin.r);
       }
     }
     glEnd();
@@ -294,20 +290,20 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
 
   // Structural links.
   glColor4fv(glMagenta);
-  for (size_t ipart = 0; ipart < buf->npart; ++ipart) {
+  for (size_t ipart = 0; ipart < sdl->dem.buf.npart; ++ipart) {
     glBegin(GL_LINES);
-    for (size_t ineigh = 0; ineigh < bmm_dem_sizel(&buf->links[ipart]); ++ineigh) {
-      size_t const jpart = bmm_dem_getl(&buf->links[ipart], ineigh);
+    for (size_t ineigh = 0; ineigh < bmm_dem_sizel(&sdl->dem.buf.links[ipart]); ++ineigh) {
+      size_t const jpart = bmm_dem_getl(&sdl->dem.buf.links[ipart], ineigh);
 
       bool p = true;
       for (size_t idim = 0; idim < 2; ++idim)
         p = p &&
-          fabs(buf->parts[ipart].lin.r[idim] - buf->parts[jpart].lin.r[idim]) <
+          fabs(sdl->dem.buf.parts[ipart].lin.r[idim] - sdl->dem.buf.parts[jpart].lin.r[idim]) <
           sdl->dem.rext[idim] / 2.0;
 
       if (p) {
-        glVertex2dv(buf->parts[ipart].lin.r);
-        glVertex2dv(buf->parts[jpart].lin.r);
+        glVertex2dv(sdl->dem.buf.parts[ipart].lin.r);
+        glVertex2dv(sdl->dem.buf.parts[jpart].lin.r);
       }
     }
     glEnd();
@@ -355,13 +351,13 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
       sdl->dem.istep * sdl->dem.opts.tstep);
   glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
   (void) snprintf(strbuf, sizeof strbuf, "t (next sched. update) = %g",
-      buf->neigh.tnext);
+      sdl->dem.buf.neigh.tnext);
   glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
   (void) snprintf(strbuf, sizeof strbuf, "e (coeff. of restit.) = %g",
       bmm_dem_cor(&sdl->dem));
   glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
   (void) snprintf(strbuf, sizeof strbuf, "n (number of particles) = %zu",
-      buf->npart);
+      sdl->dem.buf.npart);
   glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
 
   SDL_GL_SwapWindow(window);
@@ -470,10 +466,7 @@ static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
               sdl->itarget = 0;
               break;
             case SDLK_3:
-              {
-                struct bmm_dem_buf const* const buf = bmm_dem_getrbuf(&sdl->dem);
-                sdl->itarget = (size_t) rand() % buf->npart;
-              }
+              sdl->itarget = (size_t) rand() % sdl->dem.buf.npart;
               break;
           }
           break;

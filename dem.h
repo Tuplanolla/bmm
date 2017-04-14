@@ -170,16 +170,7 @@ struct bmm_dem {
   // TODO Measurement system goes here.
   struct bmm_dem_est est;
   // TODO Nearest neighbor system goes here.
-  bool dblbuf;
-  bool _pad0[7];
-  union {
-    struct {
-      struct bmm_dem_buf bufs[2];
-      struct bmm_dem_buf* active;
-      struct bmm_dem_buf* passive;
-    } bufs;
-    struct bmm_dem_buf buf;
-  } data;
+  struct bmm_dem_buf buf;
   // Large object memory pool.
   union {
     // Which particles each cell owns, roughly.
@@ -270,43 +261,6 @@ inline size_t bmm_dem_sizel(struct bmm_dem_listl const* const list) {
 inline size_t bmm_dem_getl(struct bmm_dem_listl const* const list,
     size_t const i) {
   return list->linkl[i].i;
-}
-
-/// The call `bmm_dem_getbuf(dem)`
-/// returns the active read and write buffer of the simulation `dem`
-/// whether it is single-buffered or double-buffered.
-__attribute__ ((__nonnull__))
-inline struct bmm_dem_buf* bmm_dem_getbuf(struct bmm_dem* const dem) {
-  return dem->dblbuf ? dem->data.bufs.active : &dem->data.buf;
-}
-
-/// The call `bmm_dem_getrbuf(dem)`
-/// returns the active read buffer of the simulation `dem`
-/// whether it is single-buffered or double-buffered.
-__attribute__ ((__nonnull__))
-inline struct bmm_dem_buf const* bmm_dem_getrbuf(
-    struct bmm_dem const* const dem) {
-  return dem->dblbuf ? dem->data.bufs.active : &dem->data.buf;
-}
-
-/// The call `bmm_dem_getwbuf(dem)`
-/// returns the passive write buffer of the simulation `dem`
-/// whether it is single-buffered or double-buffered.
-__attribute__ ((__nonnull__))
-inline struct bmm_dem_buf* bmm_dem_getwbuf(struct bmm_dem* const dem) {
-  return dem->dblbuf ? dem->data.bufs.passive : &dem->data.buf;
-}
-
-/// The call `bmm_dem_swapbuf(dem)`
-/// swaps the active and passive buffers of the simulation `dem`.
-/// This is necessary for operations that are not structure-preserving.
-__attribute__ ((__nonnull__))
-inline void bmm_dem_swapbuf(struct bmm_dem* const dem) {
-  if (dem->dblbuf) {
-    struct bmm_dem_buf* const buf = dem->data.bufs.passive;
-    dem->data.bufs.passive = dem->data.bufs.active;
-    dem->data.bufs.active = buf;
-  }
 }
 
 __attribute__ ((__nonnull__))
