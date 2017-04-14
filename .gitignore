@@ -9,7 +9,11 @@
 /*.run.gz
 /bmm-dem
 /bmm-filter
+/bmm-glut
+/bmm-lammps
 /bmm-sdl
 /clang-*-release
 /gcc-*-release
+/html
+/latex
 /tests

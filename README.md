@@ -204,6 +204,32 @@ One more cut could be made by requiring all the swaps are constant,
 giving $2$ options and an enumeration of $b = 1$ bits.
 These are known as little and big endian.
 
+#### Index Files
+
+To make browsing past simulations easier and more efficient,
+one could generate index files from the recorded streams.
+These would consist of fixed chunks that contain
+the message type and flags as usual,
+but instead of the message body there would simply be an offset number
+to the message within the record.
+
+Look at this familiar table.
+
+| Bit Pattern | Meaning
+|:------------|:--------
+| `abbb0ddd` | Message offset has the endianness `b` and the range `d`.
+| `abbb0000` | Message is at offset `g` (0 B).
+| `abbb0001 G` | Message is at offset `g` (256 B).
+| `abbb0010 G G` | Message is at offset `g` (64 kiB).
+| `abbb0011 G G G` | Message is at offset `g` (16 MiB).
+| `abbb0100 G G G G` | Message is at offset `g` (4 GiB).
+| `abbb0101 G G G G G` | Message is at offset `g` (1 TiB).
+| `abbb0110 G G G G G G` | Message is at offset `g` (256 TiB).
+| `abbb0111 G G G G G G G` | Message is at offset `g` (64 PiB).
+| `abbbdddd` | Protocol violation.
+
+The range `d` has to stay the same throughout the index.
+
 ### Streaming
 
 Compressing movies is easy.
@@ -213,12 +239,32 @@ Compressing movies is easy.
 
 Sending data through the network works fine.
 
-    $ ncat -l 9001 | ./bmm-sdl
-    $ ./bmm-dem | ncat 127.0.0.1 9001
+    $ nc -l 9001 | ./bmm-sdl
+    $ ./bmm-dem | nc 127.0.0.1 9001
 
 TODO Try producing high-quality images and movies with OVITO.
 
     http://www.ovito.org/manual/usage.import.html
+    http://www.ovito.org/manual/usage.export.html
+
+It is a bit picky about file formats according to the documentation and code.
+
+| Path | Format | Import | Export | Binary
+|:-----|:-------|:-------|:-------|:-------
+| `ovito/src/plugins/particles/lammps` | LAMMPS Dump | Yes | Yes | Yes
+| `ovito/src/plugins/particles/lammps` | LAMMPS Data | Yes | Yes | No
+| `ovito/src/plugins/particles/xyz` | XYZ | Yes | Yes | No
+| `ovito/src/plugins/particles/vasp` | POSCAR / XDATCAR | Yes | Yes | No
+| `ovito/src/plugins/particles/imd` | IMD | Yes | Yes | No
+| `ovito/src/plugins/particles/fhi_aims` | FHI-Aims | Yes | Yes | No
+| `ovito/src/plugins/particles/parcas` | PARCAS | Yes | No | Yes
+| `ovito/src/plugins/netcdf` | NetCDF | Yes | No | Yes
+| `ovito/src/plugins/particles/gsd` | GSD/HOOMD | Yes | No | Yes
+| `ovito/src/plugins/particles/cfg` | CFG | Yes | No | No
+| `ovito/src/plugins/particles/pdb` | PDB | Yes | No | No
+| `ovito/src/plugins/crystalanalysis` | Crystal Analysis | No | Yes | No
+| `ovito/src/core/dataset/importexport` | Calculation Results File | No | Yes | No
+| `ovito/src/plugins/povray` | POV-Ray Scene | No | Yes | No
 
 ### Program Options
 
@@ -285,15 +331,6 @@ Since printing error messages taints library procedures and
 `errno` and `strerror` cannot carry dynamic error information,
 it could be useful to have another mechanism.
 The proposal in the `tlerr` translation unit could work.
-
-#### Index Files
-
-To make browsing past simulations easier and more efficient,
-one could generate index files from the recorded streams.
-These would consist of fixed chunks that contain
-the message type and flags as usual,
-but instead of the message body there would simply be an offset number
-to the message within the record (always eight bytes).
 
 #### Allocation
 

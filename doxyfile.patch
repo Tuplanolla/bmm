@@ -14,6 +14,10 @@
 < EXTRACT_ALL            = NO
 ---
 > EXTRACT_ALL            = YES
+120c120
+< USE_MDFILE_AS_MAINPAGE =
+---
+> USE_MDFILE_AS_MAINPAGE = README.md
 180,181c180,181
 < USE_MATHJAX            = NO
 < MATHJAX_FORMAT         = HTML-CSS
