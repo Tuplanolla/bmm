@@ -49,6 +49,8 @@ int bmm_tle_num_std(void) {
     case BMM_TLE_TAG_EXT:
       return 0;
   }
+
+  dynamic_assert(false, "Nonexhaustive cases");
 }
 
 enum bmm_tle_num bmm_tle_num_ext(void) {
@@ -58,6 +60,8 @@ enum bmm_tle_num bmm_tle_num_ext(void) {
     case BMM_TLE_TAG_EXT:
       return tle.num.ext;
   }
+
+  dynamic_assert(false, "Nonexhaustive cases");
 }
 
 char const* bmm_tle_msg(void) {

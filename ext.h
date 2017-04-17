@@ -44,10 +44,10 @@
 /// Due to technical limitations each `static_assert` must be on its own line
 /// to avoid naming conflicts.
 #ifndef static_assert
-#define _static_assert_line(p, n) __attribute__ ((__unused__)) \
+#define static_assert_line_(p, n) __attribute__ ((__unused__)) \
   static int const _static_assert_##n[(p) ? 1 : -1]
-#define _static_assert(p, n) _static_assert_line((p), n)
-#define static_assert(p, _) _static_assert((p), __LINE__)
+#define static_assert_(p, n) static_assert_line_((p), n)
+#define static_assert(p, _) static_assert_((p), __LINE__)
 #endif
 
 /// The preprocessor directive `dynamic_assert(p, s)`

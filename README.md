@@ -249,22 +249,22 @@ TODO Try producing high-quality images and movies with OVITO.
 
 It is a bit picky about file formats according to the documentation and code.
 
-| Path | Format | Import | Export | Binary
+| Path | Format | Binary | Import | Export
 |:-----|:-------|:-------|:-------|:-------
 | `ovito/src/plugins/particles/lammps` | LAMMPS Dump | Yes | Yes | Yes
-| `ovito/src/plugins/particles/lammps` | LAMMPS Data | Yes | Yes | No
-| `ovito/src/plugins/particles/xyz` | XYZ | Yes | Yes | No
-| `ovito/src/plugins/particles/vasp` | POSCAR / XDATCAR | Yes | Yes | No
-| `ovito/src/plugins/particles/imd` | IMD | Yes | Yes | No
-| `ovito/src/plugins/particles/fhi_aims` | FHI-Aims | Yes | Yes | No
-| `ovito/src/plugins/particles/parcas` | PARCAS | Yes | No | Yes
-| `ovito/src/plugins/netcdf` | NetCDF | Yes | No | Yes
-| `ovito/src/plugins/particles/gsd` | GSD / HOOMD | Yes | No | Yes
-| `ovito/src/plugins/particles/cfg` | CFG | Yes | No | No
-| `ovito/src/plugins/particles/pdb` | PDB | Yes | No | No
-| `ovito/src/plugins/crystalanalysis` | Crystal Analysis | No | Yes | No
-| `ovito/src/core/dataset/importexport` | Calculation Results File | No | Yes | No
-| `ovito/src/plugins/povray` | POV-Ray Scene | No | Yes | No
+| `ovito/src/plugins/particles/parcas` | PARCAS | Yes | Yes | No
+| `ovito/src/plugins/netcdf` | NetCDF | Yes | Yes | No
+| `ovito/src/plugins/particles/gsd` | GSD / HOOMD | Yes | Yes | No
+| `ovito/src/plugins/particles/lammps` | LAMMPS Data | No | Yes | Yes
+| `ovito/src/plugins/particles/xyz` | XYZ | No | Yes | Yes
+| `ovito/src/plugins/particles/vasp` | POSCAR / XDATCAR | No | Yes | Yes
+| `ovito/src/plugins/particles/imd` | IMD | No | Yes | Yes
+| `ovito/src/plugins/particles/fhi_aims` | FHI-Aims | No | Yes | Yes
+| `ovito/src/plugins/particles/cfg` | CFG | No | Yes | No
+| `ovito/src/plugins/particles/pdb` | PDB | No | Yes | No
+| `ovito/src/plugins/crystalanalysis` | Crystal Analysis | No | No | Yes
+| `ovito/src/core/dataset/importexport` | Calculation Results File | No | No | Yes
+| `ovito/src/plugins/povray` | POV-Ray Scene | No | No | Yes
 
 Of the binary formats, NetCDF has a formal specification
 while LAMMPS, POSCAR and GSD / HOOMD do not, although GSD / HOOMD tries to.

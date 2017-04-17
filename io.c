@@ -1,9 +1,11 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/select.h>
 
 #include "io.h"
+#include "tle.h"
 
 extern inline bool bmm_io_read_to_bool(enum bmm_io_read);
 
@@ -74,3 +76,69 @@ extern inline enum bmm_io_read bmm_io_fastfwin(size_t);
 extern inline enum bmm_io_read bmm_io_readin(void*, size_t);
 
 extern inline bool bmm_io_writeout(void const*, size_t);
+
+void* bmm_io_fconts(size_t* const ptr, FILE* const stream) {
+  if (fseek(stream, 0, SEEK_END) != 0) {
+    BMM_TLE_STDS();
+
+    return NULL;
+  }
+
+  long int const pos = ftell(stream);
+
+  if (fseek(stream, 0, SEEK_SET) != 0) {
+    BMM_TLE_STDS();
+
+    return NULL;
+  }
+
+  size_t const size = (size_t) pos;
+
+  void* const buf = malloc(size);
+  if (buf == NULL) {
+    BMM_TLE_STDS();
+
+    return NULL;
+  }
+
+  if (fread(buf, size, 1, stream) != 1) {
+    BMM_TLE_STDS();
+
+    free(buf);
+
+    return NULL;
+  }
+
+  *ptr = size;
+
+  return buf;
+}
+
+void* bmm_io_conts(size_t* const ptr, char const* const path) {
+  FILE* const stream = fopen(path, "r");
+  if (stream == NULL) {
+    BMM_TLE_STDS();
+
+    return NULL;
+  }
+
+  void* const buf = bmm_io_fconts(ptr, stream);
+  if (buf == NULL) {
+    BMM_TLE_STDS();
+
+    if (fclose(stream) != 0)
+      BMM_TLE_STDS();
+
+    return NULL;
+  }
+
+  if (fclose(stream) != 0) {
+    BMM_TLE_STDS();
+
+    free(buf);
+
+    return NULL;
+  }
+
+  return buf;
+}

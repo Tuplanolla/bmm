@@ -10,7 +10,7 @@
 /bmm-dem
 /bmm-filter
 /bmm-glut
-/bmm-lammps
+/bmm-netcdf
 /bmm-sdl
 /clang-*-release
 /gcc-*-release

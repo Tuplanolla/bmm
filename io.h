@@ -34,6 +34,8 @@ inline bool bmm_io_read_to_bool(enum bmm_io_read const result) {
     case BMM_IO_READ_SUCCESS:
       return true;
   }
+
+  dynamic_assert(false, "Nonexhaustive cases");
 }
 
 /// The call `bmm_io_wait(fd, timeout)`
@@ -97,5 +99,17 @@ __attribute__ ((__nonnull__))
 inline bool bmm_io_writeout(void const* const ptr, size_t const size) {
   return fwrite(ptr, size, 1, stdout) == 1;
 }
+
+/// The call `bmm_io_fconts(ptr, stream)`
+/// reads the contents of the seekable stream `stream` and
+/// allocates a buffer of size `ptr` for it.
+__attribute__ ((__malloc__, __nonnull__))
+void* bmm_io_fconts(size_t*, FILE*);
+
+/// The call `bmm_io_conts(ptr, path)`
+/// reads the contents of the file in `path` and
+/// allocates a buffer of size `ptr` for it.
+__attribute__ ((__malloc__, __nonnull__))
+void* bmm_io_conts(size_t*, char const*);
 
 #endif
