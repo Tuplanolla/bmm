@@ -43,10 +43,10 @@ CFLAGS=-D_POSIX_C_SOURCE=200809L -std=c11 $(flags)
 LDLIBS=-lm -lrt
 CFLAGSGSL=`pkg-config --cflags cheat gsl`
 LDLIBSGSL=`pkg-config --libs cheat gsl`
-CFLAGSSDL=`pkg-config --cflags freeglut gl gsl sdl2`
-LDLIBSSDL=`pkg-config --libs freeglut gl gsl sdl2`
+CFLAGSSDL=`pkg-config --cflags freeglut gl glew gsl sdl2`
+LDLIBSSDL=`pkg-config --libs freeglut gl glew gsl sdl2`
 
-build: bmm-dem bmm-filter bmm-sdl
+build: bmm-dem bmm-filter bmm-glut bmm-sdl
 
 run: build
 	GSL_RNG_TYPE=mt19937 GSL_RNG_SEED=42 time -v \
@@ -55,7 +55,6 @@ run: build
 	./bmm-sdl
 
 run-to: build
-	GSL_RNG_TYPE=mt19937 GSL_RNG_SEED=42 time -v \
 	./bmm-dem | \
 	./bmm-filter --mode whitelist --pass 142 --pass 144 --pass 168 | \
 	gzip -c > bmm.run.gz
@@ -110,6 +109,11 @@ bmm-filter: bmm-filter.o \
 	bit.o dem.o endy.o filter.o fp.o geom.o geom2d.o hack.o io.o msg.o \
 	opt.o sec.o sig.o size.o str.o tle.o
 	$(CC) $(CFLAGS) $(CFLAGSGSL) -o $@ $^ $(LDLIBS) $(LDLIBSGSL)
+
+bmm-glut: bmm-glut.o \
+	bit.o dem.o endy.o fp.o geom.o geom2d.o gl.o hack.o io.o msg.o \
+	opt.o sec.o sig.o size.o str.o tle.o
+	$(CC) $(CFLAGS) $(CFLAGSSDL) -o $@ $^ $(LDLIBS) $(LDLIBSSDL)
 
 bmm-sdl: bmm-sdl.o \
 	bit.o dem.o endy.o fp.o geom.o geom2d.o gl.o hack.o io.o msg.o \

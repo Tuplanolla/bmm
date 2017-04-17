@@ -36,10 +36,6 @@
 < MACRO_EXPANSION        = NO
 ---
 > MACRO_EXPANSION        = YES
-278c278
-< HAVE_DOT               = NO
----
-> HAVE_DOT               = YES
 295,296c295,296
 < DOT_IMAGE_FORMAT       = png
 < INTERACTIVE_SVG        = NO
