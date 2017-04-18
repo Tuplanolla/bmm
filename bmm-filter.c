@@ -34,6 +34,11 @@ static bool f(char const* const key, char const* const value,
     if (!(bmm_str_strtoz(&i, value) && i < BMM_MSG_MAX))
       return false;
     opts->mask[i] = false;
+  } else if (strcmp(key, "verbose") == 0) {
+    bool p;
+    if (!bmm_str_strtob(&p, value))
+      return false;
+    opts->verbose = p;
   } else
     return false;
 

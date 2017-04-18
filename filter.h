@@ -10,6 +10,7 @@
 #include "msg.h"
 
 struct bmm_filter_opts {
+  bool verbose;
   bool mask[BMM_MSG_MAX];
 };
 
@@ -28,6 +29,9 @@ void bmm_filter_def(struct bmm_filter*, struct bmm_filter_opts const*);
 
 __attribute__ ((__nonnull__))
 bool bmm_filter_run(struct bmm_filter*);
+
+__attribute__ ((__nonnull__))
+bool bmm_filter_report(struct bmm_filter const*);
 
 __attribute__ ((__nonnull__))
 bool bmm_filter_run_with(struct bmm_filter_opts const*);

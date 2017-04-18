@@ -1,7 +1,6 @@
 #include <signal.h>
 #include <stdio.h>
 
-#include "bit.h"
 #include "filter.h"
 #include "io.h"
 #include "msg.h"
@@ -10,6 +9,8 @@
 #include "tle.h"
 
 void bmm_filter_opts_def(struct bmm_filter_opts* const opts) {
+  opts->verbose = false;
+
   for (size_t imsg = 0; imsg < BMM_MSG_MAX; ++imsg)
     opts->mask[imsg] = false;
 }
@@ -123,9 +124,27 @@ bool bmm_filter_run(struct bmm_filter* const filter) {
   return true;
 }
 
+bool bmm_filter_report(struct bmm_filter const* const filter) {
+  if (filter->opts.verbose) {
+    double const passed = filter->passed;
+    double const stopped = filter->stopped;
+    double const total = passed + stopped;
+
+    if (fprintf(stderr, "Passed: %zu\n" "Stopped: %zu\n" "Ratio: %.f %%\n",
+          filter->passed, filter->stopped,
+          total != 0.0 ? passed / total * 100.0 : 100.0) < 0)
+      return false;
+  }
+
+  return true;
+}
+
 bool bmm_filter_run_with(struct bmm_filter_opts const* const opts) {
   struct bmm_filter filter;
   bmm_filter_def(&filter, opts);
 
-  return bmm_filter_run(&filter);
+  bool const run = bmm_filter_run(&filter);
+  bool const report = bmm_filter_report(&filter);
+
+  return run && report;
 }

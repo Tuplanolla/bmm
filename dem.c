@@ -8,7 +8,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "bit.h"
 #include "conf.h"
 #include "dem.h"
 #include "fp.h"
