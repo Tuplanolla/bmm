@@ -5,6 +5,7 @@
 *.out
 *.s
 *.tar.gz
+/*.data
 /*.run
 /*.run.gz
 /bmm-dem

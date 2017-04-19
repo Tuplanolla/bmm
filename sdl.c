@@ -388,6 +388,34 @@ static bool bmm_sdl_video(struct bmm_sdl* const sdl,
   return true;
 }
 
+// TODO Remove heresy.
+static bool heresy(struct bmm_sdl const* const sdl) {
+  FILE* const stream = fopen("heresy.data", "w");
+  if (stream == NULL) {
+    BMM_TLE_STDS();
+
+    return false;
+  }
+
+  for (size_t ipart = 0; ipart < sdl->dem.buf.npart; ++ipart)
+    if (fprintf(stream, "%g %g %g\n",
+          sdl->dem.buf.parts[ipart].lin.r[0],
+          sdl->dem.buf.parts[ipart].lin.r[1],
+          sdl->dem.buf.partcs[ipart].rrad) < 0) {
+      BMM_TLE_STDS();
+
+      break;
+    }
+
+  if (fclose(stream) != 0) {
+    BMM_TLE_STDS();
+
+    return false;
+  }
+
+  return true;
+}
+
 static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
   if (!bmm_sdl_video(sdl, sdl->width, sdl->height))
     return false;
@@ -418,7 +446,8 @@ static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
           switch (event.key.keysym.sym) {
             case SDLK_ESCAPE:
             case SDLK_q:
-              return true;
+              return heresy(sdl);
+              // return true;
             case SDLK_SPACE:
               sdl->active = !sdl->active;
               break;
