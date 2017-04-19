@@ -389,6 +389,7 @@ static bool bmm_sdl_video(struct bmm_sdl* const sdl,
 }
 
 // TODO Remove heresy.
+
 static bool heresy(struct bmm_sdl const* const sdl) {
   FILE* const stream = fopen("heresy.data", "w");
   if (stream == NULL) {
@@ -398,7 +399,8 @@ static bool heresy(struct bmm_sdl const* const sdl) {
   }
 
   for (size_t ipart = 0; ipart < sdl->dem.buf.npart; ++ipart)
-    if (fprintf(stream, "%g %g %g\n",
+    if (fprintf(stream, "%zu %g %g %g\n",
+          ipart,
           sdl->dem.buf.parts[ipart].lin.r[0],
           sdl->dem.buf.parts[ipart].lin.r[1],
           sdl->dem.buf.partcs[ipart].rrad) < 0) {
@@ -406,6 +408,53 @@ static bool heresy(struct bmm_sdl const* const sdl) {
 
       break;
     }
+
+  if (fclose(stream) != 0) {
+    BMM_TLE_STDS();
+
+    return false;
+  }
+
+  return true;
+}
+
+static bool more_heresy(struct bmm_sdl const* const sdl) {
+  FILE* const stream = fopen("more-heresy.data", "w");
+  if (stream == NULL) {
+    BMM_TLE_STDS();
+
+    return false;
+  }
+
+  for (size_t ipart = 0; ipart < sdl->dem.buf.npart; ++ipart) {
+    for (size_t ilink = 0; ilink < sdl->dem.buf.links[ipart].n; ++ilink) {
+      size_t const jpart = sdl->dem.buf.links[ipart].linkl[ilink].i;
+
+      if (fprintf(stream, "%zu %g %g\n",
+            0,
+            sdl->dem.buf.parts[ipart].lin.r[0],
+            sdl->dem.buf.parts[ipart].lin.r[1]) < 0) {
+        BMM_TLE_STDS();
+
+        break; // out
+      }
+
+      if (fprintf(stream, "%zu %g %g\n",
+            1,
+            sdl->dem.buf.parts[jpart].lin.r[0],
+            sdl->dem.buf.parts[jpart].lin.r[1]) < 0) {
+        BMM_TLE_STDS();
+
+        break; // out
+      }
+
+      if (fprintf(stream, "\n") < 0) {
+        BMM_TLE_STDS();
+
+        break; // out
+      }
+    }
+  }
 
   if (fclose(stream) != 0) {
     BMM_TLE_STDS();
@@ -446,7 +495,7 @@ static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
           switch (event.key.keysym.sym) {
             case SDLK_ESCAPE:
             case SDLK_q:
-              return heresy(sdl);
+              return heresy(sdl) && more_heresy(sdl);
               // return true;
             case SDLK_SPACE:
               sdl->active = !sdl->active;

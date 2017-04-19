@@ -328,6 +328,9 @@ bool bmm_dem_link(struct bmm_dem* const dem) {
     for (size_t ineigh = 0; ineigh < bmm_dem_sizey(listy); ++ineigh) {
       size_t const jpart = bmm_dem_gety(listy, ineigh);
 
+      if (jpart == ipart)
+        continue;
+
       double const d2 = bmm_geom2d_pdist2(
           dem->buf.parts[ipart].lin.r,
           dem->buf.parts[jpart].lin.r,
@@ -366,6 +369,7 @@ bool bmm_dem_break(struct bmm_dem* const dem) {
 
     // TODO This requires fundamental rebuilding of indices,
     // which deserves to be done separately.
+    // This also causes nonphysical symmetry breaking.
     if (fabs(dem->buf.parts[ipart].lin.r[1] - dem->rext[1] * 0.5) <
         0.1 * dem->rext[1]) {
       double p = gsl_rng_uniform(dem->rng);
