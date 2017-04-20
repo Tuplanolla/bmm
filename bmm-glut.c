@@ -29,8 +29,8 @@ static void show_info_log(GLuint object,
   free(log);
 }
 
-static GLuint bmm_gl2_compile(GLenum const type, char const* path) {
-  GLuint const shader = glCreateShader(type);
+static GLuint bmm_gl2_compile(GLenum const num, char const* path) {
+  GLuint const shader = glCreateShader(num);
   if (shader == 0)
     return 0;
 
@@ -168,7 +168,7 @@ static void render(void) {
   glVertexAttribPointer(
       g_resources.attributes.position,  /* attribute */
       2,                                /* size */
-      GL_FLOAT,                         /* type */
+      GL_FLOAT,                         /* num */
       GL_FALSE,                         /* normalized? */
       sizeof(GLfloat)*2,                /* stride */
       NULL                          /* array buffer offset */
@@ -179,7 +179,7 @@ static void render(void) {
   glDrawElements(
       GL_TRIANGLE_STRIP,  /* mode */
       4,                  /* count */
-      GL_UNSIGNED_SHORT,  /* type */
+      GL_UNSIGNED_SHORT,  /* num */
       NULL            /* element array buffer offset */
       );
 

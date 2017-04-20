@@ -51,12 +51,12 @@ build: bmm-dem bmm-filter bmm-glut bmm-sdl
 run: build
 	GSL_RNG_TYPE=mt19937 GSL_RNG_SEED=42 time -v \
 	./bmm-dem | \
-	./bmm-filter --mode whitelist --pass 142 --pass 144 --pass 168 --verbose yes | \
+	./bmm-filter --mode whitelist --pass npart --pass parts --pass neigh --verbose yes | \
 	./bmm-sdl
 
 run-to: build
 	./bmm-dem | \
-	./bmm-filter --mode whitelist --pass 142 --pass 144 --pass 168 | \
+	./bmm-filter --mode whitelist --pass npart --pass parts --pass neigh | \
 	gzip -c > bmm.run.gz
 
 run-from: build

@@ -1,13 +1,75 @@
+#include <ctype.h>
 #include <limits.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
+#include <string.h>
 
+#include "conf.h"
 #include "cpp.h"
 #include "endy.h"
+#include "ext.h"
 #include "io.h"
 #include "msg.h"
 #include "size.h"
 #include "tle.h"
+
+static struct {
+  enum bmm_msg_num num;
+  char str[BMM_NCHARID];
+  bool lowered;
+} bmm_msg_decl[] = {
+#define BMM_MSG_DECLARE(id, _) \
+  {.num = BMM_MSG_NUM_##id, .str = #id, .lowered = false},
+#include "msgnum.h"
+#undef BMM_MSG_DECLARE
+};
+
+__attribute__ ((__pure__))
+static size_t bmm_msg_find(enum bmm_msg_num const num) {
+  for (size_t i = 0; i < sizeof bmm_msg_decl / sizeof *bmm_msg_decl; ++i)
+    if (bmm_msg_decl[i].num == num)
+      return i;
+
+  return SIZE_MAX;
+}
+
+static void bmm_msg_lower(size_t const i) {
+  if (!bmm_msg_decl[i].lowered) {
+    for (size_t j = 0; bmm_msg_decl[i].str[j] != '\0'; ++j)
+      bmm_msg_decl[i].str[j] = (char) tolower(bmm_msg_decl[i].str[j]);
+
+    bmm_msg_decl[i].lowered = true;
+  }
+}
+
+bool bmm_msg_to_str(char const** const ptr, enum bmm_msg_num const num) {
+  size_t const i = bmm_msg_find(num);
+  if (i == SIZE_MAX)
+    return false;
+
+  bmm_msg_lower(i);
+
+  if (ptr != NULL)
+    *ptr = bmm_msg_decl[i].str;
+
+  return true;
+}
+
+bool bmm_msg_from_str(enum bmm_msg_num* const ptr, char const* const str) {
+  for (size_t i = 0; i < sizeof bmm_msg_decl / sizeof *bmm_msg_decl; ++i) {
+    bmm_msg_lower(i);
+
+    if (strcmp(bmm_msg_decl[i].str, str) == 0) {
+      if (ptr != NULL)
+        *ptr = bmm_msg_decl[i].num;
+
+      return true;
+    }
+  }
+
+  return false;
+}
 
 void bmm_msg_spec_def(struct bmm_msg_spec* const spec) {
   spec->prio = BMM_MSG_PRIO_LOW;
@@ -184,7 +246,7 @@ bool bmm_msg_spec_write(struct bmm_msg_spec const* const spec,
   return true;
 }
 
-enum bmm_io_read bmm_msg_type_read(enum bmm_msg_type* const type,
+enum bmm_io_read bmm_msg_num_read(enum bmm_msg_num* const num,
     bmm_msg_reader const f, void* const ptr) {
   unsigned char buf;
   switch (f(&buf, 1, ptr)) {
@@ -194,16 +256,16 @@ enum bmm_io_read bmm_msg_type_read(enum bmm_msg_type* const type,
       return BMM_IO_READ_EOF;
   }
 
-  *type = (enum bmm_msg_type) buf;
+  *num = (enum bmm_msg_num) buf;
 
   return BMM_IO_READ_SUCCESS;
 }
 
-bool bmm_msg_type_write(enum bmm_msg_type const* const type,
+bool bmm_msg_num_write(enum bmm_msg_num const* const num,
     bmm_msg_writer const f, void* const ptr) {
-  dynamic_assert(*type <= 0xff, "Type would be truncated");
+  dynamic_assert(*num <= 0xff, "Type would be truncated");
 
-  unsigned char buf = (unsigned char) *type;
+  unsigned char buf = (unsigned char) *num;
   if (!f(&buf, 1, ptr))
     return false;
 

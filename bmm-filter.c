@@ -25,15 +25,15 @@ static bool f(char const* const key, char const* const value,
     else
       return false;
   } else if (strcmp(key, "pass") == 0) {
-    size_t i;
-    if (!(bmm_str_strtoz(&i, value) && i < BMM_NMSG))
+    enum bmm_msg_num num;
+    if (!bmm_msg_from_str(&num, value))
       return false;
-    opts->mask[i] = true;
+    opts->mask[(size_t) num] = true;
   } else if (strcmp(key, "stop") == 0) {
-    size_t i;
-    if (!(bmm_str_strtoz(&i, value) && i < BMM_NMSG))
+    enum bmm_msg_num num;
+    if (!bmm_msg_from_str(&num, value))
       return false;
-    opts->mask[i] = false;
+    opts->mask[(size_t) num] = false;
   } else if (strcmp(key, "verbose") == 0) {
     bool p;
     if (!bmm_str_strtob(&p, value))

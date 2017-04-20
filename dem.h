@@ -188,7 +188,7 @@ struct bmm_dem {
 };
 
 // TODO This might have to be deprecated to keep dependencies in check.
-size_t bmm_dem_sniff_size(struct bmm_dem const*, enum bmm_msg_type);
+size_t bmm_dem_sniff_size(struct bmm_dem const*, enum bmm_msg_num);
 
 // TODO Combine list types.
 
@@ -308,12 +308,12 @@ bool bmm_dem_run_with(struct bmm_dem_opts const*);
 // TODO These are questionable to expose.
 
 size_t bmm_dem_sniff_size(struct bmm_dem const* const dem,
-    enum bmm_msg_type const type);
+    enum bmm_msg_num const num);
 
 bool bmm_dem_puts_stuff(struct bmm_dem const* const dem,
-    enum bmm_msg_type const type);
+    enum bmm_msg_num const num);
 
 bool bmm_dem_puts(struct bmm_dem const* const dem,
-    enum bmm_msg_type const type);
+    enum bmm_msg_num const num);
 
 #endif

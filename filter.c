@@ -24,8 +24,8 @@ void bmm_filter_def(struct bmm_filter* const filter,
 }
 
 static bool pass(struct bmm_filter const* const filter,
-    enum bmm_msg_type const type) {
-  return filter->opts.mask[(size_t) type];
+    enum bmm_msg_num const num) {
+  return filter->opts.mask[(size_t) num];
 }
 
 static enum bmm_io_read msg_read(void* buf, size_t const n,
@@ -49,18 +49,18 @@ enum bmm_io_read bmm_filter_step(struct bmm_filter* const filter) {
       return BMM_IO_READ_EOF;
   }
 
-  enum bmm_msg_type type;
-  switch (bmm_msg_type_read(&type, msg_read, NULL)) {
+  enum bmm_msg_num num;
+  switch (bmm_msg_num_read(&num, msg_read, NULL)) {
     case BMM_IO_READ_ERROR:
     case BMM_IO_READ_EOF:
-      BMM_TLE_EXTS(BMM_TLE_IO, "Failed to read type");
+      BMM_TLE_EXTS(BMM_TLE_IO, "Failed to read num");
 
       return BMM_IO_READ_ERROR;
   }
 
-  if (pass(filter, type)) {
+  if (pass(filter, num)) {
     if (!bmm_msg_spec_write(&spec, msg_write, NULL) ||
-        !bmm_msg_type_write(&type, msg_write, NULL)) {
+        !bmm_msg_num_write(&num, msg_write, NULL)) {
       BMM_TLE_EXTS(BMM_TLE_IO, "Failed to write stuff");
 
       return BMM_IO_READ_ERROR;
@@ -68,7 +68,7 @@ enum bmm_io_read bmm_filter_step(struct bmm_filter* const filter) {
 
     switch (spec.tag) {
       case BMM_MSG_TAG_SP:
-        if (!bmm_io_redirio(spec.msg.size - BMM_MSG_TYPESIZE)) {
+        if (!bmm_io_redirio(spec.msg.size - BMM_MSG_NUMSIZE)) {
           BMM_TLE_EXTS(BMM_TLE_IO, "Failed to redirect body");
 
           return BMM_IO_READ_ERROR;
@@ -85,7 +85,7 @@ enum bmm_io_read bmm_filter_step(struct bmm_filter* const filter) {
   } else {
     switch (spec.tag) {
       case BMM_MSG_TAG_SP:
-        if (!bmm_io_fastfwin(spec.msg.size - BMM_MSG_TYPESIZE)) {
+        if (!bmm_io_fastfwin(spec.msg.size - BMM_MSG_NUMSIZE)) {
           BMM_TLE_EXTS(BMM_TLE_IO, "Failed to fast-forward body");
 
           return BMM_IO_READ_ERROR;

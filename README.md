@@ -156,11 +156,11 @@ so that one can neglect to implement the more complex parts
 
 The first octet is called the flags and then comes the (possibly empty) prefix.
 Together they form the header.
-Afterwards comes the body, which begins with a (possibly empty) type.
+Afterwards comes the body, which begins with a (possibly empty) number.
 The size in the prefix covers the whole body.
 
     | Header         | Body
-    | Flags | Prefix | Type | Data
+    | Flags | Prefix | Number | Data
 
 To summarize the table informally,
 each message is prefixed by two nibbles,
@@ -168,7 +168,8 @@ the first of which contains user-set flags,
 the second of which contains derived flags.
 Additionally, for those messages whose bodies may vary in size,
 there is an extra prefix to signal the size of the message.
-The next byte contains the message type and after that comes the message body.
+The next byte contains the message number and
+after that comes the message body.
 
 In GNU C it would not go as follows.
 
@@ -182,7 +183,7 @@ In GNU C it would not go as follows.
         uint32_t octets2;
         uint64_t octets3;
       } size;
-      enum bmm_msg_type type;
+      enum bmm_msg_num num;
       unsigned char body[];
     };
 
@@ -209,7 +210,7 @@ These are known as little and big endian.
 To make browsing past simulations easier and more efficient,
 one could generate index files from the recorded streams.
 These would consist of fixed chunks that contain
-the message type and flags as usual,
+the message number and flags as usual,
 but instead of the message body there would simply be an offset number
 to the message within the record.
 

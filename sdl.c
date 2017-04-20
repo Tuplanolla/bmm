@@ -41,11 +41,11 @@ static enum bmm_io_read msg_read(void* buf, size_t const n,
 }
 
 enum bmm_io_read bmm_dem_gets_stuff(struct bmm_dem* const dem,
-    enum bmm_msg_type const type) {
-  switch (type) {
-    case BMM_MSG_NPART:
+    enum bmm_msg_num const num) {
+  switch (num) {
+    case BMM_MSG_NUM_NPART:
       return msg_read(&dem->buf.npart, sizeof dem->buf.npart, NULL);
-    case BMM_MSG_EKINE:
+    case BMM_MSG_NUM_EKINE:
       switch (msg_read(&dem->istep, sizeof dem->istep, NULL)) {
         case BMM_IO_READ_ERROR:
           return BMM_IO_READ_ERROR;
@@ -54,7 +54,7 @@ enum bmm_io_read bmm_dem_gets_stuff(struct bmm_dem* const dem,
       }
 
       return msg_read(&dem->est, sizeof dem->est, NULL);
-    case BMM_MSG_NEIGH:
+    case BMM_MSG_NUM_NEIGH:
       switch (msg_read(&dem->buf.neigh, sizeof dem->buf.neigh, NULL)) {
         case BMM_IO_READ_ERROR:
           return BMM_IO_READ_ERROR;
@@ -63,7 +63,7 @@ enum bmm_io_read bmm_dem_gets_stuff(struct bmm_dem* const dem,
       }
 
       return msg_read(&dem->buf.links, sizeof dem->buf.links, NULL);
-    case BMM_MSG_PARTS:
+    case BMM_MSG_NUM_PARTS:
       switch (msg_read(&dem->istep, sizeof dem->istep, NULL)) {
         case BMM_IO_READ_ERROR:
           return BMM_IO_READ_ERROR;
@@ -81,11 +81,11 @@ enum bmm_io_read bmm_dem_gets_stuff(struct bmm_dem* const dem,
       return msg_read(&dem->buf.partcs, sizeof dem->buf.partcs, NULL);
   }
 
-  dynamic_assert(false, "Unsupported message type");
+  dynamic_assert(false, "Unsupported message num");
 }
 
 enum bmm_io_read bmm_dem_gets(struct bmm_dem* const dem,
-    enum bmm_msg_type* const type) {
+    enum bmm_msg_num* const num) {
   struct bmm_msg_spec spec;
   switch (bmm_msg_spec_read(&spec, msg_read, NULL)) {
     case BMM_IO_READ_ERROR:
@@ -106,20 +106,20 @@ enum bmm_io_read bmm_dem_gets(struct bmm_dem* const dem,
     return BMM_IO_READ_ERROR;
   }
 
-  switch (bmm_msg_type_read(type, msg_read, NULL)) {
+  switch (bmm_msg_num_read(num, msg_read, NULL)) {
     case BMM_IO_READ_ERROR:
       return BMM_IO_READ_ERROR;
     case BMM_IO_READ_EOF:
       return BMM_IO_READ_EOF;
   }
 
-  if (bmm_dem_sniff_size(dem, *type) != spec.msg.size - BMM_MSG_TYPESIZE) {
+  if (bmm_dem_sniff_size(dem, *num) != spec.msg.size - BMM_MSG_NUMSIZE) {
     BMM_TLE_EXTS(BMM_TLE_UNKNOWN, "Size mismatch");
 
     return BMM_IO_READ_ERROR;
   }
 
-  return bmm_dem_gets_stuff(dem, *type);
+  return bmm_dem_gets_stuff(dem, *num);
 }
 
 void bmm_sdl_opts_def(struct bmm_sdl_opts* const opts) {
@@ -593,14 +593,14 @@ static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
       struct timeval timeout;
 again:
       bmm_sdl_t_to_timeval(&timeout, trem);
-      enum bmm_msg_type type;
+      enum bmm_msg_num num;
       switch (bmm_io_waitin(&timeout)) {
         case BMM_IO_WAIT_ERROR:
           return false;
         case BMM_IO_WAIT_READY:
-          (void) bmm_dem_gets(&sdl->dem, &type);
+          (void) bmm_dem_gets(&sdl->dem, &num);
 
-          if (type == BMM_MSG_PARTS)
+          if (num == BMM_MSG_NUM_PARTS)
             sdl->stale = false;
           else {
             trem = bmm_sdl_t_from_timeval(&timeout);
