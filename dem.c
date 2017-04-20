@@ -616,7 +616,7 @@ static bool bmm_disperse(struct bmm_dem* const dem) {
   size_t maxfail = 100;
   size_t fail = 0;
 
-  while (fail < maxfail && dem->buf.npart < BMM_PART_MAX) {
+  while (fail < maxfail && dem->buf.npart < BMM_NPART) {
     double const r = dem->opts.rmean +
       gsl_ran_gaussian(dem->rng, dem->opts.rsd);
 

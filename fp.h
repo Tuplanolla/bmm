@@ -186,4 +186,11 @@ inline double bmm_fp_lorp(double const x,
   return log(bmm_fp_lerp(exp(x), exp(x0), exp(x1), exp(y0), exp(y1)));
 }
 
+/// The call `bmm_fp_percent(x, y)`
+/// returns the approximate percentage of `x` in `y`.
+__attribute__ ((__const__, __pure__))
+inline double bmm_fp_percent(double const x, double const y) {
+  return y != 0.0 ? x / y * 100.0 : 100.0;
+}
+
 #endif

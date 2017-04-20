@@ -120,7 +120,7 @@ struct bmm_dem_part {
 struct bmm_dem_list {
   // Size prefix.
   size_t n;
-  size_t i[BMM_GROUP_MAX];
+  size_t i[BMM_NGROUP];
 };
 
 struct bmm_dem_listy {
@@ -130,7 +130,7 @@ struct bmm_dem_listy {
     size_t i;
     // Compression history.
     double x[2];
-  } thingy[BMM_GROUP_MAX];
+  } thingy[BMM_NGROUP];
 };
 
 struct bmm_dem_neigh {
@@ -138,7 +138,7 @@ struct bmm_dem_neigh {
   double tnext;
   // Neighbors for each particle
   // plus room for carrying garbage.
-  struct bmm_dem_listy neighs[BMM_PART_MAX];
+  struct bmm_dem_listy neighs[BMM_NPART];
 };
 
 struct bmm_dem_listl {
@@ -148,17 +148,17 @@ struct bmm_dem_listl {
     size_t i;
     // Spring rest position.
     double x0;
-  } linkl[BMM_GROUP_MAX];
+  } linkl[BMM_NGROUP];
 };
 
 struct bmm_dem_buf {
   size_t npart;
   double fcrunch[2];
   struct bmm_dem_neigh neigh;
-  struct bmm_dem_partc partcs[BMM_PART_MAX];
-  struct bmm_dem_part parts[BMM_PART_MAX];
+  struct bmm_dem_partc partcs[BMM_NPART];
+  struct bmm_dem_part parts[BMM_NPART];
   // These are directed links *to* some particle.
-  struct bmm_dem_listl links[BMM_PART_MAX];
+  struct bmm_dem_listl links[BMM_NPART];
   // TODO Do we want a asymmetric pair list or an symmetric list of lists?
   // Probably the latter, even though keeping it consistent takes work.
 };
@@ -183,7 +183,7 @@ struct bmm_dem {
   // Large object memory pool.
   union {
     // Which particles each cell owns, roughly.
-    struct bmm_dem_list conts[BMM_CELL_MAX * BMM_CELL_MAX];
+    struct bmm_dem_list conts[BMM_NCELL * BMM_NCELL];
   } pool;
 };
 

@@ -17,21 +17,21 @@ static bool f(char const* const key, char const* const value,
 
   if (strcmp(key, "mode") == 0) {
     if (strcmp(value, "blacklist") == 0)
-      for (size_t imsg = 0; imsg < BMM_MSG_MAX; ++imsg)
+      for (size_t imsg = 0; imsg < BMM_NMSG; ++imsg)
         opts->mask[imsg] = true;
     else if (strcmp(value, "whitelist") == 0)
-      for (size_t imsg = 0; imsg < BMM_MSG_MAX; ++imsg)
+      for (size_t imsg = 0; imsg < BMM_NMSG; ++imsg)
         opts->mask[imsg] = false;
     else
       return false;
   } else if (strcmp(key, "pass") == 0) {
     size_t i;
-    if (!(bmm_str_strtoz(&i, value) && i < BMM_MSG_MAX))
+    if (!(bmm_str_strtoz(&i, value) && i < BMM_NMSG))
       return false;
     opts->mask[i] = true;
   } else if (strcmp(key, "stop") == 0) {
     size_t i;
-    if (!(bmm_str_strtoz(&i, value) && i < BMM_MSG_MAX))
+    if (!(bmm_str_strtoz(&i, value) && i < BMM_NMSG))
       return false;
     opts->mask[i] = false;
   } else if (strcmp(key, "verbose") == 0) {

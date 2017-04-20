@@ -284,11 +284,11 @@ The following table lists the options for `bmm-dem`.
 
 | Option | Meaning
 |:-------|:--------
-| `--ncellx` | Number of horizontal cells (at most `BMM_CELL_MAX`).
-| `--ncelly` | Number of vertical cells (at most `BMM_CELL_MAX`).
-| `--nbin` | Number of histogram bins (at most `BMM_BIN_MAX`).
-| `--npart` | Number of particles (at most `BMM_PART_MAX`).
-| `--nstep` | Number of simulation steps (at most `BMM_STEP_MAX`).
+| `--ncellx` | Number of horizontal cells (at most `BMM_NCELL`).
+| `--ncelly` | Number of vertical cells (at most `BMM_NCELL`).
+| `--nbin` | Number of histogram bins (at most `BMM_NBIN`).
+| `--npart` | Number of particles (at most `BMM_NPART`).
+| `--nstep` | Number of simulation steps (at most `BMM_NSTEP`).
 
 The following table lists the options for `bmm-sdl`.
 
@@ -370,7 +370,7 @@ but that might not be worth the effort (both programming and computational).
       bmm_recv_proc procs[BMM_PROC_MAX];
     };
     struct bmm_recv_mask {
-      struct bmm_recv_list lists[BMM_MSG_MAX];
+      struct bmm_recv_list lists[BMM_NMSG];
     };
     bool bmm_recv_reg(struct bmm_recv_mask*, enum bmm_msg, bmm_recv_proc);
     bool bmm_recv_unreg(struct bmm_recv_mask*, enum bmm_msg, bmm_recv_proc);

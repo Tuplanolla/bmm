@@ -431,7 +431,7 @@ static bool more_heresy(struct bmm_sdl const* const sdl) {
       size_t const jpart = sdl->dem.buf.links[ipart].linkl[ilink].i;
 
       if (fprintf(stream, "%zu %g %g\n",
-            0,
+            (size_t) 0,
             sdl->dem.buf.parts[ipart].lin.r[0],
             sdl->dem.buf.parts[ipart].lin.r[1]) < 0) {
         BMM_TLE_STDS();
@@ -440,7 +440,7 @@ static bool more_heresy(struct bmm_sdl const* const sdl) {
       }
 
       if (fprintf(stream, "%zu %g %g\n",
-            1,
+            (size_t) 1,
             sdl->dem.buf.parts[jpart].lin.r[0],
             sdl->dem.buf.parts[jpart].lin.r[1]) < 0) {
         BMM_TLE_STDS();

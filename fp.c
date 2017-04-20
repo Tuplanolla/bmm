@@ -35,3 +35,5 @@ extern inline double bmm_fp_uwrap(double, double);
 extern inline double bmm_fp_lerp(double, double, double, double, double);
 
 extern inline double bmm_fp_lorp(double, double, double, double, double);
+
+extern inline double bmm_fp_percent(double, double);
