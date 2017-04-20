@@ -1,4 +1,5 @@
 #include <signal.h>
+#include <stddef.h>
 #include <stdio.h>
 
 #include "filter.h"
@@ -6,7 +7,6 @@
 #include "io.h"
 #include "msg.h"
 #include "sig.h"
-#include "size.h"
 #include "tle.h"
 
 void bmm_filter_opts_def(struct bmm_filter_opts* const opts) {

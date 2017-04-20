@@ -5,10 +5,7 @@
 #include <stdbool.h>
 
 #include "conf.h"
-#include "dem.h"
 #include "ext.h"
-#include "io.h"
-#include "msg.h"
 
 /// This structure contains filter options such as the whitelist.
 struct bmm_filter_opts {
@@ -16,7 +13,7 @@ struct bmm_filter_opts {
   bool mask[BMM_NMSG];
 };
 
-/// This structure holds the filter state.
+/// This structure holds some filter statistics.
 struct bmm_filter {
   struct bmm_filter_opts opts;
   size_t passed;

@@ -6,6 +6,7 @@
 #include "conf.h"
 #include "ext.h"
 #include "filter.h"
+#include "msg.h"
 #include "opt.h"
 #include "str.h"
 #include "tle.h"
