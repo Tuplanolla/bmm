@@ -190,11 +190,11 @@ In GNU C it would not go as follows.
 For words of length $n$ bytes there are $n!$ byte ordering schemes.
 To enumerate all byte orderings for words of $m = 8$ bytes,
 as is the maximal message length,
-one would need $b = \lceil\log_2 m!\rceil = 16$ bits.
+one would need $b = \\lceil\\log_2 m!\\rceil = 16$ bits.
 
 It is better to assume that byte ordering schemes are built from pair swaps,
 so the permutations form a binary tree.
-Now $d = \lceil\log_2 n\rceil$ is the tree depth, starting from zero.
+Now $d = \\lceil\\log_2 n\\rceil$ is the tree depth, starting from zero.
 There are $2^{d + 1} - 1$ orderings and
 enumerating them only takes $b = 4$ bits.
 
@@ -243,22 +243,34 @@ Sending data through the network works fine.
     $ nc -l 9001 | ./bmm-sdl
     $ ./bmm-dem | nc 127.0.0.1 9001
 
+### Analysis Software
+
 TODO Try producing high-quality images and movies with OVITO.
 
-    http://www.ovito.org/manual/usage.import.html
-    http://www.ovito.org/manual/usage.export.html
+    http://www.ovito.org/
 
-It is a bit picky about file formats according to the documentation and code.
+TODO Check out VMD.
+
+    http://www.ks.uiuc.edu/Research/vmd/
+
+TODO See if better sedimentation algorithms exist.
+
+    http://www.ime.unicamp.br/~martinez/packmol/
+
+### File Format Choices
+
+OVITO is a bit picky about file formats;
+table as of version 2.8.2.
 
 | Path | Format | Binary | Import | Export
 |:-----|:-------|:-------|:-------|:-------
 | `ovito/src/plugins/particles/lammps` | LAMMPS Dump | Yes | Yes | Yes
 | `ovito/src/plugins/particles/parcas` | PARCAS | Yes | Yes | No
 | `ovito/src/plugins/netcdf` | NetCDF | Yes | Yes | No
-| `ovito/src/plugins/particles/gsd` | GSD / HOOMD | Yes | Yes | No
+| `ovito/src/plugins/particles/gsd` | GSD/HOOMD | Yes | Yes | No
 | `ovito/src/plugins/particles/lammps` | LAMMPS Data | No | Yes | Yes
 | `ovito/src/plugins/particles/xyz` | XYZ | No | Yes | Yes
-| `ovito/src/plugins/particles/vasp` | POSCAR / XDATCAR | No | Yes | Yes
+| `ovito/src/plugins/particles/vasp` | POSCAR/XDATCAR | No | Yes | Yes
 | `ovito/src/plugins/particles/imd` | IMD | No | Yes | Yes
 | `ovito/src/plugins/particles/fhi_aims` | FHI-Aims | No | Yes | Yes
 | `ovito/src/plugins/particles/cfg` | CFG | No | Yes | No
@@ -267,12 +279,40 @@ It is a bit picky about file formats according to the documentation and code.
 | `ovito/src/core/dataset/importexport` | Calculation Results File | No | No | Yes
 | `ovito/src/plugins/povray` | POV-Ray Scene | No | No | Yes
 
-Of the binary formats, NetCDF has a formal specification
-while LAMMPS, POSCAR and GSD / HOOMD do not, although GSD / HOOMD tries to.
+Of the documented importable binary formats,
+NetCDF and GSD/HOOMD have formal specifications,
+while LAMMPS and POSCAR do not.
 
-TODO See if better sedimentation algorithms exist.
+VMD actually accepts lots of file formats,
+but the documentation only mentions a few;
+table as of version 1.9.3.
 
-    http://www.ime.unicamp.br/~martinez/packmol/
+| Path | Format | Binary | Import | Export
+|:-----|:-------|:-------|:-------|:-------
+| `vmd/plugins/molfile_plugin/src/binposplugin.c` | AMBER "BINPOS" Trajectory Reader (.binpos) | Yes | Yes | Yes
+| `vmd/plugins/molfile_plugin/src/dcdplugin.c` | CHARMM, NAMD, X-PLOR "DCD" Reader/Writer (.dcd) | Yes | Yes | Yes
+| `vmd/plugins/molfile_plugin/src/gromacsplugin.C` | Gromacs TRR/XTC Reader (.trr, .xtc) | Yes | Yes | Yes
+| `vmd/plugins/molfile_plugin/src/netcdfplugin.c` | AMBER NetCDF Trajectory Reader (.nc) | Yes | Yes | No
+| `vmd/plugins/molfile_plugin/src/gromacsplugin.C` | Gromacs TNG Reader (.tng) | Yes | Yes | No
+| `vmd/plugins/molfile_plugin/src/h5mdplugin.c` | H5MD Plugin (.h5) | Yes | Yes | No
+| `vmd/plugins/molfile_plugin/src/netcdfplugin.c` | MMTK NetCDF Trajectory Reader (.nc) | Yes | Yes | No
+| `vmd/plugins/molfile_plugin/src/crdplugin.c` | AMBER "CRD" Trajectory Reader (.crd, .crdbox) | No | Yes | Yes
+| `vmd/plugins/molfile_plugin/src/lammpsplugin.c` | LAMMPS Trajectory Reader (.lammpstrj) | No | Yes | Yes
+| `vmd/plugins/molfile_plugin/src/xyzplugin.c` | XYZ Trajectory Files (.xyz) | No | Yes | Yes
+| `vmd/plugins/molfile_plugin/src/cpmdplugin.c` | CPMD (CPMD Trajectory) Reader (.cpmd) | No | Yes | No
+| `vmd/plugins/molfile_plugin/src/dlpolyplugin.c` | DLPOLY HISTORY File Reader (.dlpolyhist) | No | Yes | No
+| `vmd/plugins/molfile_plugin/src/carplugin.c` | VASP Trajectories of Ionic Steps (.xml, .outcar, .xdatcar) | No | Yes | No
+| `vmd/plugins/molfile_plugin/src/vtfplugin.c` | VTF Trajectory Files (.vtf) | No | Yes | No
+| `vmd/plugins/molfile_plugin/src/xsfplugin.C` | XCrySDen, Quantum Espresso XSF/AXSF Trajectory Files (.axsf, .xsf) | No | Yes | No
+| `vmd/plugins/molfile_plugin/src/graspplugin.C` | GRASP Surface File Reader (.grasp, .srf) | Yes | No | Yes
+| `vmd/plugins/molfile_plugin/src/msmsplugin.C` | MSMS Surface File Reader (.face, .vert) | No | No | Yes
+| `vmd/plugins/molfile_plugin/src/raster3dplugin.C` | Raster3D Scene Reader (.r3d) | No | No | Yes
+| `vmd/plugins/molfile_plugin/src/stlplugin.C` | STL Solid Model Triangulated Geometry Files (.stl) | No | No | Yes
+
+Of the documented importable binary trajectory formats,
+NetCDF is the only one that OVITO supports as well.
+Textual formats that overlap are LAMMPS, XYZ and POSCAR/XDATCAR.
+However XYZ does not support custom radii.
 
 ### Program Options
 
