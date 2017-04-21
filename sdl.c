@@ -577,9 +577,10 @@ static bool serious_heresy(struct bmm_sdl const* const sdl) {
   double const sfact = sdl->dem.opts.rmean;
 
   for (size_t ipart = 0; ipart < sdl->dem.buf.npart; ++ipart)
-    if (fprintf(stream, "S %g %g 0.0\n",
+    if (fprintf(stream, "S %g %g 0.0 %g\n",
           sdl->dem.buf.parts[ipart].lin.r[0] / sfact,
-          sdl->dem.buf.parts[ipart].lin.r[1] / sfact) < 0) {
+          sdl->dem.buf.parts[ipart].lin.r[1] / sfact,
+          sdl->dem.buf.partcs[ipart].rrad / sfact) < 0) {
       BMM_TLE_STDS();
 
       break;

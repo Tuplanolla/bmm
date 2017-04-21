@@ -310,9 +310,12 @@ table as of version 1.9.3.
 | `vmd/plugins/molfile_plugin/src/stlplugin.C` | STL Solid Model Triangulated Geometry Files (.stl) | No | No | Yes
 
 Of the documented importable binary trajectory formats,
-NetCDF is the only one that OVITO supports as well.
+NetCDF (AMBER) is the only one that OVITO supports as well.
 Textual formats that overlap are LAMMPS, XYZ and POSCAR/XDATCAR.
-However XYZ does not support custom radii.
+
+Notably XYZ is the simplest, but does not support custom radii.
+However OVITO has a nonstandard extension
+that allows its XYZ importer to support pretty much any properties.
 
 ### Program Options
 
