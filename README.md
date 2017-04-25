@@ -317,6 +317,9 @@ Notably XYZ is the simplest, but does not support custom radii.
 However OVITO has a nonstandard extension
 that allows its XYZ importer to support pretty much any properties.
 
+Bonds are based on distance search or protein databank properties.
+It is impossible to manually bond particles in either program.
+
 ### Program Options
 
 Since passing a large number of arguments to the programs and
