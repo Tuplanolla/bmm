@@ -38,6 +38,10 @@
 #define begin do {
 #define end } while (false)
 
+/// The preprocessor directive `nmembof(x)`
+/// expands to the number of elements in the array `x`.
+#define nmembof(x) (sizeof (x) / sizeof *(x))
+
 /// The preprocessor directive `static_assert(p, s)`
 /// imitates the standard library function with the same name
 /// if it is not available.

@@ -319,6 +319,11 @@ that allows its XYZ importer to support pretty much any properties.
 
 Bonds are based on distance search or protein databank properties.
 It is impossible to manually bond particles in either program.
+This could be worked around by exporting phantom particles
+that reside inside real particles and
+visualizing the bonds as displacements of said phantom particles.
+However real and phantom particles would be indistinguishable and
+bloat the data file.
 
 ### Program Options
 

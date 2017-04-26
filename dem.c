@@ -669,7 +669,7 @@ ret: ;
 void bmm_dem_def(struct bmm_dem* const dem,
     struct bmm_dem_opts const* const opts) {
   // This is here just to help Valgrind and cover up my mistakes.
-  memset(dem, 0, sizeof *dem);
+  (void) memset(dem, 0, sizeof *dem);
 
   dem->opts = *opts;
   dem->mode = BMM_DEM_BEGIN;
@@ -823,7 +823,7 @@ bool bmm_dem_comm(struct bmm_dem* const dem) {
 // TODO Would it be beneficial to be higher-order?
 bool bmm_dem_run(struct bmm_dem* const dem) {
   int const sigs[] = {SIGINT, SIGQUIT, SIGTERM, SIGPIPE};
-  if (bmm_sig_register(sigs, sizeof sigs / sizeof *sigs) != SIZE_MAX) {
+  if (bmm_sig_register(sigs, nmembof(sigs)) != SIZE_MAX) {
     BMM_TLE_STDS();
 
     return false;

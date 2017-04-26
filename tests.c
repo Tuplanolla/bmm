@@ -5,6 +5,7 @@
 
 #include "cpp.h"
 #include "endy.h"
+#include "ext.h"
 #include "msg.h"
 #include "size.h"
 
@@ -56,8 +57,8 @@ CHEAT_DECLARE(
 )
 
 CHEAT_TEST(msg_spec_sp_iso,
-  for (size_t iprio = 0; iprio < sizeof msg_prio / sizeof *msg_prio; ++iprio)
-    for (size_t iendy = 0; iendy < sizeof msg_endy / sizeof *msg_endy; ++iendy)
+  for (size_t iprio = 0; iprio < nmembof(msg_prio); ++iprio)
+    for (size_t iendy = 0; iendy < nmembof(msg_endy); ++iendy)
       for (size_t size = 0; size < 1000; ++size) {
         struct bmm_msg_spec out;
 
@@ -85,8 +86,8 @@ CHEAT_TEST(msg_spec_sp_iso,
 )
 
 CHEAT_TEST(msg_spec_lt_iso,
-  for (size_t iprio = 0; iprio < sizeof msg_prio / sizeof *msg_prio; ++iprio)
-    for (size_t iendy = 0; iendy < sizeof msg_endy / sizeof *msg_endy; ++iendy)
+  for (size_t iprio = 0; iprio < nmembof(msg_prio); ++iprio)
+    for (size_t iendy = 0; iendy < nmembof(msg_endy); ++iendy)
       for (size_t e = 0; e < 4; ++e) {
         struct bmm_msg_spec out;
 

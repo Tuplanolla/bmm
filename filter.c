@@ -120,7 +120,7 @@ bool bmm_filter_report(struct bmm_filter const* const filter) {
 
 static bool bmm_filter_run_(struct bmm_filter* const filter) {
   int const sigs[] = {SIGINT, SIGQUIT, SIGTERM, SIGPIPE};
-  if (bmm_sig_register(sigs, sizeof sigs / sizeof *sigs) != SIZE_MAX) {
+  if (bmm_sig_register(sigs, nmembof(sigs)) != SIZE_MAX) {
     BMM_TLE_STDS();
 
     return false;

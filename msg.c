@@ -27,7 +27,7 @@ static struct {
 
 __attribute__ ((__pure__))
 static size_t bmm_msg_find(enum bmm_msg_num const num) {
-  for (size_t i = 0; i < sizeof bmm_msg_decl / sizeof *bmm_msg_decl; ++i)
+  for (size_t i = 0; i < nmembof(bmm_msg_decl); ++i)
     if (bmm_msg_decl[i].num == num)
       return i;
 
@@ -57,7 +57,7 @@ bool bmm_msg_to_str(char const** const ptr, enum bmm_msg_num const num) {
 }
 
 bool bmm_msg_from_str(enum bmm_msg_num* const ptr, char const* const str) {
-  for (size_t i = 0; i < sizeof bmm_msg_decl / sizeof *bmm_msg_decl; ++i) {
+  for (size_t i = 0; i < nmembof(bmm_msg_decl); ++i) {
     bmm_msg_lower(i);
 
     if (strcmp(bmm_msg_decl[i].str, str) == 0) {

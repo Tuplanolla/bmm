@@ -1,0 +1,4 @@
+min(1.0, max(0.0,
+      abs(ReducedPosition.X - 0.5) - 0.5,
+      abs(ReducedPosition.Y - 0.5) - 0.5,
+      abs(ReducedPosition.Z - 0.5) - 0.5))

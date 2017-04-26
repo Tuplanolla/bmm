@@ -32,6 +32,10 @@ struct bmm_dem_time {
 };
 
 // TODO What has to be done.
+// Messages need to standardized to make the development of consumers easier.
+// The realtime visualization should be reimplemented.
+// A NetCDF adapter should be written.
+// A Gnuplot adapter should be written.
 // Timing should be specified by the total time and time step per stage,
 // so that the number of steps is a derived quantity.
 // Stages should have fixed functionality,
