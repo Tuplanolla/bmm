@@ -4,14 +4,14 @@
 *.o
 *.out
 *.s
-*.tar.gz
 /*.data
 /*.run
 /*.run.gz
+/*.tar.gz
 /bmm-dem
 /bmm-filter
 /bmm-glut
-/bmm-netcdf
+/bmm-nc
 /bmm-sdl
 /clang-*-release
 /gcc-*-release

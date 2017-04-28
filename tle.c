@@ -109,9 +109,7 @@ static bool prefix(size_t* const ptr,
 
 static void suffix(void) {
   static char const buf[] = "Cannot report error";
-
   static_assert(sizeof tle.buf >= sizeof buf, "Buffer too short");
-
   (void) strcpy(tle.buf, buf);
 }
 

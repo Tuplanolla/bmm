@@ -29,16 +29,19 @@ static bool f(char const* const key, char const* const value,
     enum bmm_msg_num num;
     if (!bmm_msg_from_str(&num, value))
       return false;
+
     opts->mask[(size_t) num] = true;
   } else if (strcmp(key, "stop") == 0) {
     enum bmm_msg_num num;
     if (!bmm_msg_from_str(&num, value))
       return false;
+
     opts->mask[(size_t) num] = false;
   } else if (strcmp(key, "verbose") == 0) {
     bool p;
     if (!bmm_str_strtob(&p, value))
       return false;
+
     opts->verbose = p;
   } else
     return false;

@@ -29,7 +29,7 @@ extern inline Uint32 bmm_sdl_trem(Uint32, Uint32);
 
 void glString(char const* str, int const x, int const y,
     float const* const color, void* font) {
-  glColor4fv(color);
+  glColor3fv(color);
   glRasterPos2i(x, y);
   while (*str != '\0')
     glutBitmapCharacter(font, *str++);
@@ -247,26 +247,46 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
 
+  // This would functions as `glClear` with alpha.
+  /*
+  GLfloat veil[4];
+  memcpy(veil, glBlack, sizeof glBlack);
+  veil[3] = 0.5f;
+  glColor4fv(veil);
+  glRectf(xproj, yproj, xproj + wproj, yproj + hproj);
+  */
+
   size_t const ncorner = 8;
 
   double const w = sdl->dem.rext[0] / (double) sdl->dem.opts.ncell[0];
   double const h = sdl->dem.rext[1] / (double) sdl->dem.opts.ncell[1];
 
   // Particles.
-  for (size_t ipart = 0; ipart < sdl->dem.buf.npart; ++ipart) {
-    float const x = (float) sdl->dem.buf.parts[ipart].lin.r[0];
-    float const y = (float) sdl->dem.buf.parts[ipart].lin.r[1];
-    float const r = (float) sdl->dem.buf.partcs[ipart].rrad;
-    float const a = (float) sdl->dem.buf.parts[ipart].ang.alpha;
+  for (float off = -1; off < 2; ++off)
+    for (size_t ipart = 0; ipart < sdl->dem.buf.npart; ++ipart) {
+      float const x = (float) sdl->dem.buf.parts[ipart].lin.r[0];
+      float const y = (float) sdl->dem.buf.parts[ipart].lin.r[1];
+      float const r = (float) sdl->dem.buf.partcs[ipart].rrad;
+      float const a = (float) sdl->dem.buf.parts[ipart].ang.alpha;
 
-    glColor4fv(sdl->dem.buf.partcs[ipart].free ? glYellow : glWhite);
+      float const xoff = x + off * (float) sdl->dem.rext[0];
 
-    glSkewedAnnulus(x, y, r, r * 0.25f, r * 0.5f, a, ncorner);
-  }
+      GLfloat blent[4];
+      memcpy(blent, sdl->dem.buf.partcs[ipart].free ? glYellow : glWhite, sizeof glBlack);
+      blent[3] = 1.0f;
+      GLfloat nope[4];
+      memcpy(nope, blent, sizeof glBlack);
+      nope[3] = 0.0f;
+      float const t = fabsf(xoff / (float) sdl->dem.rext[0] - 0.5f) - 0.5f;
+      blent[3] = 1.0f - t;
+      glColor4fv(blent);
+
+      glSkewedAnnulus(xoff, y, r, r * 0.25f, r * 0.5f, a, ncorner);
+    }
 
   // Focus.
   if (sdl->itarget != SIZE_MAX) {
-    glColor4fv(glBlue);
+    glColor3fv(glBlue);
     size_t const ipart = sdl->itarget;
 
     // Neighbor markers.
@@ -289,7 +309,7 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
   }
 
   // Structural links.
-  glColor4fv(glMagenta);
+  glColor3fv(glMagenta);
   for (size_t ipart = 0; ipart < sdl->dem.buf.npart; ++ipart) {
     glBegin(GL_LINES);
     for (size_t ineigh = 0; ineigh < bmm_dem_sizel(&sdl->dem.buf.links[ipart]); ++ineigh) {
@@ -310,11 +330,11 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
   }
 
   // Staleness indicator.
-  glColor4fv(sdl->stale ? glRed : glGreen);
+  glColor3fv(sdl->stale ? glRed : glGreen);
   glDisk(0.05f, 0.05f, 0.025f, ncorner);
 
   // Cell boxes.
-  glColor4fv(glCyan);
+  glColor3fv(glCyan);
   for (size_t icellx = 0; icellx < sdl->dem.opts.ncell[0]; ++icellx)
     for (size_t icelly = 0; icelly < sdl->dem.opts.ncell[1]; ++icelly) {
       double const x = (double) icellx * w;
@@ -324,7 +344,7 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
     }
 
   // Bounding box.
-  glColor4fv(glWhite);
+  glColor3fv(glWhite);
   glRectWire(0.0f, 0.0f, (float) sdl->dem.rext[0], (float) sdl->dem.rext[1]);
 
   // Diagnostic text.
@@ -378,6 +398,14 @@ static bool bmm_sdl_video(struct bmm_sdl* const sdl,
   }
 
   glcontext = SDL_GL_CreateContext(window);
+
+  glEnable(GL_BLEND);
+  // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+  glEnable(GL_CULL_FACE);
+  glCullFace(GL_BACK);
+
+  glClearColor3fv(glBlack);
 
   glViewport(0, 0, width, height);
 
@@ -598,10 +626,6 @@ static bool serious_heresy(struct bmm_sdl const* const sdl) {
 static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
   if (!bmm_sdl_video(sdl, sdl->width, sdl->height))
     return false;
-
-  glClearColor4fv(glBlack);
-  glEnable(GL_CULL_FACE);
-  glCullFace(GL_BACK);
 
   Uint32 tnow = SDL_GetTicks();
   Uint32 tnext = tnow + bmm_sdl_tstep(sdl);

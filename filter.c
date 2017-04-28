@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include <stdio.h>
 
+#include "conf.h"
 #include "filter.h"
 #include "fp.h"
 #include "io.h"

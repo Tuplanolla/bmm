@@ -1,26 +1,25 @@
-flags=
+CFLAGS+=-D_POSIX_C_SOURCE=200809L -std=c11
+LDLIBS+=-lm -lrt
 
 ifeq ($(CC), clang)
 ifeq ($(CONFIG), debug)
-flags=-D_GNU_SOURCE -DDEBUG -O0 -g \
+CFLAGS+=-D_GNU_SOURCE -DDEBUG -O0 -g \
 	-Weverything \
 	-Wno-aggregate-return -Wno-bad-function-cast -Wno-disabled-macro-expansion \
-	-Wno-switch
+	-Wno-switch -Wno-used-but-marked-unused
 endif
 ifeq ($(CONFIG), profile)
-flags=-DNDEBUG -O3 -g -save-temps
+CFLAGS+=-DNDEBUG -O3 -g -save-temps
 endif
 ifeq ($(CONFIG), release)
-flags=-DNDEBUG -O3 -Wl,-s -w
+CFLAGS+=-DNDEBUG -O3 -Wl,-s -w
 endif
-# TODO Remove this.
-flags+=-Wno-used-but-marked-unused
 endif
 
 ifeq ($(CC), gcc)
 ifeq ($(CONFIG), debug)
-flags=-D_GNU_SOURCE -DDEBUG -Og -g \
-	`cat gcc-$$(./gcc-version | tr . _)-release` \
+CFLAGS+=-D_GNU_SOURCE -DDEBUG -Og -g \
+	$$(cat gcc-$$(./gcc-version | tr . _)-release) \
 	-Wno-error -Wno-fatal-errors -Wno-system-headers \
 	-Wno-c++-compat \
 	-Wno-long-long -Wno-traditional -Wno-traditional-conversion \
@@ -30,63 +29,57 @@ flags=-D_GNU_SOURCE -DDEBUG -Og -g \
 	-Wno-missing-declarations -Wno-missing-prototypes
 endif
 ifeq ($(CONFIG), profile)
-flags=-D_GNU_SOURCE -DNDEBUG -O3 -g -pg -save-temps
+CFLAGS+=-D_GNU_SOURCE -DNDEBUG -O3 -g -pg -save-temps
 endif
 ifeq ($(CONFIG), release)
-flags=-D_GNU_SOURCE -DNDEBUG -O3 -s -w
+CFLAGS+=-D_GNU_SOURCE -DNDEBUG -O3 -s -w
 endif
 endif
 
-# TODO These are a bit messy.
+PKGS+=freeglut gl glew gsl netcdf sdl2
+CFLAGS+=$$(pkg-config --cflags gsl)
+LDLIBS+=$$(pkg-config --libs gsl)
 
-CFLAGS=-D_POSIX_C_SOURCE=200809L -std=c11 $(flags)
-LDLIBS=-lm -lrt
-CFLAGSGSL=`pkg-config --cflags cheat gsl`
-LDLIBSGSL=`pkg-config --libs cheat gsl`
-CFLAGSSDL=`pkg-config --cflags freeglut gl glew gsl sdl2`
-LDLIBSSDL=`pkg-config --libs freeglut gl glew gsl sdl2`
-
-build: bmm-dem bmm-filter bmm-glut bmm-sdl
+build: bmm-dem bmm-filter bmm-glut bmm-nc bmm-sdl
 
 run: build
-	GSL_RNG_TYPE=mt19937 GSL_RNG_SEED=42 time -v \
 	./bmm-dem | \
 	./bmm-filter --mode whitelist --pass npart --pass parts --pass neigh --verbose yes | \
 	./bmm-sdl
 
-run-to: build
+run-store: bmm-dem bmm-filter
 	./bmm-dem | \
 	./bmm-filter --mode whitelist --pass npart --pass parts --pass neigh | \
 	gzip -c > bmm.run.gz
 
-run-from: build
+run-load: bmm-sdl
 	gunzip -c < bmm.run.gz | \
 	./bmm-sdl
+
+run-client: bmm-dem bmm.fifo
+	./bmm-dem > bmm.fifo
 
 start-server: bmm-sdl
 	mkfifo bmm.fifo
 	./bmm-sdl < bmm.fifo &
 
-run-client: bmm-dem bmm.fifo
-	./bmm-dem > bmm.fifo
-
 stop-server: bmm.fifo
 	$(RM) bmm.fifo
 
 check-static: build
-	cppcheck -I/usr/include --enable=all *.c *.h
+	cppcheck -I/usr/include --enable=all *.c *.h | grep '^\['
 
 check-dynamic: build
 	valgrind --tool=memcheck --leak-check=full ./bmm-dem > /dev/null
 
-profile-valgrind: build
+profile-sample: build
+	./bmm-dem > /dev/null
+	gprof ./bmm-dem
+
+profile-emulate: build
 	valgrind --tool=callgrind --callgrind-out-file=callgrind.out \
 	./bmm-dem > /dev/null
 	callgrind_annotate callgrind.out
-
-profile-gprof: build
-	./bmm-dem > /dev/null
-	gprof ./bmm-dem
 
 test: tests
 	./tests
@@ -95,7 +88,7 @@ deep-clean: clean
 	$(RM) *.data *.log *.out *.run
 
 clean: shallow-clean
-	$(RM) bmm-dem bmm-filter bmm-glut bmm-sdl tests
+	$(RM) bmm-dem bmm-filter bmm-glut bmm-nc bmm-sdl tests
 
 shallow-clean:
 	$(RM) *.gch *.i *.o *.s
@@ -103,27 +96,33 @@ shallow-clean:
 bmm-dem: bmm-dem.o \
 	dem.o endy.o fp.o geom.o geom2d.o hack.o io.o msg.o \
 	opt.o sec.o sig.o size.o str.o tle.o
-	$(CC) $(CFLAGS) $(CFLAGSGSL) -o $@ $^ $(LDLIBS) $(LDLIBSGSL)
 
 bmm-filter: bmm-filter.o \
 	endy.o filter.o fp.o hack.o io.o msg.o \
 	opt.o sec.o sig.o size.o str.o tle.o
-	$(CC) $(CFLAGS) $(CFLAGSGSL) -o $@ $^ $(LDLIBS) $(LDLIBSGSL)
 
+bmm-glut: CFLAGS+=$$(pkg-config --cflags freeglut gl glew)
+bmm-glut: LDLIBS+=$$(pkg-config --libs freeglut gl glew)
 bmm-glut: bmm-glut.o \
 	dem.o endy.o fp.o geom.o geom2d.o gl.o hack.o io.o msg.o \
 	opt.o sec.o sig.o size.o str.o tle.o
-	$(CC) $(CFLAGS) $(CFLAGSSDL) -o $@ $^ $(LDLIBS) $(LDLIBSSDL)
 
+bmm-nc: CFLAGS+=$$(pkg-config --cflags netcdf)
+bmm-nc: LDLIBS+=$$(pkg-config --libs netcdf)
+bmm-nc: bmm-nc.o \
+	endy.o fp.o hack.o io.o msg.o \
+	nc.o opt.o sec.o sig.o size.o str.o tle.o
+
+bmm-sdl: CFLAGS+=$$(pkg-config --cflags freeglut gl sdl2)
+bmm-sdl: LDLIBS+=$$(pkg-config --libs freeglut gl sdl2)
 bmm-sdl: bmm-sdl.o \
 	dem.o endy.o fp.o geom.o geom2d.o gl.o hack.o io.o msg.o \
 	opt.o sdl.o sec.o sig.o size.o str.o tle.o
-	$(CC) $(CFLAGS) $(CFLAGSSDL) -o $@ $^ $(LDLIBS) $(LDLIBSSDL)
 
+tests: CFLAGS+=$$(pkg-config --cflags cheat)
+tests: LDLIBS+=$$(pkg-config --libs cheat)
 tests: tests.o \
 	dem.o endy.o fp.o geom.o geom2d.o hack.o io.o msg.o \
 	opt.o sec.o sig.o size.o str.o tle.o
-	$(CC) $(CFLAGS) $(CFLAGSGSL) -o $@ $^ $(LDLIBS) $(LDLIBSGSL)
 
 %.o: %.c *.h
-	$(CC) $(CFLAGS) $(CFLAGSGSL) -c -o $@ $<

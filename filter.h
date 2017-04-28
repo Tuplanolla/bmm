@@ -32,22 +32,24 @@ __attribute__ ((__nonnull__))
 void bmm_filter_def(struct bmm_filter*, struct bmm_filter_opts const*);
 
 /// The call `bmm_filter_step(filter)`
-/// processes one incoming message.
+/// processes one incoming message with the filter state `filter`.
 __attribute__ ((__nonnull__))
 enum bmm_io_read bmm_filter_step(struct bmm_filter*);
 
 /// The call `bmm_filter_report(filter)`
-/// prints informal diagnostics.
+/// prints informal diagnostics for the filter state `filter`.
 __attribute__ ((__nonnull__))
 bool bmm_filter_report(struct bmm_filter const*);
 
 /// The call `bmm_filter_run(filter)`
-/// processes all incoming messages and handles signals.
+/// processes all incoming messages and
+/// handles signals with the filter state `filter`.
 __attribute__ ((__nonnull__))
 bool bmm_filter_run(struct bmm_filter*);
 
-/// The call `bmm_filter_run_with(filter)`
-/// prints informal diagnostics.
+/// The call `bmm_filter_run_with(opts)`
+/// processes all incoming messages and handles signals.
+/// handles signals with the filter options `opts`.
 __attribute__ ((__nonnull__))
 bool bmm_filter_run_with(struct bmm_filter_opts const*);
 

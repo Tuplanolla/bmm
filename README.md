@@ -332,24 +332,33 @@ keeping track of them is such a hassle,
 only long options are used and their values are replicated in the output
 for the sake of easy reproduction of runs.
 
-The following table lists the options for `bmm-dem`.
+The following incomplete table lists the options for `bmm-dem`.
 
-| Option | Meaning
-|:-------|:--------
-| `--ncellx` | Number of horizontal cells (at most `BMM_NCELL`).
-| `--ncelly` | Number of vertical cells (at most `BMM_NCELL`).
-| `--nbin` | Number of histogram bins (at most `BMM_NBIN`).
-| `--npart` | Number of particles (at most `BMM_NPART`).
-| `--nstep` | Number of simulation steps (at most `BMM_NSTEP`).
+| Key | Value | Meaning
+|:----|:------|:--------
+| `--ncellx` | Nonnegative Integer below `BMM_NCELL` | Number of horizontal cells.
+| `--ncelly` | Nonnegative Integer below `BMM_NCELL` | Number of vertical cells.
+| `--nbin` | Nonnegative Integer below `BMM_NBIN` | Number of histogram bins.
+| `--npart` | Nonnegative Integer below `BMM_NPART` | Number of particles.
+| `--nstep` | Nonnegative Integer below `BMM_NSTEP` | Number of simulation steps.
 
-The following table lists the options for `bmm-sdl`.
+The following table lists the options for `bmm-filter`.
 
-| Option | Meaning
-|:-------|:--------
-| `--width` | Default window width.
-| `--height` | Default window height.
-| `--fps` | Visual frame rate (between `1` and `1000`).
-| `--ms` | Multisample anti-aliasing factor (a small power of two).
+| Key | Value | Meaning
+|:----|:------|:--------
+| `--mode` | `blacklist` or `whitelist` | Pass or stop all messages.
+| `--pass` | Message Name | Pass a certain message.
+| `--stop` | Message Name | Stop a certain message.
+| `--verbose` | Truth Value | Print statistics at the end.
+
+The following incomplete table lists the options for `bmm-sdl`.
+
+| Key | Value | Meaning
+|:----|:------|:--------
+| `--width` | Positive Integer | Default window width.
+| `--height` | Positive Integer | Default window height.
+| `--fps` | Positive Integer below `1000` | Visual frame rate.
+| `--ms` | Small Power of Two | Multisample anti-aliasing factor.
 
 ### Building a Pipeline
 

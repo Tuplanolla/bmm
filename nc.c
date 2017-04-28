@@ -1,251 +1,118 @@
 #include <netcdf.h>
-#include <stdlib.h>
+#include <signal.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
-// clang $(pkg-config --cflags netcdf) -Wall -Wextra -o a.out nc.c $(pkg-config --libs netcdf) && ./a.out && ncdump -h nc.nc
+#include "ext.h"
+#include "io.h"
+#include "msg.h"
+#include "nc.h"
+#include "sig.h"
+#include "tle.h"
 
-#define URGH(e) ((void) printf("%s\n", nc_strerror(e)))
+void bmm_nc_opts_def(struct bmm_nc_opts* const opts) {
+  opts->conv = BMM_NC_CONV_AMBER;
 
-// Must have `NDIM = 3` for OVITO.
-#define NDIM 3
-#define NFRAME 12
-#define NATOM 64
+  char const path[] = "bmm.nc";
+  static_assert(sizeof opts->path >= sizeof path, "Path too long");
+  (void) memcpy(opts->path, path, sizeof path);
 
-int main(void) {
-  float data[NATOM][NFRAME][NDIM];
+  opts->i = false;
+  opts->r = true;
+  opts->q = true;
+  opts->v = false;
+  opts->f = false;
+}
 
-  for (int x = 0; x < NATOM; x++)
-    for (int y = 0; y < NFRAME; y++)
-      for (int z = 0; z < NDIM; z++)
-        data[x][y][z] = (float) (rand() % 256) / 256.0f * 10.0f;
+void bmm_nc_def(struct bmm_nc* const nc,
+    struct bmm_nc_opts const* const opts) {
+  nc->opts = *opts;
+  nc->stream = NULL;
+  nc->npart = 0;
+}
 
-  int ncerr;
+static enum bmm_io_read msg_read(void* buf, size_t const n,
+    __attribute__ ((__unused__)) void* const ptr) {
+  return bmm_io_readin(buf, n);
+}
 
-  int ncid;
+enum bmm_io_read bmm_nc_step(struct bmm_nc* const nc) {
+  struct bmm_msg_spec spec;
+  switch (bmm_msg_spec_read(&spec, msg_read, NULL)) {
+    case BMM_IO_READ_ERROR:
+      BMM_TLE_EXTS(BMM_TLE_IO, "Failed to read message header");
 
-  ncerr = nc_create("nc.nc", NC_CLOBBER | NC_64BIT_OFFSET, &ncid);
-  if (ncerr != NC_NOERR) {
-    URGH(ncerr);
-
-    return 1;
+      return BMM_IO_READ_ERROR;
+    case BMM_IO_READ_EOF:
+      return BMM_IO_READ_EOF;
   }
 
-  char const convs[] = "AMBER";
-  ncerr = nc_put_att_text(ncid, NC_GLOBAL,
-      "Conventions", strlen(convs), convs);
-  if (ncerr != NC_NOERR) {
-    URGH(ncerr);
+  if (spec.endy != bmm_endy_get()) {
+    BMM_TLE_EXTS(BMM_TLE_UNIMPL, "Unsupported endianness");
 
-    return 1;
+    return BMM_IO_READ_ERROR;
   }
 
-  char const convver[] = "1.0";
-  ncerr = nc_put_att_text(ncid, NC_GLOBAL,
-      "ConventionVersion", strlen(convver), convver);
-  if (ncerr != NC_NOERR) {
-    URGH(ncerr);
+  if (spec.tag != BMM_MSG_TAG_SP) {
+    BMM_TLE_EXTS(BMM_TLE_UNIMPL, "Unsupported tag");
 
-    return 1;
+    return BMM_IO_READ_ERROR;
   }
 
-  char const prog[] = "bmm";
-  ncerr = nc_put_att_text(ncid, NC_GLOBAL,
-      "program", strlen(prog), prog);
-  if (ncerr != NC_NOERR) {
-    URGH(ncerr);
+  enum bmm_msg_num num;
+  switch (bmm_msg_num_read(&num, msg_read, NULL)) {
+    case BMM_IO_READ_ERROR:
+    case BMM_IO_READ_EOF:
+      BMM_TLE_EXTS(BMM_TLE_IO, "Failed to read message number");
 
-    return 1;
+      return BMM_IO_READ_ERROR;
   }
 
-  char const progver[] = "0.0.0";
-  ncerr = nc_put_att_text(ncid, NC_GLOBAL,
-      "programVersion", strlen(progver), progver);
-  if (ncerr != NC_NOERR) {
-    URGH(ncerr);
-
-    return 1;
+  switch (num) {
+    case BMM_MSG_NUM_NPART:
+      ; // TODO Actually do some work.
   }
 
-  int id_frame;
-  ncerr = nc_def_dim(ncid, "frame", NC_UNLIMITED, &id_frame);
-  if (ncerr != NC_NOERR) {
-    URGH(ncerr);
+  return BMM_IO_READ_SUCCESS;
+}
 
-    return 1;
+bool bmm_nc_run(struct bmm_nc* const nc) {
+  int const sigs[] = {SIGINT, SIGQUIT, SIGTERM, SIGPIPE};
+  if (bmm_sig_register(sigs, nmembof(sigs)) != SIZE_MAX) {
+    BMM_TLE_STDS();
+
+    return false;
   }
 
-  int id_spatial;
-  ncerr = nc_def_dim(ncid, "spatial", NDIM, &id_spatial);
-  if (ncerr != NC_NOERR) {
-    URGH(ncerr);
+  for ever {
+    int signum;
+    if (bmm_sig_use(&signum))
+      switch (signum) {
+        case SIGINT:
+        case SIGQUIT:
+        case SIGTERM:
+        case SIGPIPE:
+          BMM_TLE_EXTS(BMM_TLE_ASYNC, "Exporting interrupted");
 
-    return 1;
+          return false;
+      }
+
+    switch (bmm_nc_step(nc)) {
+      case BMM_IO_READ_ERROR:
+        return false;
+      case BMM_IO_READ_EOF:
+        return true;
+    }
   }
 
-  int id_atom;
-  ncerr = nc_def_dim(ncid, "atom", NATOM, &id_atom);
-  if (ncerr != NC_NOERR) {
-    URGH(ncerr);
+  return true;
+}
 
-    return 1;
-  }
+bool bmm_nc_run_with(struct bmm_nc_opts const* const opts) {
+  struct bmm_nc nc;
+  bmm_nc_def(&nc, opts);
 
-  int id_cspatial;
-  ncerr = nc_def_dim(ncid, "cell_spatial", NDIM, &id_cspatial);
-  if (ncerr != NC_NOERR) {
-    URGH(ncerr);
-
-    return 1;
-  }
-
-  int dimids[4];
-
-  int varid_time;
-  dimids[0] = id_frame;
-  ncerr = nc_def_var(ncid, "time", NC_FLOAT, 1, dimids, &varid_time);
-  if (ncerr != NC_NOERR) {
-    URGH(ncerr);
-
-    return 1;
-  }
-
-  char const time[] = "second";
-  ncerr = nc_put_att_text(ncid, varid_time, "units", strlen(time), time);
-  if (ncerr != NC_NOERR) {
-    URGH(ncerr);
-
-    return 1;
-  }
-
-  int varid_coords;
-  dimids[0] = id_frame;
-  dimids[1] = id_atom;
-  dimids[2] = id_spatial;
-  ncerr = nc_def_var(ncid, "coordinates", NC_FLOAT, 3, dimids, &varid_coords);
-  if (ncerr != NC_NOERR) {
-    URGH(ncerr);
-
-    return 1;
-  }
-
-  char const coords[] = "meter";
-  ncerr = nc_put_att_text(ncid, varid_coords, "units", strlen(coords), coords);
-  if (ncerr != NC_NOERR) {
-    URGH(ncerr);
-
-    return 1;
-  }
-
-  int varid_clens;
-  dimids[0] = id_frame;
-  dimids[1] = id_cspatial;
-  ncerr = nc_def_var(ncid, "cell_lengths", NC_FLOAT, 2, dimids, &varid_clens);
-  if (ncerr != NC_NOERR) {
-    URGH(ncerr);
-
-    return 1;
-  }
-
-  char const clens[] = "meter";
-  ncerr = nc_put_att_text(ncid, varid_clens, "units", strlen(clens), clens);
-  if (ncerr != NC_NOERR) {
-    URGH(ncerr);
-
-    return 1;
-  }
-
-  int varid_radii;
-  dimids[0] = id_frame;
-  dimids[1] = id_atom;
-  // Must have `name = "radius"` for OVITO.
-  ncerr = nc_def_var(ncid, "radius", NC_FLOAT, 2, dimids, &varid_radii);
-  if (ncerr != NC_NOERR) {
-    URGH(ncerr);
-
-    return 1;
-  }
-
-  char const radii[] = "meter";
-  ncerr = nc_put_att_text(ncid, varid_radii, "units", strlen(radii), radii);
-  if (ncerr != NC_NOERR) {
-    URGH(ncerr);
-
-    return 1;
-  }
-
-  ncerr = nc_enddef(ncid);
-  if (ncerr != NC_NOERR) {
-    URGH(ncerr);
-
-    return 1;
-  }
-
-  size_t start[4];
-  size_t count[4];
-
-  start[0] = 0;
-  count[0] = NFRAME;
-  ncerr = nc_put_vara_float(ncid, varid_time, start, count, &data[0][0][0]);
-  if (ncerr != NC_NOERR) {
-    URGH(ncerr);
-
-    return 1;
-  }
-
-  start[0] = 0;
-  start[1] = 0;
-  start[2] = 0;
-  count[0] = NFRAME;
-  count[1] = NATOM;
-  count[2] = NDIM;
-  ncerr = nc_put_vara_float(ncid, varid_coords, start, count, &data[0][0][0]);
-  if (ncerr != NC_NOERR) {
-    URGH(ncerr);
-
-    return 1;
-  }
-
-  float lens[NFRAME][NDIM];
-  for (int y = 0; y < NFRAME; y++)
-    for (int z = 0; z < NDIM; z++)
-      lens[y][z] = 10.0f;
-
-  start[0] = 0;
-  start[1] = 0;
-  count[0] = NFRAME;
-  count[1] = NDIM;
-  ncerr = nc_put_vara_float(ncid, varid_clens, start, count, &lens[0][0]);
-  if (ncerr != NC_NOERR) {
-    URGH(ncerr);
-
-    return 1;
-  }
-
-  float rad[NATOM][NFRAME];
-  for (int x = 0; x < NATOM; x++)
-    for (int y = 0; y < NFRAME; y++)
-      rad[x][y] = (float) (rand() % 256) / 256.0f * 0.8f + 0.2f;
-
-  start[0] = 0;
-  start[1] = 0;
-  count[0] = NFRAME;
-  count[1] = NATOM;
-  ncerr = nc_put_vara_float(ncid, varid_radii, start, count, &rad[0][0]);
-  if (ncerr != NC_NOERR) {
-    URGH(ncerr);
-
-    return 1;
-  }
-
-  ncerr = nc_close(ncid);
-  if (ncerr != NC_NOERR) {
-    URGH(ncerr);
-
-    return 1;
-  }
-
-  puts("SUCCESS!");
-
-  return 0;
+  return bmm_nc_run(&nc);
 }
