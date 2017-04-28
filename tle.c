@@ -26,7 +26,7 @@ static thread_local struct bmm_tle tle = {
   .prog = NULL,
   .sec = (double) NAN,
   .tag = BMM_TLE_TAG_EXT,
-  .num.std = BMM_TLE_SUCCESS,
+  .num.std = BMM_TLE_NUM_SUCCESS,
   .buf = "Success"
 };
 
@@ -56,7 +56,7 @@ int bmm_tle_num_std(void) {
 enum bmm_tle_num bmm_tle_num_ext(void) {
   switch (tle.tag) {
     case BMM_TLE_TAG_STD:
-      return BMM_TLE_SUCCESS;
+      return BMM_TLE_NUM_SUCCESS;
     case BMM_TLE_TAG_EXT:
       return tle.num.ext;
   }

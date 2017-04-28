@@ -95,13 +95,13 @@ enum bmm_io_read bmm_dem_gets(struct bmm_dem* const dem,
   }
 
   if (spec.endy != bmm_endy_get()) {
-    BMM_TLE_EXTS(BMM_TLE_UNIMPL, "Unsupported endianness");
+    BMM_TLE_EXTS(BMM_TLE_NUM_UNIMPL, "Unsupported endianness");
 
     return BMM_IO_READ_ERROR;
   }
 
   if (spec.tag != BMM_MSG_TAG_SP) {
-    BMM_TLE_EXTS(BMM_TLE_UNIMPL, "Unsupported tag");
+    BMM_TLE_EXTS(BMM_TLE_NUM_UNIMPL, "Unsupported tag");
 
     return BMM_IO_READ_ERROR;
   }
@@ -114,7 +114,7 @@ enum bmm_io_read bmm_dem_gets(struct bmm_dem* const dem,
   }
 
   if (bmm_dem_sniff_size(dem, *num) != spec.msg.size - BMM_MSG_NUMSIZE) {
-    BMM_TLE_EXTS(BMM_TLE_UNKNOWN, "Size mismatch");
+    BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Size mismatch");
 
     return BMM_IO_READ_ERROR;
   }
@@ -391,7 +391,7 @@ static bool bmm_sdl_video(struct bmm_sdl* const sdl,
         SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
         width, height, flags);
     if (window == NULL) {
-      BMM_TLE_EXTS(BMM_TLE_SDL, "SDL error: %s", SDL_GetError());
+      BMM_TLE_EXTS(BMM_TLE_NUM_SDL, "SDL error: %s", SDL_GetError());
 
       return false;
     }
@@ -786,7 +786,7 @@ bool bmm_sdl_run(struct bmm_sdl* const sdl) {
       SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8) == -1 ||
       SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 8) == -1 ||
       SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1) == -1) {
-    BMM_TLE_EXTS(BMM_TLE_SDL, "SDL error: %s", SDL_GetError());
+    BMM_TLE_EXTS(BMM_TLE_NUM_SDL, "SDL error: %s", SDL_GetError());
 
     return false;
   }
@@ -795,7 +795,7 @@ bool bmm_sdl_run(struct bmm_sdl* const sdl) {
     if (SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1) == -1 ||
         SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES,
           (int) sdl->opts.ms) == -1) {
-      BMM_TLE_EXTS(BMM_TLE_SDL, "SDL error: %s", SDL_GetError());
+      BMM_TLE_EXTS(BMM_TLE_NUM_SDL, "SDL error: %s", SDL_GetError());
 
       return false;
     }
@@ -830,7 +830,7 @@ static bool bmm_sdl_run_sdl(struct bmm_sdl_opts const* const opts) {
 
 bool bmm_sdl_run_with(struct bmm_sdl_opts const* const opts) {
   if (SDL_Init(SDL_INIT_VIDEO) == -1) {
-    BMM_TLE_EXTS(BMM_TLE_SDL, "SDL error: %s", SDL_GetError());
+    BMM_TLE_EXTS(BMM_TLE_NUM_SDL, "SDL error: %s", SDL_GetError());
 
     return false;
   }

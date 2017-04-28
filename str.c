@@ -12,7 +12,7 @@ bool bmm_str_strtou(unsigned int* const ptr, char const* const str) {
   errno = 0;
   long long int const x = strtoll(str, &endptr, 10);
   if (errno != 0 || endptr[0] != '\0' || x < 0) {
-    BMM_TLE_EXTS(BMM_TLE_PARSE, "Cannot parse '%s' as an unsigned integer",
+    BMM_TLE_EXTS(BMM_TLE_NUM_PARSE, "Cannot parse '%s' as an unsigned integer",
         str);
 
     return false;
@@ -29,7 +29,7 @@ bool bmm_str_strtoz(size_t* const ptr, char const* const str) {
   errno = 0;
   long long int const x = strtoll(str, &endptr, 10);
   if (errno != 0 || endptr[0] != '\0' || x < 0) {
-    BMM_TLE_EXTS(BMM_TLE_PARSE, "Cannot parse '%s' as a size", str);
+    BMM_TLE_EXTS(BMM_TLE_NUM_PARSE, "Cannot parse '%s' as a size", str);
 
     return false;
   } else {
@@ -45,7 +45,7 @@ bool bmm_str_strtod(double* const ptr, char const* const str) {
   errno = 0;
   double const x = strtod(str, &endptr);
   if (errno != 0 || endptr[0] != '\0') {
-    BMM_TLE_EXTS(BMM_TLE_PARSE, "Cannot parse '%s' as a floating-point number",
+    BMM_TLE_EXTS(BMM_TLE_NUM_PARSE, "Cannot parse '%s' as a floating-point number",
         str);
 
     return false;
@@ -68,7 +68,7 @@ bool bmm_str_strtob(bool* const ptr, char const* const str) {
       strcmp(str, "yes") == 0)
     x = true;
   else {
-    BMM_TLE_EXTS(BMM_TLE_PARSE, "Cannot parse '%s' as a truth value", str);
+    BMM_TLE_EXTS(BMM_TLE_NUM_PARSE, "Cannot parse '%s' as a truth value", str);
 
     return false;
   }

@@ -42,7 +42,7 @@ enum bmm_io_read bmm_nc_step(struct bmm_nc* const nc) {
   struct bmm_msg_spec spec;
   switch (bmm_msg_spec_read(&spec, msg_read, NULL)) {
     case BMM_IO_READ_ERROR:
-      BMM_TLE_EXTS(BMM_TLE_IO, "Failed to read message header");
+      BMM_TLE_EXTS(BMM_TLE_NUM_IO, "Failed to read message header");
 
       return BMM_IO_READ_ERROR;
     case BMM_IO_READ_EOF:
@@ -50,13 +50,13 @@ enum bmm_io_read bmm_nc_step(struct bmm_nc* const nc) {
   }
 
   if (spec.endy != bmm_endy_get()) {
-    BMM_TLE_EXTS(BMM_TLE_UNIMPL, "Unsupported endianness");
+    BMM_TLE_EXTS(BMM_TLE_NUM_UNIMPL, "Unsupported endianness");
 
     return BMM_IO_READ_ERROR;
   }
 
   if (spec.tag != BMM_MSG_TAG_SP) {
-    BMM_TLE_EXTS(BMM_TLE_UNIMPL, "Unsupported tag");
+    BMM_TLE_EXTS(BMM_TLE_NUM_UNIMPL, "Unsupported tag");
 
     return BMM_IO_READ_ERROR;
   }
@@ -65,7 +65,7 @@ enum bmm_io_read bmm_nc_step(struct bmm_nc* const nc) {
   switch (bmm_msg_num_read(&num, msg_read, NULL)) {
     case BMM_IO_READ_ERROR:
     case BMM_IO_READ_EOF:
-      BMM_TLE_EXTS(BMM_TLE_IO, "Failed to read message number");
+      BMM_TLE_EXTS(BMM_TLE_NUM_IO, "Failed to read message number");
 
       return BMM_IO_READ_ERROR;
   }
@@ -94,7 +94,7 @@ bool bmm_nc_run(struct bmm_nc* const nc) {
         case SIGQUIT:
         case SIGTERM:
         case SIGPIPE:
-          BMM_TLE_EXTS(BMM_TLE_ASYNC, "Exporting interrupted");
+          BMM_TLE_EXTS(BMM_TLE_NUM_ASYNC, "Exporting interrupted");
 
           return false;
       }

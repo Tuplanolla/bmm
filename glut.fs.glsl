@@ -1,7 +1,8 @@
 #version 330 core
 
-uniform float fade_factor;
+in vec3 fColor;
+out vec4 color;
 
 void main(void) {
-  gl_FragColor = vec4(fade_factor);
+  color = vec4(fColor, 1.0f);
 }

@@ -10,14 +10,10 @@
 
 /// This enumeration complements standard thread-local error numbers.
 enum bmm_tle_num {
-  BMM_TLE_SUCCESS = 0,
-  BMM_TLE_PARSE,
-  BMM_TLE_IO,
-  BMM_TLE_PROTO,
-  BMM_TLE_ASYNC,
-  BMM_TLE_UNIMPL,
-  BMM_TLE_SDL,
-  BMM_TLE_UNKNOWN
+#define BMM_TLE_DECLARE(id) \
+  BMM_TLE_NUM_##id,
+#include "tle.part.h"
+#undef BMM_TLE_DECLARE
 };
 
 /// This enumeration is used to distinguish standard thread-local error numbers

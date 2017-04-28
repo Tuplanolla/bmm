@@ -103,7 +103,7 @@ enum bmm_io_read bmm_msg_spec_read(struct bmm_msg_spec* const spec,
 
       break;
     default:
-      BMM_TLE_EXTS(BMM_TLE_UNIMPL, "Unsupported endianness");
+      BMM_TLE_EXTS(BMM_TLE_NUM_UNIMPL, "Unsupported endianness");
 
       return BMM_IO_READ_ERROR;
   }
@@ -172,7 +172,7 @@ bool bmm_msg_spec_write(struct bmm_msg_spec const* const spec,
     case BMM_ENDY_LITTLE:
       break;
     case BMM_ENDY_MIDDLE:
-      BMM_TLE_EXTS(BMM_TLE_UNIMPL, "Unsupported endianness");
+      BMM_TLE_EXTS(BMM_TLE_NUM_UNIMPL, "Unsupported endianness");
 
       return false;
     case BMM_ENDY_BIG:

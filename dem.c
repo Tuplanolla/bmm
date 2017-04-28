@@ -847,7 +847,7 @@ bool bmm_dem_run(struct bmm_dem* const dem) {
         case SIGQUIT:
         case SIGTERM:
         case SIGPIPE:
-          BMM_TLE_EXTS(BMM_TLE_ASYNC, "Simulation interrupted");
+          BMM_TLE_EXTS(BMM_TLE_NUM_ASYNC, "Simulation interrupted");
 
           return false;
       }
@@ -869,7 +869,7 @@ bool bmm_dem_run(struct bmm_dem* const dem) {
   return true;
 }
 
-static bool bmm_dem_run_rng(struct bmm_dem* const dem) {
+static bool bmm_dem_run_with_(struct bmm_dem* const dem) {
   gsl_rng_type const* const t = gsl_rng_env_setup();
   if (t == NULL) {
     BMM_TLE_STDS();
@@ -901,7 +901,7 @@ bool bmm_dem_run_with(struct bmm_dem_opts const* const opts) {
 
   bmm_dem_def(dem, opts);
 
-  bool const result = bmm_dem_run_rng(dem);
+  bool const result = bmm_dem_run_with_(dem);
 
   free(dem);
 
