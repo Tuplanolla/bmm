@@ -4,6 +4,11 @@
 
 #include <stddef.h>
 
+#define BMM_NAME "Brittle Matter Matters"
+#define BMM_SHORT "BMM"
+#define BMM_PROGID "bmm"
+#define BMM_VERSION "0.0.0"
+
 // The maximum number of characters in an identifier.
 #define BMM_NCHARID ((size_t) 64)
 

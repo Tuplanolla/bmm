@@ -699,14 +699,14 @@ static bool msg_write(void const* buf, size_t const n,
 size_t bmm_dem_sniff_size(struct bmm_dem const* const dem,
     enum bmm_msg_num const num) {
   switch (num) {
-    case BMM_MSG_NUM_NPART:
-      return sizeof dem->buf.npart;
+    case BMM_MSG_NUM_ISTEP:
+      return sizeof dem->istep;
     case BMM_MSG_NUM_EKINE:
       return sizeof dem->istep + sizeof dem->est;
     case BMM_MSG_NUM_NEIGH:
       return sizeof dem->buf.neigh + sizeof dem->buf.links;
     case BMM_MSG_NUM_PARTS:
-      return sizeof dem->istep + sizeof dem->buf.parts + sizeof dem->buf.partcs;
+      return sizeof dem->buf.npart + sizeof dem->buf.parts + sizeof dem->buf.partcs;
   }
 
   dynamic_assert(false, "Unsupported message num");
@@ -715,8 +715,8 @@ size_t bmm_dem_sniff_size(struct bmm_dem const* const dem,
 bool bmm_dem_puts_stuff(struct bmm_dem const* const dem,
     enum bmm_msg_num const num) {
   switch (num) {
-    case BMM_MSG_NUM_NPART:
-      return msg_write(&dem->buf.npart, sizeof dem->buf.npart, NULL);
+    case BMM_MSG_NUM_ISTEP:
+      return msg_write(&dem->istep, sizeof dem->istep, NULL);
     case BMM_MSG_NUM_EKINE:
       return msg_write(&dem->istep, sizeof dem->istep, NULL) &&
         msg_write(&dem->est, sizeof dem->est, NULL);
@@ -724,7 +724,7 @@ bool bmm_dem_puts_stuff(struct bmm_dem const* const dem,
       return msg_write(&dem->buf.neigh, sizeof dem->buf.neigh, NULL) &&
         msg_write(&dem->buf.links, sizeof dem->buf.links, NULL);
     case BMM_MSG_NUM_PARTS:
-      return msg_write(&dem->istep, sizeof dem->istep, NULL) &&
+      return msg_write(&dem->buf.npart, sizeof dem->buf.npart, NULL) &&
         msg_write(&dem->buf.parts, sizeof dem->buf.parts, NULL) &&
         msg_write(&dem->buf.partcs, sizeof dem->buf.partcs, NULL);
   }
@@ -808,7 +808,7 @@ bool bmm_dem_comm(struct bmm_dem* const dem) {
 
   // TODO Make a mechanism to automate retransmission of differences only.
 
-  bmm_dem_puts(dem, BMM_MSG_NUM_NPART);
+  bmm_dem_puts(dem, BMM_MSG_NUM_ISTEP);
   bmm_dem_puts(dem, BMM_MSG_NUM_PARTS);
 
   dem->est.ekinetic = bmm_dem_ekinetic(dem);
@@ -829,7 +829,7 @@ bool bmm_dem_run(struct bmm_dem* const dem) {
     return false;
   }
 
-  bmm_dem_puts(dem, BMM_MSG_NUM_NPART);
+  bmm_dem_puts(dem, BMM_MSG_NUM_ISTEP);
 
 #ifdef _GNU_SOURCE
 #ifdef DEBUG
@@ -847,7 +847,7 @@ bool bmm_dem_run(struct bmm_dem* const dem) {
         case SIGQUIT:
         case SIGTERM:
         case SIGPIPE:
-          BMM_TLE_EXTS(BMM_TLE_NUM_ASYNC, "Simulation interrupted");
+          BMM_TLE_EXTS(BMM_TLE_NUM_ASYNC, "Interrupted");
 
           return false;
       }

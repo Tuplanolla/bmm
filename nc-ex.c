@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 // clang $(pkg-config --cflags netcdf) -Wall -Wextra -o a.out nc.c $(pkg-config --libs netcdf) && ./a.out && ncdump -h nc.nc
 
@@ -13,13 +14,6 @@
 #define NATOM 64
 
 int main(void) {
-  float data[NATOM][NFRAME][NDIM];
-
-  for (int x = 0; x < NATOM; x++)
-    for (int y = 0; y < NFRAME; y++)
-      for (int z = 0; z < NDIM; z++)
-        data[x][y][z] = (float) (rand() % 256) / 256.0f * 10.0f;
-
   int ncerr;
 
   int ncid;
@@ -224,6 +218,14 @@ int main(void) {
   size_t start[4];
   size_t count[4];
 
+  float data[NFRAME][NATOM][NDIM];
+
+  for (int x = 0; x < NATOM; ++x)
+    for (int y = 0; y < NFRAME; ++y)
+      for (int z = 0; z < NDIM; ++z)
+        data[y][x][z] = x > NATOM / 4 && y < NFRAME / 2 ?
+          NAN : (float) (rand() % 256) / 256.0f * 10.0f;
+
   start[0] = 0;
   count[0] = NFRAME;
   ncerr = nc_put_vara_float(ncid, varid_time, start, count, &data[0][0][0]);
@@ -247,8 +249,8 @@ int main(void) {
   }
 
   float lens[NFRAME][NDIM];
-  for (int y = 0; y < NFRAME; y++)
-    for (int z = 0; z < NDIM; z++)
+  for (int y = 0; y < NFRAME; ++y)
+    for (int z = 0; z < NDIM; ++z)
       lens[y][z] = 10.0f;
 
   start[0] = 0;
@@ -263,8 +265,8 @@ int main(void) {
   }
 
   float rad[NATOM][NFRAME];
-  for (int x = 0; x < NATOM; x++)
-    for (int y = 0; y < NFRAME; y++)
+  for (int x = 0; x < NATOM; ++x)
+    for (int y = 0; y < NFRAME; ++y)
       rad[x][y] = (float) (rand() % 256) / 256.0f * 0.8f + 0.2f;
 
   start[0] = 0;

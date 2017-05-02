@@ -179,8 +179,10 @@ inline double bmm_geom2d_angle(double const* const r0,
 inline void bmm_geom2d_pdiff(double* const rdiff,
     double const* const r0, double const* const r1,
     double const* const rper) {
+  bmm_geom2d_diff(rdiff, r0, r1);
+
   for (size_t idim = 0; idim < 2; ++idim)
-    rdiff[idim] = bmm_fp_swrap(r1[idim] - r0[idim], rper[idim]);
+    rdiff[idim] = bmm_fp_swrap(rdiff[idim], rper[idim]);
 }
 
 /// The call `bmm_geom2d_pdist2(r0, r1, rper)`

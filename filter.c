@@ -43,8 +43,6 @@ enum bmm_io_read bmm_filter_step(struct bmm_filter* const filter) {
   struct bmm_msg_spec spec;
   switch (bmm_msg_spec_read(&spec, msg_read, NULL)) {
     case BMM_IO_READ_ERROR:
-      BMM_TLE_EXTS(BMM_TLE_NUM_IO, "Failed to read header");
-
       return BMM_IO_READ_ERROR;
     case BMM_IO_READ_EOF:
       return BMM_IO_READ_EOF;
@@ -52,32 +50,25 @@ enum bmm_io_read bmm_filter_step(struct bmm_filter* const filter) {
 
   enum bmm_msg_num num;
   switch (bmm_msg_num_read(&num, msg_read, NULL)) {
-    case BMM_IO_READ_ERROR:
     case BMM_IO_READ_EOF:
-      BMM_TLE_EXTS(BMM_TLE_NUM_IO, "Failed to read num");
-
+      BMM_TLE_EXTS(BMM_TLE_NUM_IO, "Unexpected end");
+    case BMM_IO_READ_ERROR:
       return BMM_IO_READ_ERROR;
   }
 
   if (pass(filter, num)) {
     if (!bmm_msg_spec_write(&spec, msg_write, NULL) ||
-        !bmm_msg_num_write(&num, msg_write, NULL)) {
-      BMM_TLE_EXTS(BMM_TLE_NUM_IO, "Failed to write stuff");
-
+        !bmm_msg_num_write(&num, msg_write, NULL))
       return BMM_IO_READ_ERROR;
-    }
 
     switch (spec.tag) {
       case BMM_MSG_TAG_SP:
-        if (!bmm_io_redirio(spec.msg.size - BMM_MSG_NUMSIZE)) {
-          BMM_TLE_EXTS(BMM_TLE_NUM_IO, "Failed to redirect body");
-
+        if (!bmm_io_redirio(spec.msg.size - BMM_MSG_NUMSIZE))
           return BMM_IO_READ_ERROR;
-        }
 
         break;
       case BMM_MSG_TAG_LT:
-        BMM_TLE_EXTS(BMM_TLE_NUM_UNIMPL, "Not implemented (yet?)");
+        BMM_TLE_EXTS(BMM_TLE_NUM_UNIMPL, "Not implemented");
 
         return BMM_IO_READ_ERROR;
     }
@@ -86,15 +77,16 @@ enum bmm_io_read bmm_filter_step(struct bmm_filter* const filter) {
   } else {
     switch (spec.tag) {
       case BMM_MSG_TAG_SP:
-        if (!bmm_io_fastfwin(spec.msg.size - BMM_MSG_NUMSIZE)) {
-          BMM_TLE_EXTS(BMM_TLE_NUM_IO, "Failed to fast-forward body");
-
-          return BMM_IO_READ_ERROR;
+        switch (bmm_io_fastfwin(spec.msg.size - BMM_MSG_NUMSIZE)) {
+          case BMM_IO_READ_EOF:
+            BMM_TLE_EXTS(BMM_TLE_NUM_IO, "Unexpected end");
+          case BMM_IO_READ_ERROR:
+            return BMM_IO_READ_ERROR;
         }
 
         break;
       case BMM_MSG_TAG_LT:
-        BMM_TLE_EXTS(BMM_TLE_NUM_UNIMPL, "Not implemented (yet?)");
+        BMM_TLE_EXTS(BMM_TLE_NUM_UNIMPL, "Not implemented");
 
         return BMM_IO_READ_ERROR;
     }
@@ -135,7 +127,7 @@ static bool bmm_filter_run_(struct bmm_filter* const filter) {
         case SIGQUIT:
         case SIGTERM:
         case SIGPIPE:
-          BMM_TLE_EXTS(BMM_TLE_NUM_ASYNC, "Filtering interrupted");
+          BMM_TLE_EXTS(BMM_TLE_NUM_ASYNC, "Interrupted");
 
           return false;
       }

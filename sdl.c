@@ -43,8 +43,8 @@ static enum bmm_io_read msg_read(void* buf, size_t const n,
 enum bmm_io_read bmm_dem_gets_stuff(struct bmm_dem* const dem,
     enum bmm_msg_num const num) {
   switch (num) {
-    case BMM_MSG_NUM_NPART:
-      return msg_read(&dem->buf.npart, sizeof dem->buf.npart, NULL);
+    case BMM_MSG_NUM_ISTEP:
+      return msg_read(&dem->istep, sizeof dem->istep, NULL);
     case BMM_MSG_NUM_EKINE:
       switch (msg_read(&dem->istep, sizeof dem->istep, NULL)) {
         case BMM_IO_READ_ERROR:
@@ -64,7 +64,7 @@ enum bmm_io_read bmm_dem_gets_stuff(struct bmm_dem* const dem,
 
       return msg_read(&dem->buf.links, sizeof dem->buf.links, NULL);
     case BMM_MSG_NUM_PARTS:
-      switch (msg_read(&dem->istep, sizeof dem->istep, NULL)) {
+      switch (msg_read(&dem->buf.npart, sizeof dem->buf.npart, NULL)) {
         case BMM_IO_READ_ERROR:
           return BMM_IO_READ_ERROR;
         case BMM_IO_READ_EOF:
@@ -81,7 +81,7 @@ enum bmm_io_read bmm_dem_gets_stuff(struct bmm_dem* const dem,
       return msg_read(&dem->buf.partcs, sizeof dem->buf.partcs, NULL);
   }
 
-  dynamic_assert(false, "Unsupported message num");
+  dynamic_assert(false, "Unsupported message number");
 }
 
 enum bmm_io_read bmm_dem_gets(struct bmm_dem* const dem,

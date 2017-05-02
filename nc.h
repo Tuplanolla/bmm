@@ -3,6 +3,7 @@
 #define BMM_NC_H
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdio.h>
 
 #include "ext.h"
@@ -15,7 +16,7 @@ enum bmm_nc_conv {
 /// This structure contains export options.
 struct bmm_nc_opts {
   enum bmm_nc_conv conv;
-  char path[BUFSIZ];
+  char const* path;
   bool i;
   bool r;
   bool q;
@@ -27,7 +28,7 @@ struct bmm_nc_opts {
 struct bmm_nc {
   struct bmm_nc_opts opts;
   size_t npart;
-  FILE* stream;
+  size_t iframe;
   int ncid;
   int id_frame;
   int id_spatial;
@@ -54,6 +55,16 @@ void bmm_nc_opts_def(struct bmm_nc_opts*);
 /// writes the default export state into `nc`.
 __attribute__ ((__nonnull__))
 void bmm_nc_def(struct bmm_nc*, struct bmm_nc_opts const*);
+
+/// The call `bmm_nc_close(nc)`
+/// finalizes the export state `nc` after writing.
+__attribute__ ((__nonnull__))
+bool bmm_nc_close(struct bmm_nc*);
+
+/// The call `bmm_nc_open(nc)`
+/// prepares the export state `nc` for writing.
+__attribute__ ((__nonnull__))
+bool bmm_nc_open(struct bmm_nc*);
 
 /// The call `bmm_nc_step(nc)`
 /// processes one incoming message with the export state `nc`.

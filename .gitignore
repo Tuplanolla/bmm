@@ -5,6 +5,7 @@
 *.out
 *.s
 /*.data
+/*.nc
 /*.run
 /*.run.gz
 /*.tar.gz

@@ -245,17 +245,29 @@ Sending data through the network works fine.
 
 ### Analysis Software
 
-TODO Try producing high-quality images and movies with OVITO.
+ParaView specializes in
 
-    http://www.ovito.org/
+* Structural Analysis
+* Fluid Dynamics
+* Astrophysics
+* Climate Science
+* LiDAR/Point-Cloud
 
-TODO Check out VMD.
+so it is not an option.
+Also
 
-    http://www.ks.uiuc.edu/Research/vmd/
+* AtomEye
+* PyMol
+* Raster3d
+* RasMol
 
-TODO See if better sedimentation algorithms exist.
+are chemist-oriented.
+We shall review
 
-    http://www.ime.unicamp.br/~martinez/packmol/
+* VMD
+* OVITO
+
+next.
 
 ### File Format Choices
 
@@ -324,6 +336,12 @@ that reside inside real particles and
 visualizing the bonds as displacements of said phantom particles.
 However real and phantom particles would be indistinguishable and
 bloat the data file.
+
+### Do This
+
+TODO See if better sedimentation algorithms exist.
+
+    http://www.ime.unicamp.br/~martinez/packmol/
 
 ### Program Options
 

@@ -19,6 +19,11 @@ static bool f(char const* const key, char const* const value,
       opts->conv = BMM_NC_CONV_AMBER;
     else
       return false;
+  } else if (strcmp(key, "path") == 0) {
+    if (strlen(value) < 1)
+      return false;
+
+    opts->path = value;
   } else if (strcmp(key, "id") == 0) {
     bool p;
     if (!bmm_str_strtob(&p, value))
