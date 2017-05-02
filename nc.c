@@ -1,5 +1,7 @@
+#include <math.h>
 #include <netcdf.h>
 #include <signal.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -10,7 +12,6 @@
 #include "dem.h"
 #include "ext.h"
 #include "io.h"
-#include "math.h"
 #include "msg.h"
 #include "nc.h"
 #include "sig.h"
@@ -43,20 +44,7 @@ static enum bmm_io_read msg_read(void* buf, size_t const n,
   return bmm_io_readin(buf, n);
 }
 
-bool bmm_nc_close(struct bmm_nc* const nc) {
-  int nerr;
-
-  nerr = nc_close(nc->ncid);
-  if (nerr != NC_NOERR) {
-    BMM_TLE_EXTS(BMM_TLE_NUM_NC, "%s", nc_strerror(nerr));
-
-    return false;
-  }
-
-  return true;
-}
-
-bool bmm_nc_open(struct bmm_nc* const nc) {
+static bool bmm_nc_open(struct bmm_nc* const nc) {
   int nerr;
 
   nerr = nc_create(nc->opts.path, NC_CLOBBER | NC_64BIT_OFFSET, &nc->ncid);
@@ -246,6 +234,19 @@ bool bmm_nc_open(struct bmm_nc* const nc) {
   }
 
   nerr = nc_put_var_text(nc->ncid, nc->varid_cspatial, "abc");
+  if (nerr != NC_NOERR) {
+    BMM_TLE_EXTS(BMM_TLE_NUM_NC, "%s", nc_strerror(nerr));
+
+    return false;
+  }
+
+  return true;
+}
+
+static bool bmm_nc_close(struct bmm_nc* const nc) {
+  int nerr;
+
+  nerr = nc_close(nc->ncid);
   if (nerr != NC_NOERR) {
     BMM_TLE_EXTS(BMM_TLE_NUM_NC, "%s", nc_strerror(nerr));
 

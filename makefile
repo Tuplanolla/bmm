@@ -104,7 +104,7 @@ bmm-filter: bmm-filter.o \
 bmm-glut: CFLAGS+=$$(pkg-config --cflags freeglut gl glew)
 bmm-glut: LDLIBS+=$$(pkg-config --libs freeglut gl glew)
 bmm-glut: bmm-glut.o \
-	dem.o endy.o fp.o geom.o geom2d.o gl.o hack.o io.o msg.o \
+	dem.o endy.o fp.o geom.o geom2d.o gl2.o glut.o hack.o io.o msg.o \
 	opt.o sec.o sig.o size.o str.o tle.o
 
 bmm-nc: CFLAGS+=$$(pkg-config --cflags netcdf)
