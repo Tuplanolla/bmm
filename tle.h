@@ -33,6 +33,11 @@ enum bmm_tle_tag {
 /// Note that as of now this is only compatible with ASCII strings.
 void bmm_tle_reset(char const*);
 
+/// The call `bmm_tle_prog()`
+/// returns the program name `str` set by calling `bmm_tle_reset(str)`.
+__attribute__ ((__pure__))
+char const* bmm_tle_prog(void);
+
 /// The call `bmm_tle_tag()`
 /// returns whether the thread-local error number is standard or extended.
 __attribute__ ((__pure__))

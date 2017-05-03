@@ -6,13 +6,13 @@
 #endif
 
 #include <math.h>
+#include <setjmp.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <setjmp.h>
 #include <string.h>
 
 #include "gl2.h"
@@ -27,7 +27,8 @@
 #include "sig.h"
 #include "tle.h"
 
-static jmp_buf env;
+/// This is necessary since GLUT does not support passing in closures.
+static struct bmm_glut* bmm_glut;
 
 void bmm_glut_opts_def(struct bmm_glut_opts* const opts) {
   opts->vpath = "bmm-glut.vs.glsl";
@@ -37,6 +38,10 @@ void bmm_glut_opts_def(struct bmm_glut_opts* const opts) {
 void bmm_glut_def(struct bmm_glut* const glut,
     struct bmm_glut_opts const* const opts) {
   glut->opts = *opts;
+  glut->prog = NULL;
+  glut->vshader = 0;
+  glut->fshader = 0;
+  glut->program = 0;
 }
 
 static enum bmm_io_read msg_read(void* buf, size_t const n,
@@ -88,7 +93,7 @@ enum bmm_io_read bmm_glut_step(struct bmm_glut* const glut) {
       {
         size_t npart;
 
-        switch (msg_read(npart, sizeof npart, NULL)) {
+        switch (msg_read(&npart, sizeof npart, NULL)) {
           case BMM_IO_READ_EOF:
             BMM_TLE_EXTS(BMM_TLE_NUM_IO, "Unexpected end");
           case BMM_IO_READ_ERROR:
@@ -155,8 +160,16 @@ static void reshape(int const w, int const h) {
 }
 
 static void bmm_glut_exit(void) {
-  // TODO Clean up here.
-  puts("HUA!");
+  if (bmm_glut->program != 0)
+    glDeleteProgram(bmm_glut->program);
+
+  if (bmm_glut->fshader != 0)
+    glDeleteShader(bmm_glut->fshader);
+
+  if (bmm_glut->vshader != 0)
+    glDeleteShader(bmm_glut->vshader);
+
+  free(bmm_glut->prog);
 }
 
 static void kfunc(unsigned char const key, int const x, int const y) {
@@ -168,7 +181,7 @@ static void kfunc(unsigned char const key, int const x, int const y) {
 #else
       bmm_glut_exit();
 
-      longjmp(env, 1);
+      longjmp(bmm_glut->env, 1);
 #endif
   }
 }
@@ -181,9 +194,11 @@ static void mfunc(int const button, int const state, int const x, int const y) {
   // The state parameter is either GLUT_UP or GLUT_DOWN.
 }
 
+#ifdef FREE
 static void mwfunc(int const wheel, int const dir, int const x, int const y) {
   // There is the wheel number, direction is +/- 1, and x and y are the mouse coordinates.
 }
+#endif
 
 bool bmm_glut_run(struct bmm_glut* const glut) {
   int const sigs[] = {SIGINT, SIGQUIT, SIGTERM, SIGPIPE};
@@ -193,9 +208,22 @@ bool bmm_glut_run(struct bmm_glut* const glut) {
     return false;
   }
 
+  bmm_glut = glut;
+
+  char const* const prog = bmm_tle_prog();
+  size_t const size = strlen(prog) + 1;
+
+  bmm_glut->prog = malloc(size);
+  if (bmm_glut->prog == NULL) {
+    BMM_TLE_STDS();
+
+    return false;
+  }
+
+  (void) memcpy(bmm_glut->prog, prog, size);
+
   int argc = 1;
-  char progid[] = BMM_PROGID;
-  char* argv[] = {progid, NULL};
+  char* argv[] = {bmm_glut->prog, NULL};
   glutInit(&argc, argv);
 
 #ifdef FREE
@@ -204,7 +232,8 @@ bool bmm_glut_run(struct bmm_glut* const glut) {
 
   glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE);
   glutInitWindowSize(640, 480);
-  glutCreateWindow("GLUT");
+  int const window = glutCreateWindow(BMM_SHORT);
+  glutSetWindow(window);
 
   glutDisplayFunc(render);
   glutIdleFunc(ifunc);
@@ -224,7 +253,7 @@ bool bmm_glut_run(struct bmm_glut* const glut) {
   glutMouseWheelFunc(mwfunc);
 #endif
 
-  if (setjmp(env) == 0)
+  if (setjmp(bmm_glut->env) == 0)
     glutMainLoop();
 
 #ifdef FREE
