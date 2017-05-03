@@ -21,5 +21,7 @@
 // Maximum cell or neighbor population.
 #define BMM_NGROUP ((size_t) 64)
 #define BMM_NSTEP ((size_t) 16777216)
+// Maximum link population.
+#define BMM_NLINK ((size_t) 8)
 
 #endif

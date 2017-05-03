@@ -268,6 +268,7 @@ We shall review
 * OVITO
 
 next.
+Also take a look at GLE.
 
 ### File Format Choices
 
@@ -467,10 +468,62 @@ transfer of kinetic energy quickly changed the distribution.
 
 #### Pair Symmetry
 
+Currently links are stored in a particle list
+each of which with a list of indices representing links *to*.
+Another data structure option would be a freestanding index pair list,
+where the first index would always be strictly less than the second.
+
 Forces between pairs could be worked out asymmetrically,
 which would cut the Moore neighborhood sizes and iterations into half.
-However this would prevent one from not having to build neighbor lists and
-short-circuiting interaction calculations for fixed particles.
+However this would have some downsides too.
+First, finding whether a particle is linked to any other particle
+would require $n g$ instead of $g$ operations
+for $n$ particles and $g$ amortized group size.
+Second, interaction calculations would require almost twice as much code.
+
+Observe static structure time complexities.
+Assume 0-based indexing.
+Lists must store a "free list" as an unsorted array to manage allocation.
+Trees must use "bit pairs" to represent pointers.
+
+| Data Structure | Insertion | Deletion  | Access    | Search    | Space
+|:---------------|:----------|:----------|:----------|:----------|:------
+| Sorted Array   | $n - i$   | $n - i$   | $1$       | $\\log n$ | $k$
+| Unsorted Array | $1$       | $1$       | $1$       | $i$       | $k$
+| Sorted List    | $i$       | $i$       | $i$       | $2 i$     | $3 k$
+| Unsorted List  | $2$       | $i$       | $i$       | $2 i$     | $3 k$
+| Sorted Tree    | $\\log n$ | $\\log n$ | $\\log n$ | $\\log n$ | $3 k$
+| Unsorted Tree  | $\\log n$ | $n$?      | $n$?      | $n$?      | $3 k$
+
+#### Notational Conventions
+
+Heed these.
+
+| Symbol      | Meaning
+|:------------|:--------
+| $a$         | Acceleration
+| $f$         | Force
+| $i$         | Storage Index
+| $j$         | Moment of Inertia
+| $k$         | Storage Capacity
+| $l$         | Unique Label
+| $m$         | Mass
+| $n$         | Number
+| $r$         | Radius
+| $v$         | Velocity
+| $x$         | Position
+| $y$         | Young Modulus
+
+| Symbol      | Meaning
+|:------------|:--------
+| $\\alpha$   | Angular Acceleration
+| $\\epsilon$ | Coefficient of Restitution
+| $\\theta$   | Angle
+| $\\mu$      | Coefficient of Friction
+| $\\nu$      | Poisson Ratio
+| $\\xi$      | Compression
+| $\\tau$     | Torque
+| $\\omega$   | Angular Velocity
 
 #### Simulation Stages
 

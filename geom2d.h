@@ -26,7 +26,7 @@ inline double bmm_geom2d_norm(double const* const r) {
   return sqrt(bmm_geom2d_norm2(r));
 }
 
-/// The call `bmm_geom2d_dir(r)` returns the signed angle $\\phi$
+/// The call `bmm_geom2d_dir(r)` returns the signed angle $\\theta$
 /// of the vector `r`.
 __attribute__ ((__pure__))
 inline double bmm_geom2d_dir(double const* const r) {
@@ -93,7 +93,7 @@ inline void bmm_geom2d_lperp(double* const p, double const* const r) {
 
 /// The call `bmm_geom2d_to_polar2(polar2, cart)` maps
 /// the cartesian coordinates `cart` of the form $(x, y)$
-/// to the corresponding polar coordinates `polar2` of the form $(r^2, \\phi)$.
+/// to the corresponding polar coordinates `polar2` of the form $(r^2, \\theta)$.
 inline void bmm_geom2d_to_polar2(double* const polar2,
     double const* const cart) {
   polar2[0] = bmm_geom2d_norm2(cart);
@@ -102,7 +102,7 @@ inline void bmm_geom2d_to_polar2(double* const polar2,
 
 /// The call `bmm_geom2d_to_polar(polar, cart)` maps
 /// the cartesian coordinates `cart` of the form $(x, y)$
-/// to the corresponding polar coordinates `polar` of the form $(r, \\phi)$.
+/// to the corresponding polar coordinates `polar` of the form $(r, \\theta)$.
 inline void bmm_geom2d_to_polar(double* const polar,
     double const* const cart) {
   polar[0] = bmm_geom2d_norm(cart);
@@ -110,7 +110,7 @@ inline void bmm_geom2d_to_polar(double* const polar,
 }
 
 /// The call `bmm_geom2d_from_polar(cart, polar)` maps
-/// the polar coordinates `polar` of the form $(r, \\phi)$
+/// the polar coordinates `polar` of the form $(r, \\theta)$
 /// to the corresponding cartesian coordinates `cart` of the form $(x, y)$.
 inline void bmm_geom2d_from_polar(double* const cart,
     double const* const polar) {
@@ -119,7 +119,7 @@ inline void bmm_geom2d_from_polar(double* const cart,
 }
 
 /// The call `bmm_geom2d_from_polar2(cart, polar2)` maps
-/// the polar coordinates `polar2` of the form $(r^2, \\phi)$
+/// the polar coordinates `polar2` of the form $(r^2, \\theta)$
 /// to the corresponding cartesian coordinates `cart` of the form $(x, y)$.
 inline void bmm_geom2d_from_polar2(double* const cart,
     double const* const polar2) {
@@ -160,7 +160,7 @@ inline double bmm_geom2d_dist(double const* const r0, double const* const r1) {
 }
 
 /// The call `bmm_geom2d_angle(r0, r1)`
-/// returns the signed angle $\\phi$
+/// returns the signed angle $\\theta$
 /// between the vectors `r0` and `r1`
 /// according to the minimum image convention.
 __attribute__ ((__pure__))
@@ -212,7 +212,7 @@ inline double bmm_geom2d_pdist(double const* const r0, double const* const r1,
 }
 
 /// The call `bmm_geom2d_pangle(r0, r1, rper)`
-/// returns the `rper`-periodic signed angle $\\phi$
+/// returns the `rper`-periodic signed angle $\\theta$
 /// between the vectors `r0` and `r1`
 /// according to the minimum image convention.
 __attribute__ ((__pure__))

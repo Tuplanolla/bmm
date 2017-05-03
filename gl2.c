@@ -46,7 +46,7 @@ bool bmm_gl2_compile(GLuint* const pshader,
     return false;
   }
 
-  GLchar const* const str = buf;
+  GLchar const* str = buf;
   GLint const length = (GLint) size;
   glShaderSource(shader, 1, &str, &length);
 

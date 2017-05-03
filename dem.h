@@ -32,6 +32,7 @@ struct bmm_dem_time {
 };
 
 // TODO What has to be done.
+// Unstride data structures.
 // Timing should be specified by the total time and time step per stage,
 // so that the number of steps is a derived quantity.
 // Messages need to standardized to make the development of consumers easier.
@@ -158,14 +159,17 @@ struct bmm_dem_listl {
 
 struct bmm_dem_buf {
   size_t npart;
-  double fcrunch[2];
   struct bmm_dem_neigh neigh;
   struct bmm_dem_partc partcs[BMM_NPART];
   struct bmm_dem_part parts[BMM_NPART];
   // These are directed links *to* some particle.
   struct bmm_dem_listl links[BMM_NPART];
-  // TODO Do we want a asymmetric pair list or an symmetric list of lists?
-  // Probably the latter, even though keeping it consistent takes work.
+};
+
+enum bmm_dem_role {
+  BMM_DEM_ROLE_FREE,
+  BMM_DEM_ROLE_FIXED,
+  BMM_DEM_ROLE_DRIVEN
 };
 
 struct bmm_dem {
@@ -190,6 +194,67 @@ struct bmm_dem {
     // Which particles each cell owns, roughly.
     struct bmm_dem_list conts[BMM_NCELL * BMM_NCELL];
   } pool;
+  // Driving force.
+  double fcrunch[2];
+
+  // TODO Data structure redesign below.
+  // Particles.
+  struct {
+    // Number of particles.
+    size_t n;
+    // Next unused label.
+    size_t lnext;
+    // Labels.
+    size_t l[BMM_NPART];
+    // Roles.
+    enum bmm_dem_role role[BMM_NPART];
+    // Radii.
+    double r[BMM_NPART];
+    // Masses.
+    double m[BMM_NPART];
+    // Moments of inertia.
+    double j[BMM_NPART];
+    // Forces.
+    double f[BMM_NPART][2];
+    // Torques.
+    double tau[BMM_NPART];
+    // Dynamics.
+    struct {
+      // Positions.
+      double x[BMM_NPART][2];
+      // Velocities.
+      double v[BMM_NPART][2];
+      // Accelerations.
+      double a[BMM_NPART][2];
+      // Angles.
+      double theta[BMM_NPART];
+      // Angular velocities.
+      double omega[BMM_NPART];
+      // Angular accelerations.
+      double alpha[BMM_NPART];
+    } dyn;
+  } part;
+  // Links.
+  struct {
+    // Number of links.
+    size_t n;
+    // Index pairs, each in ascending order.
+    size_t i[BMM_NPART * BMM_NLINK][2];
+    // Rest lengths.
+    double r[BMM_NPART * BMM_NLINK];
+  } link;
+  // Neighbors.
+  struct {
+    // Time of next update.
+    double tnext;
+    // Half a Moore neighborhood.
+    struct {
+      // Number of neighbors.
+      size_t n;
+      // Indices.
+      size_t i[BMM_NLINK];
+    } i[BMM_NPART];
+  } neigh;
 };
 
 // TODO This might have to be deprecated to keep dependencies in check.

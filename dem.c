@@ -184,9 +184,9 @@ void bmm_dem_forces(struct bmm_dem* const dem) {
 
     for (size_t idim = 0; idim < 2; ++idim) {
       if (vtotal[idim] / (double) ntotal < dem->opts.vcrunch[idim])
-        dem->buf.fcrunch[idim] += dem->opts.fadjust;
+        dem->fcrunch[idim] += dem->opts.fadjust;
       else
-        dem->buf.fcrunch[idim] -= dem->opts.fadjust;
+        dem->fcrunch[idim] -= dem->opts.fadjust;
     }
 
     for (size_t ipart = 0; ipart < dem->buf.npart; ++ipart) {
@@ -195,7 +195,7 @@ void bmm_dem_forces(struct bmm_dem* const dem) {
           dem->buf.parts[ipart].lin.f[idim] = 0.0;
       if (!dem->buf.partcs[ipart].nondr)
         for (size_t idim = 0; idim < 2; ++idim)
-          dem->buf.parts[ipart].lin.f[idim] += dem->buf.fcrunch[idim];
+          dem->buf.parts[ipart].lin.f[idim] += dem->fcrunch[idim];
     }
   }
 }
@@ -682,7 +682,7 @@ void bmm_dem_def(struct bmm_dem* const dem,
   dem->intsch = bmm_dem_euler;
 
   for (size_t idim = 0; idim < 2; ++idim)
-    dem->buf.fcrunch[idim] = 0.0;
+    dem->fcrunch[idim] = 0.0;
 
   dem->buf.npart = 0;
 
