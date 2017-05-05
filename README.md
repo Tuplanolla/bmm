@@ -29,6 +29,10 @@ as long as they use a compatible license.
 
 ## The Plan
 
+### The Goal
+
+Find $\\mu_{macro}(p, \\mu_{micro})$.
+
 ### Project Structure
 
 The project is divided into several programs with different purposes.
@@ -504,12 +508,16 @@ Heed these.
 | $a$         | Acceleration
 | $f$         | Force
 | $i$         | Storage Index
+| $j$         | Jerk
 | $j$         | Moment of Inertia
+| $j$         | Storage Index
 | $k$         | Storage Capacity
+| $k$         | Storage Index
 | $l$         | Unique Label
 | $m$         | Mass
 | $n$         | Number
 | $r$         | Radius
+| $s$         | Jounce
 | $v$         | Velocity
 | $x$         | Position
 | $y$         | Young Modulus
@@ -524,6 +532,70 @@ Heed these.
 | $\\xi$      | Compression
 | $\\tau$     | Torque
 | $\\omega$   | Angular Velocity
+
+#### Spherical Coordinates
+
+Two formulations of the same sane spherical coordinate system
+courtesy of Tero Harjupatana and Wikipedia respectively.
+
+                x
+                 n
+
+    n - 1       ^
+    -----       |     +
+     | |  x     |    /|
+     | |   i   ,|.  / |
+    i = 1   ,-' | `/. |  t
+         ,-'    | /\ `|.  n - 1
+      ,-'       |/  | | `-.
+    -:          +-----+    :-
+      `-.               ,-'
+         `-.         ,-'
+            `-.   ,-'
+               `-'
+
+Let $0 \\le \\theta_n < \\twopi$ for some $1 \\le n < d$ and
+let $0 \\le \\theta_k < \\twopi / 2$ for all the rest $k \\ne n$.
+
+$$
+\\begin{array}{cccccccc}
+x_1       & = & r & \\cos \\theta_1 & \\cos \\theta_2 & \\dotsb & \\cos \\theta_{d - 2} & \\cos \\theta_{d - 1} \\\\
+x_2       & = & r & \\sin \\theta_1 & \\cos \\theta_2 & \\dotsb & \\cos \\theta_{d - 2} & \\cos \\theta_{d - 1} \\\\
+x_3       & = & r &                 & \\sin \\theta_2 & \\dotsb & \\cos \\theta_{d - 2} & \\cos \\theta_{d - 1} \\\\
+\\vdots   &   &   &                 &                 & \\ddots &                       &                       \\\\
+x_{d - 1} & = & r &                 &                 &         & \\sin \\theta_{d - 2} & \\cos \\theta_{d - 1} \\\\
+x_d       & = & r &                 &                 &         &                       & \\sin \\theta_{d - 1}
+\\end{array}
+$$
+
+Define $\\theta_0 = \\twopi / 4$ to obtain the following.
+
+$$
+x_n = r \\sin \\theta_{n - 1} \\prod_{k = n}^{d - 1} \\cos \\theta_k
+$$
+
+Reverse the angles with $\\theta' = \\twopi / 4 - \\theta$ and
+the components with $n' = d - n + 1$.
+The following is now equivalent.
+
+$$
+\\begin{array}{cccccccc}
+x_1       & = & r & \\cos \\theta_1 &                 &         &                       &                       \\\\
+x_2       & = & r & \\sin \\theta_1 & \\cos \\theta_2 &         &                       &                       \\\\
+\\vdots   &   &   &                 &                 & \\ddots &                       &                       \\\\
+x_{d - 2} & = & r & \\sin \\theta_1 & \\sin \\theta_2 & \\dotsb & \\cos \\theta_{d - 2} &                       \\\\
+x_{d - 1} & = & r & \\sin \\theta_1 & \\sin \\theta_2 & \\dotsb & \\sin \\theta_{d - 2} & \\cos \\theta_{d - 1} \\\\
+x_d       & = & r & \\sin \\theta_1 & \\sin \\theta_2 & \\dotsb & \\sin \\theta_{d - 2} & \\sin \\theta_{d - 1} \\\\
+\\end{array}
+$$
+
+Define $\\theta_d = 0$ to obtain the following.
+
+$$
+x_n = r \\cos \\theta_n \\prod_{k = 1}^{n - 1} \\sin \\theta_k
+$$
+
+Choose the favorable formulation based on the folding direction.
 
 #### Simulation Stages
 

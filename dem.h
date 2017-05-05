@@ -226,6 +226,10 @@ struct bmm_dem {
       double v[BMM_NPART][2];
       // Accelerations.
       double a[BMM_NPART][2];
+      // Jerks.
+      double j[BMM_NPART][2];
+      // Jounces.
+      double s[BMM_NPART][2];
       // Angles.
       double theta[BMM_NPART];
       // Angular velocities.

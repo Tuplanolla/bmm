@@ -3,6 +3,7 @@
 #define BMM_FILTER_H
 
 #include <stdbool.h>
+#include <stddef.h>
 
 #include "conf.h"
 #include "ext.h"

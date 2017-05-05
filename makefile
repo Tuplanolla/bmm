@@ -42,7 +42,7 @@ LDLIBS+=$$(pkg-config --libs gsl)
 
 build: bmm-dem bmm-filter bmm-glut bmm-nc bmm-sdl
 
-run: build
+run: bmm-dem bmm-filter bmm-sdl
 	./bmm-dem | \
 	./bmm-filter --mode whitelist --pass npart --pass parts --pass neigh --verbose yes | \
 	./bmm-sdl
