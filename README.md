@@ -535,18 +535,17 @@ Heed these.
 
 #### Spherical Coordinates
 
-Two formulations of the same sane spherical coordinate system
-courtesy of Tero Harjupatana and Wikipedia respectively.
+Here is a sane formulation of the spherical coordinate system pictured below.
 
                 x
-                 n
+                 d
 
-    n - 1       ^
+    d - 1       ^
     -----       |     +
      | |  x     |    /|
      | |   i   ,|.  / |
     i = 1   ,-' | `/. |  t
-         ,-'    | /\ `|.  n - 1
+         ,-'    | /\ `|.  d
       ,-'       |/  | | `-.
     -:          +-----+    :-
       `-.               ,-'
@@ -554,48 +553,58 @@ courtesy of Tero Harjupatana and Wikipedia respectively.
             `-.   ,-'
                `-'
 
-Let $0 \\le \\theta_n < \\twopi$ for some $1 \\le n < d$ and
-let $0 \\le \\theta_k < \\twopi / 2$ for all the rest $k \\ne n$.
+Let $0 \\le \\theta_n < \\twopi$ for some $1 < n \\le d$ and
+let $0 \\le \\theta_k < \\twopi / 2$ for all the rest $1 < k \\le d$
+satisfying $k \\ne n$.
+The components obey the following relations.
 
 $$
 \\begin{array}{cccccccc}
-x_1       & = & r & \\cos \\theta_1 & \\cos \\theta_2 & \\dotsb & \\cos \\theta_{d - 2} & \\cos \\theta_{d - 1} \\\\
-x_2       & = & r & \\sin \\theta_1 & \\cos \\theta_2 & \\dotsb & \\cos \\theta_{d - 2} & \\cos \\theta_{d - 1} \\\\
-x_3       & = & r &                 & \\sin \\theta_2 & \\dotsb & \\cos \\theta_{d - 2} & \\cos \\theta_{d - 1} \\\\
-\\vdots   &   &   &                 &                 & \\ddots &                       &                       \\\\
-x_{d - 1} & = & r &                 &                 &         & \\sin \\theta_{d - 2} & \\cos \\theta_{d - 1} \\\\
-x_d       & = & r &                 &                 &         &                       & \\sin \\theta_{d - 1}
+x_1       & = & r & (\\sin \\theta_1) & \\cos \\theta_2 & \\cos \\theta_3 & \\dotsb & \\cos \\theta_{d - 1} & \\cos \\theta_d \\\\
+x_2       & = & r &                   & \\sin \\theta_2 & \\cos \\theta_3 & \\dotsb & \\cos \\theta_{d - 1} & \\cos \\theta_d \\\\
+x_3       & = & r &                   &                 & \\sin \\theta_3 & \\dotsb & \\cos \\theta_{d - 1} & \\cos \\theta_d \\\\
+\\vdots   &   &   &                   &                 &                 & \\ddots &                       &                 \\\\
+x_{d - 1} & = & r &                   &                 &                 &         & \\sin \\theta_{d - 1} & \\cos \\theta_d \\\\
+x_d       & = & r &                   &                 &                 &         &                       & \\sin \\theta_d
 \\end{array}
 $$
 
-Define $\\theta_0 = \\twopi / 4$ to obtain the following.
+Parenthesized is a suggestive extra factor.
+Define $\\theta_1 = \\twopi / 4$ to obtain
 
 $$
-x_n = r \\sin \\theta_{n - 1} \\prod_{k = n}^{d - 1} \\cos \\theta_k
+x_n = r \\sin \\theta_n \\prod_{k = n}^{d - 1} \\cos \\theta_k
 $$
 
-Reverse the angles with $\\theta' = \\twopi / 4 - \\theta$ and
-the components with $n' = d - n + 1$.
-The following is now equivalent.
+for all $1 \\le n \\le d$.
+
+Flip the angles with $\\theta' = \\twopi / 4 - \\theta$ and
+reverse the components with $n' = d - n + 1$.
+Also shift the indices of the angles from $1 < n \\le d$ to $1 \\le n < d$.
+The components now obey the following relations.
 
 $$
 \\begin{array}{cccccccc}
-x_1       & = & r & \\cos \\theta_1 &                 &         &                       &                       \\\\
-x_2       & = & r & \\sin \\theta_1 & \\cos \\theta_2 &         &                       &                       \\\\
-\\vdots   &   &   &                 &                 & \\ddots &                       &                       \\\\
-x_{d - 2} & = & r & \\sin \\theta_1 & \\sin \\theta_2 & \\dotsb & \\cos \\theta_{d - 2} &                       \\\\
-x_{d - 1} & = & r & \\sin \\theta_1 & \\sin \\theta_2 & \\dotsb & \\sin \\theta_{d - 2} & \\cos \\theta_{d - 1} \\\\
-x_d       & = & r & \\sin \\theta_1 & \\sin \\theta_2 & \\dotsb & \\sin \\theta_{d - 2} & \\sin \\theta_{d - 1} \\\\
+x_1       & = & r & \\cos \\theta_1 &                 &         &                       &                       &                   \\\\
+x_2       & = & r & \\sin \\theta_1 & \\cos \\theta_2 &         &                       &                       &                   \\\\
+\\vdots   &   &   &                 &                 & \\ddots &                       &                       &                   \\\\
+x_{d - 2} & = & r & \\sin \\theta_1 & \\sin \\theta_2 & \\dotsb & \\cos \\theta_{d - 2} &                       &                   \\\\
+x_{d - 1} & = & r & \\sin \\theta_1 & \\sin \\theta_2 & \\dotsb & \\sin \\theta_{d - 2} & \\cos \\theta_{d - 1} &                   \\\\
+x_d       & = & r & \\sin \\theta_1 & \\sin \\theta_2 & \\dotsb & \\sin \\theta_{d - 2} & \\sin \\theta_{d - 1} & (\\cos \\theta_d)
 \\end{array}
 $$
 
-Define $\\theta_d = 0$ to obtain the following.
+This time around define $\\theta_d = 0$ to obtain
 
 $$
 x_n = r \\cos \\theta_n \\prod_{k = 1}^{n - 1} \\sin \\theta_k
 $$
 
-Choose the favorable formulation based on the folding direction.
+for all $1 \\le n \\le d$.
+
+Choose the favorable formulation based on the direction of folding.
+
+Acknowledge Tero Harjupatana and Wikipedia for providing good ideas.
 
 #### Simulation Stages
 
