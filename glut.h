@@ -4,6 +4,7 @@
 
 #include <GL/glew.h>
 
+#include <setjmp.h>
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -18,6 +19,8 @@ struct bmm_glut_opts {
 /// This structure tracks resources.
 struct bmm_glut {
   struct bmm_glut_opts opts;
+  char* prog;
+  jmp_buf env;
   GLuint vshader;
   GLuint fshader;
   GLuint program;

@@ -38,6 +38,10 @@ void bmm_tle_reset(char const* const prog) {
   tle.sec = bmm_sec_now();
 }
 
+char const* bmm_tle_prog(void) {
+  return tle.prog;
+}
+
 enum bmm_tle_tag bmm_tle_tag(void) {
   return tle.tag;
 }
