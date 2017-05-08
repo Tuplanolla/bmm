@@ -499,6 +499,38 @@ Trees must use "bit pairs" to represent pointers.
 | Sorted Tree    | $\\log n$ | $\\log n$ | $\\log n$ | $\\log n$ | $3 k$
 | Unsorted Tree  | $\\log n$ | $n$?      | $n$?      | $n$?      | $3 k$
 
+#### Representation of Time
+
+From the user perspective,
+it is easiest to specify timespan $t_1 - t_0$ and time step $dt$.
+For simplicity set $t_0 = 0$
+so that the timespan coincides with the end time $t_1$.
+
+We have two ways to derive the current time $t$ at step $i$.
+Either $t = \\sum_{k = 1}^i dt$ or $t = i dt$.
+On paper the two are the same,
+but in a numerical simulation they slowly diverge.
+
+In terms of total step number $n = t_1 / dt$
+the latter would be $t = (i / n) t_1$
+(give or take some $\\pm 1$).
+
+#### Partitioning Moore Neighborhoods
+
+Insert a hyperplane into the lattice in such a way that it
+
+* it partitions the neighboring points into two,
+* its normal vector's components are positive and increasing and
+* it maximizes the minimum distance between each lattice point and the plane.
+
+This construction should be unique.
+
+It seems that approximately right results can be obtained with
+
+* $(1)$ for $1$ dimensions,
+* $(1, 2)$ for $2$ dimensions and
+* $(1, 2, 4)$ for $3$ dimensions.
+
 #### Notational Conventions
 
 Heed these.

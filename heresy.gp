@@ -1,13 +1,14 @@
-# set terminal epslatex
-# set output 'proj.tex'
+set terminal epslatex
+set output 'figures/heresy.tex'
 # stats 'heresy.data' using 4 name 'stats_periodic'
 # periodic = stats_periodic_mean
 periodic = 1
 # stats 'heresy.data' using 5 name 'stats_L'
 # L = stats_L_mean
 L = 1.0
-set xlabel '$x$'
-set ylabel '$y$'
+set xlabel '$x \: [\si \meter]$'
+set ylabel '$y \: [\si \meter]$'
+set size ratio -1
 unset key
 nearbyint(x) = floor(x + 0.5)
 swrap(x, b) = x - b * nearbyint(x / b)
