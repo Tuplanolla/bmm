@@ -7,6 +7,7 @@
 #include <stdio.h>
 
 #include "ext.h"
+#include "io.h"
 
 /// This enumeration is for file format conventions.
 enum bmm_nc_conv {

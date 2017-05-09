@@ -2,6 +2,10 @@
 /// Preprocessor directives.
 #define BMM_CPP_H
 
+/// The preprocessor directive `BMM_VERSION(x, y, z)`
+/// expands to the version number string `"x.y.z"`.
+#define BMM_VERSION(x, y, z) #x "." #y "." #z
+
 /// The preprocessor directive `BMM_MIN(x, y)`
 /// expands to the lesser of `x` and `y`.
 #define BMM_MIN(x, y) ((x) < (y) ? (x) : (y))
@@ -9,6 +13,82 @@
 /// The preprocessor directive `BMM_MAX(x, y)`
 /// expands to the greater of `x` and `y`.
 #define BMM_MAX(x, y) ((x) > (y) ? (x) : (y))
+
+// These were generated with `./pow 64`.
+#define BMM_POW_0(x) (1)
+#define BMM_POW_1(x) (1 * (x))
+#define BMM_POW_2(x) (1 * (x) * (x))
+#define BMM_POW_3(x) (1 * (x) * (x) * (x))
+#define BMM_POW_4(x) (1 * (x) * (x) * (x) * (x))
+#define BMM_POW_5(x) (1 * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_6(x) (1 * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_7(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_8(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_9(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_10(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_11(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_12(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_13(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_14(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_15(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_16(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_17(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_18(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_19(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_20(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_21(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_22(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_23(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_24(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_25(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_26(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_27(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_28(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_29(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_30(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_31(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_32(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_33(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_34(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_35(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_36(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_37(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_38(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_39(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_40(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_41(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_42(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_43(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_44(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_45(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_46(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_47(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_48(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_49(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_50(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_51(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_52(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_53(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_54(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_55(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_56(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_57(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_58(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_59(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_60(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_61(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_62(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_63(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+#define BMM_POW_64(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
+
+/// The preprocessor directive `BMM_POW_n(x)`
+/// expands to `x` raised to the power `n`.
+#define BMM_POW_(x, n) BMM_POW_##n(x)
+
+/// The preprocessor directive `BMM_POW(x, n)`
+/// expands to `x` raised to the power `n`.
+/// See `BMM_POW_0`.
+#define BMM_POW(x, n) BMM_POW_(x, n)
 
 /// The preprocessor directive `BMM_MASKALL(x, m)`
 /// checks whether all bits in `x` match the bit mask `m`.

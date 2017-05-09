@@ -7,6 +7,7 @@
 #include <stddef.h>
 
 #include "conf.h"
+#include "cpp.h"
 #include "ext.h"
 #include "io.h"
 #include "msg.h"
@@ -198,67 +199,86 @@ struct bmm_dem {
   double fcrunch[2];
 
   // TODO Data structure redesign below.
-  // Particles.
+  /// System.
   struct {
-    // Number of particles.
+    /// Extents.
+    double rext[BMM_NDIM];
+    /// Periodicities.
+    bool per[BMM_NDIM];
+  } sys;
+  /// Particles.
+  struct {
+    /// Number of particles.
     size_t n;
-    // Next unused label.
+    /// Next unused label.
     size_t lnext;
-    // Labels.
+    /// Labels.
     size_t l[BMM_NPART];
-    // Roles.
+    /// Roles.
     enum bmm_dem_role role[BMM_NPART];
-    // Radii.
+    /// Radii.
     double r[BMM_NPART];
-    // Masses.
+    /// Masses.
     double m[BMM_NPART];
-    // Moments of inertia.
+    /// Moments of inertia.
     double j[BMM_NPART];
-    // Forces.
-    double f[BMM_NPART][2];
-    // Torques.
+    /// Forces.
+    double f[BMM_NPART][BMM_NDIM];
+    /// Torques.
     double tau[BMM_NPART];
-    // Dynamics.
+    /// Dynamics.
     struct {
-      // Positions.
-      double x[BMM_NPART][2];
-      // Velocities.
-      double v[BMM_NPART][2];
-      // Accelerations.
-      double a[BMM_NPART][2];
-      // Jerks.
-      double j[BMM_NPART][2];
-      // Jounces.
-      double s[BMM_NPART][2];
-      // Angles.
-      double theta[BMM_NPART];
-      // Angular velocities.
+      /// Positions.
+      double x[BMM_NPART][BMM_NDIM];
+      /// Velocities.
+      double v[BMM_NPART][BMM_NDIM];
+      /// Accelerations.
+      double a[BMM_NPART][BMM_NDIM];
+      /// Jerks.
+      double j[BMM_NPART][BMM_NDIM];
+      /// Jounces.
+      double s[BMM_NPART][BMM_NDIM];
+      /// Angles.
+      double phi[BMM_NPART];
+      /// Angular velocities.
       double omega[BMM_NPART];
-      // Angular accelerations.
+      /// Angular accelerations.
       double alpha[BMM_NPART];
     } dyn;
   } part;
-  // Links.
+  /// Links.
   struct {
-    // Number of links.
+    /// Number of links.
     size_t n;
-    // Index pairs, each in ascending order.
+    /// Index pairs, each in ascending order.
     size_t i[BMM_NPART * BMM_NLINK][2];
-    // Rest lengths.
-    double r[BMM_NPART * BMM_NLINK];
+    /// Rest lengths for springs and beams.
+    double rrest[BMM_NPART * BMM_NLINK];
+    /// Rest angles for beams.
+    double phirest[BMM_NPART * BMM_NLINK][2];
   } link;
-  // Neighbors.
+  /// Neighbor cache.
   struct {
-    // Time of next update.
+    /// Time of previous update.
+    double tprev;
+    /// Time of next update.
     double tnext;
-    // Half a Moore neighborhood.
+    /// Which particles were previously in each cell.
     struct {
-      // Number of neighbors.
+      /// Number of particles.
       size_t n;
-      // Indices.
+      /// Particle indices.
+      size_t i[BMM_NGROUP];
+    } part[BMM_POW(BMM_NCELL, BMM_NDIM)];
+    /// Which neighbors each particle previously had.
+    /// This only covers half of the Moore neighborhood.
+    struct {
+      /// Number of neighbors.
+      size_t n;
+      /// Neighbor indices.
       size_t i[BMM_NLINK];
-    } i[BMM_NPART];
-  } neigh;
+    } neigh[BMM_NPART];
+  } cache;
 };
 
 // TODO This might have to be deprecated to keep dependencies in check.

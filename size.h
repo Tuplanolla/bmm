@@ -55,7 +55,7 @@ inline size_t bmm_size_max(size_t const n, size_t const k) {
   return n > k ? n : k;
 }
 
-/// The call `bmm_size_pow(n, k)` returns `n` raised to the power of `k`.
+/// The call `bmm_size_pow(n, k)` returns `n` raised to the power `k`.
 /// This is analogous to `pow`.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_pow(size_t const n, size_t const k) {

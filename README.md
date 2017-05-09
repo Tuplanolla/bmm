@@ -515,6 +515,40 @@ In terms of total step number $n = t_1 / dt$
 the latter would be $t = (i / n) t_1$
 (give or take some $\\pm 1$).
 
+#### Notational Conventions
+
+Heed these.
+
+| Symbol        | Context  | Meaning
+|:--------------|:---------|:--------
+| $a$           | Physics  | Acceleration
+| $e$           | Physics  | Energy
+| $f$           | Physics  | Force
+| $i$, $j$, $k$ | Software | Storage Index
+| $j$           | Physics  | Jerk
+| $j$           | Physics  | Moment of Inertia
+| $k$           | Software | Storage Capacity
+| $l$           | Software | Unique Label
+| $m$           | Physics  | Mass
+| $n$           | Software | Number
+| $r$           | Physics  | Radius
+| $s$           | Physics  | Jounce
+| $t$           | Physics  | Time
+| $v$           | Physics  | Velocity
+| $x$           | Physics  | Position
+| $y$           | Physics  | Young Modulus
+
+| Symbol      | Meaning
+|:------------|:--------
+| $\\alpha$   | Angular Acceleration
+| $\\epsilon$ | Coefficient of Restitution
+| $\\phi$     | Angle
+| $\\mu$      | Coefficient of Friction
+| $\\nu$      | Poisson Ratio
+| $\\xi$      | Compression
+| $\\tau$     | Torque
+| $\\omega$   | Angular Velocity
+
 #### Partitioning Moore Neighborhoods
 
 Insert a hyperplane into the lattice in such a way that it
@@ -528,42 +562,17 @@ This construction should be unique.
 It seems that approximately right results can be obtained with
 
 * $(1)$ for $1$ dimensions,
-* $(1, 2)$ for $2$ dimensions and
-* $(1, 2, 4)$ for $3$ dimensions.
+* $(1, 2)$ for $2$ dimensions,
+* $(1, 2, 4)$ for $3$ dimensions and
+* maybe $(1, 2, 4, 8)$ for $4$ dimensions.
 
-#### Notational Conventions
+The minimum distance between each lattice point (displacement $a$) and
+the plane (with normal vector $n$) would then be
 
-Heed these.
-
-| Symbol      | Meaning
-|:------------|:--------
-| $a$         | Acceleration
-| $f$         | Force
-| $i$         | Storage Index
-| $j$         | Jerk
-| $j$         | Moment of Inertia
-| $j$         | Storage Index
-| $k$         | Storage Capacity
-| $k$         | Storage Index
-| $l$         | Unique Label
-| $m$         | Mass
-| $n$         | Number
-| $r$         | Radius
-| $s$         | Jounce
-| $v$         | Velocity
-| $x$         | Position
-| $y$         | Young Modulus
-
-| Symbol      | Meaning
-|:------------|:--------
-| $\\alpha$   | Angular Acceleration
-| $\\epsilon$ | Coefficient of Restitution
-| $\\theta$   | Angle
-| $\\mu$      | Coefficient of Friction
-| $\\nu$      | Poisson Ratio
-| $\\xi$      | Compression
-| $\\tau$     | Torque
-| $\\omega$   | Angular Velocity
+$$
+|r| = \\frac{|a \\cdot n|}{|n|}
+= \\frac 1{\\sqrt{\\sum_{k = 1}^d 2^{2 (k - 1)}}}.
+$$
 
 #### Spherical Coordinates
 

@@ -81,7 +81,7 @@ static bool bmm_nc_open(struct bmm_nc* const nc) {
     return false;
   }
 
-  char const progver[] = BMM_VERSION;
+  char const progver[] = BMM_VERSION_STRING;
   nerr = nc_put_att_text(nc->ncid, NC_GLOBAL,
       "programVersion", strlen(progver), progver);
   if (nerr != NC_NOERR) {

@@ -438,6 +438,7 @@ double bmm_dem_maxrad(struct bmm_dem const* const dem) {
 double bmm_dem_drift(struct bmm_dem const* const dem) {
   double t = (double) INFINITY;
 
+  // TODO Make this a configuration constant.
   double const rad = bmm_dem_maxrad(dem);
 
   double v[2];
@@ -782,6 +783,8 @@ bool bmm_dem_step(struct bmm_dem* const dem) {
   if (dem->istep * dem->opts.tstep >= dem->buf.neigh.tnext) {
     bmm_dem_recont(dem);
     bmm_dem_reneigh(dem);
+    // TODO Take `tstep` into account
+    // since the update only happens after the drift time has passed.
     dem->buf.neigh.tnext += bmm_dem_drift(dem);
   }
 
