@@ -33,17 +33,16 @@ struct bmm_dem_time {
 };
 
 // TODO What has to be done.
-// Unstride data structures.
 // Timing should be specified by the total time and time step per stage,
 // so that the number of steps is a derived quantity.
+// Stages should have fixed functionality,
+// but stage-time progression should be scriptable
+// (and why not integrate signals too).
 // Messages need to standardized to make the development of consumers easier.
 // Concretely: combine NPART and PARTS for example.
 // A NetCDF adapter should be written.
 // A Gnuplot adapter should be written.
 // The realtime visualization should be reimplemented.
-// Stages should have fixed functionality,
-// but stage-time progression should be scriptable
-// (and why not integrate signals too).
 // Estimators should be independent data structures,
 // not necessarily part of the world state.
 // There should be a separate cache for slow-to-derive quantities.
@@ -199,19 +198,26 @@ struct bmm_dem {
   double fcrunch[2];
 
   // TODO Data structure redesign below.
-  /// System.
+  /// Timing.
+  struct {
+    /// Current step.
+    double istep;
+    /// Current time.
+    double t;
+  } time;
+  /// Bounding box.
   struct {
     /// Extents.
-    double rext[BMM_NDIM];
+    double r[BMM_NDIM];
     /// Periodicities.
     bool per[BMM_NDIM];
-  } sys;
+  } box;
   /// Particles.
   struct {
     /// Number of particles.
     size_t n;
     /// Next unused label.
-    size_t lnext;
+    size_t lnew;
     /// Labels.
     size_t l[BMM_NPART];
     /// Roles.
@@ -222,29 +228,22 @@ struct bmm_dem {
     double m[BMM_NPART];
     /// Moments of inertia.
     double j[BMM_NPART];
+    /// Positions.
+    double x[BMM_NPART][BMM_NDIM];
+    /// Velocities.
+    double v[BMM_NPART][BMM_NDIM];
+    /// Accelerations.
+    double a[BMM_NPART][BMM_NDIM];
+    /// Angles.
+    double phi[BMM_NPART];
+    /// Angular velocities.
+    double omega[BMM_NPART];
+    /// Angular accelerations.
+    double alpha[BMM_NPART];
     /// Forces.
     double f[BMM_NPART][BMM_NDIM];
     /// Torques.
     double tau[BMM_NPART];
-    /// Dynamics.
-    struct {
-      /// Positions.
-      double x[BMM_NPART][BMM_NDIM];
-      /// Velocities.
-      double v[BMM_NPART][BMM_NDIM];
-      /// Accelerations.
-      double a[BMM_NPART][BMM_NDIM];
-      /// Jerks.
-      double j[BMM_NPART][BMM_NDIM];
-      /// Jounces.
-      double s[BMM_NPART][BMM_NDIM];
-      /// Angles.
-      double phi[BMM_NPART];
-      /// Angular velocities.
-      double omega[BMM_NPART];
-      /// Angular accelerations.
-      double alpha[BMM_NPART];
-    } dyn;
   } part;
   /// Links.
   struct {
@@ -263,7 +262,7 @@ struct bmm_dem {
     double tprev;
     /// Time of next update.
     double tnext;
-    /// Which particles were previously in each cell.
+    /// Which particles were previously in each neighbor cell.
     struct {
       /// Number of particles.
       size_t n;
@@ -271,12 +270,12 @@ struct bmm_dem {
       size_t i[BMM_NGROUP];
     } part[BMM_POW(BMM_NCELL, BMM_NDIM)];
     /// Which neighbors each particle previously had.
-    /// This only covers half of the Moore neighborhood.
+    /// This only covers half of the Moore neighborhood of a particle.
     struct {
       /// Number of neighbors.
       size_t n;
       /// Neighbor indices.
-      size_t i[BMM_NLINK];
+      size_t i[BMM_NGROUP * (BMM_POW(3, BMM_NDIM) - 1)];
     } neigh[BMM_NPART];
   } cache;
 };

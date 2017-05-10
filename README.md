@@ -515,6 +515,10 @@ In terms of total step number $n = t_1 / dt$
 the latter would be $t = (i / n) t_1$
 (give or take some $\\pm 1$).
 
+Haskell notation follows.
+It is unreasonable to expect `sum (replicate n dx) == n * dx`,
+but `sum (replicate n dx) <= n * dx + epsilon` should hold for small `epsilon`.
+
 #### Notational Conventions
 
 Heed these.
@@ -574,6 +578,15 @@ $$
 = \\frac 1{\\sqrt{\\sum_{k = 1}^d 2^{2 (k - 1)}}}.
 $$
 
+The plane for the normal $n$ has the equation $\\sum_{k = 1}^d n_k x_k = 0$.
+Given the lattice indices $i$ from $1$ to $3^d$ and
+excluding the origin $(1 + 3^d) / 2$,
+the lattice points $x$ follow the lexicographic ordering relation $L$
+as $x_j = L_d(i_j) - 2$.
+Now the upper partition satisfies $\\sum_{k = 1}^d n_k x_k > 0$ or,
+with indices, $\\sum_{k = 1}^d n_k (L_d(i_j)_k - 2) > 0$ or,
+considering the rest of the imposed constraints, $i_j > (1 + 3^d) / 2$.
+
 #### Spherical Coordinates
 
 Here is a sane formulation of the spherical coordinate system pictured below.
@@ -583,7 +596,7 @@ Here is a sane formulation of the spherical coordinate system pictured below.
 
     d - 1       ^
     -----       |     +
-     | |  x     |    /|
+     | |  x     |  r /|
      | |   i   ,|.  / |
     i = 1   ,-' | `/. |  t
          ,-'    | /\ `|.  d

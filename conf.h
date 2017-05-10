@@ -2,8 +2,6 @@
 /// Configuration constants.
 #define BMM_CONF_H
 
-#include <stddef.h>
-
 #include "cpp.h"
 
 /// Full name of the project.
@@ -34,18 +32,18 @@
 
 /// Maximum number of particles.
 #define BMM_NPART 1024
-// #define BMM_NPART 16384
 
 /// Maximum number of links per particle.
 #define BMM_NLINK 8
 
 /// Maximum number of neighbor cells per dimension.
-#define BMM_NCELL 128
+#define BMM_NCELL 32
 
 /// Maximum number of particles per neighbor cell.
 #define BMM_NGROUP 64
 
 /// Maximum number of message numbers.
+/// This is not adjustable without other changes.
 #define BMM_NMSG 256
 
 /// Maximum number of simulation steps.
