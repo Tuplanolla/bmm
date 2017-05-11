@@ -25,25 +25,7 @@
 #endif
 #endif
 
-extern inline void bmm_dem_clearl(struct bmm_dem_listl* const list);
-
-extern inline bool bmm_dem_pushl(struct bmm_dem_listl* const list, size_t const x);
-
-extern inline size_t bmm_dem_sizel(struct bmm_dem_listl const* const list);
-
-extern inline size_t bmm_dem_getl(struct bmm_dem_listl const* const list, size_t const i);
-
 // TODO Wow, disgusting.
-
-extern inline void bmm_dem_cleary(struct bmm_dem_listy* const list);
-
-extern inline bool bmm_dem_pushy(struct bmm_dem_listy* const list, size_t const x);
-
-extern inline size_t bmm_dem_sizey(struct bmm_dem_listy const* const list);
-
-extern inline size_t bmm_dem_gety(struct bmm_dem_listy const* const list, size_t const i);
-
-// TODO Wow, even more disgusting.
 
 extern inline void bmm_dem_clear(struct bmm_dem_list* const list);
 
@@ -52,8 +34,6 @@ extern inline bool bmm_dem_push(struct bmm_dem_list* const list, size_t const x)
 extern inline size_t bmm_dem_size(struct bmm_dem_list const* const list);
 
 extern inline size_t bmm_dem_get(struct bmm_dem_list const* const list, size_t const i);
-
-// TODO Wow, what is wrong with you?
 
 // TODO Make periodicity mutable by axis.
 void bmm_dem_forces(struct bmm_dem* const dem) {

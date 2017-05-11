@@ -12,84 +12,6 @@
 #include "io.h"
 #include "msg.h"
 
-struct bmm_dem_est {
-  double ekinetic;
-  double pvector;
-  double pscalar;
-};
-
-struct bmm_dem_time {
-  double tinit;
-  double tsim;
-};
-
-// A terrible name for constant particle data.
-struct bmm_dem_partc {
-  double rrad;
-  double mass;
-  double moi;
-  // Fixed or moving.
-  bool free;
-  // Driven or not.
-  bool nondr;
-};
-
-struct bmm_dem_part {
-  struct {
-    double r[2];
-    double v[2];
-    double f[2];
-  } lin;
-  struct {
-    double alpha;
-    double omega;
-    double tau;
-  } ang;
-};
-
-struct bmm_dem_list {
-  // Size prefix.
-  size_t n;
-  size_t i[BMM_NGROUP];
-};
-
-struct bmm_dem_listy {
-  size_t n;
-  struct {
-    // Neighbor index.
-    size_t i;
-    // Compression history.
-    double x[2];
-  } thingy[BMM_NGROUP];
-};
-
-struct bmm_dem_neigh {
-  // Next scheduled update.
-  double tnext;
-  // Neighbors for each particle
-  // plus room for carrying garbage.
-  struct bmm_dem_listy neighs[BMM_NPART];
-};
-
-struct bmm_dem_listl {
-  size_t n;
-  struct {
-    // Link *to*.
-    size_t i;
-    // Spring rest position.
-    double x0;
-  } linkl[BMM_NGROUP];
-};
-
-struct bmm_dem_buf {
-  size_t npart;
-  struct bmm_dem_neigh neigh;
-  struct bmm_dem_partc partcs[BMM_NPART];
-  struct bmm_dem_part parts[BMM_NPART];
-  // These are directed links *to* some particle.
-  struct bmm_dem_listl links[BMM_NPART];
-};
-
 enum bmm_dem_init {
   BMM_DEM_INIT_TRIAL,
   BMM_DEM_INIT_CUBIC,
@@ -127,50 +49,6 @@ enum bmm_dem_mode {
 };
 
 struct bmm_dem_opts {
-  // Cell extents by dimension, expressed in divs.
-  size_t ncell[2];
-  size_t nbin;
-  // __attribute__ ((__deprecated__))
-  size_t nstep;
-  // Maximum distance for qualifying as a neighbor.
-  double rmax;
-  // Simulated time step.
-  // __attribute__ ((__deprecated__))
-  double tstep;
-  // __attribute__ ((__deprecated__))
-  double tstepcomm;
-  double tcomm;
-  // Link length creation multiplier.
-  double linkslurp;
-  // Link length shrink multiplier.
-  double linkoff;
-  // Link strength (according to Hooke's law).
-  double klink;
-  // Drift leeway velocity.
-  double vleeway;
-  // Cohesive force multiplier during sedimentation.
-  double fcohes;
-  // Force increment during crunching.
-  double fadjust;
-  // Velocity during crunching.
-  double vcrunch[2];
-  // Acceleration for sedimentation (gravity).
-  double gravy[2];
-  // Young's modulus $Y$.
-  double ymodul;
-  // Elasticity $\\gamma$.
-  double yelast;
-  // Nonphysical ambient damping factor.
-  double damp;
-  // Particle size mean.
-  double rmean;
-  // Particle size standard deviation.
-  double rsd;
-  // Pull-apart distance (fraction).
-  double yoink;
-  // Number of particles that can be "neglected".
-  size_t lucky;
-
   /// Initialization scheme.
   enum bmm_dem_init init;
   /// Integration scheme.
@@ -186,26 +64,34 @@ struct bmm_dem_opts {
     /// Periodicities.
     bool per[BMM_NDIM];
   } box;
+  /// Ambient properties.
+  struct {
+    /// Fictitious dynamic viscosity $\\eta$
+    /// used for calculating the drag force $F = -b v$,
+    /// where the drag coefficient $b = 3 \\twopi \\eta r$ and
+    /// the Stokes radius $r$ is equal to particle radius.
+    double eta;
+  } ambient;
+  /// Particles.
+  struct {
+    /// Young's modulus $Y$.
+    double y;
+    /// Dashpot elasticity $\\gamma$.
+    double gamma;
+    /// Particle sizes expressed as the support of the uniform distribution.
+    double rnew[2];
+  } part;
   /// Links between particles.
   struct {
+    /// Link length creation factor.
+    double ccrlink;
+    /// Link length shrink factor.
+    double cshlink;
     /// Tensile spring constant.
     double ktens;
     /// Shear spring constant.
     double kshear;
   } link;
-  /// Communications.
-  struct {
-    /// Time step.
-    double dt;
-    /// Send this.
-    bool flip;
-    /// Send that.
-    bool flop;
-    /// Send these.
-    bool flap;
-    /// Send those.
-    bool flup;
-  } comm;
   /// Script to follow.
   struct {
     /// Number of stages.
@@ -220,11 +106,39 @@ struct bmm_dem_opts {
       enum bmm_dem_mode mode;
       /// Parameters.
       union {
-        /// Driving velocity target for `BMM_DEM_MODE_CRUNCH`.
-        double v[BMM_NDIM];
+        /// For `BMM_DEM_MODE_CRUNCH`.
+        struct {
+          /// Driving velocity target.
+          double v[BMM_NDIM];
+          /// Force increment.
+          double fadjust;
+        } crunch;
+        /// For `BMM_DEM_MODE_BREAK`.
+        struct {
+          /// Pull-apart vector.
+          double xgap[BMM_NDIM];
+        } smash;
+        /// For `BMM_DEM_MODE_SEDIMENT`.
+        struct {
+          /// Cohesive force.
+          double fcohes;
+        } sediment;
       } params;
     } stage[BMM_NSTAGE];
   } script;
+  /// Communications.
+  struct {
+    /// Time step.
+    double dt;
+    /// Send this.
+    bool flip;
+    /// Send that.
+    bool flop;
+    /// Send these.
+    bool flap;
+    /// Send those.
+    bool flup;
+  } comm;
   /// Neighbor cache tuning.
   struct {
     /// Number of cells for each dimension.
@@ -236,40 +150,17 @@ struct bmm_dem_opts {
 
 struct bmm_dem {
   struct bmm_dem_opts opts;
+  /// Random number generator state.
   gsl_rng* rng;
-
-  enum bmm_dem_mode mode;
-  size_t istep;
-  double rext[2];
-  // TODO Initial value system goes here.
-  // TODO Force scheme goes here.
-  void (* forcesch)(struct bmm_dem*);
-  double (* fnormal)(struct bmm_dem const*, double const*, double const*);
-  double (* ftang)(struct bmm_dem const*, double const*, double const*);
-  // TODO Integration scheme goes here.
-  void (* intsch)(struct bmm_dem*);
-  // TODO Measurement system goes here.
-  struct bmm_dem_est est;
-  // TODO Nearest neighbor system goes here.
-  struct bmm_dem_buf buf;
-  // Large object memory pool.
-  union {
-    // Which particles each cell owns, roughly.
-    struct bmm_dem_list conts[BMM_POW(BMM_NCELL, 2)];
-  } pool;
-  // Driving force.
-  double fcrunch[2];
-
-  // TODO Data structure redesign below.
-  /// Communications.
+  /// Particle pair interactions.
   struct {
-    /// Current message.
-    size_t i;
-    /// Previous message time.
-    double tprev;
-    /// Next message time.
-    double tnext;
-  } comm;
+    /// Compressions.
+    double xi[BMM_NPART][BMM_NPART];
+    /// Compression velocities.
+    double xip[BMM_NPART][BMM_NPART];
+    /// Compression accelerations.
+    double xipp[BMM_NPART][BMM_NPART];
+  } pair;
   /// Particles.
   struct {
     /// Number of particles.
@@ -307,15 +198,6 @@ struct bmm_dem {
     /// Torques.
     double tau[BMM_NPART];
   } part;
-  /// Particle pair interactions.
-  struct {
-    /// Compressions.
-    double xi[BMM_NPART][BMM_NPART];
-    /// Compression velocities.
-    double xip[BMM_NPART][BMM_NPART];
-    /// Compression accelerations.
-    double xipp[BMM_NPART][BMM_NPART];
-  } pair;
   /// Links between particles.
   struct {
     /// Number of links.
@@ -345,6 +227,15 @@ struct bmm_dem {
       double f[BMM_NDIM];
     } state;
   } script;
+  /// Communications.
+  struct {
+    /// Current message.
+    size_t i;
+    /// Previous message time.
+    double tprev;
+    /// Next message time.
+    double tnext;
+  } comm;
   /// Neighbor cache.
   /// This is only used for performance optimization.
   struct {
@@ -370,13 +261,11 @@ struct bmm_dem {
   } cache;
 };
 
-// TODO This might have to be deprecated to keep dependencies in check.
-size_t bmm_dem_sniff_size(struct bmm_dem const*, enum bmm_msg_num);
-
 // TODO Combine list types.
 
 // Index lists.
 
+/*
 inline void bmm_dem_clear(struct bmm_dem_list* const list) {
   list->n = 0;
 }
@@ -399,61 +288,7 @@ inline size_t bmm_dem_get(struct bmm_dem_list const* const list,
     size_t const i) {
   return list->i[i];
 }
-
-// TODO Some other kinds of lists.
-
-inline void bmm_dem_cleary(struct bmm_dem_listy* const list) {
-  list->n = 0;
-}
-
-inline bool bmm_dem_pushy(struct bmm_dem_listy* const list,
-    size_t const x) {
-  if (list->n >= sizeof list->thingy / sizeof *list->thingy)
-    return false;
-
-  list->thingy[list->n].i = x;
-  list->thingy[list->n].x[0] = 0.0;
-  list->thingy[list->n].x[1] = 0.0;
-  ++list->n;
-
-  return true;
-}
-
-inline size_t bmm_dem_sizey(struct bmm_dem_listy const* const list) {
-  return list->n;
-}
-
-inline size_t bmm_dem_gety(struct bmm_dem_listy const* const list,
-    size_t const i) {
-  return list->thingy[i].i;
-}
-
-// TODO Yet another kinds of lists.
-
-inline void bmm_dem_clearl(struct bmm_dem_listl* const list) {
-  list->n = 0;
-}
-
-inline bool bmm_dem_pushl(struct bmm_dem_listl* const list,
-    size_t const x) {
-  if (list->n >= sizeof list->linkl / sizeof *list->linkl)
-    return false;
-
-  list->linkl[list->n].i = x;
-  list->linkl[list->n].x0 = 0.0;
-  ++list->n;
-
-  return true;
-}
-
-inline size_t bmm_dem_sizel(struct bmm_dem_listl const* const list) {
-  return list->n;
-}
-
-inline size_t bmm_dem_getl(struct bmm_dem_listl const* const list,
-    size_t const i) {
-  return list->linkl[i].i;
-}
+*/
 
 __attribute__ ((__nonnull__))
 void bmm_dem_opts_def(struct bmm_dem_opts*);
