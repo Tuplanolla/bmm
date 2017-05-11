@@ -62,14 +62,14 @@ void bmm_dem_forces(struct bmm_dem* const dem) {
       dem->buf.parts[ipart].lin.f[idim] = 0.0;
 
   // Cohesive (fictitious) forces.
-  if (dem->mode == BMM_DEM_SEDIMENT || dem->mode == BMM_DEM_LINK)
+  if (dem->mode == BMM_DEM_MODE_SEDIMENT || dem->mode == BMM_DEM_MODE_LINK)
     for (size_t ipart = 0; ipart < dem->buf.npart; ++ipart)
       dem->buf.parts[ipart].lin.f[1] +=
         dem->opts.fcohes * (dem->rext[1] / 2.0 - dem->buf.parts[ipart].lin.r[1]);
 
   // Gravitational forces.
 #ifdef GRAVY
-  if (dem->mode == BMM_DEM_SEDIMENT)
+  if (dem->mode == BMM_DEM_MODE_SEDIMENT)
     for (size_t ipart = 0; ipart < dem->buf.npart; ++ipart)
       for (size_t idim = 0; idim < 2; ++idim)
         dem->buf.parts[ipart].lin.f[idim] +=
@@ -166,7 +166,7 @@ void bmm_dem_forces(struct bmm_dem* const dem) {
   // TODO Calculate force feedback from the residuals.
 
   // Accelerating (currently fictitious) forces.
-  if (dem->mode == BMM_DEM_ACCEL) {
+  if (dem->mode == BMM_DEM_MODE_ACCEL) {
     // TODO Make an estimator for this driven total velocity?
 
     size_t ntotal = 0;
@@ -673,7 +673,7 @@ void bmm_dem_def(struct bmm_dem* const dem,
   (void) memset(dem, 0, sizeof *dem);
 
   dem->opts = *opts;
-  dem->mode = BMM_DEM_BEGIN;
+  dem->mode = BMM_DEM_MODE_BEGIN;
   dem->istep = 0;
 
   for (size_t idim = 0; idim < 2; ++idim)
@@ -746,35 +746,35 @@ bool bmm_dem_puts(struct bmm_dem const* const dem,
 
 bool bmm_dem_step(struct bmm_dem* const dem) {
   switch (dem->mode) {
-    case BMM_DEM_BEGIN:
+    case BMM_DEM_MODE_BEGIN:
       // bmm_bottom(dem);
 
-      dem->mode = BMM_DEM_SEDIMENT;
+      dem->mode = BMM_DEM_MODE_SEDIMENT;
 
     // TODO No! Bad touch!
-    case BMM_DEM_SEDIMENT:
+    case BMM_DEM_MODE_SEDIMENT:
       if (fmod(dem->istep * dem->opts.tstep, 50.0) < dem->opts.tstep / 2.0)
         if (!bmm_disperse(dem))
-          dem->mode = BMM_DEM_LINK;
+          dem->mode = BMM_DEM_MODE_LINK;
 
       break;
-    case BMM_DEM_LINK:
+    case BMM_DEM_MODE_LINK:
       if (fmod(dem->istep * dem->opts.tstep, 30.0) < dem->opts.tstep / 2.0)
         if (bmm_dem_link(dem))
-          dem->mode = BMM_DEM_BREAK;
+          dem->mode = BMM_DEM_MODE_BREAK;
 
       break;
-    case BMM_DEM_BREAK:
+    case BMM_DEM_MODE_BREAK:
       if (fmod(dem->istep * dem->opts.tstep, 70.0) < dem->opts.tstep / 2.0)
         if (bmm_dem_break(dem)) {
           (void) bmm_dem_fix(dem);
           (void) bmm_dem_fault(dem);
 
-          dem->mode = BMM_DEM_ACCEL;
+          dem->mode = BMM_DEM_MODE_ACCEL;
         }
 
       break;
-    case BMM_DEM_ACCEL:
+    case BMM_DEM_MODE_ACCEL:
       (void) bmm_dem_relink(dem);
 
       break;
