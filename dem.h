@@ -245,6 +245,8 @@ struct bmm_dem {
     double tprev;
     /// Time of next update.
     double tnext;
+    /// Which neighbor cell each particle was in previously.
+    size_t cell[BMM_NPART][BMM_NDIM];
     /// Which particles were previously in each neighbor cell.
     struct {
       /// Number of particles.
@@ -258,7 +260,7 @@ struct bmm_dem {
       /// Number of neighbors.
       size_t n;
       /// Neighbor indices.
-      size_t i[BMM_NGROUP * (BMM_POW(3, BMM_NDIM) - 1)];
+      size_t i[BMM_NGROUP * ((BMM_POW(3, BMM_NDIM) - 1) / 2)];
     } neigh[BMM_NPART];
   } cache;
 };
@@ -299,9 +301,9 @@ __attribute__ ((__nonnull__))
 void bmm_dem_ijkcell(size_t*, struct bmm_dem const*, size_t);
 
 /// The call `bmm_dem_addpart(dem, r, m)`
-/// places a new particle of radius `r` and mass `m`
-/// at rest in the origin and
-/// returns the index of the added particle.
+/// places a new particle with radius `r` and mass `m`
+/// in the origin at rest and
+/// returns the index of the new particle.
 /// Otherwise `BMM_NPART` is returned.
 __attribute__ ((__nonnull__))
 size_t bmm_dem_addpart(struct bmm_dem*, double, double);
@@ -310,6 +312,7 @@ size_t bmm_dem_addpart(struct bmm_dem*, double, double);
 /// removes the particle with the index `ipart`.
 /// Note that the index may be immediately assigned to another particle,
 /// so all index caches should be purged.
+/// This operation may be slow due to index reassignment.
 __attribute__ ((__nonnull__))
 bool bmm_dem_rmpart(struct bmm_dem*, size_t);
 

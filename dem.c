@@ -25,6 +25,24 @@
 #endif
 #endif
 
+// The partition looks like this:
+//
+//       ^
+//       | - + +
+//     y | - + +
+//       | - - +
+//       +------->
+//           x
+//
+// The following monad comprehension generator was used:
+//
+//     [(i, j) | i <- [-1 .. 1], j <- [-1 .. 1]]
+int const bmm_moore[][2] = {
+  {-1, -1}, {-1, 0}, {-1, 1},
+  {0, -1}, {0, 0}, {0, 1},
+  {1, -1}, {1, 0}, {1, 1}
+};
+
 // TODO Wow, disgusting.
 
 /*
@@ -63,6 +81,31 @@ void bmm_dem_ijkcell(size_t* const pijkcell,
   }
 }
 
+// TODO Test iso and specialize.
+
+void bmm_dem_i2ijkcell(size_t* const pijkcell,
+    struct bmm_dem const* const dem, size_t icell) {
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
+    bmm_size_div_t const qr = bmm_size_div(icell,
+        dem->opts.cache.ncell[BMM_NDIM - 1 - idim]);
+
+    icell = qr.quot;
+    pijkcell[idim] = qr.rem;
+  }
+}
+
+size_t bmm_dem_ijk2icell(struct bmm_dem* const dem,
+    size_t const* const ijkcell) {
+  size_t icell = 0;
+
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
+    icell *= dem->opts.cache.ncell[BMM_NDIM - 1 - idim];
+    icell += ijkcell[idim];
+  }
+
+  return icell;
+}
+
 size_t bmm_dem_addpart(struct bmm_dem* const dem,
     double const r, double const m) {
   size_t const ipart = dem->part.n;
@@ -91,9 +134,7 @@ size_t bmm_dem_addpart(struct bmm_dem* const dem,
     dem->part.a[ipart][idim] = 0.0;
 
   dem->part.phi[ipart][idim] = 0.0;
-
   dem->part.omega[ipart][idim] = 0.0;
-
   dem->part.alpha[ipart][idim] = 0.0;
 
   for (size_t idim = 0; idim < BMM_NDIM; ++idim)
@@ -114,13 +155,147 @@ size_t bmm_dem_addpart(struct bmm_dem* const dem,
   // However you also go through every particle in the other Moore half,
   // checking the neighborhood only for this particle.
 
+  // TODO A Moore neighborhood geometry translation unit.
+  // "In this case..."
+  for (size_t imoore = (BMM_POW(3, BMM_NDIM) - 1) / 2;
+      imoore < BMM_POW(3, BMM_NDIM);
+      ++imoore) {
+    int const* const off = bmm_moore[imoore];
+
+    size_t const icell = bmm_offset(dem, ipart, off);
+
+    foreach particle in icell
+      if (bmm_geom2d_pvdist2(
+            dem->buf.parts[ipart].lin.r,
+            dem->buf.parts[jpart].lin.r,
+            dem->rext, dem->opts.box.per) < bmm_fp_sq(dem->opts.rmax))
+        (void) bmm_dem_pushy(&dem->buf.neigh.neighs[ipart], jpart);
+  }
+
+  // "However..."
+  for (size_t imoore = 0;
+      imoore < (BMM_POW(3, BMM_NDIM) - 1) / 2;
+      ++imoore) {
+  }
+
   return ipart;
 }
 
-bool bmm_dem_rmpart(struct bmm_dem* const dem, size_t const i) {
-  // TODO Go through all index structures.
+bool bmm_dem_rmpart(struct bmm_dem* const dem, size_t const ipart) {
+  dynamic_assert(ipart < dem->part.n, "Index out of bounds");
 
-  // TODO Calculate local neighbors.
+  size_t const jpart = dem->part.n - 1;
+
+  {
+    dem->part.l[ipart] = dem->part.l[jpart];
+
+    dem->part.role[ipart] = dem->part.role[jpart];
+
+    dem->part.r[ipart] = dem->part.r[jpart];
+    dem->part.m[ipart] = dem->part.m[jpart];
+    dem->part.j[ipart] = dem->part.j[jpart];
+
+    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+      dem->part.x[ipart][idim] = dem->part.x[jpart][idim];
+
+    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+      dem->part.v[ipart][idim] = dem->part.v[jpart][idim];
+
+    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+      dem->part.a[ipart][idim] = dem->part.a[jpart][idim];
+
+    dem->part.phi[ipart] = dem->part.phi[jpart];
+    dem->part.omega[ipart] = dem->part.omega[jpart];
+    dem->part.alpha[ipart] = dem->part.alpha[jpart];
+
+    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+      dem->part.f[ipart][idim] = dem->part.f[jpart][idim];
+
+    dem->part.tau[ipart] = dem->part.tau[jpart];
+  }
+
+  {
+    dem->link.part[ipart].n = dem->link.part[jpart].n;
+
+    for (size_t ilink = 0; ilink < dem->link.part[jpart].n; ++ilink)
+      dem->link.part[ipart].i[ilink] = dem->link.part[jpart].i[ilink];
+
+    for (size_t ilink = 0; ilink < dem->link.part[jpart].n; ++ilink)
+      dem->link.part[ipart].rrest[ilink] = dem->link.part[jpart].rrest[ilink];
+
+    for (size_t ilink = 0; ilink < dem->link.part[jpart].n; ++ilink)
+      for (size_t iend = 0; iend < 2; ++iend)
+        dem->link.part[ipart].phirest[ilink][iend] =
+          dem->link.part[jpart].phirest[ilink][iend];
+
+    for (size_t ilink = 0; ilink < dem->link.part[jpart].n; ++ilink)
+      dem->link.part[ipart].ftens[ilink] = dem->link.part[jpart].ftens[ilink];
+
+    for (size_t ilink = 0; ilink < dem->link.part[jpart].n; ++ilink)
+      dem->link.part[ipart].fshear[ilink] = dem->link.part[jpart].fshear[ilink];
+  }
+
+  {
+    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+      dem->cache.cell[ipart][idim] = dem->cache.cell[jpart][idim];
+
+    // The cell the particle being removed is registered to.
+    size_t const icell = bmm_dem_ijk2icell(dem, dem->cache.cell[jpart]);
+
+    for (size_t kpart = 0; kpart < dem->cache.part[icell].n; ++kpart)
+      if (dem->cache.part[icell].i[kpart] == ipart) {
+        size_t const lpart = dem->cache.part[icell].n - 1;
+
+        dem->cache.part[icell].i[kpart] = dem->cache.part[icell].i[lpart];
+
+        --dem->cache.part[icell].n;
+
+        // TODO What if not found?
+        break;
+      }
+
+    dem->cache.neigh[ipart].n = dem->cache.neigh[jpart].n;
+
+    for (size_t kpart = 0; kpart < dem->cache.neigh[jpart].n; ++kpart)
+      dem->cache.neigh[ipart].i[kpart] = dem->cache.neigh[jpart].i[kpart];
+
+    dem->cache.neigh[ipart].n = dem->cache.neigh[jpart].n;
+
+    for (size_t kpart = 0; kpart < dem->cache.neigh[jpart].n; ++kpart)
+      dem->cache.neigh[ipart].i[kpart] = dem->cache.neigh[jpart].i[kpart];
+  }
+
+  --dem->part.n;
+
+  // TODO Factor index structure adjustment.
+  // This is the slow part.
+  {
+    for (size_t kpart = 0; kpart < dem->part.n; ++kpart)
+      for (size_t lpart = 0; lpart < dem->link.part[kpart].n; ++lpart)
+        if (dem->link.part[kpart].i[lpart] == jpart) {
+          dem->link.part[kpart].i[lpart] = ipart;
+
+          break;
+        }
+
+    size_t const ncell = bmm_size_prod(dem->opts.cache.ncell, BMM_NDIM);
+
+    for (size_t icell = 0; icell < ncell; ++icell)
+      for (size_t kpart = 0; kpart < dem->cache.part[icell].n; ++kpart)
+        if (dem->cache.part[icell].i[kpart] == jpart) {
+          dem->cache.part[icell].i[kpart] = ipart;
+
+          break;
+        }
+
+    for (size_t kpart = 0; kpart < dem->part.n; ++kpart)
+      for (size_t lpart = 0; lpart < dem->cache.neigh[kpart].n; ++lpart)
+        if (dem->cache.neigh[kpart].i[lpart] == jpart) {
+          dem->cache.neigh[kpart].i[lpart] = ipart;
+
+          break;
+        }
+  }
 
   return true;
 }
@@ -189,7 +364,7 @@ void bmm_dem_forces(struct bmm_dem* const dem) {
         bmm_geom2d_normal(n, dr);
 
         double t[2];
-        bmm_geom2d_rperpr(t, n);
+        bmm_geom2d_rperp(t, n);
 
         double df[2];
         bmm_geom2d_scale(df, n, -f);
@@ -224,7 +399,7 @@ void bmm_dem_forces(struct bmm_dem* const dem) {
       bmm_geom2d_normal(n, dr);
 
       double t[2];
-      bmm_geom2d_rperpr(t, n);
+      bmm_geom2d_rperp(t, n);
 
       double df[2];
       bmm_geom2d_scale(df, n, -f);
