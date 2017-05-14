@@ -55,7 +55,7 @@ extern inline size_t bmm_dem_size(struct bmm_dem_list const* const list);
 extern inline size_t bmm_dem_get(struct bmm_dem_list const* const list, size_t const i);
 */
 
-void bmm_dem_ijkcell(size_t* const pijkcell,
+void bmm_dem_ijcell(size_t* const pijcell,
     struct bmm_dem const* const dem, size_t const ipart) {
   for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
     size_t const n = dem->opts.cache.ncell[idim];
@@ -68,39 +68,39 @@ void bmm_dem_ijkcell(size_t* const pijkcell,
         0.0, dem->opts.box.r[idim], 0.0, r);
 
     if (x < 0.0)
-      pijkcell[idim] = 0;
+      pijcell[idim] = 0;
     else if (x >= r)
-      pijkcell[idim] = j;
+      pijcell[idim] = j;
     else {
       size_t const k = (size_t) x;
 
       dynamic_assert(k < j, "Incorrect rounding");
 
-      pijkcell[idim] = k;
+      pijcell[idim] = k;
     }
   }
 }
 
 // TODO Test iso and specialize.
 
-void bmm_dem_i2ijkcell(size_t* const pijkcell,
+void bmm_dem_i2ijcell(size_t* const pijcell,
     struct bmm_dem const* const dem, size_t icell) {
   for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
     bmm_size_div_t const qr = bmm_size_div(icell,
         dem->opts.cache.ncell[BMM_NDIM - 1 - idim]);
 
     icell = qr.quot;
-    pijkcell[idim] = qr.rem;
+    pijcell[idim] = qr.rem;
   }
 }
 
-size_t bmm_dem_ijk2icell(struct bmm_dem* const dem,
-    size_t const* const ijkcell) {
+size_t bmm_dem_ij2icell(struct bmm_dem* const dem,
+    size_t const* const ijcell) {
   size_t icell = 0;
 
   for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
     icell *= dem->opts.cache.ncell[BMM_NDIM - 1 - idim];
-    icell += ijkcell[idim];
+    icell += ijcell[idim];
   }
 
   return icell;
@@ -155,20 +155,25 @@ size_t bmm_dem_addpart(struct bmm_dem* const dem,
   // However you also go through every particle in the other Moore half,
   // checking the neighborhood only for this particle.
 
-  // TODO A Moore neighborhood geometry translation unit.
   // "In this case..."
   for (size_t imoore = (BMM_POW(3, BMM_NDIM) - 1) / 2;
       imoore < BMM_POW(3, BMM_NDIM);
       ++imoore) {
-    int const* const off = bmm_moore[imoore];
+  }
 
-    size_t const icell = bmm_offset(dem, ipart, off);
+  // TODO Would like this interface.
+  size_t const n = bmm_moore_nge(BMM_NDIM,
+      dem->opts.box.per, dem->opts.cache.ncell);
+
+  for (size_t imoore = 0; imoore < n; ++imoore) {
+    size_t const icell = bmm_moore_icell(imoore, BMM_NDIM,
+        dem->opts.box.per, dem->opts.cache.ncell);
 
     foreach particle in icell
-      if (bmm_geom2d_pvdist2(
+      if (bmm_geom2d_cpdist2(
             dem->buf.parts[ipart].lin.r,
             dem->buf.parts[jpart].lin.r,
-            dem->rext, dem->opts.box.per) < bmm_fp_sq(dem->opts.rmax))
+            dem->opts.box.per, dem->opts.box.r) < bmm_fp_sq(dem->opts.rmax))
         (void) bmm_dem_pushy(&dem->buf.neigh.neighs[ipart], jpart);
   }
 
@@ -240,7 +245,7 @@ bool bmm_dem_rmpart(struct bmm_dem* const dem, size_t const ipart) {
       dem->cache.cell[ipart][idim] = dem->cache.cell[jpart][idim];
 
     // The cell the particle being removed is registered to.
-    size_t const icell = bmm_dem_ijk2icell(dem, dem->cache.cell[jpart]);
+    size_t const icell = bmm_dem_ij2icell(dem, dem->cache.cell[jpart]);
 
     for (size_t kpart = 0; kpart < dem->cache.part[icell].n; ++kpart)
       if (dem->cache.part[icell].i[kpart] == ipart) {
