@@ -27,6 +27,7 @@
 
 // TODO Wow, disgusting.
 
+/*
 extern inline void bmm_dem_clear(struct bmm_dem_list* const list);
 
 extern inline bool bmm_dem_push(struct bmm_dem_list* const list, size_t const x);
@@ -34,6 +35,95 @@ extern inline bool bmm_dem_push(struct bmm_dem_list* const list, size_t const x)
 extern inline size_t bmm_dem_size(struct bmm_dem_list const* const list);
 
 extern inline size_t bmm_dem_get(struct bmm_dem_list const* const list, size_t const i);
+*/
+
+void bmm_dem_ijkcell(size_t* const pijkcell,
+    struct bmm_dem const* const dem, size_t const ipart) {
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
+    size_t const n = dem->opts.cache.ncell[idim];
+
+    dynamic_assert(n >= 3, "Too few neighbor cells");
+
+    size_t const j = n - 1;
+    double const r = (double) j - 1.0;
+    double const x = bmm_fp_lerp(dem->part.r[ipart][idim],
+        0.0, dem->opts.box.r[idim], 0.0, r);
+
+    if (x < 0.0)
+      pijkcell[idim] = 0;
+    else if (x >= r)
+      pijkcell[idim] = j;
+    else {
+      size_t const k = (size_t) x;
+
+      dynamic_assert(k < j, "Incorrect rounding");
+
+      pijkcell[idim] = k;
+    }
+  }
+}
+
+size_t bmm_dem_addpart(struct bmm_dem* const dem,
+    double const r, double const m) {
+  size_t const ipart = dem->part.n;
+
+  if (ipart >= BMM_NPART)
+    return BMM_NPART;
+
+  ++dem->part.n;
+
+  dem->part.l[ipart] = dem->part.lnew;
+  ++dem->part.lnew;
+
+  dem->part.role[ipart] = BMM_DEM_ROLE_FREE;
+
+  dem->part.r[ipart] = r;
+  dem->part.m[ipart] = m;
+  dem->part.j[ipart] = m * bmm_geom_ballmoi(r, BMM_NDIM);
+
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+    dem->part.x[ipart][idim] = 0.0;
+
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+    dem->part.v[ipart][idim] = 0.0;
+
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+    dem->part.a[ipart][idim] = 0.0;
+
+  dem->part.phi[ipart][idim] = 0.0;
+
+  dem->part.omega[ipart][idim] = 0.0;
+
+  dem->part.alpha[ipart][idim] = 0.0;
+
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+    dem->part.f[ipart][idim] = 0.0;
+
+  dem->part.tau[ipart][idim] = 0.0;
+
+  // TODO Calculate local neighbors, because this is as fast as a bulk update.
+  //
+  // Usually you fill `cache.part` by going over all particles.
+  // Then you go over all particles and,
+  // for each particle in the same cell or one Moore half,
+  // check the neighborhood condition.
+  //
+  // In this case you only go over this particle and,
+  // for each particle in the same cell or one Moore half,
+  // check the neighborhood condition.
+  // However you also go through every particle in the other Moore half,
+  // checking the neighborhood only for this particle.
+
+  return ipart;
+}
+
+bool bmm_dem_rmpart(struct bmm_dem* const dem, size_t const i) {
+  // TODO Go through all index structures.
+
+  // TODO Calculate local neighbors.
+
+  return true;
+}
 
 // TODO Make periodicity mutable by axis.
 void bmm_dem_forces(struct bmm_dem* const dem) {

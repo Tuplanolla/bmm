@@ -56,8 +56,12 @@ inline double bmm_geom_ballsurf(double const r, size_t d) {
 /// $J_d(r) = ((d - 1) / (d + 2)) m r^2$.
 __attribute__ ((__const__, __pure__))
 inline double bmm_geom_ballmoi(double const r, size_t const d) {
-  return d == 0 ?
-    (double) NAN : ((double) (d - 1) / (double) (d + 2)) * bmm_fp_sq(r);
+  if (d == 0)
+    return (double) NAN;
+
+  double const x = (double) d;
+
+  return ((x - 1.0) / (x + 2.0)) * bmm_fp_sq(r);
 }
 
 /// The call `bmm_geom_ballpmoi(r, d)` returns the moment of inertia
@@ -71,7 +75,9 @@ inline double bmm_geom_ballmoi(double const r, size_t const d) {
 /// $J_d(r) = (d / (d + 2)) m r^2$.
 __attribute__ ((__const__, __pure__))
 inline double bmm_geom_ballpmoi(double const r, size_t const d) {
-  return ((double) d / (double) (d + 2)) * bmm_fp_sq(r);
+  double const x = (double) d;
+
+  return (x / (x + 2.0)) * bmm_fp_sq(r);
 }
 
 #endif

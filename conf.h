@@ -33,8 +33,8 @@
 /// Maximum number of particles.
 #define BMM_NPART 1024
 
-/// Maximum number of links.
-#define BMM_NLINK (BMM_NPART * 8)
+/// Maximum number of links per particle.
+#define BMM_NLINK 8
 
 /// Maximum number of neighbor cells per dimension.
 #define BMM_NCELL 32

@@ -141,7 +141,9 @@ struct bmm_dem_opts {
   } comm;
   /// Neighbor cache tuning.
   struct {
-    /// Number of cells for each dimension.
+    /// Number of neighbor cells for each dimension.
+    /// There are always at least $3^d$ neighbor cells,
+    /// because those outside the bounding extend to infinity.
     size_t ncell[BMM_NDIM];
     /// Maximum distance for qualifying as a neighbor.
     double rcutoff;
@@ -152,15 +154,13 @@ struct bmm_dem {
   struct bmm_dem_opts opts;
   /// Random number generator state.
   gsl_rng* rng;
-  /// Particle pair interactions.
+  /// Timekeeping.
   struct {
-    /// Compressions.
-    double xi[BMM_NPART][BMM_NPART];
-    /// Compression velocities.
-    double xip[BMM_NPART][BMM_NPART];
-    /// Compression accelerations.
-    double xipp[BMM_NPART][BMM_NPART];
-  } pair;
+    /// Step.
+    double i;
+    /// Time.
+    double t;
+  } time;
   /// Particles.
   struct {
     /// Number of particles.
@@ -177,10 +177,6 @@ struct bmm_dem {
     double m[BMM_NPART];
     /// Moments of inertia.
     double j[BMM_NPART];
-    /// Step.
-    double i;
-    /// Time.
-    double t;
     /// Positions.
     double x[BMM_NPART][BMM_NDIM];
     /// Velocities.
@@ -200,18 +196,21 @@ struct bmm_dem {
   } part;
   /// Links between particles.
   struct {
-    /// Number of links.
-    size_t n;
-    /// Index pairs, each in ascending order.
-    size_t i[BMM_NLINK][2];
-    /// Rest lengths for springs and beams.
-    double rrest[BMM_NLINK];
-    /// Rest angles for beams.
-    double phirest[BMM_NLINK][2];
-    /// Limit force for tensile stress induced breaking.
-    double ftens[BMM_NLINK];
-    /// Limit force for shear stress induced breaking.
-    double fshear[BMM_NLINK];
+    /// Which other particles each particle is linked to.
+    struct {
+      /// Number of links from this particle.
+      size_t n;
+      /// Target particle indices.
+      size_t i[BMM_NLINK];
+      /// Rest lengths for springs and beams.
+      double rrest[BMM_NLINK];
+      /// Rest angles for beams.
+      double phirest[BMM_NLINK][2];
+      /// Limit force for tensile stress induced breaking.
+      double ftens[BMM_NLINK];
+      /// Limit force for shear stress induced breaking.
+      double fshear[BMM_NLINK];
+    } part[BMM_NPART];
   } link;
   /// Script state.
   struct {
@@ -223,8 +222,11 @@ struct bmm_dem {
     double tnext;
     /// State of the current mode.
     union {
-      /// Total driving force for `BMM_DEM_MODE_CRUNCH`.
-      double f[BMM_NDIM];
+      /// For `BMM_DEM_MODE_CRUNCH`.
+      struct {
+        /// Total driving force.
+        double f[BMM_NDIM];
+      } crunch;
     } state;
   } script;
   /// Communications.
@@ -289,6 +291,27 @@ inline size_t bmm_dem_get(struct bmm_dem_list const* const list,
   return list->i[i];
 }
 */
+
+/// The call `bmm_dem_ijkcell(pijkcell, dem, ipart)`
+/// writes the neighbor cell indices of the particle with the index `ipart`
+/// into the index vector `pijkcell`.
+__attribute__ ((__nonnull__))
+void bmm_dem_ijkcell(size_t*, struct bmm_dem const*, size_t);
+
+/// The call `bmm_dem_addpart(dem, r, m)`
+/// places a new particle of radius `r` and mass `m`
+/// at rest in the origin and
+/// returns the index of the added particle.
+/// Otherwise `BMM_NPART` is returned.
+__attribute__ ((__nonnull__))
+size_t bmm_dem_addpart(struct bmm_dem*, double, double);
+
+/// The call `bmm_dem_rmpart(dem, ipart)`
+/// removes the particle with the index `ipart`.
+/// Note that the index may be immediately assigned to another particle,
+/// so all index caches should be purged.
+__attribute__ ((__nonnull__))
+bool bmm_dem_rmpart(struct bmm_dem*, size_t);
 
 __attribute__ ((__nonnull__))
 void bmm_dem_opts_def(struct bmm_dem_opts*);
