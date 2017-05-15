@@ -389,6 +389,8 @@ Try the gear integrator.
 Consider `int` instead of `size_t` in critical parts
 since the undefinedness of overflows may allow some better optimizations.
 
+Annotate with `__attribute__ ((__flatten__, __hot__))`.
+
 ### Program Options
 
 Since passing a large number of arguments to the programs and

@@ -35,7 +35,7 @@ void bmm_tle_reset(char const*);
 
 /// The call `bmm_tle_prog()`
 /// returns the program name `str` set by calling `bmm_tle_reset(str)`.
-__attribute__ ((__pure__))
+__attribute__ ((__pure__, __returns_nonnull__))
 char const* bmm_tle_prog(void);
 
 /// The call `bmm_tle_tag()`
@@ -59,7 +59,7 @@ enum bmm_tle_num bmm_tle_num_ext(void);
 
 /// The call `bmm_tle_msg()`
 /// returns the thread-local error message.
-__attribute__ ((__pure__))
+__attribute__ ((__pure__, __returns_nonnull__))
 char const* bmm_tle_msg(void);
 
 /// The call `bmm_tle_fput(stream)`
