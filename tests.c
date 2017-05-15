@@ -6,12 +6,41 @@
 #include "cpp.h"
 #include "endy.h"
 #include "ext.h"
+// #include "moore.h"
 #include "msg.h"
 #include "size.h"
 
 CHEAT_TEST(cpp_testbit,
   for (size_t i = 0; i < 8; ++i)
     cheat_assert(BMM_TESTBIT(1 << i, i));
+)
+
+CHEAT_TEST(size_hc,
+  size_t const ndim = 3;
+  size_t const nper = 3;
+
+  size_t ij[3];
+
+  for (size_t i = 0; i < 3 * 3 * 3; ++i) {
+    bmm_size_hc(ij, i, ndim, nper);
+    size_t const j = bmm_size_unhc(ij, ndim, nper);
+
+    cheat_assert_size(j, i);
+  }
+)
+
+CHEAT_TEST(size_hcd,
+  size_t const ndim = 3;
+  size_t const nper[] = {2, 3, 4};
+
+  size_t ij[3];
+
+  for (size_t i = 0; i < 2 * 3 * 4; ++i) {
+    bmm_size_hcd(ij, i, ndim, nper);
+    size_t const j = bmm_size_unhcd(ij, ndim, nper);
+
+    cheat_assert_size(j, i);
+  }
 )
 
 CHEAT_DECLARE(

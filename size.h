@@ -236,7 +236,7 @@ __attribute__ ((__nonnull__))
 inline void bmm_size_hc(size_t* const pij,
     size_t i, size_t const ndim, size_t const nper) {
   for (size_t idim = 0; idim < ndim; ++idim) {
-    size_div_t const qr = bmm_size_div(i, nper);
+    bmm_size_div_t const qr = bmm_size_div(i, nper);
 
     i = qr.quot;
     pij[idim] = qr.rem;
@@ -247,13 +247,13 @@ inline void bmm_size_hc(size_t* const pij,
 /// returns the index of the index vector `ij`
 /// in a hypercube with dimension `ndim` and side length `nper`.
 __attribute__ ((__nonnull__, __pure__))
-size_t bmm_size_unhc(size_t const* const ij,
+inline size_t bmm_size_unhc(size_t const* const ij,
     size_t const ndim, size_t const nper) {
   size_t i = 0;
 
   for (size_t idim = 0; idim < ndim; ++idim) {
     i *= nper;
-    i += ij[i];
+    i += ij[ndim - 1 - idim];
   }
 
   return i;
@@ -266,7 +266,7 @@ __attribute__ ((__nonnull__))
 inline void bmm_size_hcd(size_t* restrict const pij,
     size_t i, size_t const ndim, size_t const* restrict const nper) {
   for (size_t idim = 0; idim < ndim; ++idim) {
-    size_div_t const qr = bmm_size_div(i, nper[ndim - 1 - idim]);
+    bmm_size_div_t const qr = bmm_size_div(i, nper[ndim - 1 - idim]);
 
     i = qr.quot;
     pij[idim] = qr.rem;
@@ -277,13 +277,13 @@ inline void bmm_size_hcd(size_t* restrict const pij,
 /// returns the index of the index vector `ij`
 /// in a hypercuboid with dimension `ndim` and side lengths `nper`.
 __attribute__ ((__nonnull__, __pure__))
-size_t bmm_size_unhcd(size_t const* restrict const ij,
+inline size_t bmm_size_unhcd(size_t const* restrict const ij,
     size_t const ndim, size_t const* restrict const nper) {
   size_t i = 0;
 
   for (size_t idim = 0; idim < ndim; ++idim) {
-    i *= nper[ndim - 1 - idim];
-    i += ij[i];
+    i *= nper[idim];
+    i += ij[ndim - 1 - idim];
   }
 
   return i;

@@ -120,5 +120,5 @@ bmm-sdl: bmm-sdl.o \
 tests: CFLAGS+=$$(pkg-config --cflags cheat gsl)
 tests: LDLIBS+=$$(pkg-config --libs cheat gsl)
 tests: tests.o \
-	dem.o endy.o fp.o geom.o geom2d.o hack.o io.o msg.o \
+	endy.o fp.o geom.o geom2d.o hack.o io.o msg.o \
 	opt.o sec.o sig.o size.o str.o tle.o
