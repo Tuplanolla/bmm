@@ -215,7 +215,7 @@ inline double bmm_geom2d_pangle(double const* restrict const x0,
 /// by following the minimum image convention.
 inline void bmm_geom2d_cpdiff(double* restrict const xdiff,
     double const* restrict const x0, double const* restrict const x1,
-    bool const* restrict const per, double const* restrict const xper) {
+    double const* restrict const xper, bool const* restrict const per) {
   bmm_geom2d_diff(xdiff, x0, x1);
 
   for (size_t idim = 0; idim < 2; ++idim)
@@ -230,7 +230,7 @@ inline void bmm_geom2d_cpdiff(double* restrict const xdiff,
 __attribute__ ((__pure__))
 inline double bmm_geom2d_cpdist2(double const* restrict const x0,
     double const* restrict const x1,
-    bool const* restrict const per, double const* restrict const xper) {
+    double const* restrict const xper, bool const* restrict const per) {
   double x[2];
   bmm_geom2d_cpdiff(x, x0, x1, per, xper);
 
@@ -244,7 +244,7 @@ inline double bmm_geom2d_cpdist2(double const* restrict const x0,
 __attribute__ ((__pure__))
 inline double bmm_geom2d_cpdist(double const* restrict const x0,
     double const* restrict const x1,
-    bool const* restrict const per, double const* restrict const xper) {
+    double const* restrict const xper, bool const* restrict const per) {
   double x[2];
   bmm_geom2d_cpdiff(x, x0, x1, per, xper);
 
@@ -258,7 +258,7 @@ inline double bmm_geom2d_cpdist(double const* restrict const x0,
 __attribute__ ((__pure__))
 inline double bmm_geom2d_cpangle(double const* restrict const x0,
     double const* restrict const x1,
-    bool const* restrict const per, double const* restrict const xper) {
+    double const* restrict const xper, bool const* restrict const per) {
   double x[2];
   bmm_geom2d_cpdiff(x, x0, x1, per, xper);
 

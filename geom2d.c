@@ -67,13 +67,13 @@ extern inline double bmm_geom2d_pangle(double const* restrict,
 
 extern inline void bmm_geom2d_cpdiff(double* restrict,
     double const* restrict, double const* restrict,
-    bool const* restrict, double const* restrict);
+    double const* restrict, bool const* restrict);
 
 extern inline double bmm_geom2d_cpdist2(double const* restrict,
-    double const* restrict, bool const* restrict, double const* restrict);
+    double const* restrict, double const* restrict, bool const* restrict);
 
 extern inline double bmm_geom2d_cpdist(double const* restrict,
-    double const* restrict, bool const* restrict, double const* restrict);
+    double const* restrict, double const* restrict, bool const* restrict);
 
 extern inline double bmm_geom2d_cpangle(double const* restrict,
-    double const* restrict, bool const* restrict, double const* restrict);
+    double const* restrict, double const* restrict, bool const* restrict);

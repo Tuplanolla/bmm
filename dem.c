@@ -173,7 +173,7 @@ size_t bmm_dem_addpart(struct bmm_dem* const dem,
       if (bmm_geom2d_cpdist2(
             dem->buf.parts[ipart].lin.r,
             dem->buf.parts[jpart].lin.r,
-            dem->opts.box.per, dem->opts.box.r) < bmm_fp_sq(dem->opts.rmax))
+            dem->opts.box.r, dem->opts.box.per) < bmm_fp_sq(dem->opts.rmax))
         (void) bmm_dem_pushy(&dem->buf.neigh.neighs[ipart], jpart);
   }
 
