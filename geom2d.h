@@ -209,7 +209,7 @@ inline double bmm_geom2d_pangle(double const* restrict const x0,
   return bmm_geom2d_dir(x);
 }
 
-/// The call `bmm_geom2d_cpdiff(xdiff, x0, x1, per, xper)`
+/// The call `bmm_geom2d_cpdiff(xdiff, x0, x1, xper, per)`
 /// sets the vector `xdiff` to the `per`-conditional `xper`-periodic difference
 /// between the vectors `x0` and `x1`
 /// by following the minimum image convention.
@@ -223,44 +223,44 @@ inline void bmm_geom2d_cpdiff(double* restrict const xdiff,
       xdiff[idim] = bmm_fp_swrap(xdiff[idim], xper[idim]);
 }
 
-/// The call `bmm_geom2d_cpdist2(x0, x1, per, xper)`
+/// The call `bmm_geom2d_cpdist2(x0, x1, xper, per)`
 /// returns the `per`-conditional `xper`-periodic distance $r^2$
 /// between the vectors `x0` and `x1`
 /// by following the minimum image convention.
 __attribute__ ((__pure__))
 inline double bmm_geom2d_cpdist2(double const* restrict const x0,
-    double const* restrict const x1,
-    double const* restrict const xper, bool const* restrict const per) {
+    double const* restrict const x1, double const* restrict const xper,
+    bool const* restrict const per) {
   double x[2];
-  bmm_geom2d_cpdiff(x, x0, x1, per, xper);
+  bmm_geom2d_cpdiff(x, x0, x1, xper, per);
 
   return bmm_geom2d_norm2(x);
 }
 
-/// The call `bmm_geom2d_cpdist(x0, x1, per, xper)`
+/// The call `bmm_geom2d_cpdist(x0, x1, xper, per)`
 /// returns the `per`-conditional `xper`-periodic distance $r$
 /// between the vectors `x0` and `x1`
 /// by following the minimum image convention.
 __attribute__ ((__pure__))
 inline double bmm_geom2d_cpdist(double const* restrict const x0,
-    double const* restrict const x1,
-    double const* restrict const xper, bool const* restrict const per) {
+    double const* restrict const x1, double const* restrict const xper,
+    bool const* restrict const per) {
   double x[2];
-  bmm_geom2d_cpdiff(x, x0, x1, per, xper);
+  bmm_geom2d_cpdiff(x, x0, x1, xper, per);
 
   return bmm_geom2d_norm(x);
 }
 
-/// The call `bmm_geom2d_cpangle(x0, x1, per, xper)`
+/// The call `bmm_geom2d_cpangle(x0, x1, xper, per)`
 /// returns the `per`-conditional `xper`-periodic signed angle $\\phi$
 /// between the vectors `x0` and `x1`
 /// according to the minimum image convention.
 __attribute__ ((__pure__))
 inline double bmm_geom2d_cpangle(double const* restrict const x0,
-    double const* restrict const x1,
-    double const* restrict const xper, bool const* restrict const per) {
+    double const* restrict const x1, double const* restrict const xper,
+    bool const* restrict const per) {
   double x[2];
-  bmm_geom2d_cpdiff(x, x0, x1, per, xper);
+  bmm_geom2d_cpdiff(x, x0, x1, xper, per);
 
   return bmm_geom2d_dir(x);
 }

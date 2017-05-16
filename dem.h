@@ -60,7 +60,7 @@ struct bmm_dem_opts {
   /// Bounding box.
   struct {
     /// Extents.
-    double r[BMM_NDIM];
+    double x[BMM_NDIM];
     /// Periodicities.
     bool per[BMM_NDIM];
   } box;

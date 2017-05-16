@@ -1,5 +1,5 @@
 #ifndef BMM_MOORE_H
-/// Moore neighborhoods and Chebyshev metrics.
+/// Moore neighborhoods with Chebyshev metrics.
 #define BMM_MOORE_H
 
 #include <stdbool.h>
@@ -14,14 +14,14 @@
 // but should be good enough for most purposes.
 
 /// The call `bmm_moore_qp(pij, i, d)`
-/// checks whether the index `i` is in the Moore neighborhood
+/// checks whether the trial index `i` is in the Moore neighborhood
 /// of a point in a finite
 /// `d`-dimensional lattice and
 /// sets `pij` to the corresponding offset.
 __attribute__ ((__nonnull__))
 inline bool bmm_moore_qp(size_t* const pij,
-    size_t const imoore, size_t const ndim) {
-  bmm_size_hc(pij, imoore, ndim, 3);
+    size_t const itrial, size_t const ndim) {
+  bmm_size_hc(pij, itrial, ndim, 3);
 
   return true;
 }
@@ -113,15 +113,15 @@ inline size_t bmm_moore_npuhr(size_t const ndim) {
 }
 
 /// The call `bmm_moore_q(pij, ij, i, d, n)`
-/// checks whether the index `i` is in the Moore neighborhood
+/// checks whether the trial index `i` is in the Moore neighborhood
 /// of the point `ij` in a finite `n`-wide
 /// `d`-dimensional lattice and
 /// sets `pij` to the corresponding offset.
 __attribute__ ((__nonnull__))
 inline bool bmm_moore_q(size_t* restrict const pij,
-    size_t const* restrict const ij, size_t const imoore,
+    size_t const* restrict const ij, size_t const itrial,
     size_t const ndim, size_t const* restrict const nper) {
-  bmm_size_hc(pij, imoore, ndim, 3);
+  bmm_size_hc(pij, itrial, ndim, 3);
 
   for (size_t idim = 0; idim < ndim; ++idim) {
     size_t const i = ij[idim] + pij[idim];
@@ -307,16 +307,16 @@ inline size_t bmm_moore_nuhr(size_t* restrict const buf,
 }
 
 /// The call `bmm_moore_qcp(pij, ij, i, d, n, p)`
-/// checks whether the index `i` is in the Moore neighborhood
+/// checks whether the trial index `i` is in the Moore neighborhood
 /// of the point `ij` in a `p`-conditionally periodic `n`-wide
 /// `d`-dimensional lattice and
 /// sets `pij` to the corresponding offset.
 __attribute__ ((__nonnull__))
 inline bool bmm_moore_qcp(size_t* restrict const pij,
-    size_t const* restrict const ij, size_t const imoore,
+    size_t const* restrict const ij, size_t const itrial,
     size_t const ndim, size_t const* restrict const nper,
     bool const* const per) {
-  bmm_size_hc(pij, imoore, ndim, 3);
+  bmm_size_hc(pij, itrial, ndim, 3);
 
   for (size_t idim = 0; idim < ndim; ++idim)
     if (!per[idim]) {
@@ -503,7 +503,7 @@ inline size_t bmm_moore_ncpuhr(size_t* restrict const buf,
 }
 
 /// The call `bmm_moore_ijp(pij, ij, i, d, n)`
-/// sets the point `pij` to the Moore neighborhood index `i`
+/// sets the point `pij` to the Moore neighborhood cell `i`
 /// of the point `ij` in a periodic `n`-wide
 /// `d`-dimensional lattice.
 /// Use `bmm_moore_np` to find the upper bound of `i`.
@@ -529,7 +529,7 @@ br:
 }
 
 /// The call `bmm_moore_ijpr(pij, ij, i, d, n)`
-/// sets the point `pij` to the reduced Moore neighborhood index `i`
+/// sets the point `pij` to the reduced Moore neighborhood cell `i`
 /// of the point `ij` in a periodic `n`-wide
 /// `d`-dimensional lattice.
 /// Use `bmm_moore_npr` to find the upper bound of `i`.
@@ -564,7 +564,7 @@ br:
 }
 
 /// The call `bmm_moore_ijplh(pij, ij, i, d, n)`
-/// sets the point `pij` to the lower Moore half-neighborhood index `i`
+/// sets the point `pij` to the lower Moore half-neighborhood cell `i`
 /// of the point `ij` in a periodic `n`-wide
 /// `d`-dimensional lattice.
 /// Use `bmm_moore_nplh` to find the upper bound of `i`.
@@ -598,7 +598,7 @@ br:
 }
 
 /// The call `bmm_moore_ijplhr(pij, ij, i, d, n)`
-/// sets the point `pij` to the reduced lower Moore half-neighborhood index `i`
+/// sets the point `pij` to the reduced lower Moore half-neighborhood cell `i`
 /// of the point `ij` in a periodic `n`-wide
 /// `d`-dimensional lattice.
 /// Use `bmm_moore_nplhr` to find the upper bound of `i`.
@@ -625,7 +625,7 @@ br:
 }
 
 /// The call `bmm_moore_ijpuh(pij, ij, i, d, n)`
-/// sets the point `pij` to the upper Moore half-neighborhood index `i`
+/// sets the point `pij` to the upper Moore half-neighborhood cell `i`
 /// of the point `ij` in a periodic `n`-wide
 /// `d`-dimensional lattice.
 /// Use `bmm_moore_npuh` to find the upper bound of `i`.
@@ -659,7 +659,7 @@ br:
 }
 
 /// The call `bmm_moore_ijpuhr(pij, ij, i, d, n)`
-/// sets the point `pij` to the reduced upper Moore half-neighborhood index `i`
+/// sets the point `pij` to the reduced upper Moore half-neighborhood cell `i`
 /// of the point `ij` in a periodic `n`-wide
 /// `d`-dimensional lattice.
 /// Use `bmm_moore_npuhr` to find the upper bound of `i`.
@@ -686,7 +686,7 @@ br:
 }
 
 /// The call `bmm_moore_ij(pij, ij, i, d, n)`
-/// sets the point `pij` to the Moore neighborhood index `i`
+/// sets the point `pij` to the Moore neighborhood cell `i`
 /// of the point `ij` in a finite `n`-wide
 /// `d`-dimensional lattice.
 /// Use `bmm_moore_n` to find the upper bound of `i`.
@@ -712,7 +712,7 @@ br:
 }
 
 /// The call `bmm_moore_ijr(pij, ij, i, d, n)`
-/// sets the point `pij` to the reduced Moore neighborhood index `i`
+/// sets the point `pij` to the reduced Moore neighborhood cell `i`
 /// of the point `ij` in a finite `n`-wide
 /// `d`-dimensional lattice.
 /// Use `bmm_moore_nr` to find the upper bound of `i`.
@@ -747,7 +747,7 @@ br:
 }
 
 /// The call `bmm_moore_ijlh(pij, ij, i, d, n)`
-/// sets the point `pij` to the lower Moore half-neighborhood index `i`
+/// sets the point `pij` to the lower Moore half-neighborhood cell `i`
 /// of the point `ij` in a finite `n`-wide
 /// `d`-dimensional lattice.
 /// Use `bmm_moore_nlh` to find the upper bound of `i`.
@@ -781,7 +781,7 @@ br:
 }
 
 /// The call `bmm_moore_ijlhr(pij, ij, i, d, n)`
-/// sets the point `pij` to the reduced lower Moore half-neighborhood index `i`
+/// sets the point `pij` to the reduced lower Moore half-neighborhood cell `i`
 /// of the point `ij` in a finite `n`-wide
 /// `d`-dimensional lattice.
 /// Use `bmm_moore_nlhr` to find the upper bound of `i`.
@@ -808,7 +808,7 @@ br:
 }
 
 /// The call `bmm_moore_ijuh(pij, ij, i, d, n)`
-/// sets the point `pij` to the upper Moore half-neighborhood index `i`
+/// sets the point `pij` to the upper Moore half-neighborhood cell `i`
 /// of the point `ij` in a finite `n`-wide
 /// `d`-dimensional lattice.
 /// Use `bmm_moore_nuh` to find the upper bound of `i`.
@@ -842,7 +842,7 @@ br:
 }
 
 /// The call `bmm_moore_ijuhr(pij, ij, i, d, n)`
-/// sets the point `pij` to the reduced upper Moore half-neighborhood index `i`
+/// sets the point `pij` to the reduced upper Moore half-neighborhood cell `i`
 /// of the point `ij` in a finite `n`-wide
 /// `d`-dimensional lattice.
 /// Use `bmm_moore_nuhr` to find the upper bound of `i`.
@@ -869,7 +869,7 @@ br:
 }
 
 /// The call `bmm_moore_ijcp(pij, ij, i, d, n, p)`
-/// sets the point `pij` to the Moore neighborhood index `i`
+/// sets the point `pij` to the Moore neighborhood cell `i`
 /// of the point `ij` in a `p`-conditionally periodic `n`-wide
 /// `d`-dimensional lattice.
 /// Use `bmm_moore_ncp` to find the upper bound of `i`.
@@ -896,7 +896,7 @@ br:
 }
 
 /// The call `bmm_moore_ijcpr(pij, ij, i, d, n, p)`
-/// sets the point `pij` to the reduced Moore neighborhood index `i`
+/// sets the point `pij` to the reduced Moore neighborhood cell `i`
 /// of the point `ij` in a `p`-conditionally periodic `n`-wide
 /// `d`-dimensional lattice.
 /// Use `bmm_moore_ncpr` to find the upper bound of `i`.
@@ -932,7 +932,7 @@ br:
 }
 
 /// The call `bmm_moore_ijcplh(pij, ij, i, d, n, p)`
-/// sets the point `pij` to the lower Moore half-neighborhood index `i`
+/// sets the point `pij` to the lower Moore half-neighborhood cell `i`
 /// of the point `ij` in a `p`-conditionally periodic `n`-wide
 /// `d`-dimensional lattice.
 /// Use `bmm_moore_ncplh` to find the upper bound of `i`.
@@ -967,7 +967,7 @@ br:
 }
 
 /// The call `bmm_moore_ijcplhr(pij, ij, i, d, n, p)`
-/// sets the point `pij` to the reduced lower Moore half-neighborhood index `i`
+/// sets the point `pij` to the reduced lower Moore half-neighborhood cell `i`
 /// of the point `ij` in a `p`-conditionally periodic `n`-wide
 /// `d`-dimensional lattice.
 /// Use `bmm_moore_ncplhr` to find the upper bound of `i`.
@@ -995,7 +995,7 @@ br:
 }
 
 /// The call `bmm_moore_ijcpuh(pij, ij, i, d, n, p)`
-/// sets the point `pij` to the upper Moore half-neighborhood index `i`
+/// sets the point `pij` to the upper Moore half-neighborhood cell `i`
 /// of the point `ij` in a `p`-conditionally periodic `n`-wide
 /// `d`-dimensional lattice.
 /// Use `bmm_moore_ncpuh` to find the upper bound of `i`.
@@ -1030,7 +1030,7 @@ br:
 }
 
 /// The call `bmm_moore_ijcpuhr(pij, ij, i, d, n, p)`
-/// sets the point `pij` to the reduced upper Moore half-neighborhood index `i`
+/// sets the point `pij` to the reduced upper Moore half-neighborhood cell `i`
 /// of the point `ij` in a `p`-conditionally periodic `n`-wide
 /// `d`-dimensional lattice.
 /// Use `bmm_moore_ncpuhr` to find the upper bound of `i`.
