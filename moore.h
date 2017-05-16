@@ -13,15 +13,14 @@
 // This implementation is not as optimal as the interface allows,
 // but should be good enough for most purposes.
 
-/// The call `bmm_moore_qp(pij, ij, i, d, n)`
+/// The call `bmm_moore_qp(pij, i, d)`
 /// checks whether the index `i` is in the Moore neighborhood
-/// of the point `ij` in a finite `n`-wide
+/// of a point in a finite
 /// `d`-dimensional lattice and
 /// sets `pij` to the corresponding offset.
 __attribute__ ((__nonnull__))
-inline bool bmm_moore_qp(size_t* restrict const pij,
-    size_t const* restrict const ij, size_t const imoore,
-    size_t const ndim, size_t const* restrict const nper) {
+inline bool bmm_moore_qp(size_t* const pij,
+    size_t const imoore, size_t const ndim) {
   bmm_size_hc(pij, imoore, ndim, 3);
 
   return true;
@@ -34,11 +33,11 @@ inline bool bmm_moore_qp(size_t* restrict const pij,
 /// whose Chebyshev distance is less than or equal to one.
 /// The result follows from $N_d = 3^d$.
 __attribute__ ((__const__, __pure__))
-inline size_t bmm_moore_np(size_t const d) {
-  if (d == 0)
+inline size_t bmm_moore_np(size_t const ndim) {
+  if (ndim == 0)
     return SIZE_MAX;
 
-  return bmm_size_pow(3, d);
+  return bmm_size_pow(3, ndim);
 }
 
 /// The call `bmm_moore_npr(d)`
@@ -48,43 +47,69 @@ inline size_t bmm_moore_np(size_t const d) {
 /// whose Chebyshev distance is equal to one.
 /// The result follows from $N_d = 3^d - 1$.
 __attribute__ ((__const__, __pure__))
-inline size_t bmm_moore_npr(size_t const d) {
-  if (d == 0)
+inline size_t bmm_moore_npr(size_t const ndim) {
+  if (ndim == 0)
     return SIZE_MAX;
 
-  return bmm_size_pow(3, d) - 1;
+  return bmm_size_pow(3, ndim) - 1;
 }
 
-/// The call `bmm_moore_nph(d)`
-/// returns the number of cells in the Moore half-neighborhood
+/// The call `bmm_moore_nplh(d)`
+/// returns the number of cells in the lower Moore half-neighborhood
 /// of a point in a periodic `d`-dimensional lattice.
 /// This includes all the cells
-/// whose Chebyshev distance is less than or equal to one and
+/// whose Chebyshev distance is less than or
 /// whose lexicographic position is less than or greater than
 /// that of the origin's.
 /// The result follows from $N_d = (3^d - 1) / 2 + 1$.
 __attribute__ ((__const__, __pure__))
-inline size_t bmm_moore_nph(size_t const d) {
-  if (d == 0)
+inline size_t bmm_moore_nplh(size_t const ndim) {
+  if (ndim == 0)
     return SIZE_MAX;
 
-  return bmm_size_pow(3, d) / 2 + 1;
+  return bmm_size_pow(3, ndim) / 2 + 1;
 }
 
-/// The call `bmm_moore_nphr(d)`
-/// returns the number of cells in the reduced Moore half-neighborhood
+/// The call `bmm_moore_nplhr(d)`
+/// returns the number of cells in the reduced lower Moore half-neighborhood
 /// of a point in a periodic `d`-dimensional lattice.
 /// This includes all the cells
 /// whose Chebyshev distance is equal to one and
-/// whose lexicographic position is less than or greater than
+/// whose lexicographic position is less than
 /// that of the origin's.
 /// The result follows from $N_d = (3^d - 1) / 2$.
 __attribute__ ((__const__, __pure__))
-inline size_t bmm_moore_nphr(size_t const d) {
-  if (d == 0)
+inline size_t bmm_moore_nplhr(size_t const ndim) {
+  if (ndim == 0)
     return SIZE_MAX;
 
-  return bmm_size_pow(3, d) / 2;
+  return bmm_size_pow(3, ndim) / 2;
+}
+
+/// The call `bmm_moore_npuh(d)`
+/// returns the number of cells in the upper Moore half-neighborhood
+/// of a point in a periodic `d`-dimensional lattice.
+/// This includes all the cells
+/// whose Chebyshev distance is less than or equal to one and
+/// whose lexicographic position is greater than
+/// that of the origin's.
+/// The result follows from $N_d = (3^d - 1) / 2 + 1$.
+__attribute__ ((__const__, __pure__))
+inline size_t bmm_moore_npuh(size_t const ndim) {
+  return bmm_moore_nplh(ndim);
+}
+
+/// The call `bmm_moore_npuhr(d)`
+/// returns the number of cells in the reduced upper Moore half-neighborhood
+/// of a point in a periodic `d`-dimensional lattice.
+/// This includes all the cells
+/// whose Chebyshev distance is equal to one and
+/// whose lexicographic position is greater than
+/// that of the origin's.
+/// The result follows from $N_d = (3^d - 1) / 2$.
+__attribute__ ((__const__, __pure__))
+inline size_t bmm_moore_npuhr(size_t const ndim) {
+  return bmm_moore_nplhr(ndim);
 }
 
 /// The call `bmm_moore_q(pij, ij, i, d, n)`
@@ -122,15 +147,15 @@ inline size_t bmm_moore_n(size_t* restrict const buf,
   if (ndim == 0)
     return SIZE_MAX;
 
-  size_t n = 0;
+  size_t nmoore = 0;
 
-  size_t const nmoore = bmm_size_pow(3, ndim);
+  size_t const ntrial = bmm_size_pow(3, ndim);
 
-  for (size_t imoore = 0; imoore < nmoore; ++imoore)
-    if (bmm_moore_q(buf, ij, imoore, ndim, nper))
-      ++n;
+  for (size_t itrial = 0; itrial < ntrial; ++itrial)
+    if (bmm_moore_q(buf, ij, itrial, ndim, nper))
+      ++nmoore;
 
-  return n;
+  return nmoore;
 }
 
 /// The call `bmm_moore_nr(buf, ij, d, n)`
@@ -147,20 +172,20 @@ inline size_t bmm_moore_nr(size_t* restrict const buf,
   if (ndim == 0)
     return SIZE_MAX;
 
-  size_t n = 0;
+  size_t nmoore = 0;
 
-  size_t const nmoore = bmm_size_pow(3, ndim);
-  size_t const kmoore = nmoore / 2;
+  size_t const ntrial = bmm_size_pow(3, ndim);
+  size_t const ktrial = ntrial / 2;
 
-  for (size_t imoore = 0; imoore < kmoore; ++imoore)
-    if (bmm_moore_q(buf, ij, imoore, ndim, nper))
-      ++n;
+  for (size_t itrial = 0; itrial < ktrial; ++itrial)
+    if (bmm_moore_q(buf, ij, itrial, ndim, nper))
+      ++nmoore;
 
-  for (size_t imoore = kmoore + 1; imoore < nmoore; ++imoore)
-    if (bmm_moore_q(buf, ij, imoore, ndim, nper))
-      ++n;
+  for (size_t itrial = ktrial + 1; itrial < ntrial; ++itrial)
+    if (bmm_moore_q(buf, ij, itrial, ndim, nper))
+      ++nmoore;
 
-  return n;
+  return nmoore;
 }
 
 /// The call `bmm_moore_nlh(buf, ij, d, n)`
@@ -179,19 +204,19 @@ inline size_t bmm_moore_nlh(size_t* restrict const buf,
   if (ndim == 0)
     return SIZE_MAX;
 
-  size_t n = 0;
+  size_t nmoore = 0;
 
-  size_t const nmoore = bmm_size_pow(3, ndim);
-  size_t const kmoore = nmoore / 2;
+  size_t const ntrial = bmm_size_pow(3, ndim);
+  size_t const ktrial = ntrial / 2;
 
-  for (size_t imoore = 0; imoore < kmoore; ++imoore)
-    if (bmm_moore_q(buf, ij, imoore, ndim, nper))
-      ++n;
+  for (size_t itrial = 0; itrial < ktrial; ++itrial)
+    if (bmm_moore_q(buf, ij, itrial, ndim, nper))
+      ++nmoore;
 
-  if (bmm_moore_q(buf, ij, kmoore, ndim, nper))
-    ++n;
+  if (bmm_moore_q(buf, ij, ktrial, ndim, nper))
+    ++nmoore;
 
-  return n;
+  return nmoore;
 }
 
 /// The call `bmm_moore_nlhr(buf, ij, d, n)`
@@ -210,16 +235,16 @@ inline size_t bmm_moore_nlhr(size_t* restrict const buf,
   if (ndim == 0)
     return SIZE_MAX;
 
-  size_t n = 0;
+  size_t nmoore = 0;
 
-  size_t const nmoore = bmm_size_pow(3, ndim);
-  size_t const kmoore = nmoore / 2;
+  size_t const ntrial = bmm_size_pow(3, ndim);
+  size_t const ktrial = ntrial / 2;
 
-  for (size_t imoore = 0; imoore < kmoore; ++imoore)
-    if (bmm_moore_q(buf, ij, imoore, ndim, nper))
-      ++n;
+  for (size_t itrial = 0; itrial < ktrial; ++itrial)
+    if (bmm_moore_q(buf, ij, itrial, ndim, nper))
+      ++nmoore;
 
-  return n;
+  return nmoore;
 }
 
 /// The call `bmm_moore_nuh(buf, ij, d, n)`
@@ -238,19 +263,19 @@ inline size_t bmm_moore_nuh(size_t* restrict const buf,
   if (ndim == 0)
     return SIZE_MAX;
 
-  size_t n = 0;
+  size_t nmoore = 0;
 
-  size_t const nmoore = bmm_size_pow(3, ndim);
-  size_t const kmoore = nmoore / 2;
+  size_t const ntrial = bmm_size_pow(3, ndim);
+  size_t const ktrial = ntrial / 2;
 
-  if (bmm_moore_q(buf, ij, kmoore, ndim, nper))
-    ++n;
+  if (bmm_moore_q(buf, ij, ktrial, ndim, nper))
+    ++nmoore;
 
-  for (size_t imoore = kmoore + 1; imoore < nmoore; ++imoore)
-    if (bmm_moore_q(buf, ij, imoore, ndim, nper))
-      ++n;
+  for (size_t itrial = ktrial + 1; itrial < ntrial; ++itrial)
+    if (bmm_moore_q(buf, ij, itrial, ndim, nper))
+      ++nmoore;
 
-  return n;
+  return nmoore;
 }
 
 /// The call `bmm_moore_nuhr(buf, ij, d, n)`
@@ -269,16 +294,16 @@ inline size_t bmm_moore_nuhr(size_t* restrict const buf,
   if (ndim == 0)
     return SIZE_MAX;
 
-  size_t n = 0;
+  size_t nmoore = 0;
 
-  size_t const nmoore = bmm_size_pow(3, ndim);
-  size_t const kmoore = nmoore / 2;
+  size_t const ntrial = bmm_size_pow(3, ndim);
+  size_t const ktrial = ntrial / 2;
 
-  for (size_t imoore = kmoore + 1; imoore < nmoore; ++imoore)
-    if (bmm_moore_q(buf, ij, imoore, ndim, nper))
-      ++n;
+  for (size_t itrial = ktrial + 1; itrial < ntrial; ++itrial)
+    if (bmm_moore_q(buf, ij, itrial, ndim, nper))
+      ++nmoore;
 
-  return n;
+  return nmoore;
 }
 
 /// The call `bmm_moore_qcp(pij, ij, i, d, n, p)`
@@ -318,15 +343,15 @@ inline size_t bmm_moore_ncp(size_t* restrict const buf,
   if (ndim == 0)
     return SIZE_MAX;
 
-  size_t n = 0;
+  size_t nmoore = 0;
 
-  size_t const nmoore = bmm_size_pow(3, ndim);
+  size_t const ntrial = bmm_size_pow(3, ndim);
 
-  for (size_t imoore = 0; imoore < nmoore; ++imoore)
-    if (bmm_moore_qcp(buf, ij, imoore, ndim, nper, per))
-      ++n;
+  for (size_t itrial = 0; itrial < ntrial; ++itrial)
+    if (bmm_moore_qcp(buf, ij, itrial, ndim, nper, per))
+      ++nmoore;
 
-  return n;
+  return nmoore;
 }
 
 /// The call `bmm_moore_ncpr(buf, ij, d, n, p)`
@@ -343,20 +368,20 @@ inline size_t bmm_moore_ncpr(size_t* restrict const buf,
   if (ndim == 0)
     return SIZE_MAX;
 
-  size_t n = 0;
+  size_t nmoore = 0;
 
-  size_t const nmoore = bmm_size_pow(3, ndim);
-  size_t const kmoore = nmoore / 2;
+  size_t const ntrial = bmm_size_pow(3, ndim);
+  size_t const ktrial = ntrial / 2;
 
-  for (size_t imoore = 0; imoore < kmoore; ++imoore)
-    if (bmm_moore_qcp(buf, ij, imoore, ndim, nper, per))
-      ++n;
+  for (size_t itrial = 0; itrial < ktrial; ++itrial)
+    if (bmm_moore_qcp(buf, ij, itrial, ndim, nper, per))
+      ++nmoore;
 
-  for (size_t imoore = kmoore + 1; imoore < nmoore; ++imoore)
-    if (bmm_moore_qcp(buf, ij, imoore, ndim, nper, per))
-      ++n;
+  for (size_t itrial = ktrial + 1; itrial < ntrial; ++itrial)
+    if (bmm_moore_qcp(buf, ij, itrial, ndim, nper, per))
+      ++nmoore;
 
-  return n;
+  return nmoore;
 }
 
 /// The call `bmm_moore_ncplh(buf, ij, d, n, p)`
@@ -375,19 +400,19 @@ inline size_t bmm_moore_ncplh(size_t* restrict const buf,
   if (ndim == 0)
     return SIZE_MAX;
 
-  size_t n = 0;
+  size_t nmoore = 0;
 
-  size_t const nmoore = bmm_size_pow(3, ndim);
-  size_t const kmoore = nmoore / 2;
+  size_t const ntrial = bmm_size_pow(3, ndim);
+  size_t const ktrial = ntrial / 2;
 
-  for (size_t imoore = 0; imoore < kmoore; ++imoore)
-    if (bmm_moore_qcp(buf, ij, imoore, ndim, nper, per))
-      ++n;
+  for (size_t itrial = 0; itrial < ktrial; ++itrial)
+    if (bmm_moore_qcp(buf, ij, itrial, ndim, nper, per))
+      ++nmoore;
 
-  if (bmm_moore_qcp(buf, ij, kmoore, ndim, nper, per))
-    ++n;
+  if (bmm_moore_qcp(buf, ij, ktrial, ndim, nper, per))
+    ++nmoore;
 
-  return n;
+  return nmoore;
 }
 
 /// The call `bmm_moore_ncplhr(buf, ij, d, n, p)`
@@ -406,16 +431,16 @@ inline size_t bmm_moore_ncplhr(size_t* restrict const buf,
   if (ndim == 0)
     return SIZE_MAX;
 
-  size_t n = 0;
+  size_t nmoore = 0;
 
-  size_t const nmoore = bmm_size_pow(3, ndim);
-  size_t const kmoore = nmoore / 2;
+  size_t const ntrial = bmm_size_pow(3, ndim);
+  size_t const ktrial = ntrial / 2;
 
-  for (size_t imoore = 0; imoore < kmoore; ++imoore)
-    if (bmm_moore_qcp(buf, ij, imoore, ndim, nper, per))
-      ++n;
+  for (size_t itrial = 0; itrial < ktrial; ++itrial)
+    if (bmm_moore_qcp(buf, ij, itrial, ndim, nper, per))
+      ++nmoore;
 
-  return n;
+  return nmoore;
 }
 
 /// The call `bmm_moore_ncpuh(buf, ij, d, n, p)`
@@ -434,19 +459,19 @@ inline size_t bmm_moore_ncpuh(size_t* restrict const buf,
   if (ndim == 0)
     return SIZE_MAX;
 
-  size_t n = 0;
+  size_t nmoore = 0;
 
-  size_t const nmoore = bmm_size_pow(3, ndim);
-  size_t const kmoore = nmoore / 2;
+  size_t const ntrial = bmm_size_pow(3, ndim);
+  size_t const ktrial = ntrial / 2;
 
-  if (bmm_moore_qcp(buf, ij, kmoore, ndim, nper, per))
-    ++n;
+  if (bmm_moore_qcp(buf, ij, ktrial, ndim, nper, per))
+    ++nmoore;
 
-  for (size_t imoore = kmoore + 1; imoore < nmoore; ++imoore)
-    if (bmm_moore_qcp(buf, ij, imoore, ndim, nper, per))
-      ++n;
+  for (size_t itrial = ktrial + 1; itrial < ntrial; ++itrial)
+    if (bmm_moore_qcp(buf, ij, itrial, ndim, nper, per))
+      ++nmoore;
 
-  return n;
+  return nmoore;
 }
 
 /// The call `bmm_moore_ncpuhr(buf, ij, d, n, p)`
@@ -465,66 +490,571 @@ inline size_t bmm_moore_ncpuhr(size_t* restrict const buf,
   if (ndim == 0)
     return SIZE_MAX;
 
-  size_t n = 0;
+  size_t nmoore = 0;
 
-  size_t const nmoore = bmm_size_pow(3, ndim);
-  size_t const kmoore = nmoore / 2;
+  size_t const ntrial = bmm_size_pow(3, ndim);
+  size_t const ktrial = ntrial / 2;
 
-  for (size_t imoore = kmoore + 1; imoore < nmoore; ++imoore)
-    if (bmm_moore_qcp(buf, ij, imoore, ndim, nper, per))
-      ++n;
+  for (size_t itrial = ktrial + 1; itrial < ntrial; ++itrial)
+    if (bmm_moore_qcp(buf, ij, itrial, ndim, nper, per))
+      ++nmoore;
 
-  return n;
+  return nmoore;
 }
 
 /// The call `bmm_moore_ijp(pij, ij, i, d, n)`
-/// sets the point `pij` to the index `i`
+/// sets the point `pij` to the Moore neighborhood index `i`
 /// of the point `ij` in a periodic `n`-wide
 /// `d`-dimensional lattice.
-/// Use `bmm_moore_n` to find the upper bound of `i`.
+/// Use `bmm_moore_np` to find the upper bound of `i`.
 __attribute__ ((__nonnull__))
 inline void bmm_moore_ijp(size_t* restrict const pij,
-    size_t const* restrict const ij, size_t const i,
+    size_t const* restrict const ij, size_t const imoore,
     size_t const ndim, size_t const* restrict const nper) {
-  size_t j = 0;
+  size_t jmoore = 0;
 
-  size_t const nmoore = bmm_size_pow(3, ndim);
+  size_t const ntrial = bmm_size_pow(3, ndim);
 
-  for (size_t imoore = 0; imoore < nmoore; ++imoore)
-    if (bmm_moore_qp(pij, ij, imoore, ndim, nper)) {
-      if (j == i)
-        break;
+  for (size_t itrial = 0; itrial < ntrial; ++itrial)
+    if (bmm_moore_qp(pij, itrial, ndim)) {
+      if (jmoore == imoore)
+        goto br;
       else
-        ++j;
+        ++jmoore;
     }
 
+br:
+  for (size_t idim = 0; idim < ndim; ++idim)
+    pij[idim] = bmm_size_dec(ij[idim] + pij[idim], nper[idim]);
+}
+
+/// The call `bmm_moore_ijpr(pij, ij, i, d, n)`
+/// sets the point `pij` to the reduced Moore neighborhood index `i`
+/// of the point `ij` in a periodic `n`-wide
+/// `d`-dimensional lattice.
+/// Use `bmm_moore_npr` to find the upper bound of `i`.
+__attribute__ ((__nonnull__))
+inline void bmm_moore_ijpr(size_t* restrict const pij,
+    size_t const* restrict const ij, size_t const imoore,
+    size_t const ndim, size_t const* restrict const nper) {
+  size_t jmoore = 0;
+
+  size_t const ntrial = bmm_size_pow(3, ndim);
+  size_t const ktrial = ntrial / 2;
+
+  for (size_t itrial = 0; itrial < ktrial; ++itrial)
+    if (bmm_moore_qp(pij, itrial, ndim)) {
+      if (jmoore == imoore)
+        goto br;
+      else
+        ++jmoore;
+    }
+
+  for (size_t itrial = ktrial + 1; itrial < ntrial; ++itrial)
+    if (bmm_moore_qp(pij, itrial, ndim)) {
+      if (jmoore == imoore)
+        goto br;
+      else
+        ++jmoore;
+    }
+
+br:
+  for (size_t idim = 0; idim < ndim; ++idim)
+    pij[idim] = bmm_size_dec(ij[idim] + pij[idim], nper[idim]);
+}
+
+/// The call `bmm_moore_ijplh(pij, ij, i, d, n)`
+/// sets the point `pij` to the lower Moore half-neighborhood index `i`
+/// of the point `ij` in a periodic `n`-wide
+/// `d`-dimensional lattice.
+/// Use `bmm_moore_nplh` to find the upper bound of `i`.
+__attribute__ ((__nonnull__))
+inline void bmm_moore_ijplh(size_t* restrict const pij,
+    size_t const* restrict const ij, size_t const imoore,
+    size_t const ndim, size_t const* restrict const nper) {
+  size_t jmoore = 0;
+
+  size_t const ntrial = bmm_size_pow(3, ndim);
+  size_t const ktrial = ntrial / 2;
+
+  for (size_t itrial = 0; itrial < ktrial; ++itrial)
+    if (bmm_moore_qp(pij, itrial, ndim)) {
+      if (jmoore == imoore)
+        goto br;
+      else
+        ++jmoore;
+    }
+
+  if (bmm_moore_qp(pij, ktrial, ndim)) {
+    if (jmoore == imoore)
+      goto br;
+    else
+      ++jmoore;
+  }
+
+br:
+  for (size_t idim = 0; idim < ndim; ++idim)
+    pij[idim] = bmm_size_dec(ij[idim] + pij[idim], nper[idim]);
+}
+
+/// The call `bmm_moore_ijplhr(pij, ij, i, d, n)`
+/// sets the point `pij` to the reduced lower Moore half-neighborhood index `i`
+/// of the point `ij` in a periodic `n`-wide
+/// `d`-dimensional lattice.
+/// Use `bmm_moore_nplhr` to find the upper bound of `i`.
+__attribute__ ((__nonnull__))
+inline void bmm_moore_ijplhr(size_t* restrict const pij,
+    size_t const* restrict const ij, size_t const imoore,
+    size_t const ndim, size_t const* restrict const nper) {
+  size_t jmoore = 0;
+
+  size_t const ntrial = bmm_size_pow(3, ndim);
+  size_t const ktrial = ntrial / 2;
+
+  for (size_t itrial = 0; itrial < ktrial; ++itrial)
+    if (bmm_moore_qp(pij, itrial, ndim)) {
+      if (jmoore == imoore)
+        goto br;
+      else
+        ++jmoore;
+    }
+
+br:
+  for (size_t idim = 0; idim < ndim; ++idim)
+    pij[idim] = bmm_size_dec(ij[idim] + pij[idim], nper[idim]);
+}
+
+/// The call `bmm_moore_ijpuh(pij, ij, i, d, n)`
+/// sets the point `pij` to the upper Moore half-neighborhood index `i`
+/// of the point `ij` in a periodic `n`-wide
+/// `d`-dimensional lattice.
+/// Use `bmm_moore_npuh` to find the upper bound of `i`.
+__attribute__ ((__nonnull__))
+inline void bmm_moore_ijpuh(size_t* restrict const pij,
+    size_t const* restrict const ij, size_t const imoore,
+    size_t const ndim, size_t const* restrict const nper) {
+  size_t jmoore = 0;
+
+  size_t const ntrial = bmm_size_pow(3, ndim);
+  size_t const ktrial = ntrial / 2;
+
+  if (bmm_moore_qp(pij, ktrial, ndim)) {
+    if (jmoore == imoore)
+      goto br;
+    else
+      ++jmoore;
+  }
+
+  for (size_t itrial = ktrial + 1; itrial < ntrial; ++itrial)
+    if (bmm_moore_qp(pij, itrial, ndim)) {
+      if (jmoore == imoore)
+        goto br;
+      else
+        ++jmoore;
+    }
+
+br:
+  for (size_t idim = 0; idim < ndim; ++idim)
+    pij[idim] = bmm_size_dec(ij[idim] + pij[idim], nper[idim]);
+}
+
+/// The call `bmm_moore_ijpuhr(pij, ij, i, d, n)`
+/// sets the point `pij` to the reduced upper Moore half-neighborhood index `i`
+/// of the point `ij` in a periodic `n`-wide
+/// `d`-dimensional lattice.
+/// Use `bmm_moore_npuhr` to find the upper bound of `i`.
+__attribute__ ((__nonnull__))
+inline void bmm_moore_ijpuhr(size_t* restrict const pij,
+    size_t const* restrict const ij, size_t const imoore,
+    size_t const ndim, size_t const* restrict const nper) {
+  size_t jmoore = 0;
+
+  size_t const ntrial = bmm_size_pow(3, ndim);
+  size_t const ktrial = ntrial / 2;
+
+  for (size_t itrial = ktrial + 1; itrial < ntrial; ++itrial)
+    if (bmm_moore_qp(pij, itrial, ndim)) {
+      if (jmoore == imoore)
+        goto br;
+      else
+        ++jmoore;
+    }
+
+br:
   for (size_t idim = 0; idim < ndim; ++idim)
     pij[idim] = bmm_size_dec(ij[idim] + pij[idim], nper[idim]);
 }
 
 /// The call `bmm_moore_ij(pij, ij, i, d, n)`
-/// sets the point `pij` to the index `i`
+/// sets the point `pij` to the Moore neighborhood index `i`
 /// of the point `ij` in a finite `n`-wide
 /// `d`-dimensional lattice.
 /// Use `bmm_moore_n` to find the upper bound of `i`.
 __attribute__ ((__nonnull__))
 inline void bmm_moore_ij(size_t* restrict const pij,
-    size_t const* restrict const ij, size_t const i,
+    size_t const* restrict const ij, size_t const imoore,
     size_t const ndim, size_t const* restrict const nper) {
-  size_t j = 0;
+  size_t jmoore = 0;
 
-  size_t const nmoore = bmm_size_pow(3, ndim);
+  size_t const ntrial = bmm_size_pow(3, ndim);
 
-  for (size_t imoore = 0; imoore < nmoore; ++imoore)
-    if (bmm_moore_q(pij, ij, imoore, ndim, nper)) {
-      if (j == i)
-        break;
+  for (size_t itrial = 0; itrial < ntrial; ++itrial)
+    if (bmm_moore_q(pij, ij, itrial, ndim, nper)) {
+      if (jmoore == imoore)
+        goto br;
       else
-        ++j;
+        ++jmoore;
     }
 
+br:
   for (size_t idim = 0; idim < ndim; ++idim)
     pij[idim] = ij[idim] + pij[idim] - 1;
+}
+
+/// The call `bmm_moore_ijr(pij, ij, i, d, n)`
+/// sets the point `pij` to the reduced Moore neighborhood index `i`
+/// of the point `ij` in a finite `n`-wide
+/// `d`-dimensional lattice.
+/// Use `bmm_moore_nr` to find the upper bound of `i`.
+__attribute__ ((__nonnull__))
+inline void bmm_moore_ijr(size_t* restrict const pij,
+    size_t const* restrict const ij, size_t const imoore,
+    size_t const ndim, size_t const* restrict const nper) {
+  size_t jmoore = 0;
+
+  size_t const ntrial = bmm_size_pow(3, ndim);
+  size_t const ktrial = ntrial / 2;
+
+  for (size_t itrial = 0; itrial < ktrial; ++itrial)
+    if (bmm_moore_q(pij, ij, itrial, ndim, nper)) {
+      if (jmoore == imoore)
+        goto br;
+      else
+        ++jmoore;
+    }
+
+  for (size_t itrial = ktrial + 1; itrial < ntrial; ++itrial)
+    if (bmm_moore_q(pij, ij, itrial, ndim, nper)) {
+      if (jmoore == imoore)
+        goto br;
+      else
+        ++jmoore;
+    }
+
+br:
+  for (size_t idim = 0; idim < ndim; ++idim)
+    pij[idim] = ij[idim] + pij[idim] - 1;
+}
+
+/// The call `bmm_moore_ijlh(pij, ij, i, d, n)`
+/// sets the point `pij` to the lower Moore half-neighborhood index `i`
+/// of the point `ij` in a finite `n`-wide
+/// `d`-dimensional lattice.
+/// Use `bmm_moore_nlh` to find the upper bound of `i`.
+__attribute__ ((__nonnull__))
+inline void bmm_moore_ijlh(size_t* restrict const pij,
+    size_t const* restrict const ij, size_t const imoore,
+    size_t const ndim, size_t const* restrict const nper) {
+  size_t jmoore = 0;
+
+  size_t const ntrial = bmm_size_pow(3, ndim);
+  size_t const ktrial = ntrial / 2;
+
+  for (size_t itrial = 0; itrial < ktrial; ++itrial)
+    if (bmm_moore_q(pij, ij, itrial, ndim, nper)) {
+      if (jmoore == imoore)
+        goto br;
+      else
+        ++jmoore;
+    }
+
+  if (bmm_moore_q(pij, ij, ktrial, ndim, nper)) {
+    if (jmoore == imoore)
+      goto br;
+    else
+      ++jmoore;
+  }
+
+br:
+  for (size_t idim = 0; idim < ndim; ++idim)
+    pij[idim] = ij[idim] + pij[idim] - 1;
+}
+
+/// The call `bmm_moore_ijlhr(pij, ij, i, d, n)`
+/// sets the point `pij` to the reduced lower Moore half-neighborhood index `i`
+/// of the point `ij` in a finite `n`-wide
+/// `d`-dimensional lattice.
+/// Use `bmm_moore_nlhr` to find the upper bound of `i`.
+__attribute__ ((__nonnull__))
+inline void bmm_moore_ijlhr(size_t* restrict const pij,
+    size_t const* restrict const ij, size_t const imoore,
+    size_t const ndim, size_t const* restrict const nper) {
+  size_t jmoore = 0;
+
+  size_t const ntrial = bmm_size_pow(3, ndim);
+  size_t const ktrial = ntrial / 2;
+
+  for (size_t itrial = 0; itrial < ktrial; ++itrial)
+    if (bmm_moore_q(pij, ij, itrial, ndim, nper)) {
+      if (jmoore == imoore)
+        goto br;
+      else
+        ++jmoore;
+    }
+
+br:
+  for (size_t idim = 0; idim < ndim; ++idim)
+    pij[idim] = ij[idim] + pij[idim] - 1;
+}
+
+/// The call `bmm_moore_ijuh(pij, ij, i, d, n)`
+/// sets the point `pij` to the upper Moore half-neighborhood index `i`
+/// of the point `ij` in a finite `n`-wide
+/// `d`-dimensional lattice.
+/// Use `bmm_moore_nuh` to find the upper bound of `i`.
+__attribute__ ((__nonnull__))
+inline void bmm_moore_ijuh(size_t* restrict const pij,
+    size_t const* restrict const ij, size_t const imoore,
+    size_t const ndim, size_t const* restrict const nper) {
+  size_t jmoore = 0;
+
+  size_t const ntrial = bmm_size_pow(3, ndim);
+  size_t const ktrial = ntrial / 2;
+
+  if (bmm_moore_q(pij, ij, ktrial, ndim, nper)) {
+    if (jmoore == imoore)
+      goto br;
+    else
+      ++jmoore;
+  }
+
+  for (size_t itrial = ktrial + 1; itrial < ntrial; ++itrial)
+    if (bmm_moore_q(pij, ij, itrial, ndim, nper)) {
+      if (jmoore == imoore)
+        goto br;
+      else
+        ++jmoore;
+    }
+
+br:
+  for (size_t idim = 0; idim < ndim; ++idim)
+    pij[idim] = ij[idim] + pij[idim] - 1;
+}
+
+/// The call `bmm_moore_ijuhr(pij, ij, i, d, n)`
+/// sets the point `pij` to the reduced upper Moore half-neighborhood index `i`
+/// of the point `ij` in a finite `n`-wide
+/// `d`-dimensional lattice.
+/// Use `bmm_moore_nuhr` to find the upper bound of `i`.
+__attribute__ ((__nonnull__))
+inline void bmm_moore_ijuhr(size_t* restrict const pij,
+    size_t const* restrict const ij, size_t const imoore,
+    size_t const ndim, size_t const* restrict const nper) {
+  size_t jmoore = 0;
+
+  size_t const ntrial = bmm_size_pow(3, ndim);
+  size_t const ktrial = ntrial / 2;
+
+  for (size_t itrial = ktrial + 1; itrial < ntrial; ++itrial)
+    if (bmm_moore_q(pij, ij, itrial, ndim, nper)) {
+      if (jmoore == imoore)
+        goto br;
+      else
+        ++jmoore;
+    }
+
+br:
+  for (size_t idim = 0; idim < ndim; ++idim)
+    pij[idim] = ij[idim] + pij[idim] - 1;
+}
+
+/// The call `bmm_moore_ijcp(pij, ij, i, d, n, p)`
+/// sets the point `pij` to the Moore neighborhood index `i`
+/// of the point `ij` in a `p`-conditionally periodic `n`-wide
+/// `d`-dimensional lattice.
+/// Use `bmm_moore_ncp` to find the upper bound of `i`.
+__attribute__ ((__nonnull__))
+inline void bmm_moore_ijcp(size_t* restrict const pij,
+    size_t const* restrict const ij, size_t const imoore,
+    size_t const ndim, size_t const* restrict const nper,
+    bool const* const per) {
+  size_t jmoore = 0;
+
+  size_t const ntrial = bmm_size_pow(3, ndim);
+
+  for (size_t itrial = 0; itrial < ntrial; ++itrial)
+    if (bmm_moore_qcp(pij, ij, itrial, ndim, nper, per)) {
+      if (jmoore == imoore)
+        goto br;
+      else
+        ++jmoore;
+    }
+
+br:
+  for (size_t idim = 0; idim < ndim; ++idim)
+    pij[idim] = bmm_size_dec(ij[idim] + pij[idim], nper[idim]);
+}
+
+/// The call `bmm_moore_ijcpr(pij, ij, i, d, n, p)`
+/// sets the point `pij` to the reduced Moore neighborhood index `i`
+/// of the point `ij` in a `p`-conditionally periodic `n`-wide
+/// `d`-dimensional lattice.
+/// Use `bmm_moore_ncpr` to find the upper bound of `i`.
+__attribute__ ((__nonnull__))
+inline void bmm_moore_ijcpr(size_t* restrict const pij,
+    size_t const* restrict const ij, size_t const imoore,
+    size_t const ndim, size_t const* restrict const nper,
+    bool const* const per) {
+  size_t jmoore = 0;
+
+  size_t const ntrial = bmm_size_pow(3, ndim);
+  size_t const ktrial = ntrial / 2;
+
+  for (size_t itrial = 0; itrial < ktrial; ++itrial)
+    if (bmm_moore_qcp(pij, ij, itrial, ndim, nper, per)) {
+      if (jmoore == imoore)
+        goto br;
+      else
+        ++jmoore;
+    }
+
+  for (size_t itrial = ktrial + 1; itrial < ntrial; ++itrial)
+    if (bmm_moore_qcp(pij, ij, itrial, ndim, nper, per)) {
+      if (jmoore == imoore)
+        goto br;
+      else
+        ++jmoore;
+    }
+
+br:
+  for (size_t idim = 0; idim < ndim; ++idim)
+    pij[idim] = bmm_size_dec(ij[idim] + pij[idim], nper[idim]);
+}
+
+/// The call `bmm_moore_ijcplh(pij, ij, i, d, n, p)`
+/// sets the point `pij` to the lower Moore half-neighborhood index `i`
+/// of the point `ij` in a `p`-conditionally periodic `n`-wide
+/// `d`-dimensional lattice.
+/// Use `bmm_moore_ncplh` to find the upper bound of `i`.
+__attribute__ ((__nonnull__))
+inline void bmm_moore_ijcplh(size_t* restrict const pij,
+    size_t const* restrict const ij, size_t const imoore,
+    size_t const ndim, size_t const* restrict const nper,
+    bool const* const per) {
+  size_t jmoore = 0;
+
+  size_t const ntrial = bmm_size_pow(3, ndim);
+  size_t const ktrial = ntrial / 2;
+
+  for (size_t itrial = 0; itrial < ktrial; ++itrial)
+    if (bmm_moore_qcp(pij, ij, itrial, ndim, nper, per)) {
+      if (jmoore == imoore)
+        goto br;
+      else
+        ++jmoore;
+    }
+
+  if (bmm_moore_qcp(pij, ij, ktrial, ndim, nper, per)) {
+    if (jmoore == imoore)
+      goto br;
+    else
+      ++jmoore;
+  }
+
+br:
+  for (size_t idim = 0; idim < ndim; ++idim)
+    pij[idim] = bmm_size_dec(ij[idim] + pij[idim], nper[idim]);
+}
+
+/// The call `bmm_moore_ijcplhr(pij, ij, i, d, n, p)`
+/// sets the point `pij` to the reduced lower Moore half-neighborhood index `i`
+/// of the point `ij` in a `p`-conditionally periodic `n`-wide
+/// `d`-dimensional lattice.
+/// Use `bmm_moore_ncplhr` to find the upper bound of `i`.
+__attribute__ ((__nonnull__))
+inline void bmm_moore_ijcplhr(size_t* restrict const pij,
+    size_t const* restrict const ij, size_t const imoore,
+    size_t const ndim, size_t const* restrict const nper,
+    bool const* const per) {
+  size_t jmoore = 0;
+
+  size_t const ntrial = bmm_size_pow(3, ndim);
+  size_t const ktrial = ntrial / 2;
+
+  for (size_t itrial = 0; itrial < ktrial; ++itrial)
+    if (bmm_moore_qcp(pij, ij, itrial, ndim, nper, per)) {
+      if (jmoore == imoore)
+        goto br;
+      else
+        ++jmoore;
+    }
+
+br:
+  for (size_t idim = 0; idim < ndim; ++idim)
+    pij[idim] = bmm_size_dec(ij[idim] + pij[idim], nper[idim]);
+}
+
+/// The call `bmm_moore_ijcpuh(pij, ij, i, d, n, p)`
+/// sets the point `pij` to the upper Moore half-neighborhood index `i`
+/// of the point `ij` in a `p`-conditionally periodic `n`-wide
+/// `d`-dimensional lattice.
+/// Use `bmm_moore_ncpuh` to find the upper bound of `i`.
+__attribute__ ((__nonnull__))
+inline void bmm_moore_ijcpuh(size_t* restrict const pij,
+    size_t const* restrict const ij, size_t const imoore,
+    size_t const ndim, size_t const* restrict const nper,
+    bool const* const per) {
+  size_t jmoore = 0;
+
+  size_t const ntrial = bmm_size_pow(3, ndim);
+  size_t const ktrial = ntrial / 2;
+
+  if (bmm_moore_qcp(pij, ij, ktrial, ndim, nper, per)) {
+    if (jmoore == imoore)
+      goto br;
+    else
+      ++jmoore;
+  }
+
+  for (size_t itrial = ktrial + 1; itrial < ntrial; ++itrial)
+    if (bmm_moore_qcp(pij, ij, itrial, ndim, nper, per)) {
+      if (jmoore == imoore)
+        goto br;
+      else
+        ++jmoore;
+    }
+
+br:
+  for (size_t idim = 0; idim < ndim; ++idim)
+    pij[idim] = bmm_size_dec(ij[idim] + pij[idim], nper[idim]);
+}
+
+/// The call `bmm_moore_ijcpuhr(pij, ij, i, d, n, p)`
+/// sets the point `pij` to the reduced upper Moore half-neighborhood index `i`
+/// of the point `ij` in a `p`-conditionally periodic `n`-wide
+/// `d`-dimensional lattice.
+/// Use `bmm_moore_ncpuhr` to find the upper bound of `i`.
+__attribute__ ((__nonnull__))
+inline void bmm_moore_ijcpuhr(size_t* restrict const pij,
+    size_t const* restrict const ij, size_t const imoore,
+    size_t const ndim, size_t const* restrict const nper,
+    bool const* const per) {
+  size_t jmoore = 0;
+
+  size_t const ntrial = bmm_size_pow(3, ndim);
+  size_t const ktrial = ntrial / 2;
+
+  for (size_t itrial = ktrial + 1; itrial < ntrial; ++itrial)
+    if (bmm_moore_qcp(pij, ij, itrial, ndim, nper, per)) {
+      if (jmoore == imoore)
+        goto br;
+      else
+        ++jmoore;
+    }
+
+br:
+  for (size_t idim = 0; idim < ndim; ++idim)
+    pij[idim] = bmm_size_dec(ij[idim] + pij[idim], nper[idim]);
 }
 
 #endif

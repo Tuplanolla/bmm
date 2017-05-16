@@ -18,6 +18,7 @@ CHEAT_TEST(cpp_testbit,
 CHEAT_DECLARE(
   static size_t const ndim = 3;
   static size_t const nper[] = {5, 4, 3};
+  static bool const per[] = {true, false, true};
 )
 
 CHEAT_TEST(size_hc_ord,
@@ -127,6 +128,20 @@ CHEAT_TEST(moore_ij,
   cheat_assert_size(ij[2], 0);
 
   bmm_moore_ij(ij, (size_t const[]) {1, 1, 1}, 0, ndim, nper);
+  cheat_assert_size(ij[0], 0);
+  cheat_assert_size(ij[1], 0);
+  cheat_assert_size(ij[2], 0);
+)
+
+CHEAT_TEST(moore_ijcp,
+  size_t ij[3];
+
+  bmm_moore_ijcp(ij, (size_t const[]) {0, 0, 0}, 0, ndim, nper, per);
+  cheat_assert_size(ij[0], 4);
+  cheat_assert_size(ij[1], 0);
+  cheat_assert_size(ij[2], 2);
+
+  bmm_moore_ijcp(ij, (size_t const[]) {1, 1, 1}, 0, ndim, nper, per);
   cheat_assert_size(ij[0], 0);
   cheat_assert_size(ij[1], 0);
   cheat_assert_size(ij[2], 0);
