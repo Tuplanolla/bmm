@@ -14,6 +14,7 @@
 #include "geom.h"
 #include "geom2d.h"
 #include "io.h"
+#include "moore.h"
 #include "msg.h"
 #include "sig.h"
 #include "size.h"
@@ -24,24 +25,6 @@
 #include <fenv.h>
 #endif
 #endif
-
-// The partition looks like this:
-//
-//       ^
-//       | - + +
-//     y | - + +
-//       | - - +
-//       +------->
-//           x
-//
-// The following monad comprehension generator was used:
-//
-//     [(i, j) | i <- [-1 .. 1], j <- [-1 .. 1]]
-int const bmm_moore[][2] = {
-  {-1, -1}, {-1, 0}, {-1, 1},
-  {0, -1}, {0, 0}, {0, 1},
-  {1, -1}, {1, 0}, {1, 1}
-};
 
 // TODO Wow, disgusting.
 
@@ -74,10 +57,105 @@ void bmm_dem_ijcell(size_t* const pijcell,
     else {
       size_t const k = (size_t) x;
 
-      dynamic_assert(k < j, "Incorrect rounding");
+      dynamic_assert(k < j, "Invalid truncation");
 
       pijcell[idim] = k;
     }
+  }
+}
+
+// TODO Name these and share them with the refresh mechanism.
+
+// Usually you first fill `cache.part` by going over all particles.
+// Then you go over all particles again and,
+// for each particle in the same cell or upper Moore half,
+// check the neighborhood condition.
+//
+// In this case the beginning is the same.
+// However you only go over this particle and,
+// for each particle in the same cell or upper Moore half,
+// check the neighborhood condition.
+// Additionally you also go through every particle in the reduced lower half,
+// checking the neighborhood condition only for this particle.
+
+void bmm_dem_for1(struct bmm_dem* const dem, size_t const ipart) {
+  bmm_dem_ijcell(dem->cache.cell[ipart], dem, ipart);
+
+  size_t const icell = bmm_size_unhc(dem->cache.cell[ipart],
+      BMM_NDIM, BMM_NCELL);
+
+  // TODO Consider a generic `bmm_dem_push`.
+
+  if (dem->cache.part[icell].n >= nmembof(dem->cache.part[icell].i))
+    return;
+
+  size_t const jpart = dem->cache.part[icell].n;
+
+  dem->cache.part[icell].i[jpart] = ipart;
+  ++dem->cache.part[icell].n;
+}
+
+void bmm_dem_for2(struct bmm_dem* const dem, size_t const ipart) {
+  dem->cache.neigh[ipart].n = 0;
+
+  size_t ij[BMM_NDIM];
+
+  size_t const nmoore = bmm_moore_ncpuh(ij,
+      dem->cache.cell[ipart], BMM_NDIM,
+      dem->opts.cache.ncell, dem->opts.box.per);
+
+  for (size_t imoore = 0; imoore < nmoore; ++imoore) {
+    bmm_moore_ijcpuh(ij, dem->cache.cell[ipart], imoore,
+        BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per);
+
+    size_t const icell = bmm_size_unhcd(ij, BMM_NDIM, dem->opts.cache.ncell);
+
+    for (size_t jpart = 0; jpart < dem->cache.part[icell].n; ++jpart)
+      if (bmm_geom2d_cpdist2(dem->part.x[ipart], dem->part.x[jpart],
+            dem->opts.box.x, dem->opts.box.per) <
+          bmm_fp_sq(dem->opts.cache.rcutoff)) {
+        // TODO Consider a generic `bmm_dem_push`.
+
+        if (dem->cache.neigh[ipart].n >= nmembof(dem->cache.neigh[ipart].i))
+          break;
+
+        size_t const ineigh = dem->cache.neigh[ipart].n;
+
+        dem->cache.neigh[ipart].i[ineigh] = jpart;
+        ++dem->cache.neigh[ipart].n;
+      }
+  }
+}
+
+void bmm_dem_for3(struct bmm_dem* const dem, size_t const ipart) {
+  size_t ij[BMM_NDIM];
+
+  size_t const nmoore = bmm_moore_ncplhr(ij,
+      dem->cache.cell[ipart], BMM_NDIM,
+      dem->opts.cache.ncell, dem->opts.box.per);
+
+  for (size_t imoore = 0; imoore < nmoore; ++imoore) {
+    bmm_moore_ijcpuh(ij, dem->cache.cell[ipart], imoore,
+        BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per);
+
+    size_t const icell = bmm_size_unhcd(ij, BMM_NDIM, dem->opts.cache.ncell);
+
+    for (size_t jpart = 0; jpart < dem->cache.part[icell].n; ++jpart)
+      if (bmm_geom2d_cpdist2(dem->part.x[ipart], dem->part.x[jpart],
+            dem->opts.box.x, dem->opts.box.per) <
+          bmm_fp_sq(dem->opts.cache.rcutoff)) {
+        // TODO Consider a generic `bmm_dem_push`.
+
+        // <diff from="ipart,break,jpart" to="jpart,continue,ipart">
+        if (dem->cache.neigh[jpart].n >= nmembof(dem->cache.neigh[jpart].i))
+          continue;
+
+        size_t const ineigh = dem->cache.neigh[jpart].n;
+
+        dem->cache.neigh[jpart].i[ineigh] = ipart;
+        ++dem->cache.neigh[jpart].n;
+        // </diff>
+      }
   }
 }
 
@@ -117,106 +195,14 @@ size_t bmm_dem_addpart(struct bmm_dem* const dem,
 
   dem->part.tau[ipart] = 0.0;
 
-  // TODO Factor these out and share them with the refresh mechanism.
-
-  // Usually you fill `cache.part` by going over all particles.
-  // Then you go over all particles and,
-  // for each particle in the same cell or one Moore half,
-  // check the neighborhood condition.
-  //
-  // In this case the beginning is the same.
-  // However you only go over this particle and,
-  // for each particle in the same cell or one Moore half,
-  // check the neighborhood condition.
-  // Additionally you also go through every particle in the other Moore half,
-  // checking the neighborhood only for this particle.
-
   // "In this case..."
-  {
-    bmm_dem_ijcell(dem->cache.cell[ipart], dem, ipart);
-
-    size_t const icell = bmm_size_unhc(dem->cache.cell[ipart],
-        BMM_NDIM, BMM_NCELL);
-
-    // TODO Consider a generic `bmm_dem_push`.
-
-    if (dem->cache.part[icell].n >= nmembof(dem->cache.part[icell].i))
-      goto br;
-
-    size_t const jpart = dem->cache.part[icell].n;
-
-    dem->cache.part[icell].i[jpart] = ipart;
-    ++dem->cache.part[icell].n;
-
-br:
-    ;
-  }
+  bmm_dem_for1(dem, ipart);
 
   // "However..."
-  {
-    dem->cache.neigh[ipart].n = 0;
-
-    size_t ij[BMM_NDIM];
-
-    size_t const nmoore = bmm_moore_ncpuh(ij,
-        dem->cache.cell[ipart], BMM_NDIM,
-        dem->opts.cache.ncell, dem->opts.box.per);
-
-    for (size_t imoore = 0; imoore < nmoore; ++imoore) {
-      bmm_moore_ijcpuh(ij, dem->cache.cell[ipart], imoore,
-          BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per);
-
-      size_t const icell = bmm_size_unhcd(ij, BMM_NDIM, dem->opts.cache.ncell);
-
-      for (size_t jpart = 0; jpart < dem->cache.part[icell].n; ++jpart)
-        if (bmm_geom2d_cpdist2(dem->part.x[ipart], dem->part.x[jpart],
-              dem->opts.box.x, dem->opts.box.per) <
-            bmm_fp_sq(dem->opts.cache.rcutoff)) {
-          // TODO Consider a generic `bmm_dem_push`.
-
-          if (dem->cache.neigh[ipart].n >= nmembof(dem->cache.neigh[ipart].i))
-            break;
-
-          size_t const ineigh = dem->cache.neigh[ipart].n;
-
-          dem->cache.neigh[ipart].i[ineigh] = jpart;
-          ++dem->cache.neigh[ipart].n;
-        }
-    }
-  }
+  bmm_dem_for2(dem, ipart);
 
   // "Additionally..."
-  {
-    size_t ij[BMM_NDIM];
-
-    size_t const nmoore = bmm_moore_ncplhr(ij,
-        dem->cache.cell[ipart], BMM_NDIM,
-        dem->opts.cache.ncell, dem->opts.box.per);
-
-    for (size_t imoore = 0; imoore < nmoore; ++imoore) {
-      bmm_moore_ijcpuh(ij, dem->cache.cell[ipart], imoore,
-          BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per);
-
-      size_t const icell = bmm_size_unhcd(ij, BMM_NDIM, dem->opts.cache.ncell);
-
-      for (size_t jpart = 0; jpart < dem->cache.part[icell].n; ++jpart)
-        if (bmm_geom2d_cpdist2(dem->part.x[ipart], dem->part.x[jpart],
-              dem->opts.box.x, dem->opts.box.per) <
-            bmm_fp_sq(dem->opts.cache.rcutoff)) {
-          // TODO Consider a generic `bmm_dem_push`.
-
-          // <diff from="ipart,break,jpart" to="jpart,continue,ipart">
-          if (dem->cache.neigh[jpart].n >= nmembof(dem->cache.neigh[jpart].i))
-            continue;
-
-          size_t const ineigh = dem->cache.neigh[jpart].n;
-
-          dem->cache.neigh[jpart].i[ineigh] = ipart;
-          ++dem->cache.neigh[jpart].n;
-          // </diff>
-        }
-    }
-  }
+  bmm_dem_for3(dem, ipart);
 
   return ipart;
 }
@@ -341,7 +327,6 @@ bool bmm_dem_rmpart(struct bmm_dem* const dem, size_t const ipart) {
   return true;
 }
 
-// TODO Make periodicity mutable by axis.
 void bmm_dem_forces(struct bmm_dem* const dem) {
   for (size_t ipart = 0; ipart < dem->buf.npart; ++ipart)
     for (size_t idim = 0; idim < 2; ++idim)
@@ -535,8 +520,6 @@ void bmm_dem_recont(struct bmm_dem* const dem) {
   }
 }
 
-// TODO Must this always be called immediately after `bmm_dem_recont`?
-// Not an important question, but interesting nevertheless.
 void bmm_dem_reneigh(struct bmm_dem* const dem) {
   for (size_t ipart = 0; ipart < dem->buf.npart; ++ipart) {
     bmm_dem_cleary(&dem->buf.neigh.neighs[ipart]);
