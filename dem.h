@@ -24,6 +24,16 @@ enum bmm_dem_integ {
   BMM_DEM_INTEG_GEAR
 };
 
+enum bmm_dem_caching {
+  BMM_DEM_CACHING_NONE,
+  BMM_DEM_CACHING_NEIGH
+};
+
+enum bmm_dem_famb {
+  BMM_DEM_FAMB_NONE,
+  BMM_DEM_FAMB_CREEPING
+};
+
 enum bmm_dem_fnorm {
   BMM_DEM_FNORM_NONE,
   BMM_DEM_FNORM_DASHPOT,
@@ -57,6 +67,10 @@ struct bmm_dem_opts {
   enum bmm_dem_init init;
   /// Integration scheme.
   enum bmm_dem_integ integ;
+  /// Caching scheme.
+  enum bmm_dem_caching caching;
+  /// Ambient force scheme.
+  enum bmm_dem_famb famb;
   /// Normal force scheme.
   enum bmm_dem_fnorm fnorm;
   /// Tangential force scheme.
@@ -182,6 +196,8 @@ struct bmm_dem {
   struct {
     /// Step.
     double i;
+    /// Stabilization frequency (frame rule).
+    double istab;
     /// Time.
     double t;
   } time;

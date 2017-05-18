@@ -14,23 +14,7 @@ static bool f(char const* const key, char const* const value,
     void* const ptr) {
   struct bmm_dem_opts* const opts = ptr;
 
-  if (strcmp(key, "ncellx") == 0) {
-    if (!bmm_str_strtoz(&opts->ncell[0], value))
-      return false;
-  } else if (strcmp(key, "ncelly") == 0) {
-    if (!bmm_str_strtoz(&opts->ncell[1], value))
-      return false;
-  } else if (strcmp(key, "nbin") == 0) {
-    if (!bmm_str_strtoz(&opts->nbin, value))
-      return false;
-  } else if (strcmp(key, "nstep") == 0) {
-    if (!bmm_str_strtoz(&opts->nstep, value))
-      return false;
-  } else if (strcmp(key, "rmax") == 0) {
-    if (!bmm_str_strtod(&opts->rmax, value))
-      return false;
-  } else
-    return false;
+  // TODO This.
 
   return true;
 }
@@ -50,9 +34,9 @@ int main(int const argc, char** const argv) {
   }
 
   // TODO Get rid of these after refactoring `dem.c`.
-  opts->cache.ncell[0] = 6;
-  opts->cache.ncell[1] = 6;
-  opts->cache.rcutoff = 0.2;
+  opts.cache.ncell[0] = 6;
+  opts.cache.ncell[1] = 6;
+  opts.cache.rcutoff = 0.2;
 
   if (!bmm_dem_run_with(&opts)) {
     bmm_tle_put();
