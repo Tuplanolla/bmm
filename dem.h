@@ -13,6 +13,7 @@
 #include "msg.h"
 
 enum bmm_dem_init {
+  BMM_DEM_INIT_NONE,
   BMM_DEM_INIT_TRIAL,
   BMM_DEM_INIT_CUBIC,
   BMM_DEM_INIT_POISSOND
@@ -24,11 +25,13 @@ enum bmm_dem_integ {
 };
 
 enum bmm_dem_fnorm {
+  BMM_DEM_FNORM_NONE,
   BMM_DEM_FNORM_DASHPOT,
   BMM_DEM_FNORM_VISCOEL
 };
 
 enum bmm_dem_ftang {
+  BMM_DEM_FTANG_NONE,
   BMM_DEM_FTANG_HW,
   BMM_DEM_FTANG_CS
 };
@@ -40,10 +43,11 @@ enum bmm_dem_role {
 };
 
 enum bmm_dem_mode {
+  BMM_DEM_MODE_IDLE,
   BMM_DEM_MODE_BEGIN,
   BMM_DEM_MODE_SEDIMENT,
   BMM_DEM_MODE_LINK,
-  BMM_DEM_MODE_BREAK,
+  BMM_DEM_MODE_SMASH,
   BMM_DEM_MODE_ACCEL,
   BMM_DEM_MODE_CRUNCH
 };
@@ -72,12 +76,32 @@ struct bmm_dem_opts {
     /// the Stokes radius $r$ is equal to particle radius.
     double eta;
   } ambient;
+  /// Normal forces.
+  struct {
+    /// Parameters.
+    union {
+      /// For `BMM_DEM_FNORM_DASHPOT`.
+      struct {
+        /// Dashpot elasticity.
+        double gamma;
+      } dashpot;
+    } params;
+  } norm;
+  /// Tangential forces.
+  struct {
+    /// Parameters.
+    union {
+      /// For `BMM_DEM_FTANG_HW`.
+      struct {
+        /// Dummy variable.
+        double dummy;
+      } hw;
+    } params;
+  } tang;
   /// Particles.
   struct {
-    /// Young's modulus $Y$.
+    /// Young's modulus.
     double y;
-    /// Dashpot elasticity $\\gamma$.
-    double gamma;
     /// Particle sizes expressed as the support of the uniform distribution.
     double rnew[2];
   } part;
@@ -85,7 +109,7 @@ struct bmm_dem_opts {
   struct {
     /// Link length creation factor.
     double ccrlink;
-    /// Link length shrink factor.
+    /// Link length expansion factor.
     double cshlink;
     /// Tensile spring constant.
     double ktens;
@@ -113,7 +137,7 @@ struct bmm_dem_opts {
           /// Force increment.
           double fadjust;
         } crunch;
-        /// For `BMM_DEM_MODE_BREAK`.
+        /// For `BMM_DEM_MODE_SMASH`.
         struct {
           /// Pull-apart vector.
           double xgap[BMM_NDIM];
@@ -241,9 +265,11 @@ struct bmm_dem {
   /// Neighbor cache.
   /// This is only used for performance optimization.
   struct {
-    /// Time of previous update.
+    /// Time of previous partial update.
+    double tpart;
+    /// Time of previous full update.
     double tprev;
-    /// Time of next update.
+    /// Time of next full update.
     double tnext;
     /// Which neighbor cell each particle was in previously.
     size_t cell[BMM_NPART][BMM_NDIM];
@@ -260,7 +286,7 @@ struct bmm_dem {
       /// Number of neighbors.
       size_t n;
       /// Neighbor indices.
-      size_t i[BMM_NGROUP * ((BMM_POW(3, BMM_NDIM) - 1) / 2)];
+      size_t i[BMM_NGROUP * (BMM_POW(3, BMM_NDIM) / 2)];
     } neigh[BMM_NPART];
   } cache;
 };

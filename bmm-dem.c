@@ -49,6 +49,11 @@ int main(int const argc, char** const argv) {
     return EXIT_FAILURE;
   }
 
+  // TODO Get rid of these after refactoring `dem.c`.
+  opts->cache.ncell[0] = 6;
+  opts->cache.ncell[1] = 6;
+  opts->cache.rcutoff = 0.2;
+
   if (!bmm_dem_run_with(&opts)) {
     bmm_tle_put();
 
