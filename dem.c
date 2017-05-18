@@ -26,18 +26,6 @@
 #endif
 #endif
 
-// TODO Wow, disgusting.
-
-/*
-extern inline void bmm_dem_clear(struct bmm_dem_list* const list);
-
-extern inline bool bmm_dem_push(struct bmm_dem_list* const list, size_t const x);
-
-extern inline size_t bmm_dem_size(struct bmm_dem_list const* const list);
-
-extern inline size_t bmm_dem_get(struct bmm_dem_list const* const list, size_t const i);
-*/
-
 void bmm_dem_ijcell(size_t* const pijcell,
     struct bmm_dem const* const dem, size_t const ipart) {
   for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
@@ -72,15 +60,6 @@ bool bmm_dem_isneigh(struct bmm_dem* const dem,
     bmm_fp_sq(dem->opts.cache.rcutoff);
 }
 
-// TODO Consider a sensible implementation.
-#define bmm_dem_push(p, x) \
-  begin \
-    if (p.n >= nmembof(p.i)) \
-      goto br; \
-    p.i[p.n] = x; \
-    ++p.n; \
-  end
-
 // TODO Name these and share them with the refresh mechanism.
 
 // Usually you first fill `cache.part` by going over all particles.
@@ -104,12 +83,8 @@ bool bmm_dem_cache_cell(struct bmm_dem* const dem, size_t const ipart) {
   size_t const icell = bmm_size_unhc(dem->cache.cell[ipart],
       BMM_NDIM, BMM_NCELL);
 
-  bmm_dem_push(dem->cache.part[icell], ipart);
-
-  return true;
-
-br:
-  return false;
+  return BMM_ASET_INS(dem->cache.part[icell].i, dem->cache.part[icell].n,
+      ipart);
 }
 
 /// The call `bmm_dem_cache_recell(dem)`
@@ -154,14 +129,13 @@ bool bmm_dem_for2(struct bmm_dem* const dem, size_t const ipart) {
       size_t const jpart = dem->cache.part[icell].i[igroup];
 
       if (bmm_dem_isneigh(dem, ipart, jpart))
-        bmm_dem_push(dem->cache.neigh[ipart], jpart);
+        if (!BMM_ASET_INS(dem->cache.neigh[ipart].i, dem->cache.neigh[ipart].n,
+            jpart))
+          return false;
     }
   }
 
   return true;
-
-br:
-  return false;
 }
 
 // Goes over these neighbor cells and adds `ipart` to their neighbors.
@@ -192,13 +166,10 @@ bool bmm_dem_for3(struct bmm_dem* const dem, size_t const ipart) {
       size_t const jpart = dem->cache.part[icell].i[igroup];
 
       if (bmm_dem_isneigh(dem, ipart, jpart))
-        bmm_dem_push(dem->cache.neigh[jpart], ipart);
+        if (!BMM_ASET_INS(dem->cache.neigh[jpart].i, dem->cache.neigh[jpart].n,
+            ipart))
+          p = false;
     }
-
-    continue;
-
-br:
-    p = false;
   }
 
   return p;
@@ -494,20 +465,20 @@ void bmm_dem_force(struct bmm_dem* const dem) {
 
 void bmm_dem_integ_euler(struct bmm_dem* const dem) {
   // TODO Script system!
-  double const dt = dem->opts.tstep;
+  double const dt = dem->opts.script.stage[dem->script.i].dt;
 
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
     for (size_t idim = 0; idim < 2; ++idim) {
       dem->part.a[ipart][idim] = dem->part.f[ipart][idim] / dem->part.m[ipart];
 
       dem->part.x[ipart][idim] = bmm_fp_uwrap(
-          dem->part.x[ipart][idim] +
-          dem->part.v[ipart][idim] * dt, dem->opts.box.x[idim]);
+          dem->part.x[ipart][idim] + dem->part.v[ipart][idim] * dt,
+          dem->opts.box.x[idim]);
 
       dem->part.v[ipart][idim] = dem->part.v[ipart][idim] + dem->part.a[ipart][idim] * dt;
     }
 
-    dem->part.alpha[ipart] = dem->part.tau[ipart] / dem->part.moi[ipart];
+    dem->part.alpha[ipart] = dem->part.tau[ipart] / dem->part.j[ipart];
 
     dem->part.phi[ipart] = dem->part.phi[ipart] + dem->part.omega[ipart] * dt;
 
@@ -522,7 +493,7 @@ void bmm_dem_stab(struct bmm_dem* const dem) {
 }
 
 void bmm_dem_predict(struct bmm_dem* const dem) {
-  switch (dem->integ) {
+  switch (dem->opts.integ) {
     case BMM_DEM_INTEG_EULER:
       break;
     case BMM_DEM_INTEG_GEAR:

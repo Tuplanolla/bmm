@@ -92,7 +92,7 @@ shallow-clean:
 bmm-dem: CFLAGS+=$$(pkg-config --cflags gsl)
 bmm-dem: LDLIBS+=$$(pkg-config --libs gsl)
 bmm-dem: bmm-dem.o \
-	dem.o endy.o fp.o geom.o geom2d.o hack.o io.o msg.o \
+	aset.o dem.o endy.o fp.o geom.o geom2d.o hack.o io.o msg.o \
 	opt.o sec.o sig.o size.o str.o tle.o
 
 bmm-filter: bmm-filter.o \

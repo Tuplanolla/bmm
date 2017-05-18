@@ -10,6 +10,9 @@
 #include "ext.h"
 #include "size.h"
 
+// TODO Consider `int` indices
+// since now periodicity does not unify with nonperiodicity.
+
 // This implementation is not as optimal as the interface allows,
 // but should be good enough for most purposes.
 

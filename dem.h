@@ -307,35 +307,6 @@ struct bmm_dem {
   } cache;
 };
 
-// TODO Combine list types.
-
-// Index lists.
-
-/*
-inline void bmm_dem_clear(struct bmm_dem_list* const list) {
-  list->n = 0;
-}
-
-inline bool bmm_dem_push(struct bmm_dem_list* const list, size_t const x) {
-  if (list->n >= sizeof list->i / sizeof *list->i)
-    return false;
-
-  list->i[list->n] = x;
-  ++list->n;
-
-  return true;
-}
-
-inline size_t bmm_dem_size(struct bmm_dem_list const* const list) {
-  return list->n;
-}
-
-inline size_t bmm_dem_get(struct bmm_dem_list const* const list,
-    size_t const i) {
-  return list->i[i];
-}
-*/
-
 /// The call `bmm_dem_ijkcell(pijkcell, dem, ipart)`
 /// writes the neighbor cell indices of the particle with the index `ipart`
 /// into the index vector `pijkcell`.

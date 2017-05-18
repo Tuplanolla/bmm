@@ -38,9 +38,13 @@
 #define begin do {
 #define end } while (false)
 
+/// The preprocessor directive `msizeof(x)`
+/// expands to the member size of the array `x`.
+#define msizeof(x) (sizeof *(x))
+
 /// The preprocessor directive `nmembof(x)`
-/// expands to the number of elements in the array `x`.
-#define nmembof(x) (sizeof (x) / sizeof *(x))
+/// expands to the number of members in the array `x`.
+#define nmembof(x) (sizeof (x) / msizeof(x))
 
 /// The preprocessor directive `static_assert(p, s)`
 /// imitates the standard library function with the same name
