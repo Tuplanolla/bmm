@@ -20,12 +20,6 @@
 #include "size.h"
 #include "tle.h"
 
-#ifdef _GNU_SOURCE
-#ifdef DEBUG
-#include <fenv.h>
-#endif
-#endif
-
 void bmm_dem_ijcell(size_t* const pijcell,
     struct bmm_dem const* const dem, size_t const ipart) {
   for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
@@ -112,7 +106,7 @@ bool bmm_dem_cache_recell(struct bmm_dem* const dem) {
 //       +------->
 //           x
 //
-bool bmm_dem_for2(struct bmm_dem* const dem, size_t const ipart) {
+bool bmm_dem_cache_doto(struct bmm_dem* const dem, size_t const ipart) {
   size_t ij[BMM_NDIM];
 
   size_t const nmoore = bmm_moore_ncpuh(ij,
@@ -147,7 +141,7 @@ bool bmm_dem_for2(struct bmm_dem* const dem, size_t const ipart) {
 //       +------->
 //           x
 //
-bool bmm_dem_for3(struct bmm_dem* const dem, size_t const ipart) {
+bool bmm_dem_cache_dofrom(struct bmm_dem* const dem, size_t const ipart) {
   bool p = true;
 
   size_t ij[BMM_NDIM];
@@ -175,7 +169,14 @@ bool bmm_dem_for3(struct bmm_dem* const dem, size_t const ipart) {
   return p;
 }
 
-size_t bmm_dem_addpart(struct bmm_dem* const dem,
+bool bmm_dem_reneigh(struct bmm_dem* const dem) {
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    (void) bmm_dem_cache_doto(dem, ipart);
+
+  return true;
+}
+
+size_t bmm_dem_inspart(struct bmm_dem* const dem,
     double const r, double const m) {
   size_t const ipart = dem->part.n;
 
@@ -217,15 +218,15 @@ size_t bmm_dem_addpart(struct bmm_dem* const dem,
   // "However..."
   dem->cache.neigh[ipart].n = 0;
 
-  (void) bmm_dem_for2(dem, ipart);
+  (void) bmm_dem_cache_doto(dem, ipart);
 
   // "Additionally..."
-  (void) bmm_dem_for3(dem, ipart);
+  (void) bmm_dem_cache_dofrom(dem, ipart);
 
   return ipart;
 }
 
-bool bmm_dem_rmpart(struct bmm_dem* const dem, size_t const ipart) {
+bool bmm_dem_delpart(struct bmm_dem* const dem, size_t const ipart) {
   dynamic_assert(ipart < dem->part.n, "Index out of bounds");
 
   size_t const jpart = dem->part.n - 1;
@@ -349,73 +350,50 @@ typedef void (* bmm_fpair)(struct bmm_dem*, size_t, size_t);
 
 void bmm_dem_force_pair(struct bmm_dem* const dem,
     size_t const ipart, size_t const jpart) {
-  // TODO Make a predicate function.
-  double dr[2];
-  bmm_geom2d_pdiff(dr,
-      dem->part.x[ipart],
-      dem->part.x[jpart],
-      dem->opts.box.x);
+  double xdiff[BMM_NDIM];
+  bmm_geom2d_cpdiff(xdiff, dem->part.x[ipart], dem->part.x[jpart],
+      dem->opts.box.x, dem->opts.box.per);
 
-  double const d2 = bmm_geom2d_norm2(dr);
+  double const d2 = bmm_geom2d_norm2(xdiff);
 
   double const r = dem->part.r[ipart] + dem->part.r[jpart];
-
   double const r2 = bmm_fp_sq(r);
 
-  if (d2 < r2) {
-    double const x = r - sqrt(d2);
+  if (d2 > r2)
+    return;
 
-    // TODO Write a fast vector shift function.
-    listy->thingy[ineigh].x[1] = listy->thingy[ineigh].x[0];
-    listy->thingy[ineigh].x[0] = x;
+  // TODO Maybe cache some of these.
 
-    // TODO Write a thing for this too.
-    double const dx = listy->thingy[ineigh].x[0] - listy->thingy[ineigh].x[1];
-    double const v = dx / dem->opts.tstep;
+  double const d = sqrt(d2);
 
-    // TODO Use getters.
-    double const f = fmax(0.0,
-        dem->opts.part.y * x + dem->opts.yelast * v);
+  double xnorm[BMM_NDIM];
+  bmm_geom2d_scale(xnorm, xdiff, d);
 
-    double n[2];
-    bmm_geom2d_normal(n, dr);
+  double xtang[BMM_NDIM];
+  bmm_geom2d_rperp(xtang, xnorm);
 
-    double t[2];
-    bmm_geom2d_rperp(t, n);
+  double vdiff[BMM_NDIM];
+  bmm_geom2d_diff(vdiff, dem->part.v[ipart], dem->part.v[jpart]);
 
-    double df[2];
-    bmm_geom2d_scale(df, n, -f);
+  double const xi = r - d;
+  double const beta = bmm_geom2d_dot(vdiff, xnorm);
 
-    bmm_geom2d_add(dem->part.f[ipart], dem->part.f[ipart], df);
-  }
-}
+  /*
+  double vproj[BMM_NDIM];
+  bmm_geom2d_scale(vproj, xnorm, beta);
 
-void bmm_dem_force_link(struct bmm_dem* const dem,
-    size_t const ipart, size_t const jpart, size_t const ilink) {
-  // TODO Copy-pasted from above...
+  double vrej[BMM_NDIM];
+  bmm_geom2d_diff(vrej, vproj, vdiff);
+  */
 
-  double dr[2];
-  bmm_geom2d_pdiff(dr,
-      dem->part.x[ipart],
-      dem->part.x[jpart],
-      dem->opts.box.x);
+  double const f = fmax(0.0, dem->opts.part.y * xi +
+      dem->opts.norm.params.dashpot.gamma * beta);
 
-  double const d = bmm_geom2d_norm(dr);
+  // TODO Investigate the sign.
+  double fdiff[2];
+  bmm_geom2d_scale(fdiff, xnorm, -f);
 
-  // TODO Use getters.
-  double const x0 = list->linkl[ilink].x0;
-  double const f = dem->opts.klink * (x0 - d);
-
-  double n[2];
-  bmm_geom2d_normal(n, dr);
-
-  double t[2];
-  bmm_geom2d_rperp(t, n);
-
-  double df[2];
-  bmm_geom2d_scale(df, n, -f);
-
-  bmm_geom2d_add(dem->part.f[ipart], dem->part.f[ipart], df);
+  bmm_geom2d_addto(dem->part.f[ipart], fdiff);
 }
 
 void bmm_dem_force_ambient(struct bmm_dem* const dem, size_t const ipart) {
@@ -486,7 +464,7 @@ void bmm_dem_integ_euler(struct bmm_dem* const dem) {
   }
 }
 
-/// Clamp domains, renormalize normal vectors, etc.
+/// Clamp periodic domains, renormalize normal vectors, etc.
 void bmm_dem_stab(struct bmm_dem* const dem) {
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     dem->part.phi[ipart] = bmm_fp_uwrap(dem->part.phi[ipart], M_2PI);
@@ -574,72 +552,6 @@ bool bmm_dem_link(struct bmm_dem* const dem) {
         if (bmm_dem_pushl(list, jpart))
           list->linkl[list->n - 1].x0 = dem->opts.linkoff * sqrt(d2);
     }
-  }
-
-  return true;
-}
-
-// TODO All of it.
-bool bmm_dem_break(struct bmm_dem* const dem) {
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
-    struct bmm_dem_listl* const list = &dem->buf.links[ipart];
-
-    for (size_t ilink = 0; ilink < bmm_dem_sizel(list); ++ilink) {
-      size_t const jpart = bmm_dem_getl(list, ilink);
-
-      if (fabs(dem->part.x[ipart][1] - dem->opts.box.x[1] * 0.5) <
-          0.1 * dem->opts.box.x[1]) {
-        double p = gsl_rng_uniform(dem->rng);
-
-        if (p > 0.1) {
-          // TODO Copy-pasted from somewhere...
-          --list->n;
-          list->linkl[ilink] = list->linkl[list->n];
-          --ilink;
-        }
-      }
-    }
-
-    // TODO This requires fundamental rebuilding of indices,
-    // which deserves to be done separately.
-    // This also causes nonphysical symmetry breaking.
-    if (fabs(dem->part.x[ipart][1] - dem->opts.box.x[1] * 0.5) <
-        0.1 * dem->opts.box.x[1]) {
-      double p = gsl_rng_uniform(dem->rng);
-
-      if (p > 1.0) {
-        // TODO Copy-pasted from up there...
-        --dem->part.n;
-        dem->buf.parts[ipart] = dem->buf.parts[dem->part.n];
-        dem->buf.partcs[ipart] = dem->buf.partcs[dem->part.n];
-        dem->buf.neigh.neighs[ipart] = dem->buf.neigh.neighs[dem->part.n];
-        dem->buf.links[ipart] = dem->buf.links[dem->part.n];
-        --ipart;
-      }
-    }
-  }
-
-  return true;
-}
-
-bool bmm_dem_fix(struct bmm_dem* const dem) {
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
-    if (dem->part.x[ipart][1] > 0.8 * dem->opts.box.x[1]) {
-      dem->part.free[ipart] = false;
-      dem->part.nondr[ipart] = false;
-    } else if (dem->part.x[ipart][1] < 0.2 * dem->opts.box.x[1])
-      dem->part.free[ipart] = false;
-  }
-
-  return true;
-}
-
-bool bmm_dem_fault(struct bmm_dem* const dem) {
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
-    if (dem->part.x[ipart][1] > 0.5 * dem->opts.box.x[1])
-      dem->part.x[ipart][1] += dem->opts.yoink * dem->opts.box.x[1];
-    else
-      dem->part.x[ipart][1] -= dem->opts.yoink * dem->opts.box.x[1];
   }
 
   return true;
@@ -779,106 +691,6 @@ void bmm_dem_opts_def(struct bmm_dem_opts* const opts) {
   opts->cache.rcutoff = 1.0;
 }
 
-// TODO Rewrite these.
-
-static void bmm_bottom(struct bmm_dem* const dem) {
-  double x = 0.0;
-
-  for ever {
-    double r = dem->opts.rmean + gsl_ran_gaussian(dem->rng, dem->opts.rsd);
-
-    x += r;
-
-    struct bmm_dem_partc* const partc = &dem->buf.partcs[dem->part.n];
-    struct bmm_dem_part* const part = &dem->buf.parts[dem->part.n];
-
-    bmm_dem_partc_def(partc);
-    bmm_dem_part_def(part);
-
-    partc->r = r;
-    partc->free = false;
-    part->lin.x[0] = x;
-    part->lin.x[1] = dem->opts.box.x[1] / 32.0;
-
-    if (x + r >= dem->opts.box.x[0]) {
-      x -= r;
-
-      double const rprime = (dem->opts.box.x[0] - x) / 2.0;
-
-      x += rprime;
-
-      partc->r = rprime;
-      partc->free = false;
-      part->lin.x[0] = x;
-      part->lin.x[1] = dem->opts.box.x[1] / 32.0;
-
-      ++dem->part.n;
-
-      break;
-    }
-
-    x += r;
-
-    ++dem->part.n;
-  }
-}
-
-static bool bmm_disperse(struct bmm_dem* const dem) {
-  size_t success = 0;
-
-  size_t maxfail = 100;
-  size_t fail = 0;
-
-  while (fail < maxfail && dem->part.n < BMM_NPART) {
-    double const r = dem->opts.rmean +
-      gsl_ran_gaussian(dem->rng, dem->opts.rsd);
-
-    double x[2];
-    x[0] = gsl_rng_uniform(dem->rng) * dem->opts.box.x[0];
-    x[1] = gsl_rng_uniform(dem->rng) * dem->opts.box.x[1];
-
-    for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
-      double dr[2];
-      bmm_geom2d_pdiff(dr,
-          dem->part.x[ipart],
-          x,
-          dem->opts.box.x);
-
-      double const d2 = bmm_geom2d_norm2(dr);
-
-      double const rs = dem->part.r[ipart] + r;
-
-      double const r2 = bmm_fp_sq(rs);
-
-      if (d2 < r2) {
-        ++fail;
-        goto ret;
-      }
-    }
-
-    fail = 0;
-
-    struct bmm_dem_partc* const partc = &dem->buf.partcs[dem->part.n];
-    struct bmm_dem_part* const part = &dem->buf.parts[dem->part.n];
-
-    bmm_dem_partc_def(partc);
-    bmm_dem_part_def(part);
-
-    partc->r = r;
-    partc->free = true;
-    part->lin.x[0] = x[0];
-    part->lin.x[1] = x[1];
-
-    ++dem->part.n;
-
-    ++success;
-ret: ;
-  }
-
-  // TODO The lucky number.
-  return success > dem->opts.lucky;
-}
-
 void bmm_dem_def(struct bmm_dem* const dem,
     struct bmm_dem_opts const* const opts) {
   // This is here just to help Valgrind and cover up my mistakes.
@@ -886,7 +698,7 @@ void bmm_dem_def(struct bmm_dem* const dem,
 
   dem->opts = *opts;
 
-  dem->time.i = 0;
+  dem->time.istep = 0;
   dem->time.istab = 1000;
   dem->time.t = 0.0;
 
@@ -923,9 +735,9 @@ size_t bmm_dem_sniff_size(struct bmm_dem const* const dem,
     enum bmm_msg_num const num) {
   switch (num) {
     case BMM_MSG_NUM_ISTEP:
-      return sizeof dem->istep;
+      return sizeof dem->time.istep;
     case BMM_MSG_NUM_EKINE:
-      return sizeof dem->istep + sizeof dem->est;
+      return sizeof dem->time.istep + sizeof dem->est;
     case BMM_MSG_NUM_NEIGH:
       return sizeof dem->buf.neigh + sizeof dem->buf.links;
     case BMM_MSG_NUM_PARTS:
@@ -939,9 +751,9 @@ bool bmm_dem_puts_stuff(struct bmm_dem const* const dem,
     enum bmm_msg_num const num) {
   switch (num) {
     case BMM_MSG_NUM_ISTEP:
-      return msg_write(&dem->istep, sizeof dem->istep, NULL);
+      return msg_write(&dem->time.istep, sizeof dem->time.istep, NULL);
     case BMM_MSG_NUM_EKINE:
-      return msg_write(&dem->istep, sizeof dem->istep, NULL) &&
+      return msg_write(&dem->time.istep, sizeof dem->time.istep, NULL) &&
         msg_write(&dem->est, sizeof dem->est, NULL);
     case BMM_MSG_NUM_NEIGH:
       return msg_write(&dem->buf.neigh, sizeof dem->buf.neigh, NULL) &&
@@ -969,40 +781,23 @@ bool bmm_dem_puts(struct bmm_dem const* const dem,
 bool bmm_dem_step(struct bmm_dem* const dem) {
   switch (dem->mode) {
     case BMM_DEM_MODE_BEGIN:
-      // bmm_bottom(dem);
 
-      dem->mode = BMM_DEM_MODE_SEDIMENT;
-
-    // TODO No! Bad touch!
+      break;
     case BMM_DEM_MODE_SEDIMENT:
-      if (fmod(dem->istep * dem->opts.tstep, 50.0) < dem->opts.tstep / 2.0)
-        if (!bmm_disperse(dem))
-          dem->mode = BMM_DEM_MODE_LINK;
 
       break;
     case BMM_DEM_MODE_LINK:
-      if (fmod(dem->istep * dem->opts.tstep, 30.0) < dem->opts.tstep / 2.0)
-        if (bmm_dem_link(dem))
-          dem->mode = BMM_DEM_MODE_SMASH;
 
       break;
     case BMM_DEM_MODE_SMASH:
-      if (fmod(dem->istep * dem->opts.tstep, 70.0) < dem->opts.tstep / 2.0)
-        if (bmm_dem_break(dem)) {
-          (void) bmm_dem_fix(dem);
-          (void) bmm_dem_fault(dem);
-
-          dem->mode = BMM_DEM_MODE_ACCEL;
-        }
 
       break;
     case BMM_DEM_MODE_ACCEL:
-      (void) bmm_dem_relink(dem);
 
       break;
   }
 
-  if (dem->istep * dem->opts.tstep >= dem->buf.neigh.tnext) {
+  if (dem->time.istep * dem->opts.tstep >= dem->buf.neigh.tnext) {
     bmm_dem_recont(dem);
     bmm_dem_reneigh(dem);
     // TODO Take `tstep` into account
@@ -1016,17 +811,17 @@ bool bmm_dem_step(struct bmm_dem* const dem) {
 
   bmm_dem_correct(dem);
 
-  if (dem->time.i % dem->time.istab == 0)
+  if (dem->time.istep % dem->time.istab == 0)
     bmm_dem_stab(dem);
 
-  ++dem->istep;
+  ++dem->time.istep;
 
   return true;
 }
 
 // TODO This ought to be const-qualified.
 bool bmm_dem_comm(struct bmm_dem* const dem) {
-  double const tnow = dem->istep * dem->opts.tstep;
+  double const tnow = dem->time.istep * dem->opts.tstep;
 
   if (tnow < dem->opts.tcomm + dem->opts.tstepcomm)
     return true;
@@ -1034,7 +829,7 @@ bool bmm_dem_comm(struct bmm_dem* const dem) {
   dem->opts.tcomm = tnow;
 
   // TODO This timing is bogus.
-  if (dem->istep % 20 == 0)
+  if (dem->time.istep % 20 == 0)
     bmm_dem_puts(dem, BMM_MSG_NUM_NEIGH);
 
   // TODO Make a mechanism to automate retransmission of differences only.
@@ -1062,15 +857,8 @@ bool bmm_dem_run(struct bmm_dem* const dem) {
 
   bmm_dem_puts(dem, BMM_MSG_NUM_ISTEP);
 
-#ifdef _GNU_SOURCE
-#ifdef DEBUG
-  int const excepts = feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
-  if (excepts == -1)
-    BMM_TLE_STDS();
-#endif
-#endif
-
-  while (dem->istep < dem->opts.nstep) {
+  // TODO Script system!
+  while (dem->time.t < 1e+100) {
     int signum;
     if (bmm_sig_use(&signum))
       switch (signum) {
@@ -1089,13 +877,6 @@ bool bmm_dem_run(struct bmm_dem* const dem) {
     if (!bmm_dem_comm(dem))
       return false;
   }
-
-#ifdef _GNU_SOURCE
-#ifdef DEBUG
-  if (feenableexcept(excepts) == -1)
-    BMM_TLE_STDS();
-#endif
-#endif
 
   return true;
 }

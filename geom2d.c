@@ -2,6 +2,9 @@
 
 #include "geom2d.h"
 
+extern inline double bmm_geom2d_dot(double const* restrict,
+    double const* restrict);
+
 extern inline double bmm_geom2d_norm2(double const*);
 
 extern inline double bmm_geom2d_norm(double const*);
@@ -11,19 +14,18 @@ extern inline double bmm_geom2d_dir(double const*);
 extern inline void bmm_geom2d_add(double* restrict,
     double const* restrict, double const* restrict);
 
+extern inline void bmm_geom2d_addto(double* restrict, double const* restrict);
+
 extern inline void bmm_geom2d_scale(double* restrict,
     double const* restrict, double);
 
 extern inline void bmm_geom2d_normal(double* restrict,
     double const* restrict);
 
-extern inline void bmm_geom2d_rperpr(double* restrict,
-    double const* restrict);
+extern inline void bmm_geom2d_project(double* restrict,
+    double const* restrict, double const* restrict);
 
 extern inline void bmm_geom2d_rperp(double* restrict,
-    double const* restrict);
-
-extern inline void bmm_geom2d_lperpr(double* restrict,
     double const* restrict);
 
 extern inline void bmm_geom2d_lperp(double* restrict,

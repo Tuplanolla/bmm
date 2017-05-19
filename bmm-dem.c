@@ -3,6 +3,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef _GNU_SOURCE
+#ifdef DEBUG
+#include <fenv.h>
+#endif
+#endif
+
 #include "dem.h"
 #include "ext.h"
 #include "opt.h"
@@ -22,6 +28,14 @@ static bool f(char const* const key, char const* const value,
 __attribute__ ((__nonnull__))
 int main(int const argc, char** const argv) {
   bmm_tle_reset(argv[0]);
+
+#ifdef _GNU_SOURCE
+#ifdef DEBUG
+  int const excepts = feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
+  if (excepts == -1)
+    BMM_TLE_STDS();
+#endif
+#endif
 
   struct bmm_dem_opts opts;
   bmm_dem_opts_def(&opts);
@@ -43,6 +57,13 @@ int main(int const argc, char** const argv) {
 
     return EXIT_FAILURE;
   }
+
+#ifdef _GNU_SOURCE
+#ifdef DEBUG
+  if (feenableexcept(excepts) == -1)
+    BMM_TLE_STDS();
+#endif
+#endif
 
   return EXIT_SUCCESS;
 }

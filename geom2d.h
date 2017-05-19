@@ -9,6 +9,18 @@
 #include "ext.h"
 #include "fp.h"
 
+/// The call `bmm_geom2d_dot(x)`
+/// returns the dot product of the vectors `x` and `y`.
+__attribute__ ((__pure__))
+inline double bmm_geom2d_dot(double const* restrict const x,
+    double const* restrict const y) {
+  double d = 0.0;
+  for (size_t idim = 0; idim < 2; ++idim)
+    d += x[idim] * y[idim];
+
+  return d;
+}
+
 /// The call `bmm_geom2d_norm2(x)`
 /// returns the length $r^2$ of the vector `x`.
 __attribute__ ((__pure__))
@@ -42,6 +54,14 @@ inline void bmm_geom2d_add(double* restrict const y,
     y[idim] = x0[idim] + x1[idim];
 }
 
+/// The call `bmm_geom2d_addto(y, x)`
+/// sets the vector `y` to the vector `x` plus `y`.
+inline void bmm_geom2d_addto(double* restrict const y,
+    double const* restrict const x) {
+  for (size_t idim = 0; idim < 2; ++idim)
+    y[idim] += x[idim];
+}
+
 /// The call `bmm_geom2d_scaler(y, x, a)`
 /// sets the vector `y` to the vector `x` scaled by `a`.
 inline void bmm_geom2d_scale(double* restrict const y,
@@ -50,15 +70,22 @@ inline void bmm_geom2d_scale(double* restrict const y,
     y[idim] = a * x[idim];
 }
 
-/// The call `bmm_geom2d_normal(y, x)` finds
-/// the normal vector `y` of the vector `x`.
+/// The call `bmm_geom2d_normal(y, x)`
+/// finds the normal vector `y` of the vector `x`.
 inline void bmm_geom2d_normal(double* restrict const y,
     double const* restrict const x) {
   bmm_geom2d_scale(y, x, bmm_geom2d_norm(x));
 }
 
-/// The call `bmm_geom2d_rperp(y, x)` finds
-/// the right-handed perpendicular vector `y` of the form $(-y, x)$
+/// The call `bmm_geom2d_project(z, x, y)`
+/// finds the projection `z` of the vector `x` on the normal vector `y`.
+inline void bmm_geom2d_project(double* restrict const z,
+    double const* restrict const x, double const* restrict const y) {
+  bmm_geom2d_scale(z, y, bmm_geom2d_dot(x, y));
+}
+
+/// The call `bmm_geom2d_rperp(y, x)`
+/// finds the right-handed perpendicular vector `y` of the form $(-y, x)$
 /// given the vector `x` of the form $(x, y)$.
 inline void bmm_geom2d_rperp(double* restrict const y,
     double const* restrict const x) {
@@ -66,8 +93,8 @@ inline void bmm_geom2d_rperp(double* restrict const y,
   y[1] = x[0];
 }
 
-/// The call `bmm_geom2d_lperp(y, x)` finds
-/// the left-handed perpendicular vector `y` of the form $(y, -x)$
+/// The call `bmm_geom2d_lperp(y, x)`
+/// finds the left-handed perpendicular vector `y` of the form $(y, -x)$
 /// given the vector `x` of the form $(x, y)$.
 inline void bmm_geom2d_lperp(double* restrict const y,
     double const* restrict const x) {
@@ -75,8 +102,8 @@ inline void bmm_geom2d_lperp(double* restrict const y,
   y[0] = x[1];
 }
 
-/// The call `bmm_geom2d_to_polar2(polar2, cart)` maps
-/// the cartesian coordinates `cart` of the form $(x, y)$
+/// The call `bmm_geom2d_to_polar2(polar2, cart)`
+/// maps the cartesian coordinates `cart` of the form $(x, y)$
 /// to the corresponding polar coordinates `polar2` of the form $(r^2, \\phi)$.
 inline void bmm_geom2d_to_polar2(double* restrict const polar2,
     double const* restrict const cart) {
@@ -84,8 +111,8 @@ inline void bmm_geom2d_to_polar2(double* restrict const polar2,
   polar2[1] = bmm_geom2d_dir(cart);
 }
 
-/// The call `bmm_geom2d_to_polar(polar, cart)` maps
-/// the cartesian coordinates `cart` of the form $(x, y)$
+/// The call `bmm_geom2d_to_polar(polar, cart)`
+/// maps the cartesian coordinates `cart` of the form $(x, y)$
 /// to the corresponding polar coordinates `polar` of the form $(r, \\phi)$.
 inline void bmm_geom2d_to_polar(double* restrict const polar,
     double const* restrict const cart) {
@@ -93,8 +120,8 @@ inline void bmm_geom2d_to_polar(double* restrict const polar,
   polar[1] = bmm_geom2d_dir(cart);
 }
 
-/// The call `bmm_geom2d_from_polar(cart, polar)` maps
-/// the polar coordinates `polar` of the form $(r, \\phi)$
+/// The call `bmm_geom2d_from_polar(cart, polar)`
+/// maps the polar coordinates `polar` of the form $(r, \\phi)$
 /// to the corresponding cartesian coordinates `cart` of the form $(x, y)$.
 inline void bmm_geom2d_from_polar(double* restrict const cart,
     double const* restrict const polar) {
@@ -102,8 +129,8 @@ inline void bmm_geom2d_from_polar(double* restrict const cart,
   cart[1] = polar[0] * sin(polar[1]);
 }
 
-/// The call `bmm_geom2d_from_polar2(cart, polar2)` maps
-/// the polar coordinates `polar2` of the form $(r^2, \\phi)$
+/// The call `bmm_geom2d_from_polar2(cart, polar2)`
+/// maps the polar coordinates `polar2` of the form $(r^2, \\phi)$
 /// to the corresponding cartesian coordinates `cart` of the form $(x, y)$.
 inline void bmm_geom2d_from_polar2(double* restrict const cart,
     double const* restrict const polar2) {

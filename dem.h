@@ -195,7 +195,7 @@ struct bmm_dem {
   /// Timekeeping.
   struct {
     /// Step.
-    double i;
+    double istep;
     /// Stabilization frequency (frame rule).
     double istab;
     /// Time.
