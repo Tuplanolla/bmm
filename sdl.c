@@ -353,8 +353,8 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
   (void) snprintf(strbuf, sizeof strbuf, "p (total scalar momentum) = %g",
       bmm_dem_pscalar(&sdl->dem));
   glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
-  (void) snprintf(strbuf, sizeof strbuf, "t (now) = %g",
-      sdl->dem.time.t);
+  (void) snprintf(strbuf, sizeof strbuf, "t (now) = %g (%zu)",
+      sdl->dem.time.t, sdl->dem.time.istep);
   glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
   (void) snprintf(strbuf, sizeof strbuf, "t (next sched. update) = %g",
       sdl->dem.cache.tnext);

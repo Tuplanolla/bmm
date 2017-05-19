@@ -179,8 +179,11 @@ bool bmm_dem_cache_dofrom(struct bmm_dem* const dem, size_t const ipart) {
 }
 
 bool bmm_dem_reneigh(struct bmm_dem* const dem) {
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
+    dem->cache.neigh[ipart].n = 0;
+
     (void) bmm_dem_cache_doto(dem, ipart);
+  }
 
   return true;
 }
@@ -398,7 +401,7 @@ void bmm_dem_force_pair(struct bmm_dem* const dem,
   */
 
   double f = 0.0;
-  switch (dem->opts.famb) {
+  switch (dem->opts.fnorm) {
     case BMM_DEM_FNORM_DASHPOT:
       f = fmax(0.0, dem->opts.part.y * xi +
           dem->opts.norm.params.dashpot.gamma * beta);
@@ -411,6 +414,11 @@ void bmm_dem_force_pair(struct bmm_dem* const dem,
   bmm_geom2d_scale(fdiff, xnorm, -f);
 
   bmm_geom2d_addto(dem->part.f[ipart], fdiff);
+
+  double fdiff2[2];
+  bmm_geom2d_scale(fdiff2, fdiff, -1.0);
+
+  bmm_geom2d_addto(dem->part.f[jpart], fdiff2);
 }
 
 void bmm_dem_force_ambient(struct bmm_dem* const dem, size_t const ipart) {
@@ -473,18 +481,20 @@ void bmm_dem_integ_euler(struct bmm_dem* const dem) {
     for (size_t idim = 0; idim < 2; ++idim) {
       dem->part.a[ipart][idim] = dem->part.f[ipart][idim] / dem->part.m[ipart];
 
+      // TODO Ordering.
+      dem->part.v[ipart][idim] = dem->part.v[ipart][idim] + dem->part.a[ipart][idim] * dt;
+
+      // TODO Periodicity.
       dem->part.x[ipart][idim] = bmm_fp_uwrap(
           dem->part.x[ipart][idim] + dem->part.v[ipart][idim] * dt,
           dem->opts.box.x[idim]);
-
-      dem->part.v[ipart][idim] = dem->part.v[ipart][idim] + dem->part.a[ipart][idim] * dt;
     }
 
     dem->part.alpha[ipart] = dem->part.tau[ipart] / dem->part.j[ipart];
 
-    dem->part.phi[ipart] = dem->part.phi[ipart] + dem->part.omega[ipart] * dt;
-
     dem->part.omega[ipart] = dem->part.omega[ipart] + dem->part.alpha[ipart] * dt;
+
+    dem->part.phi[ipart] = dem->part.phi[ipart] + dem->part.omega[ipart] * dt;
   }
 }
 
@@ -857,6 +867,10 @@ bool bmm_dem_step(struct bmm_dem* const dem) {
     dem->cache.tnext += bmm_dem_drift(dem);
   }
 
+  bmm_dem_cache_recell(dem);
+
+  bmm_dem_reneigh(dem);
+
   bmm_dem_predict(dem);
 
   bmm_dem_force(dem);
@@ -867,6 +881,8 @@ bool bmm_dem_step(struct bmm_dem* const dem) {
     bmm_dem_stab(dem);
 
   ++dem->time.istep;
+
+  dem->time.t += dem->opts.script.stage[istage].dt;
 
   return true;
 }
@@ -892,6 +908,23 @@ bool bmm_dem_run(struct bmm_dem* const dem) {
     BMM_TLE_STDS();
 
     return false;
+  }
+
+  // TODO Get rid of these after refactoring `dem.c`.
+  dem->opts.cache.ncell[0] = 3;
+  dem->opts.cache.ncell[1] = 3;
+  dem->opts.cache.rcutoff = 0.2;
+
+  dem->opts.part.y = 1e+6;
+  dem->opts.script.n = 1;
+  dem->opts.script.stage[0].dt = 1e-3;
+  dem->opts.script.stage[0].mode = BMM_DEM_MODE_IDLE;
+
+  for (size_t ipart = 0; ipart < 64; ++ipart) {
+    size_t const jpart = bmm_dem_inspart(dem, 0.05, 1.0);
+
+    for (size_t idim = 0; idim < nmembof(dem->part.x[jpart]); ++idim)
+      dem->part.x[jpart][idim] += gsl_rng_uniform(dem->rng) * dem->opts.box.x[idim];
   }
 
   bmm_dem_puts(dem, BMM_MSG_NUM_ISTEP);

@@ -331,21 +331,21 @@ struct bmm_dem {
 __attribute__ ((__nonnull__))
 void bmm_dem_ijkcell(size_t*, struct bmm_dem const*, size_t);
 
-/// The call `bmm_dem_addpart(dem, r, m)`
+/// The call `bmm_dem_inspart(dem, r, m)`
 /// places a new particle with radius `r` and mass `m`
 /// in the origin at rest and
 /// returns the index of the new particle.
 /// Otherwise `BMM_NPART` is returned.
 __attribute__ ((__nonnull__))
-size_t bmm_dem_addpart(struct bmm_dem*, double, double);
+size_t bmm_dem_inspart(struct bmm_dem*, double, double);
 
-/// The call `bmm_dem_rmpart(dem, ipart)`
+/// The call `bmm_dem_delpart(dem, ipart)`
 /// removes the particle with the index `ipart`.
 /// Note that the index may be immediately assigned to another particle,
 /// so all index caches should be purged.
 /// This operation may be slow due to index reassignment.
 __attribute__ ((__nonnull__))
-bool bmm_dem_rmpart(struct bmm_dem*, size_t);
+bool bmm_dem_delpart(struct bmm_dem*, size_t);
 
 __attribute__ ((__nonnull__))
 void bmm_dem_opts_def(struct bmm_dem_opts*);
