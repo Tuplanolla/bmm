@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "aset.h"
 #include "conf.h"
 #include "dem.h"
 #include "fp.h"
@@ -77,8 +78,12 @@ bool bmm_dem_cache_cell(struct bmm_dem* const dem, size_t const ipart) {
   size_t const icell = bmm_size_unhc(dem->cache.cell[ipart],
       BMM_NDIM, BMM_NCELL);
 
-  return BMM_ASET_INS(dem->cache.part[icell].i, dem->cache.part[icell].n,
-      ipart);
+  if (!BMM_ASET_CANINS(dem->cache.part[icell].i, dem->cache.part[icell].n))
+    return false;
+
+  BMM_ASET_INS(dem->cache.part[icell].i, dem->cache.part[icell].n, ipart);
+
+  return true;
 }
 
 /// The call `bmm_dem_cache_recell(dem)`
@@ -122,10 +127,12 @@ bool bmm_dem_cache_doto(struct bmm_dem* const dem, size_t const ipart) {
     for (size_t igroup = 0; igroup < dem->cache.part[icell].n; ++igroup) {
       size_t const jpart = dem->cache.part[icell].i[igroup];
 
-      if (bmm_dem_isneigh(dem, ipart, jpart))
-        if (!BMM_ASET_INS(dem->cache.neigh[ipart].i, dem->cache.neigh[ipart].n,
-            jpart))
+      if (bmm_dem_isneigh(dem, ipart, jpart)) {
+        if (!BMM_ASET_CANINS(dem->cache.neigh[ipart].i, dem->cache.neigh[ipart].n))
           return false;
+
+        BMM_ASET_INS(dem->cache.neigh[ipart].i, dem->cache.neigh[ipart].n, jpart);
+      }
     }
   }
 
@@ -159,10 +166,12 @@ bool bmm_dem_cache_dofrom(struct bmm_dem* const dem, size_t const ipart) {
     for (size_t igroup = 0; igroup < dem->cache.part[icell].n; ++igroup) {
       size_t const jpart = dem->cache.part[icell].i[igroup];
 
-      if (bmm_dem_isneigh(dem, ipart, jpart))
-        if (!BMM_ASET_INS(dem->cache.neigh[jpart].i, dem->cache.neigh[jpart].n,
-            ipart))
+      if (bmm_dem_isneigh(dem, ipart, jpart)) {
+        if (!BMM_ASET_CANINS(dem->cache.neigh[jpart].i, dem->cache.neigh[jpart].n))
           p = false;
+
+        BMM_ASET_INS(dem->cache.neigh[jpart].i, dem->cache.neigh[jpart].n, ipart);
+      }
     }
   }
 
@@ -268,16 +277,18 @@ bool bmm_dem_delpart(struct bmm_dem* const dem, size_t const ipart) {
     for (size_t ilink = 0; ilink < dem->link.part[jpart].n; ++ilink)
       dem->link.part[ipart].rrest[ilink] = dem->link.part[jpart].rrest[ilink];
 
-    for (size_t ilink = 0; ilink < dem->link.part[jpart].n; ++ilink)
-      for (size_t iend = 0; iend < 2; ++iend)
-        dem->link.part[ipart].phirest[ilink][iend] =
-          dem->link.part[jpart].phirest[ilink][iend];
+    for (size_t ilink = 0; ilink < dem->link.part[jpart].n; ++ilink) {
+      dem->link.part[ipart].phirestf[ilink] =
+        dem->link.part[jpart].phirestf[ilink];
+      dem->link.part[ipart].phirestr[ilink] =
+        dem->link.part[jpart].phirestr[ilink];
+    }
 
     for (size_t ilink = 0; ilink < dem->link.part[jpart].n; ++ilink)
-      dem->link.part[ipart].ftens[ilink] = dem->link.part[jpart].ftens[ilink];
+      dem->link.part[ipart].rlim[ilink] = dem->link.part[jpart].rlim[ilink];
 
     for (size_t ilink = 0; ilink < dem->link.part[jpart].n; ++ilink)
-      dem->link.part[ipart].fshear[ilink] = dem->link.part[jpart].fshear[ilink];
+      dem->link.part[ipart].philim[ilink] = dem->link.part[jpart].philim[ilink];
   }
 
   {
@@ -386,8 +397,14 @@ void bmm_dem_force_pair(struct bmm_dem* const dem,
   bmm_geom2d_diff(vrej, vproj, vdiff);
   */
 
-  double const f = fmax(0.0, dem->opts.part.y * xi +
-      dem->opts.norm.params.dashpot.gamma * beta);
+  double f = 0.0;
+  switch (dem->opts.famb) {
+    case BMM_DEM_FNORM_DASHPOT:
+      f = fmax(0.0, dem->opts.part.y * xi +
+          dem->opts.norm.params.dashpot.gamma * beta);
+
+      break;
+  }
 
   // TODO Investigate the sign.
   double fdiff[2];
@@ -408,6 +425,12 @@ void bmm_dem_force_ambient(struct bmm_dem* const dem, size_t const ipart) {
   }
 }
 
+void bmm_dem_force_link(struct bmm_dem* const dem,
+    size_t const ipart, size_t const jpart, size_t const ilink) {
+  // TODO This.
+  return;
+}
+
 void bmm_dem_force(struct bmm_dem* const dem) {
   // TODO Point these to functions.
   bmm_fpair fnorm = NULL;
@@ -425,6 +448,7 @@ void bmm_dem_force(struct bmm_dem* const dem) {
       for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
         for (size_t jpart = ipart + 1; jpart < dem->part.n; ++jpart)
           bmm_dem_force_pair(dem, ipart, jpart);
+
       break;
     case BMM_DEM_CACHING_NEIGH:
       for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
@@ -432,7 +456,7 @@ void bmm_dem_force(struct bmm_dem* const dem) {
           bmm_dem_force_pair(dem, ipart, dem->cache.neigh[ipart].i[ineigh]);
 
       break;
-    }
+  }
 
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     for (size_t ilink = 0; ilink < dem->link.part[ipart].n; ++ilink)
@@ -494,34 +518,65 @@ void bmm_dem_correct(struct bmm_dem* const dem) {
   }
 }
 
-// TODO Real physics.
-bool bmm_dem_relink(struct bmm_dem* const dem) {
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
-    struct bmm_dem_listl* const list = &dem->buf.links[ipart];
+bool bmm_dem_link_pair(struct bmm_dem* const dem,
+    size_t const ipart, size_t const jpart) {
+  double xdiff[BMM_NDIM];
+  bmm_geom2d_cpdiff(xdiff, dem->part.x[ipart], dem->part.x[jpart],
+      dem->opts.box.x, dem->opts.box.per);
 
-    for (size_t ilink = 0; ilink < bmm_dem_sizel(list); ++ilink) {
-      size_t const jpart = bmm_dem_getl(list, ilink);
+  double const d2 = bmm_geom2d_norm2(xdiff);
 
-      // TODO Copy-pasted from elsewhere...
+  double const r = dem->part.r[ipart] + dem->part.r[jpart];
+  double const r2 = bmm_fp_sq(r);
 
-      double dr[2];
-      bmm_geom2d_pdiff(dr,
-          dem->part.x[ipart],
-          dem->part.x[jpart],
-          dem->opts.box.x);
+  if (d2 > r2 * dem->opts.link.ccrlink)
+    return false;
 
-      double const d = bmm_geom2d_norm(dr);
+  if (!BMM_ASET_CANINS(dem->link.part[ipart].i, dem->link.part[ipart].n))
+    return false;
 
-      // TODO Use getters.
-      double const x0 = list->linkl[ilink].x0;
+  double const d = sqrt(d2);
 
-      if (d > x0 * 1.75) {
-        // TODO Remove element properly.
-        --list->n;
-        list->linkl[ilink] = list->linkl[list->n];
-        --ilink;
+  double const rrest = d * dem->opts.link.cshlink;
+
+  BMM_ASET_INS(dem->link.part[ipart].i, dem->link.part[ipart].n, jpart);
+  BMM_ASET_REINS(dem->link.part[ipart].rrest, dem->link.part[ipart].n, rrest);
+
+  // TODO Check sign.
+  switch (dem->opts.flink) {
+    case BMM_DEM_FLINK_BEAM:
+      {
+        double const phif = bmm_geom2d_dir(xdiff);
+        double const phir = bmm_geom2d_redir(phif);
+
+        double x;
+
+        x = dem->part.phi[ipart] - phif;
+        BMM_ASET_REINS(dem->link.part[ipart].phirestf,
+            dem->link.part[ipart].n, x);
+
+        x = dem->part.phi[jpart] - phir;
+        BMM_ASET_REINS(dem->link.part[ipart].phirestr,
+            dem->link.part[ipart].n, x);
+
+        double const crlim = gsl_rng_uniform(dem->rng) *
+          (dem->opts.link.crlim[1] - dem->opts.link.crlim[0]) +
+          dem->opts.link.crlim[0];
+
+        x = crlim * rrest;
+        BMM_ASET_REINS(dem->link.part[ipart].rlim,
+            dem->link.part[ipart].n, x);
+
+        double const cphilim = gsl_rng_uniform(dem->rng) *
+          (dem->opts.link.cphilim[1] - dem->opts.link.cphilim[0]) +
+          dem->opts.link.cphilim[0];
+
+        x = cphilim * M_2PI;
+        BMM_ASET_REINS(dem->link.part[ipart].philim,
+            dem->link.part[ipart].n, x);
       }
-    }
+
+      break;
   }
 
   return true;
@@ -529,30 +584,27 @@ bool bmm_dem_relink(struct bmm_dem* const dem) {
 
 // TODO Check triangulation quality and compare with Delaunay.
 bool bmm_dem_link(struct bmm_dem* const dem) {
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
-    struct bmm_dem_listy* const listy = &dem->buf.neigh.neighs[ipart];
+  switch (dem->opts.caching) {
+    case BMM_DEM_CACHING_NONE:
+      for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+        for (size_t jpart = ipart + 1; jpart < dem->part.n; ++jpart)
+          bmm_dem_link_pair(dem, ipart, jpart);
 
-    struct bmm_dem_listl* const list = &dem->buf.links[ipart];
+      break;
+    case BMM_DEM_CACHING_NEIGH:
+      for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+        for (size_t ineigh = 0; ineigh < dem->cache.neigh[ipart].n; ++ineigh)
+          bmm_dem_link_pair(dem, ipart, dem->cache.neigh[ipart].i[ineigh]);
 
-    bmm_dem_clearl(list);
-
-    for (size_t ineigh = 0; ineigh < bmm_dem_sizey(listy); ++ineigh) {
-      size_t const jpart = bmm_dem_gety(listy, ineigh);
-
-      if (jpart == ipart)
-        continue;
-
-      double const d2 = bmm_geom2d_pdist2(
-          dem->part.x[ipart],
-          dem->part.x[jpart],
-          dem->opts.box.x);
-
-      if (d2 < bmm_fp_sq(dem->opts.linkslurp *
-            (dem->part.r[ipart] + dem->part.r[jpart])))
-        if (bmm_dem_pushl(list, jpart))
-          list->linkl[list->n - 1].x0 = dem->opts.linkoff * sqrt(d2);
-    }
+      break;
   }
+
+  return true;
+}
+
+bool bmm_dem_unlink(struct bmm_dem* const dem) {
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    dem->link.part[ipart].n = 0;
 
   return true;
 }
@@ -590,10 +642,9 @@ double bmm_dem_drift(struct bmm_dem const* const dem) {
   bmm_dem_maxvel(v, dem);
 
   for (size_t idim = 0; idim < 2; ++idim)
-    t = fmin(t, (fmin(
-            dem->opts.rmax,
-            0.5 * dem->opts.box.x[idim] / (double) dem->opts.ncell[idim]) - rad) /
-        (v[idim] + dem->opts.vleeway));
+    t = fmin(t, (0.5 *
+          dem->opts.box.x[idim] / (double) dem->opts.cache.ncell[idim]) - rad) /
+        (v[idim] + 0.01);
 
   return t;
 }
@@ -641,9 +692,9 @@ double bmm_dem_cor(struct bmm_dem const* const dem) {
     double const mred =
       dem->part.m[ipart] * dem->part.m[ipart] /
       (dem->part.m[ipart] + dem->part.m[ipart]);
-    e += exp(-M_PI * dem->opts.yelast / (2.0 * mred) /
+    e += exp(-M_PI * dem->opts.norm.params.dashpot.gamma / (2.0 * mred) /
         sqrt(dem->opts.part.y / mred -
-          bmm_fp_sq(dem->opts.yelast / (2.0 * mred))));
+          bmm_fp_sq(dem->opts.norm.params.dashpot.gamma / (2.0 * mred))));
   }
 
   return e / (double) dem->part.n;
@@ -676,6 +727,10 @@ void bmm_dem_opts_def(struct bmm_dem_opts* const opts) {
   opts->link.cshlink = 0.8;
   opts->link.ktens = 1.0;
   opts->link.kshear = 1.0;
+  opts->link.crlim[0] = 1.0;
+  opts->link.crlim[1] = 1.0;
+  opts->link.cphilim[0] = 1.0;
+  opts->link.cphilim[1] = 1.0;
 
   opts->script.n = 0;
 
@@ -705,7 +760,8 @@ void bmm_dem_def(struct bmm_dem* const dem,
   dem->part.n = 0;
   dem->part.lnew = 0;
 
-  dem->link.n = 0;
+  for (size_t ipart = 0; ipart < nmembof(dem->link.part); ++ipart)
+    dem->link.part[ipart].n = 0;
 
   dem->script.i = 0;
   dem->script.tprev = (double) NAN;
@@ -736,12 +792,10 @@ size_t bmm_dem_sniff_size(struct bmm_dem const* const dem,
   switch (num) {
     case BMM_MSG_NUM_ISTEP:
       return sizeof dem->time.istep;
-    case BMM_MSG_NUM_EKINE:
-      return sizeof dem->time.istep + sizeof dem->est;
     case BMM_MSG_NUM_NEIGH:
-      return sizeof dem->buf.neigh + sizeof dem->buf.links;
+      return sizeof dem->cache + sizeof dem->link;
     case BMM_MSG_NUM_PARTS:
-      return sizeof dem->part.n + sizeof dem->buf.parts + sizeof dem->buf.partcs;
+      return sizeof dem->part.n + sizeof dem->part;
   }
 
   dynamic_assert(false, "Unsupported message number");
@@ -752,16 +806,12 @@ bool bmm_dem_puts_stuff(struct bmm_dem const* const dem,
   switch (num) {
     case BMM_MSG_NUM_ISTEP:
       return msg_write(&dem->time.istep, sizeof dem->time.istep, NULL);
-    case BMM_MSG_NUM_EKINE:
-      return msg_write(&dem->time.istep, sizeof dem->time.istep, NULL) &&
-        msg_write(&dem->est, sizeof dem->est, NULL);
     case BMM_MSG_NUM_NEIGH:
-      return msg_write(&dem->buf.neigh, sizeof dem->buf.neigh, NULL) &&
-        msg_write(&dem->buf.links, sizeof dem->buf.links, NULL);
+      return msg_write(&dem->cache, sizeof dem->cache, NULL) &&
+        msg_write(&dem->link, sizeof dem->link, NULL);
     case BMM_MSG_NUM_PARTS:
       return msg_write(&dem->part.n, sizeof dem->part.n, NULL) &&
-        msg_write(&dem->buf.parts, sizeof dem->buf.parts, NULL) &&
-        msg_write(&dem->buf.partcs, sizeof dem->buf.partcs, NULL);
+        msg_write(&dem->part, sizeof dem->part, NULL);
   }
 
   dynamic_assert(false, "Unsupported message number");
@@ -779,7 +829,9 @@ bool bmm_dem_puts(struct bmm_dem const* const dem,
 }
 
 bool bmm_dem_step(struct bmm_dem* const dem) {
-  switch (dem->mode) {
+  size_t const istage = dem->script.i;
+
+  switch (dem->opts.script.stage[istage].mode) {
     case BMM_DEM_MODE_BEGIN:
 
       break;
@@ -797,12 +849,12 @@ bool bmm_dem_step(struct bmm_dem* const dem) {
       break;
   }
 
-  if (dem->time.istep * dem->opts.tstep >= dem->buf.neigh.tnext) {
-    bmm_dem_recont(dem);
+  if (dem->time.t >= dem->cache.tnext) {
     bmm_dem_reneigh(dem);
+
     // TODO Take `tstep` into account
     // since the update only happens after the drift time has passed.
-    dem->buf.neigh.tnext += bmm_dem_drift(dem);
+    dem->cache.tnext += bmm_dem_drift(dem);
   }
 
   bmm_dem_predict(dem);
@@ -821,13 +873,6 @@ bool bmm_dem_step(struct bmm_dem* const dem) {
 
 // TODO This ought to be const-qualified.
 bool bmm_dem_comm(struct bmm_dem* const dem) {
-  double const tnow = dem->time.istep * dem->opts.tstep;
-
-  if (tnow < dem->opts.tcomm + dem->opts.tstepcomm)
-    return true;
-
-  dem->opts.tcomm = tnow;
-
   // TODO This timing is bogus.
   if (dem->time.istep % 20 == 0)
     bmm_dem_puts(dem, BMM_MSG_NUM_NEIGH);
@@ -836,12 +881,6 @@ bool bmm_dem_comm(struct bmm_dem* const dem) {
 
   bmm_dem_puts(dem, BMM_MSG_NUM_ISTEP);
   bmm_dem_puts(dem, BMM_MSG_NUM_PARTS);
-
-  dem->est.ekinetic = bmm_dem_ekinetic(dem);
-  dem->est.pvector = bmm_dem_pvector(dem);
-  dem->est.pscalar = bmm_dem_pscalar(dem);
-
-  bmm_dem_puts(dem, BMM_MSG_NUM_EKINE);
 
   return true;
 }

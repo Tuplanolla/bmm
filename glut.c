@@ -100,18 +100,9 @@ enum bmm_io_read bmm_glut_step(struct bmm_glut* const glut) {
             return BMM_IO_READ_ERROR;
         }
 
-        struct bmm_dem_part parts[BMM_NPART];
+        double parts[BMM_NPART];
 
         switch (msg_read(parts, sizeof parts, NULL)) {
-          case BMM_IO_READ_EOF:
-            BMM_TLE_EXTS(BMM_TLE_NUM_IO, "Unexpected end");
-          case BMM_IO_READ_ERROR:
-            return BMM_IO_READ_ERROR;
-        }
-
-        struct bmm_dem_partc partcs[BMM_NPART];
-
-        switch (msg_read(partcs, sizeof partcs, NULL)) {
           case BMM_IO_READ_EOF:
             BMM_TLE_EXTS(BMM_TLE_NUM_IO, "Unexpected end");
           case BMM_IO_READ_ERROR:

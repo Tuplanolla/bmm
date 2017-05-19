@@ -46,6 +46,12 @@ enum bmm_dem_ftang {
   BMM_DEM_FTANG_CS
 };
 
+enum bmm_dem_flink {
+  BMM_DEM_FLINK_NONE,
+  BMM_DEM_FLINK_SPRING,
+  BMM_DEM_FLINK_BEAM
+};
+
 enum bmm_dem_role {
   BMM_DEM_ROLE_FREE,
   BMM_DEM_ROLE_FIXED,
@@ -75,6 +81,8 @@ struct bmm_dem_opts {
   enum bmm_dem_fnorm fnorm;
   /// Tangential force scheme.
   enum bmm_dem_ftang ftang;
+  /// Link force scheme.
+  enum bmm_dem_flink flink;
   /// Bounding box.
   struct {
     /// Extents.
@@ -129,6 +137,12 @@ struct bmm_dem_opts {
     double ktens;
     /// Shear spring constant.
     double kshear;
+    /// Limit length factors for tensile stress induced breaking
+    /// expressed as the support of the uniform distribution.
+    double crlim[2];
+    /// Limit angle factors for shear stress induced breaking
+    /// expressed as the support of the uniform distribution.
+    double cphilim[2];
   } link;
   /// Script to follow.
   struct {
@@ -195,9 +209,9 @@ struct bmm_dem {
   /// Timekeeping.
   struct {
     /// Step.
-    double istep;
+    size_t istep;
     /// Stabilization frequency (frame rule).
-    double istab;
+    size_t istab;
     /// Time.
     double t;
   } time;
@@ -244,12 +258,14 @@ struct bmm_dem {
       size_t i[BMM_NLINK];
       /// Rest lengths for springs and beams.
       double rrest[BMM_NLINK];
-      /// Rest angles for beams.
-      double phirest[BMM_NLINK][2];
-      /// Limit force for tensile stress induced breaking.
-      double ftens[BMM_NLINK];
-      /// Limit force for shear stress induced breaking.
-      double fshear[BMM_NLINK];
+      /// Rest angles for beam front ends.
+      double phirestf[BMM_NLINK];
+      /// Rest angles for beam rear ends.
+      double phirestr[BMM_NLINK];
+      /// Limit length for tensile stress induced breaking.
+      double rlim[BMM_NLINK];
+      /// Limit angle for shear stress induced breaking.
+      double philim[BMM_NLINK];
     } part[BMM_NPART];
   } link;
   /// Script state.
@@ -281,6 +297,8 @@ struct bmm_dem {
   /// Neighbor cache.
   /// This is only used for performance optimization.
   struct {
+    /// Current revision.
+    size_t i;
     /// Time of previous partial update.
     double tpart;
     /// Time of previous full update.

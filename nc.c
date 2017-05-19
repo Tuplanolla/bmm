@@ -295,18 +295,9 @@ enum bmm_io_read bmm_nc_step(struct bmm_nc* const nc) {
             return BMM_IO_READ_ERROR;
         }
 
-        struct bmm_dem_part parts[BMM_NPART];
+        double parts[BMM_NPART][2];
 
         switch (msg_read(parts, sizeof parts, NULL)) {
-          case BMM_IO_READ_EOF:
-            BMM_TLE_EXTS(BMM_TLE_NUM_IO, "Unexpected end");
-          case BMM_IO_READ_ERROR:
-            return BMM_IO_READ_ERROR;
-        }
-
-        struct bmm_dem_partc partcs[BMM_NPART];
-
-        switch (msg_read(partcs, sizeof partcs, NULL)) {
           case BMM_IO_READ_EOF:
             BMM_TLE_EXTS(BMM_TLE_NUM_IO, "Unexpected end");
           case BMM_IO_READ_ERROR:
@@ -335,7 +326,7 @@ enum bmm_io_read bmm_nc_step(struct bmm_nc* const nc) {
         for (size_t ipart = 0; ipart < BMM_NPART; ++ipart)
           for (size_t idim = 0; idim < NDIM; ++idim)
             data[ipart][idim] = ipart >= nc->npart ?
-              NAN : (float) parts[ipart].lin.r[idim];
+              NAN : (float) parts[ipart][idim];
 
         size_t start[3];
         size_t count[3];

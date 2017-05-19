@@ -44,41 +44,25 @@ enum bmm_io_read bmm_dem_gets_stuff(struct bmm_dem* const dem,
     enum bmm_msg_num const num) {
   switch (num) {
     case BMM_MSG_NUM_ISTEP:
-      return msg_read(&dem->istep, sizeof dem->istep, NULL);
-    case BMM_MSG_NUM_EKINE:
-      switch (msg_read(&dem->istep, sizeof dem->istep, NULL)) {
-        case BMM_IO_READ_ERROR:
-          return BMM_IO_READ_ERROR;
-        case BMM_IO_READ_EOF:
-          return BMM_IO_READ_EOF;
-      }
-
-      return msg_read(&dem->est, sizeof dem->est, NULL);
+      return msg_read(&dem->time.istep, sizeof dem->time.istep, NULL);
     case BMM_MSG_NUM_NEIGH:
-      switch (msg_read(&dem->buf.neigh, sizeof dem->buf.neigh, NULL)) {
+      switch (msg_read(&dem->cache, sizeof dem->cache, NULL)) {
         case BMM_IO_READ_ERROR:
           return BMM_IO_READ_ERROR;
         case BMM_IO_READ_EOF:
           return BMM_IO_READ_EOF;
       }
 
-      return msg_read(&dem->buf.links, sizeof dem->buf.links, NULL);
+      return msg_read(&dem->link, sizeof dem->link, NULL);
     case BMM_MSG_NUM_PARTS:
-      switch (msg_read(&dem->buf.npart, sizeof dem->buf.npart, NULL)) {
+      switch (msg_read(&dem->part.n, sizeof dem->part.n, NULL)) {
         case BMM_IO_READ_ERROR:
           return BMM_IO_READ_ERROR;
         case BMM_IO_READ_EOF:
           return BMM_IO_READ_EOF;
       }
 
-      switch (msg_read(&dem->buf.parts, sizeof dem->buf.parts, NULL)) {
-        case BMM_IO_READ_ERROR:
-          return BMM_IO_READ_ERROR;
-        case BMM_IO_READ_EOF:
-          return BMM_IO_READ_EOF;
-      }
-
-      return msg_read(&dem->buf.partcs, sizeof dem->buf.partcs, NULL);
+      return msg_read(&dem->part, sizeof dem->part, NULL);
   }
 
   dynamic_assert(false, "Unsupported message number");
@@ -159,8 +143,8 @@ static Uint32 bmm_sdl_tstep(struct bmm_sdl const* const sdl) {
 static void bmm_sdl_proj(struct bmm_sdl const* const sdl,
     double* const xproj, double* const yproj,
     double* const wproj, double* const hproj) {
-  double const w = sdl->dem.rext[0];
-  double const h = sdl->dem.rext[1];
+  double const w = sdl->dem.opts.box.x[0];
+  double const h = sdl->dem.opts.box.x[1];
   double const q = sdl->qaspect;
   double const z = sdl->qzoom;
   double const xorigin = sdl->rorigin[0];
@@ -258,26 +242,26 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
 
   size_t const ncorner = 8;
 
-  double const w = sdl->dem.rext[0] / (double) sdl->dem.opts.ncell[0];
-  double const h = sdl->dem.rext[1] / (double) sdl->dem.opts.ncell[1];
+  double const w = sdl->dem.opts.box.x[0] / (double) sdl->dem.opts.cache.ncell[0];
+  double const h = sdl->dem.opts.box.x[1] / (double) sdl->dem.opts.cache.ncell[1];
 
   // Particles.
   for (float off = -1; off < 2; ++off)
-    for (size_t ipart = 0; ipart < sdl->dem.buf.npart; ++ipart) {
-      float const x = (float) sdl->dem.buf.parts[ipart].lin.r[0];
-      float const y = (float) sdl->dem.buf.parts[ipart].lin.r[1];
-      float const r = (float) sdl->dem.buf.partcs[ipart].rrad;
-      float const a = (float) sdl->dem.buf.parts[ipart].ang.alpha;
+    for (size_t ipart = 0; ipart < sdl->dem.part.n; ++ipart) {
+      float const x = (float) sdl->dem.part.x[ipart][0];
+      float const y = (float) sdl->dem.part.x[ipart][1];
+      float const r = (float) sdl->dem.part.r[ipart];
+      float const a = (float) sdl->dem.part.phi[ipart];
 
-      float const xoff = x + off * (float) sdl->dem.rext[0];
+      float const xoff = x + off * (float) sdl->dem.opts.box.x[0];
 
       GLfloat blent[4];
-      memcpy(blent, sdl->dem.buf.partcs[ipart].free ? glYellow : glWhite, sizeof glBlack);
+      memcpy(blent, true ? glYellow : glWhite, sizeof glBlack);
       blent[3] = 1.0f;
       GLfloat nope[4];
       memcpy(nope, blent, sizeof glBlack);
       nope[3] = 0.0f;
-      float const t = fabsf(xoff / (float) sdl->dem.rext[0] - 0.5f) - 0.5f;
+      float const t = fabsf(xoff / (float) sdl->dem.opts.box.x[0] - 0.5f) - 0.5f;
       blent[3] = 1.0f - t;
       glColor4fv(blent);
 
@@ -285,6 +269,7 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
     }
 
   // Focus.
+  /*
   if (sdl->itarget != SIZE_MAX) {
     glColor3fv(glBlue);
     size_t const ipart = sdl->itarget;
@@ -298,7 +283,7 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
       for (size_t idim = 0; idim < 2; ++idim)
         p = p &&
           fabs(sdl->dem.buf.parts[ipart].lin.r[idim] - sdl->dem.buf.parts[jpart].lin.r[idim]) <
-          sdl->dem.rext[idim] / 2.0;
+          sdl->dem.opts.box.x[idim] / 2.0;
 
       if (p) {
         glVertex2dv(sdl->dem.buf.parts[ipart].lin.r);
@@ -310,7 +295,7 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
 
   // Structural links.
   glColor3fv(glMagenta);
-  for (size_t ipart = 0; ipart < sdl->dem.buf.npart; ++ipart) {
+  for (size_t ipart = 0; ipart < sdl->dem.part.n; ++ipart) {
     glBegin(GL_LINES);
     for (size_t ineigh = 0; ineigh < bmm_dem_sizel(&sdl->dem.buf.links[ipart]); ++ineigh) {
       size_t const jpart = bmm_dem_getl(&sdl->dem.buf.links[ipart], ineigh);
@@ -319,7 +304,7 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
       for (size_t idim = 0; idim < 2; ++idim)
         p = p &&
           fabs(sdl->dem.buf.parts[ipart].lin.r[idim] - sdl->dem.buf.parts[jpart].lin.r[idim]) <
-          sdl->dem.rext[idim] / 2.0;
+          sdl->dem.opts.box.x[idim] / 2.0;
 
       if (p) {
         glVertex2dv(sdl->dem.buf.parts[ipart].lin.r);
@@ -328,6 +313,7 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
     }
     glEnd();
   }
+  */
 
   // Staleness indicator.
   glColor3fv(sdl->stale ? glRed : glGreen);
@@ -335,8 +321,8 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
 
   // Cell boxes.
   glColor3fv(glCyan);
-  for (size_t icellx = 0; icellx < sdl->dem.opts.ncell[0]; ++icellx)
-    for (size_t icelly = 0; icelly < sdl->dem.opts.ncell[1]; ++icelly) {
+  for (size_t icellx = 0; icellx < sdl->dem.opts.cache.ncell[0]; ++icellx)
+    for (size_t icelly = 0; icelly < sdl->dem.opts.cache.ncell[1]; ++icelly) {
       double const x = (double) icellx * w;
       double const y = (double) icelly * h;
 
@@ -345,7 +331,7 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
 
   // Bounding box.
   glColor3fv(glWhite);
-  glRectWire(0.0f, 0.0f, (float) sdl->dem.rext[0], (float) sdl->dem.rext[1]);
+  glRectWire(0.0f, 0.0f, (float) sdl->dem.opts.box.x[0], (float) sdl->dem.opts.box.x[1]);
 
   // Diagnostic text.
   glMatrixMode(GL_PROJECTION);
@@ -368,16 +354,16 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
       bmm_dem_pscalar(&sdl->dem));
   glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
   (void) snprintf(strbuf, sizeof strbuf, "t (now) = %g",
-      sdl->dem.istep * sdl->dem.opts.tstep);
+      sdl->dem.time.t);
   glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
   (void) snprintf(strbuf, sizeof strbuf, "t (next sched. update) = %g",
-      sdl->dem.buf.neigh.tnext);
+      sdl->dem.cache.tnext);
   glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
   (void) snprintf(strbuf, sizeof strbuf, "e (coeff. of restit.) = %g",
       bmm_dem_cor(&sdl->dem));
   glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
   (void) snprintf(strbuf, sizeof strbuf, "n (number of particles) = %zu",
-      sdl->dem.buf.npart);
+      sdl->dem.part.n);
   glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
 
   SDL_GL_SwapWindow(window);
@@ -426,12 +412,12 @@ static bool heresy(struct bmm_sdl const* const sdl) {
     return false;
   }
 
-  for (size_t ipart = 0; ipart < sdl->dem.buf.npart; ++ipart)
+  for (size_t ipart = 0; ipart < sdl->dem.part.n; ++ipart)
     if (fprintf(stream, "%zu %g %g %g\n",
           ipart,
-          sdl->dem.buf.parts[ipart].lin.r[0],
-          sdl->dem.buf.parts[ipart].lin.r[1],
-          sdl->dem.buf.partcs[ipart].rrad) < 0) {
+          sdl->dem.part.x[ipart][0],
+          sdl->dem.part.x[ipart][1],
+          sdl->dem.part.r[ipart]) < 0) {
       BMM_TLE_STDS();
 
       break;
@@ -454,14 +440,14 @@ static bool more_heresy(struct bmm_sdl const* const sdl) {
     return false;
   }
 
-  for (size_t ipart = 0; ipart < sdl->dem.buf.npart; ++ipart) {
-    for (size_t ilink = 0; ilink < sdl->dem.buf.links[ipart].n; ++ilink) {
-      size_t const jpart = sdl->dem.buf.links[ipart].linkl[ilink].i;
+  for (size_t ipart = 0; ipart < sdl->dem.part.n; ++ipart) {
+    for (size_t ilink = 0; ilink < sdl->dem.link.part[ipart].n; ++ilink) {
+      size_t const jpart = sdl->dem.link.part[ipart].i[ilink];
 
       if (fprintf(stream, "%zu %g %g\n",
             (size_t) 0,
-            sdl->dem.buf.parts[ipart].lin.r[0],
-            sdl->dem.buf.parts[ipart].lin.r[1]) < 0) {
+            sdl->dem.part.x[ipart][0],
+            sdl->dem.part.x[ipart][1]) < 0) {
         BMM_TLE_STDS();
 
         break; // out
@@ -469,8 +455,8 @@ static bool more_heresy(struct bmm_sdl const* const sdl) {
 
       if (fprintf(stream, "%zu %g %g\n",
             (size_t) 1,
-            sdl->dem.buf.parts[jpart].lin.r[0],
-            sdl->dem.buf.parts[jpart].lin.r[1]) < 0) {
+            sdl->dem.part.x[jpart][0],
+            sdl->dem.part.x[jpart][1]) < 0) {
         BMM_TLE_STDS();
 
         break; // out
@@ -596,19 +582,17 @@ static bool serious_heresy(struct bmm_sdl const* const sdl) {
     return false;
   }
 
-  if (fprintf(stream, "%zu\n.\n", sdl->dem.buf.npart) < 0) {
+  if (fprintf(stream, "%zu\n.\n", sdl->dem.part.n) < 0) {
     BMM_TLE_STDS();
 
     return false;
   }
 
-  double const sfact = sdl->dem.opts.rmean;
-
-  for (size_t ipart = 0; ipart < sdl->dem.buf.npart; ++ipart)
+  for (size_t ipart = 0; ipart < sdl->dem.part.n; ++ipart)
     if (fprintf(stream, "S %g %g 0.0 %g\n",
-          sdl->dem.buf.parts[ipart].lin.r[0] / sfact,
-          sdl->dem.buf.parts[ipart].lin.r[1] / sfact,
-          sdl->dem.buf.partcs[ipart].rrad / sfact) < 0) {
+          sdl->dem.part.x[ipart][0],
+          sdl->dem.part.x[ipart][1],
+          sdl->dem.part.r[ipart]) < 0) {
       BMM_TLE_STDS();
 
       break;
@@ -698,7 +682,7 @@ static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
               sdl->itarget = 0;
               break;
             case SDLK_3:
-              sdl->itarget = (size_t) rand() % sdl->dem.buf.npart;
+              sdl->itarget = (size_t) rand() % sdl->dem.part.n;
               break;
           }
           break;

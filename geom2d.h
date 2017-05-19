@@ -46,6 +46,13 @@ inline double bmm_geom2d_dir(double const* const x) {
   return atan2(x[1], x[0]);
 }
 
+/// The call `bmm_geom2d_redir(phi)`
+/// returns the reversed signed angle $\\phi + \\twopi / 2$ of the angle `phi`.
+__attribute__ ((__const__, __pure__))
+inline double bmm_geom2d_redir(double const phi) {
+  return phi + M_2PI / 2;
+}
+
 /// The call `bmm_geom2d_add(y, x0, x1)`
 /// sets the vector `y` to the vector `x0` plus `x1`.
 inline void bmm_geom2d_add(double* restrict const y,

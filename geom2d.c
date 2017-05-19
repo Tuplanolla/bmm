@@ -11,6 +11,8 @@ extern inline double bmm_geom2d_norm(double const*);
 
 extern inline double bmm_geom2d_dir(double const*);
 
+extern inline double bmm_geom2d_redir(double);
+
 extern inline void bmm_geom2d_add(double* restrict,
     double const* restrict, double const* restrict);
 
