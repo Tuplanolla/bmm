@@ -10,65 +10,6 @@
 #include "msg.h"
 #include "size.h"
 
-#define T unsigned char
-#define TMAX 255
-
-CHEAT_DECLARE(
-T wrapref(T n, T a, T const b) {
-  // This implementation is slow as shit,
-  // but anything more elaborate would require number theory.
-
-  a = 0;
-
-  T const c = b - a;
-
-  if (n < a)
-    do
-      n += c;
-    while (n < a);
-  else
-    while (n >= b)
-      n -= c;
-
-  return n == a ? b - 1 : n - 1;
-  // return n == b - 1 ? a : n + 1;
-}
-T wrap(T n, T const a, T const b) {
-  return (n + b - 1) % b;
-  // return (n + 1) % b;
-}
-)
-
-CHEAT_TEST(wrap,
-  for (long long int i = 0; i <= TMAX; ++i)
-    cheat_assert_long_long_int((long long int) wrapref((T) i, 0, 255),
-      (long long int) wrap((T) i, 0, 255));
-
-  for (long long int i = 0; i <= TMAX; ++i)
-    cheat_assert_long_long_int((long long int) wrapref((T) i, 0, 1),
-      (long long int) wrap((T) i, 0, 1));
-
-  for (long long int i = 0; i <= TMAX; ++i)
-    cheat_assert_long_long_int((long long int) wrapref((T) i, 254, 255),
-      (long long int) wrap((T) i, 254, 255));
-
-  for (long long int i = 0; i <= TMAX; ++i)
-    cheat_assert_long_long_int((long long int) wrapref((T) i, 6, 250),
-      (long long int) wrap((T) i, 6, 250));
-
-  for (long long int i = 0; i <= TMAX; ++i)
-    cheat_assert_long_long_int((long long int) wrapref((T) i, 8, 12),
-      (long long int) wrap((T) i, 8, 12));
-
-  for (long long int i = 0; i <= TMAX; ++i)
-    cheat_assert_long_long_int((long long int) wrapref((T) i, 7, 12),
-      (long long int) wrap((T) i, 7, 12));
-
-  for (long long int i = 0; i <= TMAX; ++i)
-    cheat_assert_long_long_int((long long int) wrapref((T) i, 250, 255),
-      (long long int) wrap((T) i, 250, 255));
-)
-
 CHEAT_TEST(cpp_testbit,
   for (size_t i = 0; i < 8; ++i)
     cheat_assert(BMM_TESTBIT(1 << i, i));

@@ -707,12 +707,14 @@ static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
             case SDLK_MINUS:
             case SDLK_KP_MINUS:
               bmm_sdl_zoom(sdl,
-                  (double) sdl->width * 0.5, (double) sdl->height * 0.5, 0.75);
+                  (double) sdl->width * 0.5, (double) sdl->height * 0.5,
+                  1.0 / sdl->opts.zoomfac);
               break;
             case SDLK_PLUS:
             case SDLK_KP_PLUS:
               bmm_sdl_zoom(sdl,
-                  (double) sdl->width * 0.5, (double) sdl->height * 0.5, 1.25);
+                  (double) sdl->width * 0.5, (double) sdl->height * 0.5,
+                  sdl->opts.zoomfac);
               break;
             case SDLK_LEFT:
               bmm_sdl_move(sdl,
