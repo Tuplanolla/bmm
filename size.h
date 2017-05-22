@@ -2,8 +2,8 @@
 /// Index space operations.
 #define BMM_SIZE_H
 
-#include <limits.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include "ext.h"
 
@@ -77,9 +77,9 @@ inline size_t bmm_size_identity(size_t const n) {
 /// The call `bmm_size_constant(n, k)` returns `n`.
 /// This is analogous to `bmm_fp_constant`.
 __attribute__ ((__const__, __pure__))
-inline size_t bmm_size_constant(size_t const x,
-    __attribute__ ((__unused__)) size_t const y) {
-  return x;
+inline size_t bmm_size_constant(size_t const n,
+    __attribute__ ((__unused__)) size_t const k) {
+  return n;
 }
 
 /// The call `bmm_size_zero(n)` returns `0`.
@@ -147,6 +147,7 @@ inline size_t bmm_size_cirt(size_t const n, size_t const k) {
 /// This is analogous to `bmm_fp_log`.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_flog(size_t n, size_t const k) {
+  // These do not work because of the attributes.
   // dynamic_assert(n <= 0, "invalid argument");
   // dynamic_assert(k <= 1, "invalid base");
 
@@ -165,44 +166,71 @@ inline size_t bmm_size_flog(size_t n, size_t const k) {
 /// This is analogous to `bmm_fp_log`.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_clog(size_t const n, size_t const k) {
+  // These do not work because of the attributes.
   // dynamic_assert(n <= 0, "invalid argument");
   // dynamic_assert(k <= 1, "invalid base");
 
   return n <= 1 ? 0 : bmm_size_flog(n - 1, k) + 1;
 }
 
-/// The call `bmm_size_uclamp(n, k)` returns
+/// The call `bmm_size_uclamp(n, b)` returns
 ///
-/// * `n` if `0 <= n < k` and
-/// * `k - 1` if `n >= k`.
+/// * `n` if `0 <= n < b` and
+/// * `b - 1` if `n >= b`.
 ///
 /// This is analogous to `bmm_fp_uclamp`.
 __attribute__ ((__const__, __pure__))
-inline size_t bmm_size_uclamp(size_t const n, size_t const k) {
-  return n >= k ? k - 1 : n;
+inline size_t bmm_size_uclamp(size_t const n, size_t const b) {
+  return n >= b ? b - 1 : n;
 }
 
-/// The call `m = bmm_size_uwrap(n, k)`
-/// solves the periodic equation `m == n - p * k` for `m`,
-/// where `0 <= m < k` and `p` is some integer.
+/// The call `z = bmm_size_wrap(n, a, b)`
+/// solves the periodic equation `z == n - a + k * a` for `z`,
+/// where `a <= z < b` and `k` is some integer.
+/// This is analogous to `bmm_fp_wrap`.
+__attribute__ ((__const__, __pure__))
+inline size_t bmm_size_wrap(size_t const n, size_t const a, size_t const b) {
+  size_t const c = b - a;
+
+  return (n + c - a) % c + a;
+}
+
+/// The call `z = bmm_fp_uwrap(n, b)`
+/// solves the periodic equation `z == n + k * b` for `z`,
+/// where `0 <= z < b` and `k` is some integer.
 /// This is analogous to `bmm_fp_uwrap`.
+/// The `u` prefix means unsigned or unsymmetric (asymmetric).
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_uwrap(size_t const n, size_t const k) {
   return n % k;
 }
 
-/// The call `bmm_size_inc(n, k)`
-/// is equivalent to `bmm_size_uwrap(n + 1, k)` without wrapping.
+/// The call `bmm_size_uinc(n, b)`
+/// is equivalent to `bmm_size_uwrap(n + 1, b)` without wrapping.
 __attribute__ ((__const__, __pure__))
-inline size_t bmm_size_inc(size_t const n, size_t const k) {
-  return n == k - 1 ? 0 : n + 1;
+inline size_t bmm_size_uinc(size_t const n, size_t const b) {
+  return n == b - 1 ? 0 : n + 1;
 }
 
-/// The call `bmm_size_dec(n, k)`
-/// is equivalent to `bmm_size_uwrap(n - 1, k)` without wrapping.
+/// The call `bmm_size_inc(n, a, b)`
+/// is equivalent to `bmm_size_wrap(n + 1, a, b)` without wrapping.
 __attribute__ ((__const__, __pure__))
-inline size_t bmm_size_dec(size_t const n, size_t const k) {
-  return n == 0 ? k - 1 : n - 1;
+inline size_t bmm_size_inc(size_t const n, size_t const a, size_t const b) {
+  return n == b - 1 ? a : n + 1;
+}
+
+/// The call `bmm_size_udec(n, b)`
+/// is equivalent to `bmm_size_uwrap(n - 1, b)` without wrapping.
+__attribute__ ((__const__, __pure__))
+inline size_t bmm_size_udec(size_t const n, size_t const b) {
+  return n == 0 ? b - 1 : n - 1;
+}
+
+/// The call `bmm_size_dec(n, a, b)`
+/// is equivalent to `bmm_size_wrap(n - 1, a, b)` without wrapping.
+__attribute__ ((__const__, __pure__))
+inline size_t bmm_size_dec(size_t const n, size_t const a, size_t const b) {
+  return n == a ? b - 1 : n - 1;
 }
 
 /// The call `bmm_size_sum(n, k)`

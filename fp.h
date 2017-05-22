@@ -140,8 +140,8 @@ inline double bmm_fp_uclamp(double const x, double const b) {
 }
 
 /// The call `z = bmm_fp_wrap(x, a, b)`
-/// solves the periodic equation `z == x - a + n * a` for `z`,
-/// where `a <= z < b` and `n` is some integer.
+/// solves the periodic equation `z == x - a + k * a` for `z`,
+/// where `a <= z < b` and `k` is some integer.
 __attribute__ ((__const__, __pure__))
 inline double bmm_fp_wrap(double const x, double const a, double const b) {
   double const c = b - a;
@@ -150,8 +150,8 @@ inline double bmm_fp_wrap(double const x, double const a, double const b) {
 }
 
 /// The call `z = bmm_fp_swrap(x, b)`
-/// solves the periodic equation `z == x + n * b` for `z`,
-/// where `-b / 2 <= z < b / 2` and `n` is some integer.
+/// solves the periodic equation `z == x + k * b` for `z`,
+/// where `-b / 2 <= z < b / 2` and `k` is some integer.
 /// The `s` prefix means signed or symmetric.
 __attribute__ ((__const__, __pure__))
 inline double bmm_fp_swrap(double const x, double const b) {
@@ -159,8 +159,8 @@ inline double bmm_fp_swrap(double const x, double const b) {
 }
 
 /// The call `z = bmm_fp_uwrap(x, b)`
-/// solves the periodic equation `z == x + n * b` for `z`,
-/// where `0 <= z < b` and `n` is some integer.
+/// solves the periodic equation `z == x + k * b` for `z`,
+/// where `0 <= z < b` and `k` is some integer.
 /// This is analogous to `bmm_size_uwrap`.
 /// The `u` prefix means unsigned or unsymmetric (asymmetric).
 __attribute__ ((__const__, __pure__))

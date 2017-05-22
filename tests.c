@@ -108,15 +108,20 @@ CHEAT_TEST(moore_nr,
 CHEAT_TEST(moore_ijp,
   size_t ij[3];
 
-  bmm_moore_ijp(ij, (size_t const[]) {0, 0, 0}, 0, ndim, nper);
-  cheat_assert_size(ij[0], 4);
-  cheat_assert_size(ij[1], 3);
-  cheat_assert_size(ij[2], 2);
+  bmm_moore_ijp(ij, (size_t const[]) {4, 3, 2}, 0, ndim, nper);
+  cheat_assert_size(ij[0], 3);
+  cheat_assert_size(ij[1], 2);
+  cheat_assert_size(ij[2], 1);
 
   bmm_moore_ijp(ij, (size_t const[]) {1, 1, 1}, 0, ndim, nper);
   cheat_assert_size(ij[0], 0);
   cheat_assert_size(ij[1], 0);
   cheat_assert_size(ij[2], 0);
+
+  bmm_moore_ijp(ij, (size_t const[]) {2, 2, 2}, 0, ndim, nper);
+  cheat_assert_size(ij[0], 1);
+  cheat_assert_size(ij[1], 1);
+  cheat_assert_size(ij[2], 1);
 )
 
 CHEAT_TEST(moore_ij,
@@ -131,20 +136,30 @@ CHEAT_TEST(moore_ij,
   cheat_assert_size(ij[0], 0);
   cheat_assert_size(ij[1], 0);
   cheat_assert_size(ij[2], 0);
+
+  bmm_moore_ij(ij, (size_t const[]) {2, 2, 2}, 0, ndim, nper);
+  cheat_assert_size(ij[0], 1);
+  cheat_assert_size(ij[1], 1);
+  cheat_assert_size(ij[2], 1);
 )
 
 CHEAT_TEST(moore_ijcp,
   size_t ij[3];
 
-  bmm_moore_ijcp(ij, (size_t const[]) {0, 0, 0}, 0, ndim, nper, per);
-  cheat_assert_size(ij[0], 4);
+  bmm_moore_ijcp(ij, (size_t const[]) {4, 0, 2}, 0, ndim, nper, per);
+  cheat_assert_size(ij[0], 3);
   cheat_assert_size(ij[1], 0);
-  cheat_assert_size(ij[2], 2);
+  cheat_assert_size(ij[2], 1);
 
   bmm_moore_ijcp(ij, (size_t const[]) {1, 1, 1}, 0, ndim, nper, per);
   cheat_assert_size(ij[0], 0);
   cheat_assert_size(ij[1], 0);
   cheat_assert_size(ij[2], 0);
+
+  bmm_moore_ijcp(ij, (size_t const[]) {2, 2, 2}, 0, ndim, nper, per);
+  cheat_assert_size(ij[0], 1);
+  cheat_assert_size(ij[1], 1);
+  cheat_assert_size(ij[2], 1);
 )
 
 CHEAT_DECLARE(

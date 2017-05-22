@@ -10,9 +10,6 @@
 #include "ext.h"
 #include "size.h"
 
-// TODO Consider `int` indices
-// since now periodicity does not unify with nonperiodicity.
-
 // This implementation is not as optimal as the interface allows,
 // but should be good enough for most purposes.
 
@@ -528,7 +525,7 @@ inline void bmm_moore_ijp(size_t* restrict const pij,
 
 br:
   for (size_t idim = 0; idim < ndim; ++idim)
-    pij[idim] = bmm_size_dec(ij[idim] + pij[idim], nper[idim]);
+    pij[idim] = bmm_size_dec(ij[idim] + pij[idim], 1, nper[idim] - 1);
 }
 
 /// The call `bmm_moore_ijpr(pij, ij, i, d, n)`
@@ -563,7 +560,7 @@ inline void bmm_moore_ijpr(size_t* restrict const pij,
 
 br:
   for (size_t idim = 0; idim < ndim; ++idim)
-    pij[idim] = bmm_size_dec(ij[idim] + pij[idim], nper[idim]);
+    pij[idim] = bmm_size_dec(ij[idim] + pij[idim], 1, nper[idim] - 1);
 }
 
 /// The call `bmm_moore_ijplh(pij, ij, i, d, n)`
@@ -597,7 +594,7 @@ inline void bmm_moore_ijplh(size_t* restrict const pij,
 
 br:
   for (size_t idim = 0; idim < ndim; ++idim)
-    pij[idim] = bmm_size_dec(ij[idim] + pij[idim], nper[idim]);
+    pij[idim] = bmm_size_dec(ij[idim] + pij[idim], 1, nper[idim] - 1);
 }
 
 /// The call `bmm_moore_ijplhr(pij, ij, i, d, n)`
@@ -624,7 +621,7 @@ inline void bmm_moore_ijplhr(size_t* restrict const pij,
 
 br:
   for (size_t idim = 0; idim < ndim; ++idim)
-    pij[idim] = bmm_size_dec(ij[idim] + pij[idim], nper[idim]);
+    pij[idim] = bmm_size_dec(ij[idim] + pij[idim], 1, nper[idim] - 1);
 }
 
 /// The call `bmm_moore_ijpuh(pij, ij, i, d, n)`
@@ -658,7 +655,7 @@ inline void bmm_moore_ijpuh(size_t* restrict const pij,
 
 br:
   for (size_t idim = 0; idim < ndim; ++idim)
-    pij[idim] = bmm_size_dec(ij[idim] + pij[idim], nper[idim]);
+    pij[idim] = bmm_size_dec(ij[idim] + pij[idim], 1, nper[idim] - 1);
 }
 
 /// The call `bmm_moore_ijpuhr(pij, ij, i, d, n)`
@@ -685,7 +682,7 @@ inline void bmm_moore_ijpuhr(size_t* restrict const pij,
 
 br:
   for (size_t idim = 0; idim < ndim; ++idim)
-    pij[idim] = bmm_size_dec(ij[idim] + pij[idim], nper[idim]);
+    pij[idim] = bmm_size_dec(ij[idim] + pij[idim], 1, nper[idim] - 1);
 }
 
 /// The call `bmm_moore_ij(pij, ij, i, d, n)`
@@ -895,7 +892,10 @@ inline void bmm_moore_ijcp(size_t* restrict const pij,
 
 br:
   for (size_t idim = 0; idim < ndim; ++idim)
-    pij[idim] = bmm_size_dec(ij[idim] + pij[idim], nper[idim]);
+    if (per[idim])
+      pij[idim] = bmm_size_dec(ij[idim] + pij[idim], 1, nper[idim] - 1);
+    else
+      pij[idim] = ij[idim] + pij[idim] - 1;
 }
 
 /// The call `bmm_moore_ijcpr(pij, ij, i, d, n, p)`
@@ -931,7 +931,10 @@ inline void bmm_moore_ijcpr(size_t* restrict const pij,
 
 br:
   for (size_t idim = 0; idim < ndim; ++idim)
-    pij[idim] = bmm_size_dec(ij[idim] + pij[idim], nper[idim]);
+    if (per[idim])
+      pij[idim] = bmm_size_dec(ij[idim] + pij[idim], 1, nper[idim] - 1);
+    else
+      pij[idim] = ij[idim] + pij[idim] - 1;
 }
 
 /// The call `bmm_moore_ijcplh(pij, ij, i, d, n, p)`
@@ -966,7 +969,10 @@ inline void bmm_moore_ijcplh(size_t* restrict const pij,
 
 br:
   for (size_t idim = 0; idim < ndim; ++idim)
-    pij[idim] = bmm_size_dec(ij[idim] + pij[idim], nper[idim]);
+    if (per[idim])
+      pij[idim] = bmm_size_dec(ij[idim] + pij[idim], 1, nper[idim] - 1);
+    else
+      pij[idim] = ij[idim] + pij[idim] - 1;
 }
 
 /// The call `bmm_moore_ijcplhr(pij, ij, i, d, n, p)`
@@ -994,7 +1000,10 @@ inline void bmm_moore_ijcplhr(size_t* restrict const pij,
 
 br:
   for (size_t idim = 0; idim < ndim; ++idim)
-    pij[idim] = bmm_size_dec(ij[idim] + pij[idim], nper[idim]);
+    if (per[idim])
+      pij[idim] = bmm_size_dec(ij[idim] + pij[idim], 1, nper[idim] - 1);
+    else
+      pij[idim] = ij[idim] + pij[idim] - 1;
 }
 
 /// The call `bmm_moore_ijcpuh(pij, ij, i, d, n, p)`
@@ -1029,7 +1038,10 @@ inline void bmm_moore_ijcpuh(size_t* restrict const pij,
 
 br:
   for (size_t idim = 0; idim < ndim; ++idim)
-    pij[idim] = bmm_size_dec(ij[idim] + pij[idim], nper[idim]);
+    if (per[idim])
+      pij[idim] = bmm_size_dec(ij[idim] + pij[idim], 1, nper[idim] - 1);
+    else
+      pij[idim] = ij[idim] + pij[idim] - 1;
 }
 
 /// The call `bmm_moore_ijcpuhr(pij, ij, i, d, n, p)`
@@ -1057,7 +1069,10 @@ inline void bmm_moore_ijcpuhr(size_t* restrict const pij,
 
 br:
   for (size_t idim = 0; idim < ndim; ++idim)
-    pij[idim] = bmm_size_dec(ij[idim] + pij[idim], nper[idim]);
+    if (per[idim])
+      pij[idim] = bmm_size_dec(ij[idim] + pij[idim], 1, nper[idim] - 1);
+    else
+      pij[idim] = ij[idim] + pij[idim] - 1;
 }
 
 #endif
