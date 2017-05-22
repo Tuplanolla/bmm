@@ -214,6 +214,30 @@ static void bmm_sdl_move(struct bmm_sdl* const sdl,
   sdl->rorigin[0] += x2 - xproj - wproj * 0.5;
   sdl->rorigin[1] += y2 - yproj - hproj * 0.5;
 }
+void bmm_dem_ijcellx(size_t* const pijcell,
+    struct bmm_dem const* const dem, double* y) {
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
+    size_t const n = dem->opts.cache.ncell[idim];
+
+    size_t const j = n - 1;
+    double const r = (double) j;
+
+    double const x = bmm_fp_lerp(y[idim],
+        0.0, dem->opts.box.x[idim], 1.0, r);
+
+    if (x < 1.0)
+      pijcell[idim] = 0;
+    else if (x >= r)
+      pijcell[idim] = j;
+    else {
+      size_t const k = (size_t) x;
+
+      dynamic_assert(k < j, "Invalid truncation");
+
+      pijcell[idim] = k;
+    }
+  }
+}
 
 static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
@@ -242,11 +266,14 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
 
   size_t const ncorner = 8;
 
-  double const w = sdl->dem.opts.box.x[0] / (double) sdl->dem.opts.cache.ncell[0];
-  double const h = sdl->dem.opts.box.x[1] / (double) sdl->dem.opts.cache.ncell[1];
+  size_t const ncx = sdl->dem.opts.cache.ncell[0] - 2;
+  size_t const ncy = sdl->dem.opts.cache.ncell[1] - 2;
+
+  double const w = sdl->dem.opts.box.x[0] / (double) ncx;
+  double const h = sdl->dem.opts.box.x[1] / (double) ncy;
 
   // Particles.
-  for (float off = -1; off < 2; ++off)
+  for (float off = -1; off < 2; ++off) {
     for (size_t ipart = 0; ipart < sdl->dem.part.n; ++ipart) {
       float const x = (float) sdl->dem.part.x[ipart][0];
       float const y = (float) sdl->dem.part.x[ipart][1];
@@ -261,12 +288,44 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
       GLfloat nope[4];
       memcpy(nope, blent, sizeof glBlack);
       nope[3] = 0.0f;
-      float const t = fabsf(xoff / (float) sdl->dem.opts.box.x[0] - 0.5f) - 0.5f;
+      float t = fabsf(xoff / (float) sdl->dem.opts.box.x[0] - 0.5f) - 0.5f;
       blent[3] = 1.0f - t;
       glColor4fv(blent);
 
       glSkewedAnnulus(xoff, y, r, r * 0.25f, r * 0.5f, a, ncorner);
+
+      // Neighbors.
+      memcpy(blent, glBlue, sizeof glBlack);
+      blent[3] = 1.0f;
+      memcpy(nope, blent, sizeof glBlack);
+      nope[3] = 0.0f;
+      blent[3] = 1.0f - t;
+      glColor4fv(blent);
+
+      if (ipart != 8) continue;
+      glBegin(GL_LINES);
+      for (size_t ineigh = 0; ineigh < sdl->dem.cache.neigh[ipart].n; ++ineigh) {
+        size_t const jpart = sdl->dem.cache.neigh[ipart].i[ineigh];
+
+        double x0[BMM_NDIM];
+        double x1[BMM_NDIM];
+
+        (void) memcpy(x0, sdl->dem.part.x[ipart], sizeof x0);
+        (void) memcpy(x1, sdl->dem.part.x[jpart], sizeof x1);
+
+        double dx[BMM_NDIM];
+        dx[0] = x0[0] + bmm_fp_swrap(x1[0] - x0[0], sdl->dem.opts.box.x[0]);
+        dx[1] = x1[1];
+
+        x0[0] += off * (float) sdl->dem.opts.box.x[0];
+        dx[0] += off * (float) sdl->dem.opts.box.x[0];
+
+        glVertex2dv(x0);
+        glVertex2dv(dx);
+      }
+      glEnd();
     }
+  }
 
   // Focus.
   /*
@@ -321,8 +380,8 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
 
   // Cell boxes.
   glColor3fv(glCyan);
-  for (size_t icellx = 0; icellx < sdl->dem.opts.cache.ncell[0]; ++icellx)
-    for (size_t icelly = 0; icelly < sdl->dem.opts.cache.ncell[1]; ++icelly) {
+  for (size_t icellx = 0; icellx < ncx; ++icellx)
+    for (size_t icelly = 0; icelly < ncy; ++icelly) {
       double const x = (double) icellx * w;
       double const y = (double) icelly * h;
 
@@ -648,12 +707,12 @@ static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
             case SDLK_MINUS:
             case SDLK_KP_MINUS:
               bmm_sdl_zoom(sdl,
-                  (double) sdl->width * 0.5, (double) sdl->height * 0.5, 0.5);
+                  (double) sdl->width * 0.5, (double) sdl->height * 0.5, 0.75);
               break;
             case SDLK_PLUS:
             case SDLK_KP_PLUS:
               bmm_sdl_zoom(sdl,
-                  (double) sdl->width * 0.5, (double) sdl->height * 0.5, 2.0);
+                  (double) sdl->width * 0.5, (double) sdl->height * 0.5, 1.25);
               break;
             case SDLK_LEFT:
               bmm_sdl_move(sdl,

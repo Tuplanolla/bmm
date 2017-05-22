@@ -21,20 +21,20 @@
 #include "size.h"
 #include "tle.h"
 
+// TODO Use `dynamic_assert(n >= 3, "Too few neighbor cells")` as appropriate.
+
 void bmm_dem_ijcell(size_t* const pijcell,
     struct bmm_dem const* const dem, size_t const ipart) {
   for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
     size_t const n = dem->opts.cache.ncell[idim];
 
-    // TODO How about periodicity?
-    dynamic_assert(n >= 3, "Too few neighbor cells");
-
     size_t const j = n - 1;
-    double const r = (double) j - 1.0;
-    double const x = bmm_fp_lerp(dem->part.x[ipart][idim],
-        0.0, dem->opts.box.x[idim], 0.0, r);
+    double const r = (double) j;
 
-    if (x < 0.0)
+    double const x = bmm_fp_lerp(dem->part.x[ipart][idim],
+        0.0, dem->opts.box.x[idim], 1.0, r);
+
+    if (x < 1.0)
       pijcell[idim] = 0;
     else if (x >= r)
       pijcell[idim] = j;
@@ -75,8 +75,8 @@ bool bmm_dem_isneigh(struct bmm_dem* const dem,
 bool bmm_dem_cache_cell(struct bmm_dem* const dem, size_t const ipart) {
   bmm_dem_ijcell(dem->cache.cell[ipart], dem, ipart);
 
-  size_t const icell = bmm_size_unhc(dem->cache.cell[ipart],
-      BMM_NDIM, BMM_NCELL);
+  size_t const icell = bmm_size_unhcd(dem->cache.cell[ipart],
+      BMM_NDIM, dem->opts.cache.ncell);
 
   if (!BMM_ASET_CANINS(dem->cache.part[icell].i, dem->cache.part[icell].n))
     return false;
@@ -158,7 +158,7 @@ bool bmm_dem_cache_dofrom(struct bmm_dem* const dem, size_t const ipart) {
       dem->opts.cache.ncell, dem->opts.box.per);
 
   for (size_t imoore = 0; imoore < nmoore; ++imoore) {
-    bmm_moore_ijcpuh(ij, dem->cache.cell[ipart], imoore,
+    bmm_moore_ijcplhr(ij, dem->cache.cell[ipart], imoore,
         BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per);
 
     size_t const icell = bmm_size_unhcd(ij, BMM_NDIM, dem->opts.cache.ncell);
@@ -484,10 +484,10 @@ void bmm_dem_integ_euler(struct bmm_dem* const dem) {
       // TODO Ordering.
       dem->part.v[ipart][idim] = dem->part.v[ipart][idim] + dem->part.a[ipart][idim] * dt;
 
-      // TODO Periodicity.
-      dem->part.x[ipart][idim] = bmm_fp_uwrap(
-          dem->part.x[ipart][idim] + dem->part.v[ipart][idim] * dt,
-          dem->opts.box.x[idim]);
+      dem->part.x[ipart][idim] = dem->part.x[ipart][idim] + dem->part.v[ipart][idim] * dt;
+      if (dem->opts.box.per[idim])
+        dem->part.x[ipart][idim] = bmm_fp_uwrap(dem->part.x[ipart][idim],
+            dem->opts.box.x[idim]);
     }
 
     dem->part.alpha[ipart] = dem->part.tau[ipart] / dem->part.j[ipart];
@@ -716,6 +716,7 @@ void bmm_dem_opts_def(struct bmm_dem_opts* const opts) {
 
   opts->init = BMM_DEM_INIT_TRIAL;
   opts->integ = BMM_DEM_INTEG_EULER;
+  opts->caching = BMM_DEM_CACHING_NONE;
   opts->caching = BMM_DEM_CACHING_NEIGH;
   opts->famb = BMM_DEM_FAMB_CREEPING;
   opts->fnorm = BMM_DEM_FNORM_DASHPOT;
@@ -751,7 +752,7 @@ void bmm_dem_opts_def(struct bmm_dem_opts* const opts) {
   opts->comm.flup = true;
 
   for (size_t idim = 0; idim < nmembof(opts->cache.ncell); ++idim)
-    opts->cache.ncell[idim] = 3;
+    opts->cache.ncell[idim] = 5;
 
   opts->cache.rcutoff = 1.0;
 }
@@ -889,13 +890,10 @@ bool bmm_dem_step(struct bmm_dem* const dem) {
 
 // TODO This ought to be const-qualified.
 bool bmm_dem_comm(struct bmm_dem* const dem) {
-  // TODO This timing is bogus.
-  if (dem->time.istep % 20 == 0)
-    bmm_dem_puts(dem, BMM_MSG_NUM_NEIGH);
-
   // TODO Make a mechanism to automate retransmission of differences only.
 
   bmm_dem_puts(dem, BMM_MSG_NUM_ISTEP);
+  bmm_dem_puts(dem, BMM_MSG_NUM_NEIGH);
   bmm_dem_puts(dem, BMM_MSG_NUM_PARTS);
 
   return true;
@@ -911,9 +909,13 @@ bool bmm_dem_run(struct bmm_dem* const dem) {
   }
 
   // TODO Get rid of these after refactoring `dem.c`.
-  dem->opts.cache.ncell[0] = 3;
-  dem->opts.cache.ncell[1] = 3;
-  dem->opts.cache.rcutoff = 0.2;
+
+  dem->opts.box.per[0] = true;
+  dem->opts.box.per[1] = false;
+
+  dem->opts.cache.ncell[0] = 5;
+  dem->opts.cache.ncell[1] = 5;
+  dem->opts.cache.rcutoff = 1.0;
 
   dem->opts.part.y = 1e+6;
   dem->opts.script.n = 1;

@@ -5,6 +5,12 @@
 
 extern inline bool bmm_moore_qp(size_t*, size_t, size_t);
 
+extern inline bool bmm_moore_q(size_t* restrict, size_t const* restrict,
+    size_t, size_t, size_t const* restrict);
+
+extern inline bool bmm_moore_qcp(size_t* restrict, size_t const* restrict,
+    size_t, size_t, size_t const* restrict, bool const*);
+
 extern inline size_t bmm_moore_np(size_t);
 
 extern inline size_t bmm_moore_npr(size_t);
@@ -16,9 +22,6 @@ extern inline size_t bmm_moore_nplhr(size_t);
 extern inline size_t bmm_moore_npuh(size_t);
 
 extern inline size_t bmm_moore_npuhr(size_t);
-
-extern inline bool bmm_moore_q(size_t* restrict, size_t const* restrict,
-    size_t, size_t, size_t const* restrict);
 
 extern inline size_t bmm_moore_n(size_t* restrict,
     size_t const* restrict, size_t, size_t const* restrict);
@@ -37,9 +40,6 @@ extern inline size_t bmm_moore_nuh(size_t* restrict,
 
 extern inline size_t bmm_moore_nuhr(size_t* restrict,
     size_t const* restrict, size_t, size_t const* restrict);
-
-extern inline bool bmm_moore_qcp(size_t* restrict, size_t const* restrict,
-    size_t, size_t, size_t const* restrict, bool const*);
 
 extern inline size_t bmm_moore_ncp(size_t* restrict,
     size_t const* restrict, size_t, size_t const* restrict, bool const*);

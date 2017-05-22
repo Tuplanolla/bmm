@@ -192,6 +192,7 @@ __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_wrap(size_t const n, size_t const a, size_t const b) {
   size_t const c = b - a;
 
+  // TODO This is wrong.
   return (n + c - a) % c + a;
 }
 
@@ -201,36 +202,42 @@ inline size_t bmm_size_wrap(size_t const n, size_t const a, size_t const b) {
 /// This is analogous to `bmm_fp_uwrap`.
 /// The `u` prefix means unsigned or unsymmetric (asymmetric).
 __attribute__ ((__const__, __pure__))
-inline size_t bmm_size_uwrap(size_t const n, size_t const k) {
-  return n % k;
+inline size_t bmm_size_uwrap(size_t const n, size_t const b) {
+  return n % b;
 }
 
 /// The call `bmm_size_uinc(n, b)`
 /// is equivalent to `bmm_size_uwrap(n + 1, b)` without wrapping.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_uinc(size_t const n, size_t const b) {
-  return n == b - 1 ? 0 : n + 1;
+  return (n + 1) % b;
 }
 
 /// The call `bmm_size_inc(n, a, b)`
 /// is equivalent to `bmm_size_wrap(n + 1, a, b)` without wrapping.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_inc(size_t const n, size_t const a, size_t const b) {
-  return n == b - 1 ? a : n + 1;
+  size_t const c = b - a;
+
+  // TODO This is wrong.
+  return (n + c - a + 1) % c + a;
 }
 
 /// The call `bmm_size_udec(n, b)`
 /// is equivalent to `bmm_size_uwrap(n - 1, b)` without wrapping.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_udec(size_t const n, size_t const b) {
-  return n == 0 ? b - 1 : n - 1;
+  return (n + b - 1) % b;
 }
 
 /// The call `bmm_size_dec(n, a, b)`
 /// is equivalent to `bmm_size_wrap(n - 1, a, b)` without wrapping.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_dec(size_t const n, size_t const a, size_t const b) {
-  return n == a ? b - 1 : n - 1;
+  size_t const c = b - a;
+
+  // TODO This is wrong.
+  return (n + c - a - 1) % c + a;
 }
 
 /// The call `bmm_size_sum(n, k)`
@@ -267,7 +274,7 @@ inline void bmm_size_hc(size_t* const pij,
     bmm_size_div_t const qr = bmm_size_div(i, nper);
 
     i = qr.quot;
-    pij[idim] = qr.rem;
+    pij[ndim - 1 - idim] = qr.rem;
   }
 }
 
@@ -281,7 +288,7 @@ inline size_t bmm_size_unhc(size_t const* const ij,
 
   for (size_t idim = 0; idim < ndim; ++idim) {
     i *= nper;
-    i += ij[ndim - 1 - idim];
+    i += ij[idim];
   }
 
   return i;
@@ -297,7 +304,7 @@ inline void bmm_size_hcd(size_t* restrict const pij,
     bmm_size_div_t const qr = bmm_size_div(i, nper[ndim - 1 - idim]);
 
     i = qr.quot;
-    pij[idim] = qr.rem;
+    pij[ndim - 1 - idim] = qr.rem;
   }
 }
 
@@ -311,7 +318,7 @@ inline size_t bmm_size_unhcd(size_t const* restrict const ij,
 
   for (size_t idim = 0; idim < ndim; ++idim) {
     i *= nper[idim];
-    i += ij[ndim - 1 - idim];
+    i += ij[idim];
   }
 
   return i;

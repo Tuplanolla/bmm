@@ -325,11 +325,11 @@ struct bmm_dem {
   } cache;
 };
 
-/// The call `bmm_dem_ijkcell(pijkcell, dem, ipart)`
+/// The call `bmm_dem_ijcell(pijcell, dem, ipart)`
 /// writes the neighbor cell indices of the particle with the index `ipart`
-/// into the index vector `pijkcell`.
+/// into the index vector `pijcell`.
 __attribute__ ((__nonnull__))
-void bmm_dem_ijkcell(size_t*, struct bmm_dem const*, size_t);
+void bmm_dem_ijcell(size_t*, struct bmm_dem const*, size_t);
 
 /// The call `bmm_dem_inspart(dem, r, m)`
 /// places a new particle with radius `r` and mass `m`

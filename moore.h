@@ -10,6 +10,8 @@
 #include "ext.h"
 #include "size.h"
 
+// This only works for `nper >= 5` due to self-overlap.
+
 // This implementation is not as optimal as the interface allows,
 // but should be good enough for most purposes.
 
@@ -22,6 +24,50 @@ __attribute__ ((__nonnull__))
 inline bool bmm_moore_qp(size_t* const pij,
     size_t const itrial, size_t const ndim) {
   bmm_size_hc(pij, itrial, ndim, 3);
+
+  return true;
+}
+
+/// The call `bmm_moore_q(pij, ij, i, d, n)`
+/// checks whether the trial index `i` is in the Moore neighborhood
+/// of the point `ij` in a finite `n`-wide
+/// `d`-dimensional lattice and
+/// sets `pij` to the corresponding offset.
+__attribute__ ((__nonnull__))
+inline bool bmm_moore_q(size_t* restrict const pij,
+    size_t const* restrict const ij, size_t const itrial,
+    size_t const ndim, size_t const* restrict const nper) {
+  bmm_size_hc(pij, itrial, ndim, 3);
+
+  for (size_t idim = 0; idim < ndim; ++idim) {
+    size_t const i = ij[idim] + pij[idim];
+
+    if (i <= 0 || i > nper[idim])
+      return false;
+  }
+
+  return true;
+}
+
+/// The call `bmm_moore_qcp(pij, ij, i, d, n, p)`
+/// checks whether the trial index `i` is in the Moore neighborhood
+/// of the point `ij` in a `p`-conditionally periodic `n`-wide
+/// `d`-dimensional lattice and
+/// sets `pij` to the corresponding offset.
+__attribute__ ((__nonnull__))
+inline bool bmm_moore_qcp(size_t* restrict const pij,
+    size_t const* restrict const ij, size_t const itrial,
+    size_t const ndim, size_t const* restrict const nper,
+    bool const* const per) {
+  bmm_size_hc(pij, itrial, ndim, 3);
+
+  for (size_t idim = 0; idim < ndim; ++idim)
+    if (!per[idim]) {
+      size_t const i = ij[idim] + pij[idim];
+
+      if (i <= 0 || i > nper[idim])
+        return false;
+    }
 
   return true;
 }
@@ -110,27 +156,6 @@ inline size_t bmm_moore_npuh(size_t const ndim) {
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_moore_npuhr(size_t const ndim) {
   return bmm_moore_nplhr(ndim);
-}
-
-/// The call `bmm_moore_q(pij, ij, i, d, n)`
-/// checks whether the trial index `i` is in the Moore neighborhood
-/// of the point `ij` in a finite `n`-wide
-/// `d`-dimensional lattice and
-/// sets `pij` to the corresponding offset.
-__attribute__ ((__nonnull__))
-inline bool bmm_moore_q(size_t* restrict const pij,
-    size_t const* restrict const ij, size_t const itrial,
-    size_t const ndim, size_t const* restrict const nper) {
-  bmm_size_hc(pij, itrial, ndim, 3);
-
-  for (size_t idim = 0; idim < ndim; ++idim) {
-    size_t const i = ij[idim] + pij[idim];
-
-    if (i <= 0 || i > nper[idim])
-      return false;
-  }
-
-  return true;
 }
 
 /// The call `bmm_moore_n(buf, ij, d, n)`
@@ -304,29 +329,6 @@ inline size_t bmm_moore_nuhr(size_t* restrict const buf,
       ++nmoore;
 
   return nmoore;
-}
-
-/// The call `bmm_moore_qcp(pij, ij, i, d, n, p)`
-/// checks whether the trial index `i` is in the Moore neighborhood
-/// of the point `ij` in a `p`-conditionally periodic `n`-wide
-/// `d`-dimensional lattice and
-/// sets `pij` to the corresponding offset.
-__attribute__ ((__nonnull__))
-inline bool bmm_moore_qcp(size_t* restrict const pij,
-    size_t const* restrict const ij, size_t const itrial,
-    size_t const ndim, size_t const* restrict const nper,
-    bool const* const per) {
-  bmm_size_hc(pij, itrial, ndim, 3);
-
-  for (size_t idim = 0; idim < ndim; ++idim)
-    if (!per[idim]) {
-      size_t const i = ij[idim] + pij[idim];
-
-      if (i <= 0 || i > nper[idim])
-        return false;
-    }
-
-  return true;
 }
 
 /// The call `bmm_moore_ncp(buf, ij, d, n, p)`
