@@ -10,8 +10,6 @@
 #include "ext.h"
 #include "size.h"
 
-// This only works for `nper >= 5` due to self-overlap.
-
 // This implementation is not as optimal as the interface allows,
 // but should be good enough for most purposes.
 

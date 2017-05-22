@@ -184,21 +184,29 @@ inline size_t bmm_size_uclamp(size_t const n, size_t const b) {
   return n >= b ? b - 1 : n;
 }
 
-/// The call `z = bmm_size_wrap(n, a, b)`
-/// solves the periodic equation `z == n - a + k * a` for `z`,
-/// where `a <= z < b` and `k` is some integer.
+/// The call `m = bmm_size_wrap(n, a, b)`
+/// solves the periodic equation `m == n - a + k * a` for `m`,
+/// where `a <= m < b` and `k` is some integer.
 /// This is analogous to `bmm_fp_wrap`.
 __attribute__ ((__const__, __pure__))
-inline size_t bmm_size_wrap(size_t const n, size_t const a, size_t const b) {
+inline size_t bmm_size_wrap(size_t n, size_t const a, size_t const b) {
   size_t const c = b - a;
 
-  // TODO This is wrong.
-  return (n + c - a) % c + a;
+  // This reference implementation is very slow.
+  // if (n < a)
+  //   do
+  //     n += c;
+  //   while (n < a);
+  // else
+  //   while (n >= b)
+  //     n -= c;
+
+  return (n % c + c - a % c) % c + a;
 }
 
-/// The call `z = bmm_fp_uwrap(n, b)`
-/// solves the periodic equation `z == n + k * b` for `z`,
-/// where `0 <= z < b` and `k` is some integer.
+/// The call `m = bmm_size_uwrap(n, b)`
+/// solves the periodic equation `m == n + k * b` for `m`,
+/// where `0 <= m < b` and `k` is some integer.
 /// This is analogous to `bmm_fp_uwrap`.
 /// The `u` prefix means unsigned or unsymmetric (asymmetric).
 __attribute__ ((__const__, __pure__))
@@ -207,7 +215,7 @@ inline size_t bmm_size_uwrap(size_t const n, size_t const b) {
 }
 
 /// The call `bmm_size_uinc(n, b)`
-/// is equivalent to `bmm_size_uwrap(n + 1, b)` without wrapping.
+/// is equivalent to `bmm_size_inc(n, 0, b)`.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_uinc(size_t const n, size_t const b) {
   return (n + 1) % b;
@@ -219,12 +227,11 @@ __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_inc(size_t const n, size_t const a, size_t const b) {
   size_t const c = b - a;
 
-  // TODO This is wrong.
-  return (n + c - a + 1) % c + a;
+  return (n % c + c - a % c + 1) % c + a;
 }
 
 /// The call `bmm_size_udec(n, b)`
-/// is equivalent to `bmm_size_uwrap(n - 1, b)` without wrapping.
+/// is equivalent to `bmm_size_dec(n, 0, b)`.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_udec(size_t const n, size_t const b) {
   return (n + b - 1) % b;
@@ -236,8 +243,7 @@ __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_dec(size_t const n, size_t const a, size_t const b) {
   size_t const c = b - a;
 
-  // TODO This is wrong.
-  return (n + c - a - 1) % c + a;
+  return (n % c + c - a % c - 1) % c + a;
 }
 
 /// The call `bmm_size_sum(n, k)`
