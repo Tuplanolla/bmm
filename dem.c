@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include "aset.h"
+#include "astack.h"
 #include "conf.h"
 #include "dem.h"
 #include "fp.h"
@@ -571,9 +572,6 @@ bool bmm_dem_link_pair(struct bmm_dem* const dem,
 
   double const rrest = d * dem->opts.link.cshlink;
 
-  BMM_ASET_INS(dem->link.part[ipart].i, dem->link.part[ipart].n, jpart);
-  BMM_ASET_REINS(dem->link.part[ipart].rrest, dem->link.part[ipart].n, rrest);
-
   // TODO Check sign.
   switch (dem->opts.flink) {
     case BMM_DEM_FLINK_BEAM:
@@ -584,11 +582,11 @@ bool bmm_dem_link_pair(struct bmm_dem* const dem,
         double x;
 
         x = dem->part.phi[ipart] - phif;
-        BMM_ASET_REINS(dem->link.part[ipart].phirestf,
+        BMM_ASET_PREINS(dem->link.part[ipart].phirestf,
             dem->link.part[ipart].n, x);
 
         x = dem->part.phi[jpart] - phir;
-        BMM_ASET_REINS(dem->link.part[ipart].phirestr,
+        BMM_ASET_PREINS(dem->link.part[ipart].phirestr,
             dem->link.part[ipart].n, x);
 
         double const crlim = gsl_rng_uniform(dem->rng) *
@@ -596,7 +594,7 @@ bool bmm_dem_link_pair(struct bmm_dem* const dem,
           dem->opts.link.crlim[0];
 
         x = crlim * rrest;
-        BMM_ASET_REINS(dem->link.part[ipart].rlim,
+        BMM_ASET_PREINS(dem->link.part[ipart].rlim,
             dem->link.part[ipart].n, x);
 
         double const cphilim = gsl_rng_uniform(dem->rng) *
@@ -604,12 +602,15 @@ bool bmm_dem_link_pair(struct bmm_dem* const dem,
           dem->opts.link.cphilim[0];
 
         x = cphilim * M_2PI;
-        BMM_ASET_REINS(dem->link.part[ipart].philim,
+        BMM_ASET_PREINS(dem->link.part[ipart].philim,
             dem->link.part[ipart].n, x);
       }
 
       break;
   }
+
+  BMM_ASET_PREINS(dem->link.part[ipart].rrest, dem->link.part[ipart].n, rrest);
+  BMM_ASET_INS(dem->link.part[ipart].i, dem->link.part[ipart].n, jpart);
 
   return true;
 }
@@ -746,9 +747,9 @@ void bmm_dem_opts_def(struct bmm_dem_opts* const opts) {
   opts->fnorm = BMM_DEM_FNORM_DASHPOT;
   opts->ftang = BMM_DEM_FTANG_HW;
 
-  opts->norm.params.dashpot.gamma = 1.0e+3;
-  opts->tang.params.hw.gamma = 1.0e+3;
-  opts->tang.params.hw.mu = 1.0e+3;
+  opts->norm.params.dashpot.gamma = 1.0;
+  opts->tang.params.hw.gamma = 1.0e+4;
+  opts->tang.params.hw.mu = 1.0e+4;
 
   for (size_t idim = 0; idim < nmembof(opts->box.x); ++idim)
     opts->box.x[idim] = 1.0;
@@ -868,15 +869,15 @@ bool bmm_dem_puts(struct bmm_dem const* const dem,
 
 bool bmm_dem_script_pushidle(struct bmm_dem_opts* const opts,
     double const tspan) {
-  // TODO Instead of ASET use ASTACK.
-  if (opts->script.n >= nmembof(opts->script.mode))
+  if (!BMM_ASTACK_CANINS(opts->script.mode, opts->script.n))
     return false;
 
-  size_t const istage = opts->script.n;
+  double const dt = 1e-3;
+  enum bmm_dem_mode mode = BMM_DEM_MODE_IDLE;
 
-  opts->script.tspan[istage] = tspan;
-  opts->script.dt[istage] = 1e-3;
-  opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
+  BMM_ASTACK_PREINS(opts->script.tspan, opts->script.n, tspan);
+  BMM_ASTACK_PREINS(opts->script.dt, opts->script.n, dt);
+  BMM_ASTACK_INS(opts->script.mode, opts->script.n, mode);
 
   ++opts->script.n;
 
@@ -1005,7 +1006,7 @@ static bool bmm_dem_run_(struct bmm_dem* const dem) {
 
   dem->opts.cache.rcutoff = 1.0;
 
-  dem->opts.part.y = 1e+7;
+  dem->opts.part.y = 2e+6;
 
   bmm_dem_script_pushidle(&dem->opts, 0.04);
   bmm_dem_script_pushidle(&dem->opts, 0.26);

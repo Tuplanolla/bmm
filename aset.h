@@ -15,7 +15,7 @@ inline bool bmm_aset_canins(size_t* const pnmemb, size_t const ncap) {
 }
 
 __attribute__ ((__nonnull__))
-inline void bmm_aset_reins(void* restrict const paset,
+inline void bmm_aset_preins(void* restrict const paset,
     size_t* restrict const pnmemb, size_t const size,
     void const* restrict const memb) {
   unsigned char* const buf = paset;
@@ -26,14 +26,14 @@ __attribute__ ((__nonnull__))
 inline void bmm_aset_ins(void* restrict const paset,
     size_t* restrict const pnmemb, size_t const size,
     void const* restrict const memb) {
-  bmm_aset_reins(paset, pnmemb, size, memb);
+  bmm_aset_preins(paset, pnmemb, size, memb);
 
   ++*pnmemb;
 }
 
 __attribute__ ((__nonnull__, __pure__))
 inline bool bmm_aset_candel(size_t* const pnmemb, size_t const imemb) {
-  return imemb < *pnmemb;
+  return *pnmemb > imemb;
 }
 
 __attribute__ ((__nonnull__))
@@ -56,8 +56,8 @@ inline void bmm_aset_del(void* restrict const paset,
 #define BMM_ASET_CANINS(aset, nmemb) \
   bmm_aset_canins(&nmemb, nmembof(aset))
 
-#define BMM_ASET_REINS(aset, nmemb, memb) \
-  bmm_aset_reins(aset, &nmemb, msizeof(aset), &memb)
+#define BMM_ASET_PREINS(aset, nmemb, memb) \
+  bmm_aset_preins(aset, &nmemb, msizeof(aset), &memb)
 
 #define BMM_ASET_INS(aset, nmemb, memb) \
   bmm_aset_ins(aset, &nmemb, msizeof(aset), &memb)
