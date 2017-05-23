@@ -189,17 +189,22 @@ inline size_t bmm_size_uclamp(size_t const n, size_t const b) {
 /// where `a <= m < b` and `k` is some integer.
 /// This is analogous to `bmm_fp_wrap`.
 __attribute__ ((__const__, __pure__))
-inline size_t bmm_size_wrap(size_t n, size_t const a, size_t const b) {
+inline size_t bmm_size_wrap(size_t const n, size_t const a, size_t const b) {
   size_t const c = b - a;
 
   // This reference implementation is very slow.
-  // if (n < a)
+  // size_t k = n;
+  //
+  // if (k < a)
   //   do
-  //     n += c;
-  //   while (n < a);
-  // else
-  //   while (n >= b)
-  //     n -= c;
+  //     k += c;
+  //   while (k < a);
+  // else if (k >= b)
+  //   do
+  //     k -= c;
+  //   while (k >= b);
+  //
+  // return k;
 
   return (n % c + c - a % c) % c + a;
 }

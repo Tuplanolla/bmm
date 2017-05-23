@@ -206,6 +206,8 @@ struct bmm_dem {
   struct bmm_dem_opts opts;
   /// Random number generator state.
   gsl_rng* rng;
+  /// Time elapses.
+  bool on;
   /// Timekeeping.
   struct {
     /// Step.
@@ -270,12 +272,13 @@ struct bmm_dem {
   } link;
   /// Script state.
   struct {
-    /// Current stage.
+    /// Current stage (may be one past the end to signal the end).
     size_t i;
-    /// Previous transition time.
-    double tprev;
-    /// Next transition time.
-    double tnext;
+    // TODO No first transition time, not even `NAN`.
+    /// Transition times.
+    double ttrans[BMM_NSTAGE + 1];
+    /// Previous transition time errors (positive means transition was late).
+    double terr[BMM_NSTAGE + 1];
     /// State of the current mode.
     union {
       /// For `BMM_DEM_MODE_CRUNCH`.
@@ -287,8 +290,8 @@ struct bmm_dem {
   } script;
   /// Communications.
   struct {
-    /// Current message.
-    size_t i;
+    /// Next unused message.
+    size_t lnew;
     /// Previous message time.
     double tprev;
     /// Next message time.

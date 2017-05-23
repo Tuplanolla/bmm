@@ -204,7 +204,7 @@ size_t bmm_dem_inspart(struct bmm_dem* const dem,
 
   dem->part.r[ipart] = r;
   dem->part.m[ipart] = m;
-  dem->part.j[ipart] = m * bmm_geom_ballmoi(r, BMM_NDIM);
+  dem->part.j[ipart] = bmm_geom_ballmoi(m, r, BMM_NDIM);
 
   for (size_t idim = 0; idim < BMM_NDIM; ++idim)
     dem->part.x[ipart][idim] = 0.0;
@@ -474,7 +474,6 @@ void bmm_dem_force(struct bmm_dem* const dem) {
 }
 
 void bmm_dem_integ_euler(struct bmm_dem* const dem) {
-  // TODO Script system!
   double const dt = dem->opts.script.stage[dem->script.i].dt;
 
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
@@ -764,6 +763,8 @@ void bmm_dem_def(struct bmm_dem* const dem,
 
   dem->opts = *opts;
 
+  dem->on = true;
+
   dem->time.istep = 0;
   dem->time.istab = 1000;
   dem->time.t = 0.0;
@@ -775,17 +776,16 @@ void bmm_dem_def(struct bmm_dem* const dem,
     dem->link.part[ipart].n = 0;
 
   dem->script.i = 0;
-  dem->script.tprev = (double) NAN;
-  dem->script.tnext = (double) NAN;
+  dem->script.ttrans[0] = 0.0;
 
-  dem->comm.i = 0;
+  dem->comm.lnew = 0;
   dem->comm.tprev = (double) NAN;
-  dem->comm.tnext = (double) NAN;
+  dem->comm.tnext = 0.0;
 
   dem->cache.i = 0;
   dem->cache.tpart = (double) NAN;
   dem->cache.tprev = (double) NAN;
-  dem->cache.tnext = (double) NAN;
+  dem->cache.tnext = 0.0;
 
   for (size_t icell = 0; icell < nmembof(dem->cache.part); ++icell)
     dem->cache.part[icell].n = 0;
@@ -839,7 +839,47 @@ bool bmm_dem_puts(struct bmm_dem const* const dem,
     bmm_dem_puts_stuff(dem, num);
 }
 
+bool bmm_dem_script_pushidle(struct bmm_dem_opts* const opts) {
+  if (opts->script.n >= nmembof(opts->script.stage))
+    return false;
+
+  size_t const istage = opts->script.n;
+
+  opts->script.stage[istage].tspan = 1.0;
+  opts->script.stage[istage].dt = 1e-3;
+  opts->script.stage[istage].mode = BMM_DEM_MODE_IDLE;
+
+  ++opts->script.n;
+
+  return true;
+}
+
+bool bmm_dem_script_trans(struct bmm_dem* const dem) {
+  if (dem->script.i == dem->opts.script.n) {
+    // The end.
+    dem->on = false;
+
+    return false;
+  }
+
+  double const terr = dem->time.t - dem->script.ttrans[dem->script.i];
+
+  if (terr >= 0.0) {
+    ++dem->script.i;
+
+    dem->script.ttrans[dem->script.i] = dem->time.t +
+      dem->opts.script.stage[dem->script.i].tspan;
+    dem->script.terr[dem->script.i] = terr;
+  }
+
+  return true;
+}
+
 bool bmm_dem_step(struct bmm_dem* const dem) {
+  // TODO This is not an error condition.
+  if (!bmm_dem_script_trans(dem))
+    return false;
+
   size_t const istage = dem->script.i;
 
   switch (dem->opts.script.stage[istage].mode) {
@@ -913,17 +953,14 @@ bool bmm_dem_run(struct bmm_dem* const dem) {
   dem->opts.box.per[0] = true;
   dem->opts.box.per[1] = false;
 
-  dem->opts.cache.ncell[0] = 5;
-  dem->opts.cache.ncell[1] = 5;
   dem->opts.cache.rcutoff = 1.0;
 
-  dem->opts.part.y = 1e+6;
-  dem->opts.script.n = 1;
-  dem->opts.script.stage[0].dt = 1e-3;
-  dem->opts.script.stage[0].mode = BMM_DEM_MODE_IDLE;
+  dem->opts.part.y = 1e+7;
+
+  bmm_dem_script_pushidle(&dem->opts);
 
   for (size_t ipart = 0; ipart < 64; ++ipart) {
-    size_t const jpart = bmm_dem_inspart(dem, 0.05, 1.0);
+    size_t const jpart = bmm_dem_inspart(dem, 0.03, 1.0);
 
     for (size_t idim = 0; idim < nmembof(dem->part.x[jpart]); ++idim)
       dem->part.x[jpart][idim] += gsl_rng_uniform(dem->rng) * dem->opts.box.x[idim];
@@ -931,8 +968,7 @@ bool bmm_dem_run(struct bmm_dem* const dem) {
 
   bmm_dem_puts(dem, BMM_MSG_NUM_ISTEP);
 
-  // TODO Script system!
-  while (dem->time.t < 1e+100) {
+  while (dem->on) {
     int signum;
     if (bmm_sig_use(&signum))
       switch (signum) {

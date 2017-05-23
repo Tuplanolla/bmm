@@ -47,39 +47,57 @@ inline double bmm_geom_ballsurf(double const r, size_t d) {
   return a;
 }
 
-/// The call `bmm_geom_ballmoi(r, d)`
+/// The call `bmm_geom_ballrmoi(d)`
 /// returns the moment of inertia
-/// of a `d`-dimensional homogeneous unit mass ball of radius `r`
+/// of a `d`-dimensional homogeneous ball
 /// as it rotates around any of its axes.
-/// To obtain the moment of inertia of a ball with mass `m`,
-/// multiply the return value with `m`.
 /// The result is obtained by applying the equation
 /// $J_d(r) = ((d - 1) / (d + 2)) m r^2$.
 __attribute__ ((__const__, __pure__))
-inline double bmm_geom_ballmoi(double const r, size_t const d) {
+inline double bmm_geom_ballrmoi(size_t const d) {
   if (d == 0)
     return (double) NAN;
 
   double const x = (double) d;
 
-  return ((x - 1.0) / (x + 2.0)) * bmm_fp_sq(r);
+  return (x - 1.0) / (x + 2.0);
 }
 
-/// The call `bmm_geom_ballpmoi(r, d)`
+/// The call `bmm_geom_ballmoi(d)`
 /// returns the moment of inertia
-/// of a `d`-dimensional homogeneous unit mass ball of radius `r`
+/// of a `d`-dimensional homogeneous ball with mass `m` and radius `r`
+/// as it rotates around any of its axes.
+/// See `bmm_geom_ballrmoi`.
+__attribute__ ((__const__, __pure__))
+inline double bmm_geom_ballmoi(double const m, double const r,
+    size_t const d) {
+  return bmm_geom_ballrmoi(d) * m * bmm_fp_sq(r);
+}
+
+/// The call `bmm_geom_ballprmoi(d)`
+/// returns the reduced moment of inertia
+/// of a `d`-dimensional homogeneous ball
 /// as it rotates around an axis perpendicular to all of its own axes.
 /// This implies that the `d`-dimensional ball is embedded
 /// into a `d + 1 + n` -dimensional space for some nonnegative `n`.
-/// To obtain the moment of inertia of a ball with mass `m`,
-/// multiply the return value with `m`.
 /// The result is obtained by applying the equation
 /// $J_d(r) = (d / (d + 2)) m r^2$.
 __attribute__ ((__const__, __pure__))
-inline double bmm_geom_ballpmoi(double const r, size_t const d) {
+inline double bmm_geom_ballprmoi(size_t const d) {
   double const x = (double) d;
 
-  return (x / (x + 2.0)) * bmm_fp_sq(r);
+  return x / (x + 2.0);
+}
+
+/// The call `bmm_geom_ballpmoi(d)`
+/// returns the moment of inertia
+/// of a `d`-dimensional homogeneous ball with mass `m` and radius `r`
+/// as it rotates around an axis perpendicular to all of its own axes.
+/// See `bmm_geom_ballprmoi`.
+__attribute__ ((__const__, __pure__))
+inline double bmm_geom_ballpmoi(double const m, double const r,
+    size_t const d) {
+  return bmm_geom_ballprmoi(d) * m * bmm_fp_sq(r);
 }
 
 #endif
