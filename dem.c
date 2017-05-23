@@ -216,7 +216,8 @@ size_t bmm_dem_inspart(struct bmm_dem* const dem,
     dem->part.a[ipart][idim] = 0.0;
 
   dem->part.phi[ipart] = 0.0;
-  dem->part.omega[ipart] = 0.0;
+  // TODO No!
+  dem->part.omega[ipart] = (double) (rand() % 512 - 256);
   dem->part.alpha[ipart] = 0.0;
 
   for (size_t idim = 0; idim < BMM_NDIM; ++idim)
@@ -389,33 +390,55 @@ void bmm_dem_force_pair(struct bmm_dem* const dem,
   double vdiff[BMM_NDIM];
   bmm_geom2d_diff(vdiff, dem->part.v[ipart], dem->part.v[jpart]);
 
+  // TODO Apply 3.2 for real now.
   double const xi = r - d;
-  double const beta = bmm_geom2d_dot(vdiff, xnorm);
+  double const dotxi = bmm_geom2d_dot(vdiff, xnorm);
+  double const vtang = bmm_geom2d_dot(vdiff, xtang) +
+    dem->part.r[ipart] * dem->part.omega[ipart] +
+    dem->part.r[jpart] * dem->part.omega[jpart];
 
   /*
   double vproj[BMM_NDIM];
-  bmm_geom2d_scale(vproj, xnorm, beta);
+  bmm_geom2d_scale(vproj, xnorm, dotxi);
 
   double vrej[BMM_NDIM];
   bmm_geom2d_diff(vrej, vproj, vdiff);
   */
 
-  double f = 0.0;
+  double fn = 0.0;
   switch (dem->opts.fnorm) {
     case BMM_DEM_FNORM_DASHPOT:
-      f = fmax(0.0, dem->opts.part.y * xi +
-          dem->opts.norm.params.dashpot.gamma * beta);
+      fn = fmax(0.0, dem->opts.part.y * xi +
+          dem->opts.norm.params.dashpot.gamma * dotxi);
 
       break;
   }
 
   // TODO Investigate the sign.
   double fdiff[2];
-  bmm_geom2d_scale(fdiff, xnorm, -f);
+  bmm_geom2d_scale(fdiff, xnorm, -fn);
 
   bmm_geom2d_addto(dem->part.f[ipart], fdiff);
 
   double fdiff2[2];
+  bmm_geom2d_scale(fdiff2, fdiff, -1.0);
+
+  bmm_geom2d_addto(dem->part.f[jpart], fdiff2);
+
+  double ft = 0.0;
+  switch (dem->opts.ftang) {
+    case BMM_DEM_FTANG_HW:
+      ft = -copysign(1.0, vtang) *
+        fmin(dem->opts.tang.params.hw.gamma * fabs(vtang),
+            dem->opts.tang.params.hw.mu * fabs(fn));
+
+      break;
+  }
+
+  bmm_geom2d_scale(fdiff, xnorm, -ft);
+
+  bmm_geom2d_addto(dem->part.f[ipart], fdiff);
+
   bmm_geom2d_scale(fdiff2, fdiff, -1.0);
 
   bmm_geom2d_addto(dem->part.f[jpart], fdiff2);
@@ -478,22 +501,22 @@ void bmm_dem_integ_euler(struct bmm_dem* const dem) {
 
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
     for (size_t idim = 0; idim < 2; ++idim) {
-      dem->part.a[ipart][idim] = dem->part.f[ipart][idim] / dem->part.m[ipart];
-
-      // TODO Ordering.
-      dem->part.v[ipart][idim] = dem->part.v[ipart][idim] + dem->part.a[ipart][idim] * dt;
-
       dem->part.x[ipart][idim] = dem->part.x[ipart][idim] + dem->part.v[ipart][idim] * dt;
       if (dem->opts.box.per[idim])
         dem->part.x[ipart][idim] = bmm_fp_uwrap(dem->part.x[ipart][idim],
             dem->opts.box.x[idim]);
+
+      // TODO Ordering.
+      dem->part.v[ipart][idim] = dem->part.v[ipart][idim] + dem->part.a[ipart][idim] * dt;
+
+      dem->part.a[ipart][idim] = dem->part.f[ipart][idim] / dem->part.m[ipart];
     }
 
-    dem->part.alpha[ipart] = dem->part.tau[ipart] / dem->part.j[ipart];
+    dem->part.phi[ipart] = dem->part.phi[ipart] + dem->part.omega[ipart] * dt;
 
     dem->part.omega[ipart] = dem->part.omega[ipart] + dem->part.alpha[ipart] * dt;
 
-    dem->part.phi[ipart] = dem->part.phi[ipart] + dem->part.omega[ipart] * dt;
+    dem->part.alpha[ipart] = dem->part.tau[ipart] / dem->part.j[ipart];
   }
 }
 
@@ -721,7 +744,11 @@ void bmm_dem_opts_def(struct bmm_dem_opts* const opts) {
   opts->caching = BMM_DEM_CACHING_NEIGH;
   opts->famb = BMM_DEM_FAMB_CREEPING;
   opts->fnorm = BMM_DEM_FNORM_DASHPOT;
-  opts->ftang = BMM_DEM_FTANG_NONE;
+  opts->ftang = BMM_DEM_FTANG_HW;
+
+  opts->norm.params.dashpot.gamma = 1.0e+3;
+  opts->tang.params.hw.gamma = 1.0e+3;
+  opts->tang.params.hw.mu = 1.0e+3;
 
   for (size_t idim = 0; idim < nmembof(opts->box.x); ++idim)
     opts->box.x[idim] = 1.0;
@@ -856,28 +883,38 @@ bool bmm_dem_script_pushidle(struct bmm_dem_opts* const opts,
   return true;
 }
 
-bool bmm_dem_script_trans(struct bmm_dem* const dem) {
-  if (dem->script.i >= dem->opts.script.n)
-    return false;
+bool bmm_dem_script_done(struct bmm_dem const* const dem) {
+  return dem->script.i >= dem->opts.script.n;
+}
+
+enum bmm_dem_step bmm_dem_script_trans(struct bmm_dem* const dem) {
+  if (bmm_dem_script_done(dem))
+    return BMM_DEM_STEP_STOP;
 
   double const toff = dem->time.t -
     (dem->script.tprev + dem->opts.script.tspan[dem->script.i]);
 
   if (toff >= 0.0) {
+    dem->script.tprev = dem->time.t;
     dem->script.ttrans[dem->script.i] = dem->time.t;
     dem->script.toff[dem->script.i] = toff;
 
     ++dem->script.i;
 
-    dem->script.tprev = dem->time.t;
+    if (bmm_dem_script_done(dem))
+      return BMM_DEM_STEP_STOP;
   }
 
-  return true;
+  return BMM_DEM_STEP_CONT;
 }
 
 enum bmm_dem_step bmm_dem_step(struct bmm_dem* const dem) {
-  if (!bmm_dem_script_trans(dem))
-    return BMM_DEM_STEP_STOP;
+  switch (bmm_dem_script_trans(dem)) {
+    case BMM_DEM_STEP_ERROR:
+      return BMM_DEM_STEP_ERROR;
+    case BMM_DEM_STEP_STOP:
+      return BMM_DEM_STEP_STOP;
+  }
 
   size_t const istage = dem->script.i;
 
@@ -900,16 +937,14 @@ enum bmm_dem_step bmm_dem_step(struct bmm_dem* const dem) {
   }
 
   if (dem->time.t >= dem->cache.tnext) {
+    bmm_dem_cache_recell(dem);
+
     bmm_dem_reneigh(dem);
 
     // TODO Take `tstep` into account
     // since the update only happens after the drift time has passed.
-    dem->cache.tnext += bmm_dem_drift(dem);
+    // dem->cache.tnext += bmm_dem_drift(dem);
   }
-
-  bmm_dem_cache_recell(dem);
-
-  bmm_dem_reneigh(dem);
 
   bmm_dem_predict(dem);
 
@@ -973,7 +1008,7 @@ static bool bmm_dem_run_(struct bmm_dem* const dem) {
   dem->opts.part.y = 1e+7;
 
   bmm_dem_script_pushidle(&dem->opts, 0.04);
-  bmm_dem_script_pushidle(&dem->opts, 0.06);
+  bmm_dem_script_pushidle(&dem->opts, 0.26);
 
   for (size_t ipart = 0; ipart < 64; ++ipart) {
     size_t const jpart = bmm_dem_inspart(dem, 0.03, 1.0);

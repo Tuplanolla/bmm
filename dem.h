@@ -124,8 +124,10 @@ struct bmm_dem_opts {
     union {
       /// For `BMM_DEM_FTANG_HW`.
       struct {
-        /// Dummy variable.
-        double dummy;
+        /// Haff--Werner elasticity.
+        double gamma;
+        /// Coulomb friction parameter.
+        double mu;
       } hw;
     } params;
   } tang;
