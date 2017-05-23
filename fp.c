@@ -1,3 +1,5 @@
+#include <stddef.h>
+
 #include "fp.h"
 
 extern inline bmm_fp_div_t bmm_fp_div(double, double);
@@ -31,6 +33,16 @@ extern inline double bmm_fp_wrap(double, double, double);
 extern inline double bmm_fp_swrap(double, double);
 
 extern inline double bmm_fp_uwrap(double, double);
+
+extern inline double bmm_fp_sum(double const*, size_t);
+
+extern inline double bmm_fp_prod(double const*, size_t);
+
+extern inline double bmm_fp_lfold(double (*)(double, double, void*),
+    double const* restrict, size_t, double, void* restrict);
+
+extern inline double bmm_fp_rfold(double (*)(double, double, void*),
+    double const* restrict, size_t, double, void* restrict);
 
 extern inline double bmm_fp_lerp(double, double, double, double, double);
 

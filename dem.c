@@ -474,7 +474,7 @@ void bmm_dem_force(struct bmm_dem* const dem) {
 }
 
 void bmm_dem_integ_euler(struct bmm_dem* const dem) {
-  double const dt = dem->opts.script.stage[dem->script.i].dt;
+  double const dt = dem->opts.script.dt[dem->script.i];
 
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
     for (size_t idim = 0; idim < 2; ++idim) {
@@ -713,6 +713,8 @@ void bmm_dem_opts_def(struct bmm_dem_opts* const opts) {
   // This is here just to help Valgrind and cover up my mistakes.
   (void) memset(opts, 0, sizeof *opts);
 
+  opts->verbose = true;
+
   opts->init = BMM_DEM_INIT_TRIAL;
   opts->integ = BMM_DEM_INTEG_EULER;
   opts->caching = BMM_DEM_CACHING_NONE;
@@ -763,8 +765,6 @@ void bmm_dem_def(struct bmm_dem* const dem,
 
   dem->opts = *opts;
 
-  dem->on = true;
-
   dem->time.istep = 0;
   dem->time.istab = 1000;
   dem->time.t = 0.0;
@@ -776,7 +776,7 @@ void bmm_dem_def(struct bmm_dem* const dem,
     dem->link.part[ipart].n = 0;
 
   dem->script.i = 0;
-  dem->script.ttrans[0] = 0.0;
+  dem->script.tprev = 0.0;
 
   dem->comm.lnew = 0;
   dem->comm.tprev = (double) NAN;
@@ -802,7 +802,7 @@ size_t bmm_dem_sniff_size(struct bmm_dem const* const dem,
     enum bmm_msg_num const num) {
   switch (num) {
     case BMM_MSG_NUM_ISTEP:
-      return sizeof dem->time.istep;
+      return sizeof dem->time;
     case BMM_MSG_NUM_NEIGH:
       return sizeof dem->cache + sizeof dem->link;
     case BMM_MSG_NUM_PARTS:
@@ -816,7 +816,7 @@ bool bmm_dem_puts_stuff(struct bmm_dem const* const dem,
     enum bmm_msg_num const num) {
   switch (num) {
     case BMM_MSG_NUM_ISTEP:
-      return msg_write(&dem->time.istep, sizeof dem->time.istep, NULL);
+      return msg_write(&dem->time, sizeof dem->time, NULL);
     case BMM_MSG_NUM_NEIGH:
       return msg_write(&dem->cache, sizeof dem->cache, NULL) &&
         msg_write(&dem->link, sizeof dem->link, NULL);
@@ -839,15 +839,17 @@ bool bmm_dem_puts(struct bmm_dem const* const dem,
     bmm_dem_puts_stuff(dem, num);
 }
 
-bool bmm_dem_script_pushidle(struct bmm_dem_opts* const opts) {
-  if (opts->script.n >= nmembof(opts->script.stage))
+bool bmm_dem_script_pushidle(struct bmm_dem_opts* const opts,
+    double const tspan) {
+  // TODO Instead of ASET use ASTACK.
+  if (opts->script.n >= nmembof(opts->script.mode))
     return false;
 
   size_t const istage = opts->script.n;
 
-  opts->script.stage[istage].tspan = 1.0;
-  opts->script.stage[istage].dt = 1e-3;
-  opts->script.stage[istage].mode = BMM_DEM_MODE_IDLE;
+  opts->script.tspan[istage] = tspan;
+  opts->script.dt[istage] = 1e-3;
+  opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
 
   ++opts->script.n;
 
@@ -855,34 +857,31 @@ bool bmm_dem_script_pushidle(struct bmm_dem_opts* const opts) {
 }
 
 bool bmm_dem_script_trans(struct bmm_dem* const dem) {
-  if (dem->script.i == dem->opts.script.n) {
-    // The end.
-    dem->on = false;
-
+  if (dem->script.i >= dem->opts.script.n)
     return false;
-  }
 
-  double const terr = dem->time.t - dem->script.ttrans[dem->script.i];
+  double const toff = dem->time.t -
+    (dem->script.tprev + dem->opts.script.tspan[dem->script.i]);
 
-  if (terr >= 0.0) {
+  if (toff >= 0.0) {
+    dem->script.ttrans[dem->script.i] = dem->time.t;
+    dem->script.toff[dem->script.i] = toff;
+
     ++dem->script.i;
 
-    dem->script.ttrans[dem->script.i] = dem->time.t +
-      dem->opts.script.stage[dem->script.i].tspan;
-    dem->script.terr[dem->script.i] = terr;
+    dem->script.tprev = dem->time.t;
   }
 
   return true;
 }
 
-bool bmm_dem_step(struct bmm_dem* const dem) {
-  // TODO This is not an error condition.
+enum bmm_dem_step bmm_dem_step(struct bmm_dem* const dem) {
   if (!bmm_dem_script_trans(dem))
-    return false;
+    return BMM_DEM_STEP_STOP;
 
   size_t const istage = dem->script.i;
 
-  switch (dem->opts.script.stage[istage].mode) {
+  switch (dem->opts.script.mode[istage]) {
     case BMM_DEM_MODE_BEGIN:
 
       break;
@@ -923,9 +922,9 @@ bool bmm_dem_step(struct bmm_dem* const dem) {
 
   ++dem->time.istep;
 
-  dem->time.t += dem->opts.script.stage[istage].dt;
+  dem->time.t += dem->opts.script.dt[istage];
 
-  return true;
+  return BMM_DEM_STEP_CONT;
 }
 
 // TODO This ought to be const-qualified.
@@ -939,8 +938,24 @@ bool bmm_dem_comm(struct bmm_dem* const dem) {
   return true;
 }
 
+static double abserr(double const x, double const z,
+    __attribute__ ((__unused__)) void* const ptr) {
+  return fabs(x) + z;
+}
+
+bool bmm_dem_report(struct bmm_dem const* const dem) {
+  if (dem->opts.verbose) {
+    if (fprintf(stderr, "Time Error: %g\n",
+          bmm_fp_lfold(abserr,
+            dem->script.toff, dem->opts.script.n, 0.0, NULL)) < 0)
+      return false;
+  }
+
+  return true;
+}
+
 // TODO Would it be beneficial to be higher-order?
-bool bmm_dem_run(struct bmm_dem* const dem) {
+static bool bmm_dem_run_(struct bmm_dem* const dem) {
   int const sigs[] = {SIGINT, SIGQUIT, SIGTERM, SIGPIPE};
   if (bmm_sig_register(sigs, nmembof(sigs)) != SIZE_MAX) {
     BMM_TLE_STDS();
@@ -957,7 +972,8 @@ bool bmm_dem_run(struct bmm_dem* const dem) {
 
   dem->opts.part.y = 1e+7;
 
-  bmm_dem_script_pushidle(&dem->opts);
+  bmm_dem_script_pushidle(&dem->opts, 0.04);
+  bmm_dem_script_pushidle(&dem->opts, 0.06);
 
   for (size_t ipart = 0; ipart < 64; ++ipart) {
     size_t const jpart = bmm_dem_inspart(dem, 0.03, 1.0);
@@ -966,9 +982,7 @@ bool bmm_dem_run(struct bmm_dem* const dem) {
       dem->part.x[jpart][idim] += gsl_rng_uniform(dem->rng) * dem->opts.box.x[idim];
   }
 
-  bmm_dem_puts(dem, BMM_MSG_NUM_ISTEP);
-
-  while (dem->on) {
+  for ever {
     int signum;
     if (bmm_sig_use(&signum))
       switch (signum) {
@@ -981,14 +995,25 @@ bool bmm_dem_run(struct bmm_dem* const dem) {
           return false;
       }
 
-    if (!bmm_dem_step(dem))
-      return false;
-
     if (!bmm_dem_comm(dem))
       return false;
+
+    switch (bmm_dem_step(dem)) {
+      case BMM_DEM_STEP_ERROR:
+        return false;
+      case BMM_DEM_STEP_STOP:
+        return true;
+    }
   }
 
   return true;
+}
+
+bool bmm_dem_run(struct bmm_dem* const dem) {
+  bool const run = bmm_dem_run_(dem);
+  bool const report = bmm_dem_report(dem);
+
+  return run && report;
 }
 
 static bool bmm_dem_run_with_(struct bmm_dem* const dem) {

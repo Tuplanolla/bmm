@@ -12,6 +12,13 @@
 #include "io.h"
 #include "msg.h"
 
+// TODO Not sure if good idea.
+enum bmm_dem_step {
+  BMM_DEM_STEP_ERROR,
+  BMM_DEM_STEP_STOP,
+  BMM_DEM_STEP_CONT
+};
+
 enum bmm_dem_init {
   BMM_DEM_INIT_NONE,
   BMM_DEM_INIT_TRIAL,
@@ -69,6 +76,8 @@ enum bmm_dem_mode {
 };
 
 struct bmm_dem_opts {
+  /// Report statistics.
+  bool verbose;
   /// Initialization scheme.
   enum bmm_dem_init init;
   /// Integration scheme.
@@ -148,35 +157,32 @@ struct bmm_dem_opts {
   struct {
     /// Number of stages.
     size_t n;
-    /// Modes and their timings for each stage.
-    struct {
-      /// Timespan.
-      double tspan;
-      /// Time step.
-      double dt;
-      /// Functionality.
-      enum bmm_dem_mode mode;
-      /// Parameters.
-      union {
-        /// For `BMM_DEM_MODE_CRUNCH`.
-        struct {
-          /// Driving velocity target.
-          double v[BMM_NDIM];
-          /// Force increment.
-          double fadjust;
-        } crunch;
-        /// For `BMM_DEM_MODE_SMASH`.
-        struct {
-          /// Pull-apart vector.
-          double xgap[BMM_NDIM];
-        } smash;
-        /// For `BMM_DEM_MODE_SEDIMENT`.
-        struct {
-          /// Cohesive force.
-          double fcohes;
-        } sediment;
-      } params;
-    } stage[BMM_NSTAGE];
+    /// Timespans.
+    double tspan[BMM_NSTAGE];
+    /// Time steps.
+    double dt[BMM_NSTAGE];
+    /// Functionalities.
+    enum bmm_dem_mode mode[BMM_NSTAGE];
+    /// Parameters.
+    union {
+      /// For `BMM_DEM_MODE_CRUNCH`.
+      struct {
+        /// Driving velocity target.
+        double v[BMM_NDIM];
+        /// Force increment.
+        double fadjust;
+      } crunch;
+      /// For `BMM_DEM_MODE_SMASH`.
+      struct {
+        /// Pull-apart vector.
+        double xgap[BMM_NDIM];
+      } smash;
+      /// For `BMM_DEM_MODE_SEDIMENT`.
+      struct {
+        /// Cohesive force.
+        double fcohes;
+      } sediment;
+    } params[BMM_NSTAGE];
   } script;
   /// Communications.
   struct {
@@ -206,8 +212,6 @@ struct bmm_dem {
   struct bmm_dem_opts opts;
   /// Random number generator state.
   gsl_rng* rng;
-  /// Time elapses.
-  bool on;
   /// Timekeeping.
   struct {
     /// Step.
@@ -274,11 +278,12 @@ struct bmm_dem {
   struct {
     /// Current stage (may be one past the end to signal the end).
     size_t i;
-    // TODO No first transition time, not even `NAN`.
-    /// Transition times.
-    double ttrans[BMM_NSTAGE + 1];
-    /// Previous transition time errors (positive means transition was late).
-    double terr[BMM_NSTAGE + 1];
+    /// Previous transition time.
+    double tprev;
+    /// Transition times away from states.
+    double ttrans[BMM_NSTAGE];
+    /// Transition time offsets (positive means transition was late).
+    double toff[BMM_NSTAGE];
     /// State of the current mode.
     union {
       /// For `BMM_DEM_MODE_CRUNCH`.
@@ -372,7 +377,7 @@ __attribute__ ((__nonnull__))
 double bmm_dem_cor(struct bmm_dem const*);
 
 __attribute__ ((__nonnull__))
-bool bmm_dem_step(struct bmm_dem*);
+enum bmm_dem_step bmm_dem_step(struct bmm_dem*);
 
 __attribute__ ((__nonnull__))
 bool bmm_dem_comm(struct bmm_dem*);

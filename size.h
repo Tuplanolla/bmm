@@ -275,6 +275,32 @@ inline size_t bmm_size_prod(size_t const* const n, size_t const k) {
   return m;
 }
 
+/// The call `bmm_size_lfold(f, x, n, z, ptr)`
+/// folds the procedure `f` over the array `x` of length `n`.
+/// by starting from the left with `z`.
+__attribute__ ((__nonnull__ (1, 2)))
+inline size_t bmm_size_lfold(size_t (* const f)(size_t, size_t, void*),
+    size_t const* restrict const x, size_t const n,
+    size_t z, void* restrict const ptr) {
+  for (size_t i = 0; i < n; ++i)
+    z = f(x[i], z, ptr);
+
+  return z;
+}
+
+/// The call `bmm_size_rfold(f, x, n, z, ptr)`
+/// folds the procedure `f` over the array `x` of length `n`.
+/// by starting from the right with `z`.
+__attribute__ ((__nonnull__ (1, 2)))
+inline size_t bmm_size_rfold(size_t (* const f)(size_t, size_t, void*),
+    size_t const* restrict const x, size_t const n,
+    size_t z, void* restrict const ptr) {
+  for (size_t i = 0; i < n; ++i)
+    z = f(x[n - 1 - i], z, ptr);
+
+  return z;
+}
+
 /// The call `bmm_size_hc(pij, i, ndim, nper)`
 /// sets the index vector `pij` to the index `i`
 /// in a hypercube with dimension `ndim` and side length `nper`.

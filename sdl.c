@@ -44,7 +44,7 @@ enum bmm_io_read bmm_dem_gets_stuff(struct bmm_dem* const dem,
     enum bmm_msg_num const num) {
   switch (num) {
     case BMM_MSG_NUM_ISTEP:
-      return msg_read(&dem->time.istep, sizeof dem->time.istep, NULL);
+      return msg_read(&dem->time, sizeof dem->time, NULL);
     case BMM_MSG_NUM_NEIGH:
       switch (msg_read(&dem->cache, sizeof dem->cache, NULL)) {
         case BMM_IO_READ_ERROR:
@@ -273,14 +273,14 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
   double const h = sdl->dem.opts.box.x[1] / (double) ncy;
 
   // Particles.
-  for (float off = -1; off < 2; ++off) {
+  for (double off = -1; off < 2; ++off) {
     for (size_t ipart = 0; ipart < sdl->dem.part.n; ++ipart) {
-      float const x = (float) sdl->dem.part.x[ipart][0];
-      float const y = (float) sdl->dem.part.x[ipart][1];
-      float const r = (float) sdl->dem.part.r[ipart];
-      float const a = (float) sdl->dem.part.phi[ipart];
+      double const x = sdl->dem.part.x[ipart][0];
+      double const y = sdl->dem.part.x[ipart][1];
+      double const r = sdl->dem.part.r[ipart];
+      double const a = sdl->dem.part.phi[ipart];
 
-      float const xoff = x + off * (float) sdl->dem.opts.box.x[0];
+      double const xoff = x + off * sdl->dem.opts.box.x[0];
 
       GLfloat blent[4];
       memcpy(blent, true ? glYellow : glWhite, sizeof glBlack);
@@ -288,21 +288,26 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
       GLfloat nope[4];
       memcpy(nope, blent, sizeof glBlack);
       nope[3] = 0.0f;
-      float t = fabsf(xoff / (float) sdl->dem.opts.box.x[0] - 0.5f) - 0.5f;
-      blent[3] = 1.0f - t;
+      double t = fabs(xoff / sdl->dem.opts.box.x[0] - 0.5) - 0.5;
+      blent[3] = 1.0f - (float) t;
       glColor4fv(blent);
 
-      glSkewedAnnulus(xoff, y, r, r * 0.25f, r * 0.5f, a, ncorner);
+      glSkewedAnnulus((float) xoff, (float) y,
+          (float) r, (float) (r * 0.25), (float) (r * 0.5),
+          (float) a, ncorner);
 
       // Neighbors.
       memcpy(blent, glBlue, sizeof glBlack);
       blent[3] = 1.0f;
       memcpy(nope, blent, sizeof glBlack);
       nope[3] = 0.0f;
-      blent[3] = 1.0f - t;
+      blent[3] = 1.0f - (float) t;
       glColor4fv(blent);
 
-      if (ipart != 8) continue;
+      // Focus.
+      if (ipart != sdl->itarget)
+        continue;
+
       glBegin(GL_LINES);
       for (size_t ineigh = 0; ineigh < sdl->dem.cache.neigh[ipart].n; ++ineigh) {
         size_t const jpart = sdl->dem.cache.neigh[ipart].i[ineigh];
@@ -317,8 +322,8 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
         dx[0] = x0[0] + bmm_fp_swrap(x1[0] - x0[0], sdl->dem.opts.box.x[0]);
         dx[1] = x1[1];
 
-        x0[0] += off * (float) sdl->dem.opts.box.x[0];
-        dx[0] += off * (float) sdl->dem.opts.box.x[0];
+        x0[0] += off * sdl->dem.opts.box.x[0];
+        dx[0] += off * sdl->dem.opts.box.x[0];
 
         glVertex2dv(x0);
         glVertex2dv(dx);
@@ -326,53 +331,6 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
       glEnd();
     }
   }
-
-  // Focus.
-  /*
-  if (sdl->itarget != SIZE_MAX) {
-    glColor3fv(glBlue);
-    size_t const ipart = sdl->itarget;
-
-    // Neighbor markers.
-    glBegin(GL_LINES);
-    for (size_t ineigh = 0; ineigh < bmm_dem_sizey(&sdl->dem.buf.neigh.neighs[ipart]); ++ineigh) {
-      size_t const jpart = bmm_dem_gety(&sdl->dem.buf.neigh.neighs[ipart], ineigh);
-
-      bool p = true;
-      for (size_t idim = 0; idim < 2; ++idim)
-        p = p &&
-          fabs(sdl->dem.buf.parts[ipart].lin.r[idim] - sdl->dem.buf.parts[jpart].lin.r[idim]) <
-          sdl->dem.opts.box.x[idim] / 2.0;
-
-      if (p) {
-        glVertex2dv(sdl->dem.buf.parts[ipart].lin.r);
-        glVertex2dv(sdl->dem.buf.parts[jpart].lin.r);
-      }
-    }
-    glEnd();
-  }
-
-  // Structural links.
-  glColor3fv(glMagenta);
-  for (size_t ipart = 0; ipart < sdl->dem.part.n; ++ipart) {
-    glBegin(GL_LINES);
-    for (size_t ineigh = 0; ineigh < bmm_dem_sizel(&sdl->dem.buf.links[ipart]); ++ineigh) {
-      size_t const jpart = bmm_dem_getl(&sdl->dem.buf.links[ipart], ineigh);
-
-      bool p = true;
-      for (size_t idim = 0; idim < 2; ++idim)
-        p = p &&
-          fabs(sdl->dem.buf.parts[ipart].lin.r[idim] - sdl->dem.buf.parts[jpart].lin.r[idim]) <
-          sdl->dem.opts.box.x[idim] / 2.0;
-
-      if (p) {
-        glVertex2dv(sdl->dem.buf.parts[ipart].lin.r);
-        glVertex2dv(sdl->dem.buf.parts[jpart].lin.r);
-      }
-    }
-    glEnd();
-  }
-  */
 
   // Staleness indicator.
   glColor3fv(sdl->stale ? glRed : glGreen);

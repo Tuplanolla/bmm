@@ -168,6 +168,56 @@ inline double bmm_fp_uwrap(double const x, double const b) {
   return x - b * floor(x / b);
 }
 
+/// The call `bmm_fp_sum(x, n)`
+/// returns the sum of the array `x` of length `n`.
+__attribute__ ((__pure__))
+inline double bmm_fp_sum(double const* const x, size_t const n) {
+  double y = 0;
+
+  for (size_t i = 0; i < n; ++i)
+    y += x[i];
+
+  return y;
+}
+
+/// The call `bmm_fp_prod(x, n)`
+/// returns the product of the array `x` of length `n`.
+__attribute__ ((__pure__))
+inline double bmm_fp_prod(double const* const x, size_t const n) {
+  double y = 1;
+
+  for (size_t i = 0; i < n; ++i)
+    y *= x[i];
+
+  return y;
+}
+
+/// The call `bmm_fp_lfold(f, x, n, z, ptr)`
+/// folds the procedure `f` over the array `x` of length `n`.
+/// by starting from the left with `z`.
+__attribute__ ((__nonnull__ (1, 2)))
+inline double bmm_fp_lfold(double (* const f)(double, double, void*),
+    double const* restrict const x, size_t const n,
+    double z, void* restrict const ptr) {
+  for (size_t i = 0; i < n; ++i)
+    z = f(x[i], z, ptr);
+
+  return z;
+}
+
+/// The call `bmm_fp_rfold(f, x, n, z, ptr)`
+/// folds the procedure `f` over the array `x` of length `n`.
+/// by starting from the right with `z`.
+__attribute__ ((__nonnull__ (1, 2)))
+inline double bmm_fp_rfold(double (* const f)(double, double, void*),
+    double const* restrict const x, size_t const n,
+    double z, void* restrict const ptr) {
+  for (size_t i = 0; i < n; ++i)
+    z = f(x[n - 1 - i], z, ptr);
+
+  return z;
+}
+
 /// The call `y = bmm_fp_lerp(x, x0, x1, y0, y1)`
 /// solves the linear interpolation equation
 /// `(x - x0) / (x1 - x0) == (y - y0) / (y1 - y0)` for `y`.
