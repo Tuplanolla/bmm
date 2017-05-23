@@ -37,7 +37,7 @@ inline bool bmm_astack_candel(size_t* const pnmemb) {
 }
 
 __attribute__ ((__nonnull__))
-inline void bmm_astack_del(size_t* restrict const pnmemb) {
+inline void bmm_astack_del(size_t* const pnmemb) {
   --*pnmemb;
 }
 
