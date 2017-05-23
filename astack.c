@@ -13,8 +13,5 @@ extern inline void bmm_astack_ins(void* restrict,
 
 extern inline bool bmm_astack_candel(size_t*);
 
-extern inline void bmm_astack_redel(void* restrict,
-    size_t* restrict, size_t);
-
 extern inline void bmm_astack_del(void* restrict,
     size_t* restrict, size_t);

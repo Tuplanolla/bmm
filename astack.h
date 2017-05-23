@@ -37,15 +37,7 @@ inline bool bmm_astack_candel(size_t* const pnmemb) {
 }
 
 __attribute__ ((__nonnull__))
-inline void bmm_astack_redel(void* restrict const pastack,
-    size_t* restrict const pnmemb, size_t const size) {
-}
-
-__attribute__ ((__nonnull__))
-inline void bmm_astack_del(void* restrict const pastack,
-    size_t* restrict const pnmemb, size_t const size) {
-  bmm_astack_redel(pastack, pnmemb, size);
-
+inline void bmm_astack_del(size_t* restrict const pnmemb) {
   --*pnmemb;
 }
 
@@ -61,10 +53,7 @@ inline void bmm_astack_del(void* restrict const pastack,
 #define BMM_ASTACK_CANDEL(astack, nmemb) \
   bmm_astack_candel(&nmemb, nmembof(astack))
 
-#define BMM_ASTACK_REDEL(astack, nmemb) \
-  bmm_astack_redel(astack, &nmemb, msizeof(astack))
-
 #define BMM_ASTACK_DEL(astack, nmemb) \
-  bmm_astack_del(astack, &nmemb, msizeof(astack))
+  bmm_astack_del(&nmemb)
 
 #endif

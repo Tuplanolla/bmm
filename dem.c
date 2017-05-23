@@ -51,8 +51,9 @@ void bmm_dem_ijcell(size_t* const pijcell,
 
 bool bmm_dem_isneigh(struct bmm_dem* const dem,
     size_t const ipart, size_t const jpart) {
-  return bmm_geom2d_cpdist2(dem->part.x[ipart], dem->part.x[jpart],
-      dem->opts.box.x, dem->opts.box.per) <=
+  return ipart != jpart &&
+    bmm_geom2d_cpdist2(dem->part.x[ipart], dem->part.x[jpart],
+        dem->opts.box.x, dem->opts.box.per) <=
     bmm_fp_sq(dem->opts.cache.rcutoff);
 }
 
@@ -217,8 +218,7 @@ size_t bmm_dem_inspart(struct bmm_dem* const dem,
     dem->part.a[ipart][idim] = 0.0;
 
   dem->part.phi[ipart] = 0.0;
-  // TODO No!
-  dem->part.omega[ipart] = (double) (rand() % 512 - 256);
+  dem->part.omega[ipart] = 0.0;
   dem->part.alpha[ipart] = 0.0;
 
   for (size_t idim = 0; idim < BMM_NDIM; ++idim)
@@ -383,7 +383,7 @@ void bmm_dem_force_pair(struct bmm_dem* const dem,
   double const d = sqrt(d2);
 
   double xnorm[BMM_NDIM];
-  bmm_geom2d_scale(xnorm, xdiff, d);
+  bmm_geom2d_scale(xnorm, xdiff, 1.0 / d);
 
   double xtang[BMM_NDIM];
   bmm_geom2d_rperp(xtang, xnorm);
@@ -397,14 +397,6 @@ void bmm_dem_force_pair(struct bmm_dem* const dem,
   double const vtang = bmm_geom2d_dot(vdiff, xtang) +
     dem->part.r[ipart] * dem->part.omega[ipart] +
     dem->part.r[jpart] * dem->part.omega[jpart];
-
-  /*
-  double vproj[BMM_NDIM];
-  bmm_geom2d_scale(vproj, xnorm, dotxi);
-
-  double vrej[BMM_NDIM];
-  bmm_geom2d_diff(vrej, vproj, vdiff);
-  */
 
   double fn = 0.0;
   switch (dem->opts.fnorm) {
@@ -429,14 +421,13 @@ void bmm_dem_force_pair(struct bmm_dem* const dem,
   double ft = 0.0;
   switch (dem->opts.ftang) {
     case BMM_DEM_FTANG_HW:
-      ft = -copysign(1.0, vtang) *
-        fmin(dem->opts.tang.params.hw.gamma * fabs(vtang),
-            dem->opts.tang.params.hw.mu * fabs(fn));
+      ft = -copysign(fmin(dem->opts.tang.params.hw.gamma * fabs(vtang),
+            dem->opts.tang.params.hw.mu * fn), vtang);
 
       break;
   }
 
-  bmm_geom2d_scale(fdiff, xnorm, -ft);
+  bmm_geom2d_scale(fdiff, xtang, ft);
 
   bmm_geom2d_addto(dem->part.f[ipart], fdiff);
 
@@ -686,9 +677,12 @@ double bmm_dem_drift(struct bmm_dem const* const dem) {
 double bmm_dem_ekinetic(struct bmm_dem const* const dem) {
   double e = 0.0;
 
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
     for (size_t idim = 0; idim < 2; ++idim)
       e += dem->part.m[ipart] * bmm_fp_sq(dem->part.v[ipart][idim]);
+
+    e += dem->part.j[ipart] * bmm_fp_sq(dem->part.omega[ipart]);
+  }
 
   return e * 0.5;
 }
@@ -748,8 +742,8 @@ void bmm_dem_opts_def(struct bmm_dem_opts* const opts) {
   opts->ftang = BMM_DEM_FTANG_HW;
 
   opts->norm.params.dashpot.gamma = 1.0;
-  opts->tang.params.hw.gamma = 1.0e+4;
-  opts->tang.params.hw.mu = 1.0e+4;
+  opts->tang.params.hw.gamma = 1.0;
+  opts->tang.params.hw.mu = 1.0;
 
   for (size_t idim = 0; idim < nmembof(opts->box.x); ++idim)
     opts->box.x[idim] = 1.0;
@@ -1006,17 +1000,35 @@ static bool bmm_dem_run_(struct bmm_dem* const dem) {
 
   dem->opts.cache.rcutoff = 1.0;
 
-  dem->opts.part.y = 2e+6;
+  dem->opts.part.y = 1e+4;
 
   bmm_dem_script_pushidle(&dem->opts, 0.04);
   bmm_dem_script_pushidle(&dem->opts, 0.26);
 
+  /*
+  // Random stuff.
   for (size_t ipart = 0; ipart < 64; ++ipart) {
     size_t const jpart = bmm_dem_inspart(dem, 0.03, 1.0);
 
     for (size_t idim = 0; idim < nmembof(dem->part.x[jpart]); ++idim)
       dem->part.x[jpart][idim] += gsl_rng_uniform(dem->rng) * dem->opts.box.x[idim];
+
+      dem->part.omega[jpart] += (double) (rand() % 512 - 256);
   }
+  */
+
+  // Rotating couple.
+  size_t jpart;
+  jpart = bmm_dem_inspart(dem, 0.03, 1.0);
+  dem->part.x[jpart][0] += 0.45;
+  dem->part.x[jpart][1] += 0.5;
+  dem->part.v[jpart][0] += 1.0;
+  dem->part.omega[jpart] += 800.0;
+  jpart = bmm_dem_inspart(dem, 0.03, 1.0);
+  dem->part.x[jpart][0] += 0.55;
+  dem->part.x[jpart][1] += 0.5;
+  dem->part.v[jpart][0] -= 1.0;
+  dem->part.omega[jpart] += 800.0;
 
   for ever {
     int signum;
