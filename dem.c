@@ -49,9 +49,11 @@ void bmm_dem_ijcell(size_t* const pijcell,
   }
 }
 
+// TODO Think about the index space here.
 bool bmm_dem_isneigh(struct bmm_dem* const dem,
     size_t const ipart, size_t const jpart) {
   return ipart != jpart &&
+    dem->part.x[ipart][0] < dem->part.x[jpart][0] &&
     bmm_geom2d_cpdist2(dem->part.x[ipart], dem->part.x[jpart],
         dem->opts.box.x, dem->opts.box.per) <=
     bmm_fp_sq(dem->opts.cache.rcutoff);
@@ -431,9 +433,13 @@ void bmm_dem_force_pair(struct bmm_dem* const dem,
 
   bmm_geom2d_addto(dem->part.f[ipart], fdiff);
 
+  dem->part.tau[ipart] += ft * dem->part.r[ipart];
+
   bmm_geom2d_scale(fdiff2, fdiff, -1.0);
 
   bmm_geom2d_addto(dem->part.f[jpart], fdiff2);
+
+  dem->part.tau[jpart] += ft * dem->part.r[jpart];
 }
 
 void bmm_dem_force_ambient(struct bmm_dem* const dem, size_t const ipart) {
@@ -459,9 +465,12 @@ void bmm_dem_force(struct bmm_dem* const dem) {
   bmm_fpair fnorm = NULL;
   bmm_fpair ftang = NULL;
 
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
     for (size_t idim = 0; idim < nmembof(dem->part.f[ipart]); ++idim)
       dem->part.f[ipart][idim] = 0.0;
+
+    dem->part.tau[ipart] = 0.0;
+  }
 
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     bmm_dem_force_ambient(dem, ipart);
@@ -1023,12 +1032,12 @@ static bool bmm_dem_run_(struct bmm_dem* const dem) {
   dem->part.x[jpart][0] += 0.45;
   dem->part.x[jpart][1] += 0.5;
   dem->part.v[jpart][0] += 1.0;
-  dem->part.omega[jpart] += 800.0;
+  dem->part.omega[jpart] += 400.0;
   jpart = bmm_dem_inspart(dem, 0.03, 1.0);
   dem->part.x[jpart][0] += 0.55;
   dem->part.x[jpart][1] += 0.5;
   dem->part.v[jpart][0] -= 1.0;
-  dem->part.omega[jpart] += 800.0;
+  dem->part.omega[jpart] += 400.0;
 
   for ever {
     int signum;
