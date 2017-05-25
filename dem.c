@@ -52,8 +52,7 @@ void bmm_dem_ijcell(size_t* const pijcell,
 // TODO Think about the index space here.
 bool bmm_dem_isneigh(struct bmm_dem* const dem,
     size_t const ipart, size_t const jpart) {
-  return ipart != jpart &&
-    dem->part.x[ipart][0] < dem->part.x[jpart][0] &&
+  return ipart < jpart &&
     bmm_geom2d_cpdist2(dem->part.x[ipart], dem->part.x[jpart],
         dem->opts.box.x, dem->opts.box.per) <=
     bmm_fp_sq(dem->opts.cache.rcutoff);

@@ -599,51 +599,51 @@ Here is a sane formulation of the spherical coordinate system pictured below.
             `-.   ,-'
                `-'
 
-Let $0 \\le \\theta_n < \\twopi$ for some $1 < n \\le d$ and
-let $0 \\le \\theta_k < \\twopi / 2$ for all the rest $1 < k \\le d$
+Let $0 \\le \\phi_n < \\twopi$ for some $1 < n \\le d$ and
+let $0 \\le \\phi_k < \\twopi / 2$ for all the rest $1 < k \\le d$
 satisfying $k \\ne n$.
 The components obey the following relations.
 
 $$
 \\begin{array}{cccccccc}
-x_1       & = & r & (\\sin \\theta_1) & \\cos \\theta_2 & \\cos \\theta_3 & \\dotsb & \\cos \\theta_{d - 1} & \\cos \\theta_d \\\\
-x_2       & = & r &                   & \\sin \\theta_2 & \\cos \\theta_3 & \\dotsb & \\cos \\theta_{d - 1} & \\cos \\theta_d \\\\
-x_3       & = & r &                   &                 & \\sin \\theta_3 & \\dotsb & \\cos \\theta_{d - 1} & \\cos \\theta_d \\\\
-\\vdots   &   &   &                   &                 &                 & \\ddots &                       &                 \\\\
-x_{d - 1} & = & r &                   &                 &                 &         & \\sin \\theta_{d - 1} & \\cos \\theta_d \\\\
-x_d       & = & r &                   &                 &                 &         &                       & \\sin \\theta_d
+x_1       & = & r & (\\sin \\phi_1) & \\cos \\phi_2 & \\cos \\phi_3 & \\dotsb & \\cos \\phi_{d - 1} & \\cos \\phi_d \\\\
+x_2       & = & r &                 & \\sin \\phi_2 & \\cos \\phi_3 & \\dotsb & \\cos \\phi_{d - 1} & \\cos \\phi_d \\\\
+x_3       & = & r &                 &               & \\sin \\phi_3 & \\dotsb & \\cos \\phi_{d - 1} & \\cos \\phi_d \\\\
+\\vdots   &   &   &                 &               &               & \\ddots &                     &               \\\\
+x_{d - 1} & = & r &                 &               &               &         & \\sin \\phi_{d - 1} & \\cos \\phi_d \\\\
+x_d       & = & r &                 &               &               &         &                     & \\sin \\phi_d
 \\end{array}
 $$
 
 Parenthesized is a suggestive extra factor.
-Define $\\theta_1 = \\twopi / 4$ to obtain
+Define $\\phi_1 = \\twopi / 4$ to obtain
 
 $$
-x_n = r \\sin \\theta_n \\prod_{k = n}^{d - 1} \\cos \\theta_k
+x_n = r \\sin \\phi_n \\prod_{k = n}^{d - 1} \\cos \\phi_k
 $$
 
 for all $1 \\le n \\le d$.
 
-Flip the angles with $\\theta' = \\twopi / 4 - \\theta$ and
+Flip the angles with $\\phi' = \\twopi / 4 - \\phi$ and
 reverse the components with $n' = d - n + 1$.
 Also shift the indices of the angles from $1 < n \\le d$ to $1 \\le n < d$.
 The components now obey the following relations.
 
 $$
 \\begin{array}{cccccccc}
-x_1       & = & r & \\cos \\theta_1 &                 &         &                       &                       &                   \\\\
-x_2       & = & r & \\sin \\theta_1 & \\cos \\theta_2 &         &                       &                       &                   \\\\
-\\vdots   &   &   &                 &                 & \\ddots &                       &                       &                   \\\\
-x_{d - 2} & = & r & \\sin \\theta_1 & \\sin \\theta_2 & \\dotsb & \\cos \\theta_{d - 2} &                       &                   \\\\
-x_{d - 1} & = & r & \\sin \\theta_1 & \\sin \\theta_2 & \\dotsb & \\sin \\theta_{d - 2} & \\cos \\theta_{d - 1} &                   \\\\
-x_d       & = & r & \\sin \\theta_1 & \\sin \\theta_2 & \\dotsb & \\sin \\theta_{d - 2} & \\sin \\theta_{d - 1} & (\\cos \\theta_d)
+x_1       & = & r & \\cos \\phi_1 &               &         &                       &                   &                 \\\\
+x_2       & = & r & \\sin \\phi_1 & \\cos \\phi_2 &         &                       &                   &                 \\\\
+\\vdots   &   &   &               &               & \\ddots &                       &                   &                 \\\\
+x_{d - 2} & = & r & \\sin \\phi_1 & \\sin \\phi_2 & \\dotsb & \\cos \\phi_{d - 2} &                     &                 \\\\
+x_{d - 1} & = & r & \\sin \\phi_1 & \\sin \\phi_2 & \\dotsb & \\sin \\phi_{d - 2} & \\cos \\phi_{d - 1} &                 \\\\
+x_d       & = & r & \\sin \\phi_1 & \\sin \\phi_2 & \\dotsb & \\sin \\phi_{d - 2} & \\sin \\phi_{d - 1} & (\\cos \\phi_d)
 \\end{array}
 $$
 
-This time around define $\\theta_d = 0$ to obtain
+This time around define $\\phi_d = 0$ to obtain
 
 $$
-x_n = r \\cos \\theta_n \\prod_{k = 1}^{n - 1} \\sin \\theta_k
+x_n = r \\cos \\phi_n \\prod_{k = 1}^{n - 1} \\sin \\phi_k
 $$
 
 for all $1 \\le n \\le d$.
