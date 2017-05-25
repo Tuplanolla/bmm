@@ -11,7 +11,7 @@
 /// This structure contains filter options such as the whitelist.
 struct bmm_filter_opts {
   bool verbose;
-  bool mask[BMM_NMSG];
+  bool mask[BMM_MMSG];
 };
 
 /// This structure holds some filter statistics.

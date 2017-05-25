@@ -28,31 +28,31 @@
 
 /// Maximum number of characters in an identifier.
 /// This may not be adjustable without other changes.
-#define BMM_NCHARID 64
+#define BMM_MCHARID 64
 
 /// Maximum number of particles.
-#define BMM_NPART 1024
+#define BMM_MPART 1024
 
 /// Maximum number of links per particle.
-#define BMM_NLINK 8
+#define BMM_MLINK 8
 
 /// Maximum number of neighbor cells per dimension.
-#define BMM_NCELL 32
+#define BMM_MCELL 32
 
 /// Maximum number of particles per neighbor cell.
-#define BMM_NGROUP 64
+#define BMM_MGROUP 64
 
 /// Maximum number of message numbers.
 /// This is not adjustable without other changes.
-#define BMM_NMSG 256
+#define BMM_MMSG 256
 
 /// Maximum number of simulation stages.
-#define BMM_NSTAGE 16
+#define BMM_MSTAGE 16
 
 /// Maximum number of simulation steps.
-#define BMM_NSTEP 16777216
+#define BMM_MSTEP 16777216
 
 /// Maximum number of histogram bins.
-#define BMM_NBIN 1024
+#define BMM_MBIN 1024
 
 #endif

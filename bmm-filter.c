@@ -18,10 +18,10 @@ static bool f(char const* const key, char const* const value,
 
   if (strcmp(key, "mode") == 0) {
     if (strcmp(value, "blacklist") == 0)
-      for (size_t imsg = 0; imsg < BMM_NMSG; ++imsg)
+      for (size_t imsg = 0; imsg < BMM_MMSG; ++imsg)
         opts->mask[imsg] = true;
     else if (strcmp(value, "whitelist") == 0)
-      for (size_t imsg = 0; imsg < BMM_NMSG; ++imsg)
+      for (size_t imsg = 0; imsg < BMM_MMSG; ++imsg)
         opts->mask[imsg] = false;
     else
       return false;

@@ -160,11 +160,11 @@ struct bmm_dem_opts {
     /// Number of stages.
     size_t n;
     /// Timespans.
-    double tspan[BMM_NSTAGE];
+    double tspan[BMM_MSTAGE];
     /// Time steps.
-    double dt[BMM_NSTAGE];
+    double dt[BMM_MSTAGE];
     /// Functionalities.
-    enum bmm_dem_mode mode[BMM_NSTAGE];
+    enum bmm_dem_mode mode[BMM_MSTAGE];
     /// Parameters.
     union {
       /// For `BMM_DEM_MODE_CRUNCH`.
@@ -184,7 +184,7 @@ struct bmm_dem_opts {
         /// Cohesive force.
         double fcohes;
       } sediment;
-    } params[BMM_NSTAGE];
+    } params[BMM_MSTAGE];
   } script;
   /// Communications.
   struct {
@@ -230,31 +230,31 @@ struct bmm_dem {
     /// Next unused label.
     size_t lnew;
     /// Labels.
-    size_t l[BMM_NPART];
+    size_t l[BMM_MPART];
     /// Roles.
-    enum bmm_dem_role role[BMM_NPART];
+    enum bmm_dem_role role[BMM_MPART];
     /// Radii.
-    double r[BMM_NPART];
+    double r[BMM_MPART];
     /// Masses.
-    double m[BMM_NPART];
+    double m[BMM_MPART];
     /// Moments of inertia.
-    double j[BMM_NPART];
+    double j[BMM_MPART];
     /// Positions.
-    double x[BMM_NPART][BMM_NDIM];
+    double x[BMM_MPART][BMM_NDIM];
     /// Velocities.
-    double v[BMM_NPART][BMM_NDIM];
+    double v[BMM_MPART][BMM_NDIM];
     /// Accelerations.
-    double a[BMM_NPART][BMM_NDIM];
+    double a[BMM_MPART][BMM_NDIM];
     /// Angles.
-    double phi[BMM_NPART];
+    double phi[BMM_MPART];
     /// Angular velocities.
-    double omega[BMM_NPART];
+    double omega[BMM_MPART];
     /// Angular accelerations.
-    double alpha[BMM_NPART];
+    double alpha[BMM_MPART];
     /// Forces.
-    double f[BMM_NPART][BMM_NDIM];
+    double f[BMM_MPART][BMM_NDIM];
     /// Torques.
-    double tau[BMM_NPART];
+    double tau[BMM_MPART];
   } part;
   /// Links between particles.
   struct {
@@ -263,18 +263,18 @@ struct bmm_dem {
       /// Number of links from this particle.
       size_t n;
       /// Target particle indices.
-      size_t i[BMM_NLINK];
+      size_t i[BMM_MLINK];
       /// Rest lengths for springs and beams.
-      double rrest[BMM_NLINK];
+      double rrest[BMM_MLINK];
       /// Rest angles for beam front ends.
-      double phirestf[BMM_NLINK];
+      double phirestf[BMM_MLINK];
       /// Rest angles for beam rear ends.
-      double phirestr[BMM_NLINK];
+      double phirestr[BMM_MLINK];
       /// Limit length for tensile stress induced breaking.
-      double rlim[BMM_NLINK];
+      double rlim[BMM_MLINK];
       /// Limit angle for shear stress induced breaking.
-      double philim[BMM_NLINK];
-    } part[BMM_NPART];
+      double philim[BMM_MLINK];
+    } part[BMM_MPART];
   } link;
   /// Script state.
   struct {
@@ -283,9 +283,9 @@ struct bmm_dem {
     /// Previous transition time.
     double tprev;
     /// Transition times away from states.
-    double ttrans[BMM_NSTAGE];
+    double ttrans[BMM_MSTAGE];
     /// Transition time offsets (positive means transition was late).
-    double toff[BMM_NSTAGE];
+    double toff[BMM_MSTAGE];
     /// State of the current mode.
     union {
       /// For `BMM_DEM_MODE_CRUNCH`.
@@ -316,22 +316,22 @@ struct bmm_dem {
     /// Time of next full update.
     double tnext;
     /// Which neighbor cell each particle was in previously.
-    size_t cell[BMM_NPART][BMM_NDIM];
+    size_t cell[BMM_MPART][BMM_NDIM];
     /// Which particles were previously in each neighbor cell.
     struct {
       /// Number of particles.
       size_t n;
       /// Particle indices.
-      size_t i[BMM_NGROUP];
-    } part[BMM_POW(BMM_NCELL, BMM_NDIM)];
+      size_t i[BMM_MGROUP];
+    } part[BMM_POW(BMM_MCELL, BMM_NDIM)];
     /// Which neighbors each particle previously had.
     /// This only covers half of the Moore neighborhood of a particle.
     struct {
       /// Number of neighbors.
       size_t n;
       /// Neighbor indices.
-      size_t i[BMM_NGROUP * (BMM_POW(3, BMM_NDIM) / 2)];
-    } neigh[BMM_NPART];
+      size_t i[BMM_MGROUP * (BMM_POW(3, BMM_NDIM) / 2)];
+    } neigh[BMM_MPART];
   } cache;
 };
 
@@ -345,7 +345,7 @@ void bmm_dem_ijcell(size_t*, struct bmm_dem const*, size_t);
 /// places a new particle with radius `r` and mass `m`
 /// in the origin at rest and
 /// returns the index of the new particle.
-/// Otherwise `BMM_NPART` is returned.
+/// Otherwise `BMM_MPART` is returned.
 __attribute__ ((__nonnull__))
 size_t bmm_dem_inspart(struct bmm_dem*, double, double);
 
