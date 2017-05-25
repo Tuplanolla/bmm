@@ -48,6 +48,23 @@ inline int bmm_fp_cmp(double const x, double const y) {
   return x < y ? -1 : x > y ? 1 : 0;
 }
 
+/// The call `bmm_fp_lexcmp(x, y, n)`
+/// performs `bmm_fp_cmp` on the arrays `x` and `y` of length `n`
+/// in lexicographic order.
+__attribute__ ((__pure__))
+inline int bmm_fp_lexcmp(double const* restrict const x,
+    double const* restrict const y, size_t const n) {
+  for (size_t i = 0; i < n; ++i)
+    switch (bmm_fp_cmp(x[i], y[i])) {
+      case -1:
+        return -1;
+      case 1:
+        return 1;
+    }
+
+  return 0;
+}
+
 /// The call `bmm_fp_identity(x)` returns `x`.
 /// This is analogous to `bmm_size_identity`.
 __attribute__ ((__const__, __pure__))

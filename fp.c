@@ -6,6 +6,9 @@ extern inline bmm_fp_div_t bmm_fp_div(double, double);
 
 extern inline int bmm_fp_cmp(double, double);
 
+extern inline int bmm_fp_lexcmp(double const* restrict,
+    double const* restrict, size_t);
+
 extern inline double bmm_fp_identity(double);
 
 extern inline double bmm_fp_constant(double, double);

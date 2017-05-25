@@ -58,13 +58,12 @@ bool bmm_dem_isneigh(struct bmm_dem* const dem,
     return false;
 
   if (lex)
-    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-      switch (bmm_fp_cmp(dem->part.x[ipart][idim], dem->part.x[jpart][idim])) {
-        case 1:
-          return false;
-        case -1:
-          goto br;
-      }
+    switch (bmm_fp_lexcmp(dem->part.x[ipart], dem->part.x[jpart], BMM_NDIM)) {
+      case -1:
+        goto br;
+      case 1:
+        return false;
+    }
 
 br:
   if (bmm_geom2d_cpdist2(dem->part.x[ipart], dem->part.x[jpart],
