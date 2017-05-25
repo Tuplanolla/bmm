@@ -49,13 +49,30 @@ void bmm_dem_ijcell(size_t* const pijcell,
   }
 }
 
-// TODO Think about the index space here.
+// TODO Think about this.
+// Relying on index space inequalities makes the system unstable,
+// since the addition and removal of particles permutes it.
 bool bmm_dem_isneigh(struct bmm_dem* const dem,
-    size_t const ipart, size_t const jpart) {
-  return ipart < jpart &&
-    bmm_geom2d_cpdist2(dem->part.x[ipart], dem->part.x[jpart],
-        dem->opts.box.x, dem->opts.box.per) <=
-    bmm_fp_sq(dem->opts.cache.rcutoff);
+    size_t const ipart, size_t const jpart, bool const lex) {
+  if (ipart == jpart)
+    return false;
+
+  if (lex)
+    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+      switch (bmm_fp_cmp(dem->part.x[ipart][idim], dem->part.x[jpart][idim])) {
+        case 1:
+          return false;
+        case -1:
+          goto br;
+      }
+
+br:
+  if (bmm_geom2d_cpdist2(dem->part.x[ipart], dem->part.x[jpart],
+        dem->opts.box.x, dem->opts.box.per) >
+      bmm_fp_sq(dem->opts.cache.rcutoff))
+    return false;
+
+  return true;
 }
 
 // TODO Name these and share them with the refresh mechanism.
@@ -130,7 +147,7 @@ bool bmm_dem_cache_doto(struct bmm_dem* const dem, size_t const ipart) {
     for (size_t igroup = 0; igroup < dem->cache.part[icell].n; ++igroup) {
       size_t const jpart = dem->cache.part[icell].i[igroup];
 
-      if (bmm_dem_isneigh(dem, ipart, jpart)) {
+      if (bmm_dem_isneigh(dem, ipart, jpart, imoore == 0)) {
         if (!BMM_ASET_CANINS(dem->cache.neigh[ipart].i, dem->cache.neigh[ipart].n))
           return false;
 
@@ -169,7 +186,7 @@ bool bmm_dem_cache_dofrom(struct bmm_dem* const dem, size_t const ipart) {
     for (size_t igroup = 0; igroup < dem->cache.part[icell].n; ++igroup) {
       size_t const jpart = dem->cache.part[icell].i[igroup];
 
-      if (bmm_dem_isneigh(dem, ipart, jpart)) {
+      if (bmm_dem_isneigh(dem, ipart, jpart, false)) {
         if (!BMM_ASET_CANINS(dem->cache.neigh[jpart].i, dem->cache.neigh[jpart].n))
           p = false;
 
@@ -1013,7 +1030,6 @@ static bool bmm_dem_run_(struct bmm_dem* const dem) {
   bmm_dem_script_pushidle(&dem->opts, 0.04);
   bmm_dem_script_pushidle(&dem->opts, 0.26);
 
-  /*
   // Random stuff.
   for (size_t ipart = 0; ipart < 64; ++ipart) {
     size_t const jpart = bmm_dem_inspart(dem, 0.03, 1.0);
@@ -1023,7 +1039,6 @@ static bool bmm_dem_run_(struct bmm_dem* const dem) {
 
       dem->part.omega[jpart] += (double) (rand() % 512 - 256);
   }
-  */
 
   // Rotating couple.
   size_t jpart;
