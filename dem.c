@@ -49,22 +49,16 @@ void bmm_dem_ijcell(size_t* const pijcell,
 }
 
 // TODO Think about this.
-// Relying on index space inequalities makes the system unstable,
+// Relying on index space inequalities makes the cache unstable,
 // since the addition and removal of particles permutes it.
 bool bmm_dem_isneigh(struct bmm_dem* const dem,
     size_t const ipart, size_t const jpart, bool const lex) {
   if (ipart == jpart)
     return false;
 
-  if (lex)
-    switch (bmm_fp_lexcmp(dem->part.x[ipart], dem->part.x[jpart], BMM_NDIM)) {
-      case -1:
-        goto br;
-      case 1:
-        return false;
-    }
+  if (lex && ipart > jpart)
+    return false;
 
-br:
   if (bmm_geom2d_cpdist2(dem->part.x[ipart], dem->part.x[jpart],
         dem->opts.box.x, dem->opts.box.per) >
       bmm_fp_sq(dem->opts.cache.rcutoff))
@@ -86,6 +80,10 @@ br:
 // check the neighborhood condition.
 // Additionally you also go through every particle in the reduced lower half,
 // checking the neighborhood condition only for this particle.
+//
+// Particle removal is also a bit tricky since the last particle
+// may suddenly change its index to some smaller value,
+// which invalidates the cache of every particle in its cell wrt it.
 
 /// The call `bmm_dem_cache_cell(dem, ipart)`
 /// adds the new particle `ipart` to the appropriate neighbor cell
@@ -121,6 +119,8 @@ bool bmm_dem_cache_recell(struct bmm_dem* const dem) {
 
   return p;
 }
+
+// TODO Make this reduced and split off the special case of the center.
 
 // Goes over these neighbor cells and adds them to `ipart`'s neighbors.
 //
@@ -216,8 +216,8 @@ size_t bmm_dem_inspart(struct bmm_dem* const dem,
     double const r, double const m) {
   size_t const ipart = dem->part.n;
 
-  if (ipart >= BMM_MPART)
-    return BMM_MPART;
+  if (ipart >= BMM_KPART)
+    return BMM_KPART;
 
   ++dem->part.n;
 
@@ -304,12 +304,10 @@ bool bmm_dem_delpart(struct bmm_dem* const dem, size_t const ipart) {
     for (size_t ilink = 0; ilink < dem->link.part[jpart].n; ++ilink)
       dem->link.part[ipart].rrest[ilink] = dem->link.part[jpart].rrest[ilink];
 
-    for (size_t ilink = 0; ilink < dem->link.part[jpart].n; ++ilink) {
-      dem->link.part[ipart].phirestf[ilink] =
-        dem->link.part[jpart].phirestf[ilink];
-      dem->link.part[ipart].phirestr[ilink] =
-        dem->link.part[jpart].phirestr[ilink];
-    }
+    for (size_t ilink = 0; ilink < dem->link.part[jpart].n; ++ilink)
+      for (size_t iend = 0; iend < nmembof(dem->link.part[ipart].phirest[ilink]); ++iend)
+        dem->link.part[ipart].phirest[ilink][iend] =
+          dem->link.part[jpart].phirest[ilink][iend];
 
     for (size_t ilink = 0; ilink < dem->link.part[jpart].n; ++ilink)
       dem->link.part[ipart].rlim[ilink] = dem->link.part[jpart].rlim[ilink];
@@ -596,14 +594,13 @@ bool bmm_dem_link_pair(struct bmm_dem* const dem,
   switch (dem->opts.flink) {
     case BMM_DEM_FLINK_BEAM:
       {
-        double const phif = bmm_geom2d_dir(xdiff);
-        double const phir = bmm_geom2d_redir(phif);
+        double const phi = bmm_geom2d_dir(xdiff);
 
-        dem->link.part[ipart].phirestf[dem->link.part[ipart].n] =
-          dem->part.phi[ipart] - phif;
+        dem->link.part[ipart].phirest[dem->link.part[ipart].n][0] =
+          dem->part.phi[ipart] - phi;
 
-        dem->link.part[ipart].phirestr[dem->link.part[ipart].n] =
-          dem->part.phi[jpart] - phir;
+        dem->link.part[ipart].phirest[dem->link.part[ipart].n][1] =
+          dem->part.phi[jpart] - bmm_geom2d_redir(phi);
 
         double const crlim = gsl_rng_uniform(dem->rng) *
           (dem->opts.link.crlim[1] - dem->opts.link.crlim[0]) +

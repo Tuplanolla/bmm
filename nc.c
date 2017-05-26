@@ -104,7 +104,7 @@ static bool bmm_nc_open(struct bmm_nc* const nc) {
     return false;
   }
 
-  nerr = nc_def_dim(nc->ncid, "atom", BMM_MPART, &nc->id_atom);
+  nerr = nc_def_dim(nc->ncid, "atom", BMM_KPART, &nc->id_atom);
   if (nerr != NC_NOERR) {
     BMM_TLE_EXTS(BMM_TLE_NUM_NC, "%s", nc_strerror(nerr));
 
@@ -295,7 +295,7 @@ enum bmm_io_read bmm_nc_step(struct bmm_nc* const nc) {
             return BMM_IO_READ_ERROR;
         }
 
-        double parts[BMM_MPART][2];
+        double parts[BMM_KPART][2];
 
         switch (msg_read(parts, sizeof parts, NULL)) {
           case BMM_IO_READ_EOF:
@@ -320,10 +320,10 @@ enum bmm_io_read bmm_nc_step(struct bmm_nc* const nc) {
           return BMM_IO_READ_ERROR;
         }
 
-        float data[BMM_MPART][NDIM];
+        float data[BMM_KPART][NDIM];
 
         // TODO Use `_FillValue`.
-        for (size_t ipart = 0; ipart < BMM_MPART; ++ipart)
+        for (size_t ipart = 0; ipart < BMM_KPART; ++ipart)
           for (size_t idim = 0; idim < NDIM; ++idim)
             data[ipart][idim] = ipart >= nc->npart ?
               NAN : (float) parts[ipart][idim];
@@ -335,7 +335,7 @@ enum bmm_io_read bmm_nc_step(struct bmm_nc* const nc) {
         start[1] = 0;
         start[2] = 0;
         count[0] = 1;
-        count[1] = BMM_MPART;
+        count[1] = BMM_KPART;
         count[2] = NDIM;
         nerr = nc_put_vara_float(nc->ncid, nc->varid_coords,
             start, count, &data[0][0]);

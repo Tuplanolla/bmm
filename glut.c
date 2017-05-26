@@ -100,7 +100,7 @@ enum bmm_io_read bmm_glut_step(struct bmm_glut* const glut) {
             return BMM_IO_READ_ERROR;
         }
 
-        double parts[BMM_MPART];
+        double parts[BMM_KPART];
 
         switch (msg_read(parts, sizeof parts, NULL)) {
           case BMM_IO_READ_EOF:

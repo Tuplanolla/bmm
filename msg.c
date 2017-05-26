@@ -16,7 +16,7 @@
 
 static struct {
   enum bmm_msg_num num;
-  char str[BMM_MCHARID];
+  char str[BMM_KCHARID];
   bool lowered;
 } bmm_msg_decl[] = {
 #define BMM_MSG_DECLARE(id, _) \
