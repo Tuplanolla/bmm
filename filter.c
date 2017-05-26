@@ -14,7 +14,7 @@
 void bmm_filter_opts_def(struct bmm_filter_opts* const opts) {
   opts->verbose = false;
 
-  for (size_t imsg = 0; imsg < BMM_KMSG; ++imsg)
+  for (size_t imsg = 0; imsg < BMM_MMSG; ++imsg)
     opts->mask[imsg] = false;
 }
 

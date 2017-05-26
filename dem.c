@@ -216,8 +216,8 @@ size_t bmm_dem_inspart(struct bmm_dem* const dem,
     double const r, double const m) {
   size_t const ipart = dem->part.n;
 
-  if (ipart >= BMM_KPART)
-    return BMM_KPART;
+  if (ipart >= BMM_MPART)
+    return BMM_MPART;
 
   ++dem->part.n;
 
