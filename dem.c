@@ -8,9 +8,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "aset.h"
-#include "astack.h"
 #include "conf.h"
+#include "cpp.h"
 #include "dem.h"
 #include "fp.h"
 #include "geom.h"
@@ -97,10 +96,12 @@ bool bmm_dem_cache_cell(struct bmm_dem* const dem, size_t const ipart) {
   size_t const icell = bmm_size_unhcd(dem->cache.cell[ipart],
       BMM_NDIM, dem->opts.cache.ncell);
 
-  if (!BMM_ASET_CANINS(dem->cache.part[icell].i, dem->cache.part[icell].n))
+  if (dem->cache.part[icell].n >= nmembof(dem->cache.part[icell].i))
     return false;
 
-  BMM_ASET_INS(dem->cache.part[icell].i, dem->cache.part[icell].n, ipart);
+  dem->cache.part[icell].i[dem->cache.part[icell].n] = ipart;
+
+  ++dem->cache.part[icell].n;
 
   return true;
 }
@@ -147,10 +148,12 @@ bool bmm_dem_cache_doto(struct bmm_dem* const dem, size_t const ipart) {
       size_t const jpart = dem->cache.part[icell].i[igroup];
 
       if (bmm_dem_isneigh(dem, ipart, jpart, imoore == 0)) {
-        if (!BMM_ASET_CANINS(dem->cache.neigh[ipart].i, dem->cache.neigh[ipart].n))
+        if (dem->cache.neigh[ipart].n >= nmembof(dem->cache.neigh[ipart].i))
           return false;
 
-        BMM_ASET_INS(dem->cache.neigh[ipart].i, dem->cache.neigh[ipart].n, jpart);
+        dem->cache.neigh[ipart].i[dem->cache.neigh[ipart].n] = jpart;
+
+        ++dem->cache.neigh[ipart].n;
       }
     }
   }
@@ -186,10 +189,12 @@ bool bmm_dem_cache_dofrom(struct bmm_dem* const dem, size_t const ipart) {
       size_t const jpart = dem->cache.part[icell].i[igroup];
 
       if (bmm_dem_isneigh(dem, ipart, jpart, false)) {
-        if (!BMM_ASET_CANINS(dem->cache.neigh[jpart].i, dem->cache.neigh[jpart].n))
+        if (dem->cache.neigh[jpart].n >= nmembof(dem->cache.neigh[jpart].i))
           p = false;
 
-        BMM_ASET_INS(dem->cache.neigh[jpart].i, dem->cache.neigh[jpart].n, ipart);
+        dem->cache.neigh[jpart].i[dem->cache.neigh[jpart].n] = ipart;
+
+        ++dem->cache.neigh[jpart].n;
       }
     }
   }
@@ -580,7 +585,7 @@ bool bmm_dem_link_pair(struct bmm_dem* const dem,
   if (d2 > r2 * dem->opts.link.ccrlink)
     return false;
 
-  if (!BMM_ASET_CANINS(dem->link.part[ipart].i, dem->link.part[ipart].n))
+  if (dem->link.part[ipart].n >= nmembof(dem->link.part[ipart].i))
     return false;
 
   double const d = sqrt(d2);
@@ -594,38 +599,35 @@ bool bmm_dem_link_pair(struct bmm_dem* const dem,
         double const phif = bmm_geom2d_dir(xdiff);
         double const phir = bmm_geom2d_redir(phif);
 
-        double x;
+        dem->link.part[ipart].phirestf[dem->link.part[ipart].n] =
+          dem->part.phi[ipart] - phif;
 
-        x = dem->part.phi[ipart] - phif;
-        BMM_ASET_PREINS(dem->link.part[ipart].phirestf,
-            dem->link.part[ipart].n, x);
-
-        x = dem->part.phi[jpart] - phir;
-        BMM_ASET_PREINS(dem->link.part[ipart].phirestr,
-            dem->link.part[ipart].n, x);
+        dem->link.part[ipart].phirestr[dem->link.part[ipart].n] =
+          dem->part.phi[jpart] - phir;
 
         double const crlim = gsl_rng_uniform(dem->rng) *
           (dem->opts.link.crlim[1] - dem->opts.link.crlim[0]) +
           dem->opts.link.crlim[0];
 
-        x = crlim * rrest;
-        BMM_ASET_PREINS(dem->link.part[ipart].rlim,
-            dem->link.part[ipart].n, x);
+        dem->link.part[ipart].rlim[dem->link.part[ipart].n] =
+          crlim * rrest;
 
         double const cphilim = gsl_rng_uniform(dem->rng) *
           (dem->opts.link.cphilim[1] - dem->opts.link.cphilim[0]) +
           dem->opts.link.cphilim[0];
 
-        x = cphilim * M_2PI;
-        BMM_ASET_PREINS(dem->link.part[ipart].philim,
-            dem->link.part[ipart].n, x);
+        dem->link.part[ipart].philim[dem->link.part[ipart].n] =
+          cphilim * M_2PI;
       }
 
       break;
   }
 
-  BMM_ASET_PREINS(dem->link.part[ipart].rrest, dem->link.part[ipart].n, rrest);
-  BMM_ASET_INS(dem->link.part[ipart].i, dem->link.part[ipart].n, jpart);
+  dem->link.part[ipart].rrest[dem->link.part[ipart].n] = rrest;
+
+  dem->link.part[ipart].i[dem->link.part[ipart].n] = jpart;
+
+  ++dem->link.part[ipart].n;
 
   return true;
 }
@@ -887,15 +889,15 @@ bool bmm_dem_puts(struct bmm_dem const* const dem,
 
 bool bmm_dem_script_pushidle(struct bmm_dem_opts* const opts,
     double const tspan) {
-  if (!BMM_ASTACK_CANINS(opts->script.mode, opts->script.n))
+  if (opts->script.n >= nmembof(opts->script.mode))
     return false;
 
   double const dt = 1e-3;
   enum bmm_dem_mode mode = BMM_DEM_MODE_IDLE;
 
-  BMM_ASTACK_PREINS(opts->script.tspan, opts->script.n, tspan);
-  BMM_ASTACK_PREINS(opts->script.dt, opts->script.n, dt);
-  BMM_ASTACK_INS(opts->script.mode, opts->script.n, mode);
+  opts->script.tspan[opts->script.n] = tspan;
+  opts->script.dt[opts->script.n] = dt;
+  opts->script.mode[opts->script.n] = mode;
 
   ++opts->script.n;
 
