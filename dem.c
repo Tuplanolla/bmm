@@ -51,14 +51,9 @@ void bmm_dem_ijcell(size_t* const pijcell,
 // TODO Think about this.
 // Relying on index space inequalities makes the cache unstable,
 // since the addition and removal of particles permutes it.
+// This is now symmetric.
 bool bmm_dem_isneigh(struct bmm_dem* const dem,
-    size_t const ipart, size_t const jpart, bool const lex) {
-  if (ipart == jpart)
-    return false;
-
-  if (lex && ipart > jpart)
-    return false;
-
+    size_t const ipart, size_t const jpart) {
   if (bmm_geom2d_cpdist2(dem->part.x[ipart], dem->part.x[jpart],
         dem->opts.box.x, dem->opts.box.per) >
       bmm_fp_sq(dem->opts.cache.rcutoff))
@@ -120,13 +115,75 @@ bool bmm_dem_cache_recell(struct bmm_dem* const dem) {
   return p;
 }
 
-// TODO Make this reduced and split off the special case of the center.
+// Goes over these neighbor cells and adds them to `ipart`'s neighbors.
+//
+//       ^
+//       | - - -
+//     y | - + -
+//       | - - -
+//       +------->
+//           x
+//
+bool bmm_dem_cache_dointo(struct bmm_dem* const dem, size_t const ipart) {
+  size_t ij[BMM_NDIM];
+
+  size_t const icell = bmm_size_unhcd(&dem->cache.cell[ipart],
+      BMM_NDIM, dem->opts.cache.ncell);
+
+  for (size_t igroup = 0; igroup < dem->cache.part[icell].n; ++igroup) {
+    size_t const jpart = dem->cache.part[icell].i[igroup];
+
+    if (jpart > ipart && bmm_dem_isneigh(dem, ipart, jpart)) {
+      if (dem->cache.neigh[ipart].n >= nmembof(dem->cache.neigh[ipart].i))
+        return false;
+
+      dem->cache.neigh[ipart].i[dem->cache.neigh[ipart].n] = jpart;
+
+      ++dem->cache.neigh[ipart].n;
+    }
+  }
+
+  return true;
+}
+
+// Goes over these neighbor cells and adds `jpart` to their neighbors.
+//
+//       ^
+//       | - - -
+//     y | - + -
+//       | - - -
+//       +------->
+//           x
+//
+bool bmm_dem_cache_doinfrom(struct bmm_dem* const dem, size_t const jpart) {
+  bool p = true;
+
+  size_t ij[BMM_NDIM];
+
+  size_t const icell = bmm_size_unhcd(&dem->cache.cell[jpart],
+      BMM_NDIM, dem->opts.cache.ncell);
+
+  for (size_t igroup = 0; igroup < dem->cache.part[icell].n; ++igroup) {
+    size_t const ipart = dem->cache.part[icell].i[igroup];
+
+    if (jpart > ipart && bmm_dem_isneigh(dem, ipart, jpart)) {
+      if (dem->cache.neigh[ipart].n >= nmembof(dem->cache.neigh[ipart].i))
+        p = false;
+
+      dem->cache.neigh[ipart].i[dem->cache.neigh[ipart].n] = jpart;
+
+      ++dem->cache.neigh[ipart].n;
+    }
+  }
+
+  return p;
+}
 
 // Goes over these neighbor cells and adds them to `ipart`'s neighbors.
 //
 //       ^
 //       | - + +
-//     y | - + +
+//     y | - - +
 //       | - - +
 //       +------->
 //           x
@@ -134,12 +191,12 @@ bool bmm_dem_cache_recell(struct bmm_dem* const dem) {
 bool bmm_dem_cache_doto(struct bmm_dem* const dem, size_t const ipart) {
   size_t ij[BMM_NDIM];
 
-  size_t const nmoore = bmm_moore_ncpuh(ij,
+  size_t const nmoore = bmm_moore_ncpuhr(ij,
       dem->cache.cell[ipart], BMM_NDIM,
       dem->opts.cache.ncell, dem->opts.box.per);
 
   for (size_t imoore = 0; imoore < nmoore; ++imoore) {
-    bmm_moore_ijcpuh(ij, dem->cache.cell[ipart], imoore,
+    bmm_moore_ijcpuhr(ij, dem->cache.cell[ipart], imoore,
         BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per);
 
     size_t const icell = bmm_size_unhcd(ij, BMM_NDIM, dem->opts.cache.ncell);
@@ -147,7 +204,7 @@ bool bmm_dem_cache_doto(struct bmm_dem* const dem, size_t const ipart) {
     for (size_t igroup = 0; igroup < dem->cache.part[icell].n; ++igroup) {
       size_t const jpart = dem->cache.part[icell].i[igroup];
 
-      if (bmm_dem_isneigh(dem, ipart, jpart, imoore == 0)) {
+      if (bmm_dem_isneigh(dem, ipart, jpart)) {
         if (dem->cache.neigh[ipart].n >= nmembof(dem->cache.neigh[ipart].i))
           return false;
 
@@ -161,7 +218,7 @@ bool bmm_dem_cache_doto(struct bmm_dem* const dem, size_t const ipart) {
   return true;
 }
 
-// Goes over these neighbor cells and adds `ipart` to their neighbors.
+// Goes over these neighbor cells and adds `jpart` to their neighbors.
 //
 //       ^
 //       | + - -
@@ -170,31 +227,31 @@ bool bmm_dem_cache_doto(struct bmm_dem* const dem, size_t const ipart) {
 //       +------->
 //           x
 //
-bool bmm_dem_cache_dofrom(struct bmm_dem* const dem, size_t const ipart) {
+bool bmm_dem_cache_dofrom(struct bmm_dem* const dem, size_t const jpart) {
   bool p = true;
 
   size_t ij[BMM_NDIM];
 
   size_t const nmoore = bmm_moore_ncplhr(ij,
-      dem->cache.cell[ipart], BMM_NDIM,
+      dem->cache.cell[jpart], BMM_NDIM,
       dem->opts.cache.ncell, dem->opts.box.per);
 
   for (size_t imoore = 0; imoore < nmoore; ++imoore) {
-    bmm_moore_ijcplhr(ij, dem->cache.cell[ipart], imoore,
+    bmm_moore_ijcplhr(ij, dem->cache.cell[jpart], imoore,
         BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per);
 
     size_t const icell = bmm_size_unhcd(ij, BMM_NDIM, dem->opts.cache.ncell);
 
     for (size_t igroup = 0; igroup < dem->cache.part[icell].n; ++igroup) {
-      size_t const jpart = dem->cache.part[icell].i[igroup];
+      size_t const ipart = dem->cache.part[icell].i[igroup];
 
-      if (bmm_dem_isneigh(dem, ipart, jpart, false)) {
-        if (dem->cache.neigh[jpart].n >= nmembof(dem->cache.neigh[jpart].i))
+      if (bmm_dem_isneigh(dem, jpart, ipart)) {
+        if (dem->cache.neigh[ipart].n >= nmembof(dem->cache.neigh[ipart].i))
           p = false;
 
-        dem->cache.neigh[jpart].i[dem->cache.neigh[jpart].n] = ipart;
+        dem->cache.neigh[ipart].i[dem->cache.neigh[ipart].n] = jpart;
 
-        ++dem->cache.neigh[jpart].n;
+        ++dem->cache.neigh[ipart].n;
       }
     }
   }
@@ -206,6 +263,7 @@ bool bmm_dem_reneigh(struct bmm_dem* const dem) {
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
     dem->cache.neigh[ipart].n = 0;
 
+    (void) bmm_dem_cache_dointo(dem, ipart);
     (void) bmm_dem_cache_doto(dem, ipart);
   }
 
@@ -254,9 +312,11 @@ size_t bmm_dem_inspart(struct bmm_dem* const dem,
   // "However..."
   dem->cache.neigh[ipart].n = 0;
 
+  // "Additionally..."
+  (void) bmm_dem_cache_dointo(dem, ipart);
   (void) bmm_dem_cache_doto(dem, ipart);
 
-  // "Additionally..."
+  (void) bmm_dem_cache_doinfrom(dem, ipart);
   (void) bmm_dem_cache_dofrom(dem, ipart);
 
   return ipart;
