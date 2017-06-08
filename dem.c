@@ -507,6 +507,8 @@ void bmm_dem_force_pair(struct bmm_dem* const dem,
       break;
   }
 
+  // TODO These look wrong.
+
   bmm_geom2d_scale(fdiff, xtang, ft);
 
   bmm_geom2d_addto(dem->part.f[ipart], fdiff);
@@ -791,6 +793,16 @@ double bmm_dem_pscalar(struct bmm_dem const* const dem) {
     p += dem->part.m[ipart] * bmm_geom2d_norm(dem->part.v[ipart]);
 
   return p;
+}
+
+// Individual angular momentum estimator.
+double bmm_dem_lscalar(struct bmm_dem const* const dem) {
+  double l = 0.0;
+
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    l += dem->part.j[ipart] * dem->part.omega[ipart];
+
+  return l;
 }
 
 // Mean coefficient of restitution
@@ -1089,7 +1101,7 @@ static bool bmm_dem_run_(struct bmm_dem* const dem) {
   bmm_dem_script_pushidle(&dem->opts, 0.26);
 
   // Random stuff.
-  for (size_t ipart = 0; ipart < 64; ++ipart) {
+  for (size_t ipart = 0; ipart < 64 - 64; ++ipart) {
     size_t const jpart = bmm_dem_inspart(dem, 0.03, 1.0);
 
     for (size_t idim = 0; idim < nmembof(dem->part.x[jpart]); ++idim)

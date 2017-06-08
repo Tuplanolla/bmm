@@ -367,8 +367,9 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
   (void) snprintf(strbuf, sizeof strbuf, "p (total vector momentum) = %g",
       bmm_dem_pvector(&sdl->dem));
   glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
-  (void) snprintf(strbuf, sizeof strbuf, "p (total scalar momentum) = %g",
-      bmm_dem_pscalar(&sdl->dem));
+  (void) snprintf(strbuf, sizeof strbuf, "p + L (total momentum) = %g + %g = %g",
+      bmm_dem_pscalar(&sdl->dem), bmm_dem_lscalar(&sdl->dem),
+      bmm_dem_pscalar(&sdl->dem) + bmm_dem_lscalar(&sdl->dem));
   glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
   (void) snprintf(strbuf, sizeof strbuf, "t (now) = %g (%zu)",
       sdl->dem.time.t, sdl->dem.time.istep);

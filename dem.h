@@ -374,6 +374,9 @@ __attribute__ ((__nonnull__))
 double bmm_dem_pscalar(struct bmm_dem const*);
 
 __attribute__ ((__nonnull__))
+double bmm_dem_lscalar(struct bmm_dem const*);
+
+__attribute__ ((__nonnull__))
 double bmm_dem_cor(struct bmm_dem const*);
 
 __attribute__ ((__nonnull__))
