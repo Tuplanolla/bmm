@@ -353,11 +353,11 @@ The following incomplete table lists the options for `bmm-dem`.
 
 | Key | Value | Meaning
 |:----|:------|:--------
-| `--ncellx` | Nonnegative Integer below `BMM_NCELL` | Number of horizontal cells.
-| `--ncelly` | Nonnegative Integer below `BMM_NCELL` | Number of vertical cells.
-| `--nbin` | Nonnegative Integer below `BMM_NBIN` | Number of histogram bins.
-| `--npart` | Nonnegative Integer below `BMM_NPART` | Number of particles.
-| `--nstep` | Nonnegative Integer below `BMM_NSTEP` | Number of simulation steps.
+| `--ncellx` | Nonnegative Integer below `BMM_MCELL` | Number of horizontal cells.
+| `--ncelly` | Nonnegative Integer below `BMM_MCELL` | Number of vertical cells.
+| `--nbin` | Nonnegative Integer below `BMM_MBIN` | Number of histogram bins.
+| `--npart` | Nonnegative Integer below `BMM_MPART` | Number of particles.
+| `--nstep` | Nonnegative Integer below `BMM_MSTEP` | Number of simulation steps.
 
 The following table lists the options for `bmm-filter`.
 
@@ -448,7 +448,7 @@ but that might not be worth the effort (both programming and computational).
       bmm_recv_proc procs[BMM_PROC_MAX];
     };
     struct bmm_recv_mask {
-      struct bmm_recv_list lists[BMM_NMSG];
+      struct bmm_recv_list lists[BMM_MMSG];
     };
     bool bmm_recv_reg(struct bmm_recv_mask*, enum bmm_msg, bmm_recv_proc);
     bool bmm_recv_unreg(struct bmm_recv_mask*, enum bmm_msg, bmm_recv_proc);

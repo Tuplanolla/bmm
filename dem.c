@@ -286,7 +286,9 @@ size_t bmm_dem_inspart(struct bmm_dem* const dem,
 
   dem->part.r[ipart] = r;
   dem->part.m[ipart] = m;
-  dem->part.j[ipart] = bmm_geom_ballmoi(m, r, BMM_NDIM);
+  dem->part.jred[ipart] = bmm_geom_ballrmoi(BMM_NDIM);
+
+  dem->cache.j[ipart] = dem->part.jred[ipart] * m * bmm_fp_sq(r);
 
   for (size_t idim = 0; idim < BMM_NDIM; ++idim)
     dem->part.x[ipart][idim] = 0.0;
@@ -334,7 +336,7 @@ bool bmm_dem_delpart(struct bmm_dem* const dem, size_t const ipart) {
 
     dem->part.r[ipart] = dem->part.r[jpart];
     dem->part.m[ipart] = dem->part.m[jpart];
-    dem->part.j[ipart] = dem->part.j[jpart];
+    dem->part.jred[ipart] = dem->part.jred[jpart];
 
     for (size_t idim = 0; idim < BMM_NDIM; ++idim)
       dem->part.x[ipart][idim] = dem->part.x[jpart][idim];
@@ -457,8 +459,6 @@ void bmm_dem_force_pair(struct bmm_dem* const dem,
 
   if (d2 > r2)
     return;
-
-  // TODO Maybe cache some of these.
 
   double const d = sqrt(d2);
 
@@ -597,7 +597,7 @@ void bmm_dem_integ_euler(struct bmm_dem* const dem) {
 
     dem->part.omega[ipart] = dem->part.omega[ipart] + dem->part.alpha[ipart] * dt;
 
-    dem->part.alpha[ipart] = dem->part.tau[ipart] / dem->part.j[ipart];
+    dem->part.alpha[ipart] = dem->part.tau[ipart] / dem->cache.j[ipart];
   }
 }
 
@@ -766,7 +766,7 @@ double bmm_dem_ekinetic(struct bmm_dem const* const dem) {
     for (size_t idim = 0; idim < 2; ++idim)
       e += dem->part.m[ipart] * bmm_fp_sq(dem->part.v[ipart][idim]);
 
-    e += dem->part.j[ipart] * bmm_fp_sq(dem->part.omega[ipart]);
+    e += dem->cache.j[ipart] * bmm_fp_sq(dem->part.omega[ipart]);
   }
 
   return e * 0.5;
@@ -800,7 +800,7 @@ double bmm_dem_lscalar(struct bmm_dem const* const dem) {
   double l = 0.0;
 
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    l += dem->part.j[ipart] * dem->part.omega[ipart];
+    l += dem->cache.j[ipart] * dem->part.omega[ipart];
 
   return l;
 }

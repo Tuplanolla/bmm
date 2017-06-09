@@ -237,8 +237,8 @@ struct bmm_dem {
     double r[BMM_MPART];
     /// Masses.
     double m[BMM_MPART];
-    /// Moments of inertia.
-    double j[BMM_MPART];
+    /// Reduced moments of inertia.
+    double jred[BMM_MPART];
     /// Positions.
     double x[BMM_MPART][BMM_NDIM];
     /// Velocities.
@@ -313,6 +313,8 @@ struct bmm_dem {
     double tprev;
     /// Time of next full update.
     double tnext;
+    /// Moments of inertia.
+    double j[BMM_MPART];
     /// Which neighbor cell each particle was in previously.
     size_t cell[BMM_MPART][BMM_NDIM];
     /// Which particles were previously in each neighbor cell.
