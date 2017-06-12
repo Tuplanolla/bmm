@@ -528,6 +528,16 @@ Beams are formed by building the convex hull of the particle point set and
 adding and flipping vertices until we run out.
 This is basically Delaunay triangulation with length constraints.
 
+#### Unit Stuff
+
+Wikipedia says the following.
+
+> For homogeneous isotropic materials simple relations exist
+> between elastic constants (Young's modulus $Y$,
+> shear modulus $G$, bulk modulus $K$, and Poisson's ratio $\\nu$)
+> that allow calculating them all as long as two are known:
+> $Y = 2 G (1 + \\nu) = 3 K (1 - 2 \\nu)$.
+
 ### Do These Things
 
 See if better sedimentation algorithms exist.

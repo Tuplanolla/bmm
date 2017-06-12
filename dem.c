@@ -286,7 +286,7 @@ size_t bmm_dem_inspart(struct bmm_dem* const dem,
 
   dem->part.r[ipart] = r;
   dem->part.m[ipart] = m;
-  dem->part.jred[ipart] = bmm_geom_ballrmoi(BMM_NDIM);
+  dem->part.jred[ipart] = bmm_geom_ballprmoi(BMM_NDIM);
 
   dem->cache.j[ipart] = dem->part.jred[ipart] * m * bmm_fp_sq(r);
 
