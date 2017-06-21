@@ -21,17 +21,19 @@
 #include "size.h"
 #include "tle.h"
 
-// TODO Use `dynamic_assert(n >= 3, "Too few neighbor cells")` as appropriate.
+// TODO Use this somewhere.
+// dynamic_assert(n >= 3, "Too few neighbor cells");
+// dynamic_assert(n >= 5, "Too few neighbor cells");
 
 void bmm_dem_ijcell(size_t* const pijcell,
-    struct bmm_dem const* const dem, size_t const ipart) {
+    struct bmm_dem const* const dem, double const* const ptr) {
   for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
     size_t const n = dem->opts.cache.ncell[idim];
 
     size_t const j = n - 1;
     double const r = (double) j;
 
-    double const x = bmm_fp_lerp(dem->part.x[ipart][idim],
+    double const x = bmm_fp_lerp(ptr[idim],
         0.0, dem->opts.box.x[idim], 1.0, r);
 
     if (x < 1.0)
@@ -84,7 +86,8 @@ bool bmm_dem_isneigh(struct bmm_dem* const dem,
 /// adds the new particle `ipart` to the appropriate neighbor cell
 /// unless the cell group is full.
 bool bmm_dem_cache_cell(struct bmm_dem* const dem, size_t const ipart) {
-  bmm_dem_ijcell(dem->cache.cell[ipart], dem, ipart);
+  // bmm_dem_ijcell(dem->cache.cell[ipart], dem, dem->part.x[ipart]);
+  bmm_dem_ijcell(dem->cache.cell[ipart], dem, dem->cache.x[ipart]);
 
   size_t const icell = bmm_size_unhcd(dem->cache.cell[ipart],
       BMM_NDIM, dem->opts.cache.ncell);
@@ -97,6 +100,14 @@ bool bmm_dem_cache_cell(struct bmm_dem* const dem, size_t const ipart) {
   ++dem->cache.part[icell].n;
 
   return true;
+}
+
+/// The call `bmm_dem_cache_repos(dem)`
+/// caches the position of every particle.
+void bmm_dem_cache_repos(struct bmm_dem* const dem) {
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+      dem->cache.x[ipart][idim] = dem->part.x[ipart][idim];
 }
 
 /// The call `bmm_dem_cache_recell(dem)`
@@ -127,7 +138,7 @@ bool bmm_dem_cache_recell(struct bmm_dem* const dem) {
 bool bmm_dem_cache_dointo(struct bmm_dem* const dem, size_t const ipart) {
   size_t ij[BMM_NDIM];
 
-  size_t const icell = bmm_size_unhcd(&dem->cache.cell[ipart],
+  size_t const icell = bmm_size_unhcd(dem->cache.cell[ipart],
       BMM_NDIM, dem->opts.cache.ncell);
 
   for (size_t igroup = 0; igroup < dem->cache.part[icell].n; ++igroup) {
@@ -160,7 +171,7 @@ bool bmm_dem_cache_doinfrom(struct bmm_dem* const dem, size_t const jpart) {
 
   size_t ij[BMM_NDIM];
 
-  size_t const icell = bmm_size_unhcd(&dem->cache.cell[jpart],
+  size_t const icell = bmm_size_unhcd(dem->cache.cell[jpart],
       BMM_NDIM, dem->opts.cache.ncell);
 
   for (size_t igroup = 0; igroup < dem->cache.part[icell].n; ++igroup) {
@@ -259,7 +270,7 @@ bool bmm_dem_cache_dofrom(struct bmm_dem* const dem, size_t const jpart) {
   return p;
 }
 
-bool bmm_dem_reneigh(struct bmm_dem* const dem) {
+bool bmm_dem_cache_reneigh(struct bmm_dem* const dem) {
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
     dem->cache.neigh[ipart].n = 0;
 
@@ -531,6 +542,16 @@ void bmm_dem_force_ambient(struct bmm_dem* const dem, size_t const ipart) {
         dem->part.f[ipart][idim] *= 1.0;
 
       break;
+    case BMM_DEM_FAMB_QUAD:
+      for (size_t idim = 0; idim < nmembof(dem->part.f[ipart]); ++idim)
+        dem->part.f[ipart][idim] *= 1.0;
+
+      break;
+    case BMM_DEM_FAMB_CORR:
+      for (size_t idim = 0; idim < nmembof(dem->part.f[ipart]); ++idim)
+        dem->part.f[ipart][idim] *= 1.0;
+
+      break;
   }
 }
 
@@ -601,7 +622,10 @@ void bmm_dem_integ_euler(struct bmm_dem* const dem) {
   }
 }
 
-/// Clamp periodic domains, renormalize normal vectors, etc.
+/// The call `bmm_dem_stab(dem)`
+/// stabilizes the simulation `dem`
+/// by wrapping periodic values, renormalizing normal vectors and so on.
+/// This should only affect the behavior of the simulation over long timespans.
 void bmm_dem_stab(struct bmm_dem* const dem) {
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     dem->part.phi[ipart] = bmm_fp_uwrap(dem->part.phi[ipart], M_2PI);
@@ -846,7 +870,9 @@ void bmm_dem_opts_def(struct bmm_dem_opts* const opts) {
   for (size_t idim = 0; idim < nmembof(opts->box.per); ++idim)
     opts->box.per[idim] = false;
 
-  opts->ambient.eta = 0.0;
+  opts->ambient.params.creeping.mu = 0.0;
+
+  opts->time.istab = 1000;
 
   opts->part.y = 1.0;
   opts->part.rnew[0] = 1.0;
@@ -869,8 +895,15 @@ void bmm_dem_opts_def(struct bmm_dem_opts* const opts) {
   opts->comm.flap = true;
   opts->comm.flup = true;
 
-  for (size_t idim = 0; idim < nmembof(opts->cache.ncell); ++idim)
+  for (size_t idim = 0; idim < nmembof(opts->cache.ncell); ++idim) {
     opts->cache.ncell[idim] = 5;
+
+    // TODO Use this somewhere.
+    /*
+    dynamic_assert(opts->box.x[idim] / (double) (opts->cache.ncell[idim] * 2) >
+        opts->part.rnew[1], "Too small neighbor cells");
+    */
+  }
 
   opts->cache.rcutoff = 1.0;
 }
@@ -882,9 +915,8 @@ void bmm_dem_def(struct bmm_dem* const dem,
 
   dem->opts = *opts;
 
-  dem->time.istep = 0;
-  dem->time.istab = 1000;
   dem->time.t = 0.0;
+  dem->time.istep = 0;
 
   dem->part.n = 0;
   dem->part.lnew = 0;
@@ -895,14 +927,11 @@ void bmm_dem_def(struct bmm_dem* const dem,
   dem->script.i = 0;
   dem->script.tprev = 0.0;
 
-  dem->comm.lnew = 0;
-  dem->comm.tprev = (double) NAN;
-  dem->comm.tnext = 0.0;
+  dem->comm.tprev = 0.0;
 
   dem->cache.i = 0;
-  dem->cache.tpart = (double) NAN;
-  dem->cache.tprev = (double) NAN;
-  dem->cache.tnext = 0.0;
+  dem->cache.tpart = 0.0;
+  dem->cache.tprev = 0.0;
 
   for (size_t icell = 0; icell < nmembof(dem->cache.part); ++icell)
     dem->cache.part[icell].n = 0;
@@ -961,7 +990,7 @@ bool bmm_dem_script_pushidle(struct bmm_dem_opts* const opts,
   if (opts->script.n >= nmembof(opts->script.mode))
     return false;
 
-  double const dt = 1e-3;
+  double const dt = 1e-4;
   enum bmm_dem_mode mode = BMM_DEM_MODE_IDLE;
 
   opts->script.tspan[opts->script.n] = tspan;
@@ -973,43 +1002,19 @@ bool bmm_dem_script_pushidle(struct bmm_dem_opts* const opts,
   return true;
 }
 
-bool bmm_dem_script_done(struct bmm_dem const* const dem) {
-  return dem->script.i >= dem->opts.script.n;
-}
+extern inline bool bmm_dem_script_ongoing(struct bmm_dem const*);
 
-enum bmm_dem_step bmm_dem_script_trans(struct bmm_dem* const dem) {
-  if (bmm_dem_script_done(dem))
-    return BMM_DEM_STEP_STOP;
+extern inline bool bmm_dem_script_trans(struct bmm_dem*);
 
-  double const toff = dem->time.t -
-    (dem->script.tprev + dem->opts.script.tspan[dem->script.i]);
+extern inline bool bmm_dem_cache_fresh(struct bmm_dem const*);
 
-  if (toff >= 0.0) {
-    dem->script.tprev = dem->time.t;
-    dem->script.ttrans[dem->script.i] = dem->time.t;
-    dem->script.toff[dem->script.i] = toff;
-
-    ++dem->script.i;
-
-    if (bmm_dem_script_done(dem))
-      return BMM_DEM_STEP_STOP;
-  }
-
-  return BMM_DEM_STEP_CONT;
-}
-
-enum bmm_dem_step bmm_dem_step(struct bmm_dem* const dem) {
-  switch (bmm_dem_script_trans(dem)) {
-    case BMM_DEM_STEP_ERROR:
-      return BMM_DEM_STEP_ERROR;
-    case BMM_DEM_STEP_STOP:
-      return BMM_DEM_STEP_STOP;
-  }
-
-  size_t const istage = dem->script.i;
-
-  switch (dem->opts.script.mode[istage]) {
-    case BMM_DEM_MODE_BEGIN:
+/// The call `bmm_dem_step(dem)`
+/// advances the simulation `dem` by one step.
+/// Make sure the simulation has not ended prior to the call
+/// by calling `bmm_dem_script_ongoing` or `bmm_dem_script_trans`.
+bool bmm_dem_step(struct bmm_dem* const dem) {
+  switch (dem->opts.script.mode[dem->script.i]) {
+    case BMM_DEM_MODE_CREATE:
 
       break;
     case BMM_DEM_MODE_SEDIMENT:
@@ -1018,47 +1023,59 @@ enum bmm_dem_step bmm_dem_step(struct bmm_dem* const dem) {
     case BMM_DEM_MODE_LINK:
 
       break;
-    case BMM_DEM_MODE_SMASH:
+    case BMM_DEM_MODE_FAULT:
 
       break;
-    case BMM_DEM_MODE_ACCEL:
+    case BMM_DEM_MODE_SEPARATE:
+
+      break;
+    case BMM_DEM_MODE_CRUNCH:
+
+      break;
+    case BMM_DEM_MODE_MEASURE:
 
       break;
   }
 
-  if (dem->time.t >= dem->cache.tnext) {
+  if (!bmm_dem_cache_fresh(dem)) {
+    bmm_dem_cache_repos(dem);
     bmm_dem_cache_recell(dem);
+    bmm_dem_cache_reneigh(dem);
 
-    bmm_dem_reneigh(dem);
-
-    // TODO Take `tstep` into account
-    // since the update only happens after the drift time has passed.
-    // dem->cache.tnext += bmm_dem_drift(dem);
+    dem->cache.tprev = dem->time.t;
   }
 
   bmm_dem_predict(dem);
-
   bmm_dem_force(dem);
-
   bmm_dem_correct(dem);
 
-  if (dem->time.istep % dem->time.istab == 0)
+  if (dem->time.istep % dem->opts.time.istab == 0)
     bmm_dem_stab(dem);
 
+  dem->time.t += dem->opts.script.dt[dem->script.i];
   ++dem->time.istep;
 
-  dem->time.t += dem->opts.script.dt[istage];
-
-  return BMM_DEM_STEP_CONT;
+  return true;
 }
 
-// TODO This ought to be const-qualified.
+// TODO This looks just like `bmm_dem_script_trans`.
 bool bmm_dem_comm(struct bmm_dem* const dem) {
   // TODO Make a mechanism to automate retransmission of differences only.
 
-  bmm_dem_puts(dem, BMM_MSG_NUM_ISTEP);
-  bmm_dem_puts(dem, BMM_MSG_NUM_NEIGH);
-  bmm_dem_puts(dem, BMM_MSG_NUM_PARTS);
+  double const toff = dem->time.t - dem->comm.tprev - dem->opts.comm.dt;
+
+  if (toff >= 0.0) {
+    dem->comm.tprev = dem->time.t;
+
+    if (!bmm_dem_puts(dem, BMM_MSG_NUM_ISTEP))
+      return false;
+
+    if (!bmm_dem_puts(dem, BMM_MSG_NUM_NEIGH))
+      return false;
+
+    if (!bmm_dem_puts(dem, BMM_MSG_NUM_PARTS))
+      return false;
+  }
 
   return true;
 }
@@ -1097,11 +1114,13 @@ static bool bmm_dem_run_(struct bmm_dem* const dem) {
 
   dem->opts.part.y = 1e+4;
 
+  dem->opts.comm.dt = 1e-3;
+
   bmm_dem_script_pushidle(&dem->opts, 0.04);
   bmm_dem_script_pushidle(&dem->opts, 0.26);
 
   // Random stuff.
-  for (size_t ipart = 0; ipart < 64 - 64; ++ipart) {
+  for (size_t ipart = 0; ipart < 64 - 0; ++ipart) {
     size_t const jpart = bmm_dem_inspart(dem, 0.03, 1.0);
 
     for (size_t idim = 0; idim < nmembof(dem->part.x[jpart]); ++idim)
@@ -1114,12 +1133,12 @@ static bool bmm_dem_run_(struct bmm_dem* const dem) {
   size_t jpart;
   jpart = bmm_dem_inspart(dem, 0.03, 1.0);
   dem->part.x[jpart][0] += 0.45;
-  dem->part.x[jpart][1] += 0.5;
+  dem->part.x[jpart][1] += 0.25;
   dem->part.v[jpart][0] += 1.0;
   dem->part.omega[jpart] += 400.0;
   jpart = bmm_dem_inspart(dem, 0.03, 1.0);
   dem->part.x[jpart][0] += 0.55;
-  dem->part.x[jpart][1] += 0.5;
+  dem->part.x[jpart][1] += 0.25;
   dem->part.v[jpart][0] -= 1.0;
   dem->part.omega[jpart] += 400.0;
 
@@ -1136,15 +1155,17 @@ static bool bmm_dem_run_(struct bmm_dem* const dem) {
           return false;
       }
 
+    if (!bmm_dem_script_ongoing(dem))
+      return true;
+
     if (!bmm_dem_comm(dem))
       return false;
 
-    switch (bmm_dem_step(dem)) {
-      case BMM_DEM_STEP_ERROR:
-        return false;
-      case BMM_DEM_STEP_STOP:
-        return true;
-    }
+    if (!bmm_dem_script_trans(dem))
+      return true;
+
+    if (!bmm_dem_step(dem))
+      return false;
   }
 
   return true;

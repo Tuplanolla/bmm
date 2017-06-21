@@ -374,8 +374,8 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
   (void) snprintf(strbuf, sizeof strbuf, "t (now) = %g (%zu)",
       sdl->dem.time.t, sdl->dem.time.istep);
   glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
-  (void) snprintf(strbuf, sizeof strbuf, "t (next sched. update) = %g",
-      sdl->dem.cache.tnext);
+  (void) snprintf(strbuf, sizeof strbuf, "t (prev. cache refresh) = %g",
+      sdl->dem.cache.tprev);
   glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
   (void) snprintf(strbuf, sizeof strbuf, "e (coeff. of restit.) = %g",
       bmm_dem_cor(&sdl->dem));

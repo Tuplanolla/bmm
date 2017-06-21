@@ -9,15 +9,9 @@
 #include "conf.h"
 #include "cpp.h"
 #include "ext.h"
+#include "fp.h"
 #include "io.h"
 #include "msg.h"
-
-// TODO Not sure if good idea.
-enum bmm_dem_step {
-  BMM_DEM_STEP_ERROR,
-  BMM_DEM_STEP_STOP,
-  BMM_DEM_STEP_CONT
-};
 
 enum bmm_dem_init {
   BMM_DEM_INIT_NONE,
@@ -38,7 +32,9 @@ enum bmm_dem_caching {
 
 enum bmm_dem_famb {
   BMM_DEM_FAMB_NONE,
-  BMM_DEM_FAMB_CREEPING
+  BMM_DEM_FAMB_CREEPING,
+  BMM_DEM_FAMB_QUAD,
+  BMM_DEM_FAMB_CORR
 };
 
 enum bmm_dem_fnorm {
@@ -66,13 +62,24 @@ enum bmm_dem_role {
 };
 
 enum bmm_dem_mode {
+  /// Do nothing.
   BMM_DEM_MODE_IDLE,
-  BMM_DEM_MODE_BEGIN,
+  /// Create a fixed number of particles, sparse in the y-direction.
+  BMM_DEM_MODE_CREATE,
+  /// Draw particles towards a harmonic force field zero along the x-axis.
   BMM_DEM_MODE_SEDIMENT,
+  /// Link nearby particles together.
   BMM_DEM_MODE_LINK,
-  BMM_DEM_MODE_SMASH,
-  BMM_DEM_MODE_ACCEL,
-  BMM_DEM_MODE_CRUNCH
+  // TODO Consider another way to do this:
+  // use an partitioning indicator function when linking.
+  /// Break the links that cross the zero along the x-axis.
+  BMM_DEM_MODE_FAULT,
+  /// Pull the material apart in the y-direction.
+  BMM_DEM_MODE_SEPARATE,
+  /// Fix the bottom and start forcing the top in the x-direction.
+  BMM_DEM_MODE_CRUNCH,
+  /// Begin measurements.
+  BMM_DEM_MODE_MEASURE
 };
 
 struct bmm_dem_opts {
@@ -101,11 +108,14 @@ struct bmm_dem_opts {
   } box;
   /// Ambient properties.
   struct {
-    /// Fictitious dynamic viscosity $\\eta$
-    /// used for calculating the drag force $F = -b v$,
-    /// where the drag coefficient $b = 3 \\twopi \\eta r$ and
-    /// the Stokes radius $r$ is equal to particle radius.
-    double eta;
+    /// Parameters.
+    union {
+      /// For `BMM_DEM_FAMB_CREEPING`.
+      struct {
+        /// Dynamic viscosity of compressible solution.
+        double mu;
+      } creeping;
+    } params;
   } ambient;
   /// Normal forces.
   struct {
@@ -131,11 +141,16 @@ struct bmm_dem_opts {
       } hw;
     } params;
   } tang;
+  /// Timekeeping.
+  struct {
+    /// Stabilization frequency (frame rule).
+    size_t istab;
+  } time;
   /// Particles.
   struct {
     /// Young's modulus.
     double y;
-    /// Particle sizes expressed as the support of the uniform distribution.
+    /// Particle sizes expressed as the width of the uniform distribution.
     double rnew[2];
   } part;
   /// Links between particles.
@@ -149,10 +164,10 @@ struct bmm_dem_opts {
     /// Shear spring constant.
     double kshear;
     /// Limit length factors for tensile stress induced breaking
-    /// expressed as the support of the uniform distribution.
+    /// expressed as the width of the uniform distribution.
     double crlim[2];
     /// Limit angle factors for shear stress induced breaking
-    /// expressed as the support of the uniform distribution.
+    /// expressed as the width of the uniform distribution.
     double cphilim[2];
   } link;
   /// Script to follow.
@@ -167,6 +182,11 @@ struct bmm_dem_opts {
     enum bmm_dem_mode mode[BMM_MSTAGE];
     /// Parameters.
     union {
+      /// For `BMM_DEM_MODE_CREATE`.
+      struct {
+        /// Target packing fraction.
+        double eta;
+      } create;
       /// For `BMM_DEM_MODE_CRUNCH`.
       struct {
         /// Driving velocity target.
@@ -174,11 +194,11 @@ struct bmm_dem_opts {
         /// Force increment.
         double fadjust;
       } crunch;
-      /// For `BMM_DEM_MODE_SMASH`.
+      /// For `BMM_DEM_MODE_FAULT`.
       struct {
         /// Pull-apart vector.
         double xgap[BMM_NDIM];
-      } smash;
+      } fault;
       /// For `BMM_DEM_MODE_SEDIMENT`.
       struct {
         /// Cohesive force.
@@ -216,12 +236,10 @@ struct bmm_dem {
   gsl_rng* rng;
   /// Timekeeping.
   struct {
-    /// Step.
-    size_t istep;
-    /// Stabilization frequency (frame rule).
-    size_t istab;
     /// Time.
     double t;
+    /// Step.
+    size_t istep;
   } time;
   /// Particles.
   struct {
@@ -280,7 +298,7 @@ struct bmm_dem {
     size_t i;
     /// Previous transition time.
     double tprev;
-    /// Transition times away from states.
+    /// Transition times (away from states).
     double ttrans[BMM_MSTAGE];
     /// Transition time offsets (positive means transition was late).
     double toff[BMM_MSTAGE];
@@ -295,12 +313,8 @@ struct bmm_dem {
   } script;
   /// Communications.
   struct {
-    /// Next unused message.
-    size_t lnew;
     /// Previous message time.
     double tprev;
-    /// Next message time.
-    double tnext;
   } comm;
   /// Neighbor cache.
   /// This is only used for performance optimization.
@@ -311,10 +325,10 @@ struct bmm_dem {
     double tpart;
     /// Time of previous full update.
     double tprev;
-    /// Time of next full update.
-    double tnext;
     /// Moments of inertia.
     double j[BMM_MPART];
+    /// Previous positions.
+    double x[BMM_MPART][BMM_NDIM];
     /// Which neighbor cell each particle was in previously.
     size_t cell[BMM_MPART][BMM_NDIM];
     /// Which particles were previously in each neighbor cell.
@@ -339,7 +353,7 @@ struct bmm_dem {
 /// writes the neighbor cell indices of the particle with the index `ipart`
 /// into the index vector `pijcell`.
 __attribute__ ((__nonnull__))
-void bmm_dem_ijcell(size_t*, struct bmm_dem const*, size_t);
+void bmm_dem_ijcell(size_t*, struct bmm_dem const*, double const*);
 
 /// The call `bmm_dem_inspart(dem, r, m)`
 /// places a new particle with radius `r` and mass `m`
@@ -361,9 +375,6 @@ __attribute__ ((__nonnull__))
 void bmm_dem_opts_def(struct bmm_dem_opts*);
 
 __attribute__ ((__nonnull__))
-void bmm_dem_part_def(struct bmm_dem_part*);
-
-__attribute__ ((__nonnull__))
 void bmm_dem_def(struct bmm_dem*, struct bmm_dem_opts const*);
 
 __attribute__ ((__nonnull__))
@@ -382,7 +393,7 @@ __attribute__ ((__nonnull__))
 double bmm_dem_cor(struct bmm_dem const*);
 
 __attribute__ ((__nonnull__))
-enum bmm_dem_step bmm_dem_step(struct bmm_dem*);
+bool bmm_dem_step(struct bmm_dem*);
 
 __attribute__ ((__nonnull__))
 bool bmm_dem_comm(struct bmm_dem*);
@@ -403,5 +414,51 @@ bool bmm_dem_puts_stuff(struct bmm_dem const* const dem,
 
 bool bmm_dem_puts(struct bmm_dem const* const dem,
     enum bmm_msg_num const num);
+
+/// The call `bmm_dem_script_ongoing(dem)`
+/// checks whether the simulation `dem` has not ended.
+inline bool bmm_dem_script_ongoing(struct bmm_dem const* const dem) {
+  return dem->script.i < dem->opts.script.n;
+}
+
+/// The call `bmm_dem_script_trans(dem)`
+/// transitions the simulation `dem` to the next state and
+/// checks whether the simulation did not end while doing so.
+/// Make sure the simulation has not ended prior to the call
+/// by calling `bmm_dem_script_ongoing`.
+inline bool bmm_dem_script_trans(struct bmm_dem* const dem) {
+  double const toff = dem->time.t - dem->script.tprev -
+    dem->opts.script.tspan[dem->script.i];
+
+  if (toff >= 0.0) {
+    dem->script.tprev = dem->time.t;
+    dem->script.ttrans[dem->script.i] = dem->time.t;
+    dem->script.toff[dem->script.i] = toff;
+    ++dem->script.i;
+
+    return bmm_dem_script_ongoing(dem);
+  }
+
+  return true;
+}
+
+/// The call `bmm_dem_cache_fresh(dem)`
+/// checks whether the cache for the simulation `dem` is not yet stale.
+inline bool bmm_dem_cache_fresh(struct bmm_dem const* const dem) {
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
+    double const dx = dem->opts.box.x[idim] /
+      (2.0 * (double) dem->opts.cache.ncell[idim]);
+    // TODO Use this instead of `dx - dem->part.r[ipart]`.
+    // double const d = dx - dem->opts.part.rnew[1];
+
+    for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+      if (fabs(bmm_fp_swrap(dem->part.x[ipart][idim] -
+              dem->cache.x[ipart][idim], dem->opts.box.x[idim])) >=
+          dx - dem->part.r[ipart])
+        return false;
+  }
+
+  return true;
+}
 
 #endif

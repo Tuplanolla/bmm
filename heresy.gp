@@ -1,5 +1,5 @@
-set terminal epslatex
-set output 'figures/heresy.tex'
+# set terminal epslatex
+# set output 'figures/heresy.tex'
 # stats 'heresy.data' using 4 name 'stats_periodic'
 # periodic = stats_periodic_mean
 periodic = 1
