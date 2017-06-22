@@ -174,18 +174,4 @@
 /// See `BMM_MASKBITS_0`.
 #define BMM_MASKBITS(n, ...) BMM_MASKBITS_(n, __VA_ARGS__)
 
-// TODO Deprecate the rest?
-
-/// The preprocessor directive `BMM_TESTBIT(x, p)`
-/// checks whether `x` has the bit at exponent `p` set.
-#define BMM_TESTBIT(x, p) ((((x) >> (p)) & 1) != 0)
-
-/// The preprocessor directive `BMM_SETBIT(x, p)`
-/// expands to `x` with the bit at exponent `p` set.
-#define BMM_SETBIT(x, p) ((x) | (1 << (p)))
-
-/// The preprocessor directive `BMM_CLEARBIT(x, p)`
-/// expands to `x` with the bit at exponent `p` unset.
-#define BMM_CLEARBIT(x, p) ((x) & ~(1 << (p)))
-
 #endif

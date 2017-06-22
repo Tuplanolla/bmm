@@ -306,13 +306,24 @@ inline size_t bmm_size_rfold(size_t (* const f)(size_t, size_t, void*),
 /// in a hypercube with dimension `ndim` and side length `nper`.
 __attribute__ ((__nonnull__))
 inline void bmm_size_hc(size_t* const pij,
-    size_t i, size_t const ndim, size_t const nper) {
+    size_t const i, size_t const ndim, size_t const nper) {
+  bmm_size_div_t qr = {.quot = i, .rem = 0};
   for (size_t idim = 0; idim < ndim; ++idim) {
-    bmm_size_div_t const qr = bmm_size_div(i, nper);
+    qr = bmm_size_div(qr.quot, nper);
 
-    i = qr.quot;
     pij[ndim - 1 - idim] = qr.rem;
   }
+
+  // The following implementation is slower, but suitable for loop fusion.
+  /*
+  for (size_t idim = 0; idim < ndim; ++idim) {
+    bmm_size_div_t qr = {.quot = i, .rem = 0};
+    for (size_t jdim = 0; jdim < ndim - idim; ++jdim)
+      qr = bmm_size_div(qr.quot, nper);
+
+    pij[idim] = qr.rem;
+  }
+  */
 }
 
 /// The call `bmm_size_unhc(ij, ndim, nper)`
@@ -336,13 +347,24 @@ inline size_t bmm_size_unhc(size_t const* const ij,
 /// in a hypercuboid with dimension `ndim` and side lengths `nper`.
 __attribute__ ((__nonnull__))
 inline void bmm_size_hcd(size_t* restrict const pij,
-    size_t i, size_t const ndim, size_t const* restrict const nper) {
+    size_t const i, size_t const ndim, size_t const* restrict const nper) {
+  bmm_size_div_t qr = {.quot = i, .rem = 0};
   for (size_t idim = 0; idim < ndim; ++idim) {
-    bmm_size_div_t const qr = bmm_size_div(i, nper[ndim - 1 - idim]);
+    qr = bmm_size_div(qr.quot, nper[ndim - 1 - idim]);
 
-    i = qr.quot;
     pij[ndim - 1 - idim] = qr.rem;
   }
+
+  // The following implementation is slower, but suitable for loop fusion.
+  /*
+  for (size_t idim = 0; idim < ndim; ++idim) {
+    bmm_size_div_t qr = {.quot = i, .rem = 0};
+    for (size_t jdim = 0; jdim < ndim - idim; ++jdim)
+      qr = bmm_size_div(qr.quot, nper[ndim - 1 - jdim]);
+
+    pij[idim] = qr.rem;
+  }
+  */
 }
 
 /// The call `bmm_size_unhc(ij, ndim, nper)`

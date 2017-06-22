@@ -6,19 +6,30 @@
 #include "cpp.h"
 #include "endy.h"
 #include "ext.h"
-#include "moore.h"
+#include "neigh.h"
 #include "msg.h"
 #include "size.h"
-
-CHEAT_TEST(cpp_testbit,
-  for (size_t i = 0; i < 8; ++i)
-    cheat_assert(BMM_TESTBIT(1 << i, i));
-)
 
 CHEAT_DECLARE(
   static size_t const ndim = 2;
   static size_t const nper[] = {6, 5};
   static bool const per[] = {true, false};
+)
+
+// TODO Get rid of this.
+CHEAT_TEST(neigh,
+  size_t ij[2];
+
+  for (size_t i = 0; i < nper[0]; ++i)
+    for (size_t j = 0; j < nper[1]; ++j) {
+      size_t buf[2];
+      buf[0] = i;
+      buf[1] = j;
+
+      bmm_neigh_ijcpuhr(ij, buf, 0, ndim, nper, per);
+      cheat_assert_size(bmm_size_unhcd(ij, ndim, nper),
+          bmm_neigh_icpuhr(buf, 0, ndim, nper, per));
+    }
 )
 
 CHEAT_TEST(size_hc_ord,
@@ -75,208 +86,206 @@ CHEAT_TEST(size_hcd_iso,
   }
 )
 
-CHEAT_TEST(moore_np,
-  size_t buf[2];
-
-  cheat_assert_size(bmm_moore_np(ndim), 9);
+CHEAT_TEST(neigh_np,
+  cheat_assert_size(bmm_neigh_np(ndim), 9);
 )
 
-CHEAT_TEST(moore_n,
+CHEAT_TEST(neigh_n,
   size_t buf[2];
 
-  cheat_assert_size(bmm_moore_n(buf, (size_t const[]) {0, 0}, ndim, nper), 4);
-  cheat_assert_size(bmm_moore_n(buf, (size_t const[]) {0, 1}, ndim, nper), 6);
-  cheat_assert_size(bmm_moore_n(buf, (size_t const[]) {1, 0}, ndim, nper), 6);
-  cheat_assert_size(bmm_moore_n(buf, (size_t const[]) {1, 1}, ndim, nper), 9);
+  cheat_assert_size(bmm_neigh_n(buf, (size_t const[]) {0, 0}, ndim, nper), 4);
+  cheat_assert_size(bmm_neigh_n(buf, (size_t const[]) {0, 1}, ndim, nper), 6);
+  cheat_assert_size(bmm_neigh_n(buf, (size_t const[]) {1, 0}, ndim, nper), 6);
+  cheat_assert_size(bmm_neigh_n(buf, (size_t const[]) {1, 1}, ndim, nper), 9);
 )
 
-CHEAT_TEST(moore_ncp,
+CHEAT_TEST(neigh_ncp,
   size_t buf[2];
 
-  cheat_assert_size(bmm_moore_ncp(buf,
+  cheat_assert_size(bmm_neigh_ncp(buf,
         (size_t const[]) {1, 0}, ndim, nper, per), 6);
-  cheat_assert_size(bmm_moore_ncp(buf,
+  cheat_assert_size(bmm_neigh_ncp(buf,
         (size_t const[]) {1, 1}, ndim, nper, per), 9);
-  cheat_assert_size(bmm_moore_ncp(buf,
+  cheat_assert_size(bmm_neigh_ncp(buf,
         (size_t const[]) {1, 2}, ndim, nper, per), 9);
-  cheat_assert_size(bmm_moore_ncp(buf,
+  cheat_assert_size(bmm_neigh_ncp(buf,
         (size_t const[]) {2, 0}, ndim, nper, per), 6);
-  cheat_assert_size(bmm_moore_ncp(buf,
+  cheat_assert_size(bmm_neigh_ncp(buf,
         (size_t const[]) {2, 1}, ndim, nper, per), 9);
-  cheat_assert_size(bmm_moore_ncp(buf,
+  cheat_assert_size(bmm_neigh_ncp(buf,
         (size_t const[]) {2, 2}, ndim, nper, per), 9);
-  cheat_assert_size(bmm_moore_ncp(buf,
+  cheat_assert_size(bmm_neigh_ncp(buf,
         (size_t const[]) {3, 0}, ndim, nper, per), 6);
-  cheat_assert_size(bmm_moore_ncp(buf,
+  cheat_assert_size(bmm_neigh_ncp(buf,
         (size_t const[]) {3, 1}, ndim, nper, per), 9);
-  cheat_assert_size(bmm_moore_ncp(buf,
+  cheat_assert_size(bmm_neigh_ncp(buf,
         (size_t const[]) {3, 2}, ndim, nper, per), 9);
 )
 
-CHEAT_TEST(moore_ijp,
+CHEAT_TEST(neigh_ijp,
   size_t ij[2];
 
-  bmm_moore_ijp(ij, (size_t const[]) {1, 1}, 0, ndim, nper);
+  bmm_neigh_ijp(ij, (size_t const[]) {1, 1}, 0, ndim, nper);
   cheat_assert_size(ij[0], 4);
   cheat_assert_size(ij[1], 3);
 
-  bmm_moore_ijp(ij, (size_t const[]) {1, 1}, 1, ndim, nper);
+  bmm_neigh_ijp(ij, (size_t const[]) {1, 1}, 1, ndim, nper);
   cheat_assert_size(ij[0], 4);
   cheat_assert_size(ij[1], 1);
 
-  bmm_moore_ijp(ij, (size_t const[]) {1, 1}, 2, ndim, nper);
+  bmm_neigh_ijp(ij, (size_t const[]) {1, 1}, 2, ndim, nper);
   cheat_assert_size(ij[0], 4);
   cheat_assert_size(ij[1], 2);
 
-  bmm_moore_ijp(ij, (size_t const[]) {1, 1}, 3, ndim, nper);
+  bmm_neigh_ijp(ij, (size_t const[]) {1, 1}, 3, ndim, nper);
   cheat_assert_size(ij[0], 1);
   cheat_assert_size(ij[1], 3);
 
-  bmm_moore_ijp(ij, (size_t const[]) {1, 1}, 4, ndim, nper);
+  bmm_neigh_ijp(ij, (size_t const[]) {1, 1}, 4, ndim, nper);
   cheat_assert_size(ij[0], 1);
   cheat_assert_size(ij[1], 1);
 
-  bmm_moore_ijp(ij, (size_t const[]) {1, 1}, 5, ndim, nper);
+  bmm_neigh_ijp(ij, (size_t const[]) {1, 1}, 5, ndim, nper);
   cheat_assert_size(ij[0], 1);
   cheat_assert_size(ij[1], 2);
 
-  bmm_moore_ijp(ij, (size_t const[]) {1, 1}, 6, ndim, nper);
+  bmm_neigh_ijp(ij, (size_t const[]) {1, 1}, 6, ndim, nper);
   cheat_assert_size(ij[0], 2);
   cheat_assert_size(ij[1], 3);
 
-  bmm_moore_ijp(ij, (size_t const[]) {1, 1}, 7, ndim, nper);
+  bmm_neigh_ijp(ij, (size_t const[]) {1, 1}, 7, ndim, nper);
   cheat_assert_size(ij[0], 2);
   cheat_assert_size(ij[1], 1);
 
-  bmm_moore_ijp(ij, (size_t const[]) {1, 1}, 8, ndim, nper);
+  bmm_neigh_ijp(ij, (size_t const[]) {1, 1}, 8, ndim, nper);
   cheat_assert_size(ij[0], 2);
   cheat_assert_size(ij[1], 2);
 )
 
-CHEAT_TEST(moore_ij,
+CHEAT_TEST(neigh_ij,
   size_t ij[2];
 
-  bmm_moore_ij(ij, (size_t const[]) {1, 1}, 0, ndim, nper);
+  bmm_neigh_ij(ij, (size_t const[]) {1, 1}, 0, ndim, nper);
   cheat_assert_size(ij[0], 0);
   cheat_assert_size(ij[1], 0);
 
-  bmm_moore_ij(ij, (size_t const[]) {1, 1}, 1, ndim, nper);
+  bmm_neigh_ij(ij, (size_t const[]) {1, 1}, 1, ndim, nper);
   cheat_assert_size(ij[0], 0);
   cheat_assert_size(ij[1], 1);
 
-  bmm_moore_ij(ij, (size_t const[]) {1, 1}, 2, ndim, nper);
+  bmm_neigh_ij(ij, (size_t const[]) {1, 1}, 2, ndim, nper);
   cheat_assert_size(ij[0], 0);
   cheat_assert_size(ij[1], 2);
 
-  bmm_moore_ij(ij, (size_t const[]) {1, 1}, 3, ndim, nper);
+  bmm_neigh_ij(ij, (size_t const[]) {1, 1}, 3, ndim, nper);
   cheat_assert_size(ij[0], 1);
   cheat_assert_size(ij[1], 0);
 
-  bmm_moore_ij(ij, (size_t const[]) {1, 1}, 4, ndim, nper);
+  bmm_neigh_ij(ij, (size_t const[]) {1, 1}, 4, ndim, nper);
   cheat_assert_size(ij[0], 1);
   cheat_assert_size(ij[1], 1);
 
-  bmm_moore_ij(ij, (size_t const[]) {1, 1}, 5, ndim, nper);
+  bmm_neigh_ij(ij, (size_t const[]) {1, 1}, 5, ndim, nper);
   cheat_assert_size(ij[0], 1);
   cheat_assert_size(ij[1], 2);
 
-  bmm_moore_ij(ij, (size_t const[]) {1, 1}, 6, ndim, nper);
+  bmm_neigh_ij(ij, (size_t const[]) {1, 1}, 6, ndim, nper);
   cheat_assert_size(ij[0], 2);
   cheat_assert_size(ij[1], 0);
 
-  bmm_moore_ij(ij, (size_t const[]) {1, 1}, 7, ndim, nper);
+  bmm_neigh_ij(ij, (size_t const[]) {1, 1}, 7, ndim, nper);
   cheat_assert_size(ij[0], 2);
   cheat_assert_size(ij[1], 1);
 
-  bmm_moore_ij(ij, (size_t const[]) {1, 1}, 8, ndim, nper);
+  bmm_neigh_ij(ij, (size_t const[]) {1, 1}, 8, ndim, nper);
   cheat_assert_size(ij[0], 2);
   cheat_assert_size(ij[1], 2);
 )
 
-CHEAT_TEST(moore_ijcp,
+CHEAT_TEST(neigh_ijcp,
   size_t ij[2];
 
-  bmm_moore_ijcp(ij, (size_t const[]) {1, 1}, 0, ndim, nper, per);
+  bmm_neigh_ijcp(ij, (size_t const[]) {1, 1}, 0, ndim, nper, per);
   cheat_assert_size(ij[0], 4);
   cheat_assert_size(ij[1], 0);
 
-  bmm_moore_ijcp(ij, (size_t const[]) {1, 1}, 1, ndim, nper, per);
+  bmm_neigh_ijcp(ij, (size_t const[]) {1, 1}, 1, ndim, nper, per);
   cheat_assert_size(ij[0], 4);
   cheat_assert_size(ij[1], 1);
 
-  bmm_moore_ijcp(ij, (size_t const[]) {1, 1}, 2, ndim, nper, per);
+  bmm_neigh_ijcp(ij, (size_t const[]) {1, 1}, 2, ndim, nper, per);
   cheat_assert_size(ij[0], 4);
   cheat_assert_size(ij[1], 2);
 
-  bmm_moore_ijcp(ij, (size_t const[]) {1, 1}, 3, ndim, nper, per);
+  bmm_neigh_ijcp(ij, (size_t const[]) {1, 1}, 3, ndim, nper, per);
   cheat_assert_size(ij[0], 1);
   cheat_assert_size(ij[1], 0);
 
-  bmm_moore_ijcp(ij, (size_t const[]) {1, 1}, 4, ndim, nper, per);
+  bmm_neigh_ijcp(ij, (size_t const[]) {1, 1}, 4, ndim, nper, per);
   cheat_assert_size(ij[0], 1);
   cheat_assert_size(ij[1], 1);
 
-  bmm_moore_ijcp(ij, (size_t const[]) {1, 1}, 5, ndim, nper, per);
+  bmm_neigh_ijcp(ij, (size_t const[]) {1, 1}, 5, ndim, nper, per);
   cheat_assert_size(ij[0], 1);
   cheat_assert_size(ij[1], 2);
 
-  bmm_moore_ijcp(ij, (size_t const[]) {1, 1}, 6, ndim, nper, per);
+  bmm_neigh_ijcp(ij, (size_t const[]) {1, 1}, 6, ndim, nper, per);
   cheat_assert_size(ij[0], 2);
   cheat_assert_size(ij[1], 0);
 
-  bmm_moore_ijcp(ij, (size_t const[]) {1, 1}, 7, ndim, nper, per);
+  bmm_neigh_ijcp(ij, (size_t const[]) {1, 1}, 7, ndim, nper, per);
   cheat_assert_size(ij[0], 2);
   cheat_assert_size(ij[1], 1);
 
-  bmm_moore_ijcp(ij, (size_t const[]) {1, 1}, 8, ndim, nper, per);
+  bmm_neigh_ijcp(ij, (size_t const[]) {1, 1}, 8, ndim, nper, per);
   cheat_assert_size(ij[0], 2);
   cheat_assert_size(ij[1], 2);
 )
 
-CHEAT_TEST(moore_ijpuh,
+CHEAT_TEST(neigh_ijpuh,
   size_t ij[2];
 
-  bmm_moore_ijpuh(ij, (size_t const[]) {4, 4}, 0, ndim, nper);
+  bmm_neigh_ijpuh(ij, (size_t const[]) {4, 4}, 0, ndim, nper);
   cheat_assert_size(ij[0], 4);
   cheat_assert_size(ij[1], 1);
 
-  bmm_moore_ijpuh(ij, (size_t const[]) {4, 4}, 1, ndim, nper);
+  bmm_neigh_ijpuh(ij, (size_t const[]) {4, 4}, 1, ndim, nper);
   cheat_assert_size(ij[0], 4);
   cheat_assert_size(ij[1], 2);
 
-  bmm_moore_ijpuh(ij, (size_t const[]) {4, 4}, 2, ndim, nper);
+  bmm_neigh_ijpuh(ij, (size_t const[]) {4, 4}, 2, ndim, nper);
   cheat_assert_size(ij[0], 1);
   cheat_assert_size(ij[1], 3);
 )
 
-CHEAT_TEST(moore_ijuh,
+CHEAT_TEST(neigh_ijuh,
   size_t ij[2];
 
-  bmm_moore_ijuh(ij, (size_t const[]) {4, 4}, 0, ndim, nper);
+  bmm_neigh_ijuh(ij, (size_t const[]) {4, 4}, 0, ndim, nper);
   cheat_assert_size(ij[0], 4);
   cheat_assert_size(ij[1], 4);
 
-  bmm_moore_ijuh(ij, (size_t const[]) {4, 4}, 1, ndim, nper);
+  bmm_neigh_ijuh(ij, (size_t const[]) {4, 4}, 1, ndim, nper);
   cheat_assert_size(ij[0], 5);
   cheat_assert_size(ij[1], 3);
 
-  bmm_moore_ijuh(ij, (size_t const[]) {4, 4}, 2, ndim, nper);
+  bmm_neigh_ijuh(ij, (size_t const[]) {4, 4}, 2, ndim, nper);
   cheat_assert_size(ij[0], 5);
   cheat_assert_size(ij[1], 4);
 )
 
-CHEAT_TEST(moore_ijcpuh,
+CHEAT_TEST(neigh_ijcpuh,
   size_t ij[2];
 
-  bmm_moore_ijcpuh(ij, (size_t const[]) {4, 4}, 0, ndim, nper, per);
+  bmm_neigh_ijcpuh(ij, (size_t const[]) {4, 4}, 0, ndim, nper, per);
   cheat_assert_size(ij[0], 4);
   cheat_assert_size(ij[1], 4);
 
-  bmm_moore_ijcpuh(ij, (size_t const[]) {4, 4}, 1, ndim, nper, per);
+  bmm_neigh_ijcpuh(ij, (size_t const[]) {4, 4}, 1, ndim, nper, per);
   cheat_assert_size(ij[0], 1);
   cheat_assert_size(ij[1], 3);
 
-  bmm_moore_ijcpuh(ij, (size_t const[]) {4, 4}, 2, ndim, nper, per);
+  bmm_neigh_ijcpuh(ij, (size_t const[]) {4, 4}, 2, ndim, nper, per);
   cheat_assert_size(ij[0], 1);
   cheat_assert_size(ij[1], 4);
 )
