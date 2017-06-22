@@ -8,6 +8,7 @@
 
 #include "conf.h"
 #include "cpp.h"
+#include "geom2d.h"
 #include "ext.h"
 #include "fp.h"
 #include "io.h"
@@ -331,6 +332,8 @@ struct bmm_dem {
     double x[BMM_MPART][BMM_NDIM];
     /// Which neighbor cell each particle was in previously.
     size_t cell[BMM_MPART][BMM_NDIM];
+    /// Which neighbor cell each particle was in previously, with vengeance.
+    size_t hurr[BMM_MPART];
     /// Which particles were previously in each neighbor cell.
     struct {
       /// Number of particles.
@@ -344,16 +347,97 @@ struct bmm_dem {
       /// Number of neighbors.
       size_t n;
       /// Neighbor indices.
-      size_t i[BMM_MGROUP * (BMM_POW(3, BMM_NDIM) / 2)];
+      size_t i[BMM_MGROUP * (BMM_POW(3, BMM_NDIM) / 2 + 1)];
     } neigh[BMM_MPART];
   } cache;
 };
 
-/// The call `bmm_dem_ijcell(pijcell, dem, ipart)`
-/// writes the neighbor cell indices of the particle with the index `ipart`
-/// into the index vector `pijcell`.
+/// The call `bmm_dem_cache_eligible(dem, ipart, jpart)`
+/// checks whether the particles `ipart` and `jpart` are eligible neighbors
+/// in the simulation `dem`.
+/// Note that this function is neither symmetric nor reflexive
+/// with respect to particle indices.
+__attribute__ ((__nonnull__, __pure__))
+inline bool bmm_dem_cache_eligible(struct bmm_dem const* const dem,
+    size_t const ipart, size_t const jpart) {
+  if (dem->cache.hurr[ipart] == dem->cache.hurr[jpart] && jpart <= ipart)
+    return false;
+
+  if (bmm_geom2d_cpdist2(dem->part.x[ipart], dem->part.x[jpart],
+        dem->opts.box.x, dem->opts.box.per) >
+      bmm_fp_sq(dem->opts.cache.rcutoff))
+    return false;
+
+  return true;
+}
+
+/// The call `bmm_dem_cache_x(dem)`
+/// caches the position of every particle
+/// in the simulation `dem`.
+__attribute__ ((__nonnull__))
+void bmm_dem_cache_x(struct bmm_dem*);
+
+/// The call `bmm_dem_cache_dointo(dem, ipart)`
+/// tries to add all the eligible particles inside the neighbor cell
+/// of the particle `ipart` to its neighbors
+/// in the simulation `dem`.
+/// If there is enough capacity and the operation succeeds,
+/// `true` is returned.
+/// Otherwise `false` is returned and
+/// the previous neighbor relations are restored.
+__attribute__ ((__nonnull__))
+bool bmm_dem_cache_dointo(struct bmm_dem*, size_t);
+
+/// The call `bmm_dem_cache_doinfrom(dem, ipart)`
+/// tries to add the particle `ipart` to the neighbors
+/// of all the eligible particles inside its neighbor cell
+/// in the simulation `dem`.
+/// If there is enough capacity and the operation succeeds,
+/// `true` is returned.
+/// Otherwise `false` is returned and
+/// the previous neighbor relations are restored.
+__attribute__ ((__nonnull__))
+bool bmm_dem_cache_doinfrom(struct bmm_dem*, size_t);
+
+/// The call `bmm_dem_cache_doto(dem, ipart)`
+/// tries to add all the eligible particles
+/// inside the reduced upper Moore half-neighborhood
+/// of the particle `ipart` to its neighbors
+/// in the simulation `dem`.
+/// If there is enough capacity and the operation succeeds,
+/// `true` is returned.
+/// Otherwise `false` is returned and
+/// the previous neighbor relations are restored.
+__attribute__ ((__nonnull__))
+bool bmm_dem_cache_doto(struct bmm_dem*, size_t);
+
+/// The call `bmm_dem_cache_dofrom(dem, ipart)`
+/// tries to add the particle `ipart` to the neighbors
+/// of all the eligible particles
+/// inside its reduced lower Moore half-neighborhood
+/// in the simulation `dem`.
+/// If there is enough capacity and the operation succeeds,
+/// `true` is returned.
+/// Otherwise `false` is returned and
+/// the previous neighbor relations are restored.
+__attribute__ ((__nonnull__))
+bool bmm_dem_cache_dofrom(struct bmm_dem*, size_t);
+
+/// The call `bmm_dem_ijcell(pijcell, dem, x)`
+/// writes the neighbor cell of the particle at `x`
+/// in the simulation `dem`
+/// into the index vector `pijcell`
 __attribute__ ((__nonnull__))
 void bmm_dem_ijcell(size_t*, struct bmm_dem const*, double const*);
+
+/// The call `bmm_dem_cache_cell(dem, ipart)`
+/// tries to add the particle `ipart` to the appropriate neighbor cell
+/// in the simulation `dem`.
+/// If there is enough capacity and the operation succeeds,
+/// `true` is returned.
+/// Otherwise `false` is returned.
+__attribute__ ((__nonnull__))
+bool bmm_dem_cache_cell(struct bmm_dem*, size_t);
 
 /// The call `bmm_dem_inspart(dem, r, m)`
 /// places a new particle with radius `r` and mass `m`
@@ -371,9 +455,14 @@ size_t bmm_dem_inspart(struct bmm_dem*, double, double);
 __attribute__ ((__nonnull__))
 bool bmm_dem_delpart(struct bmm_dem*, size_t);
 
+/// The call `bmm_dem_opts_def(opts)`
+/// writes the default simulation options into `opts`.
 __attribute__ ((__nonnull__))
 void bmm_dem_opts_def(struct bmm_dem_opts*);
 
+/// The call `bmm_dem_def(dem, opts)`
+/// writes the default simulation state into `dem`
+/// with the simulation options `opts`.
 __attribute__ ((__nonnull__))
 void bmm_dem_def(struct bmm_dem*, struct bmm_dem_opts const*);
 
@@ -398,9 +487,20 @@ bool bmm_dem_step(struct bmm_dem*);
 __attribute__ ((__nonnull__))
 bool bmm_dem_comm(struct bmm_dem*);
 
+/// The call `bmm_dem_report(dem)`
+/// prints informal diagnostics for the simulation state `dem`.
+__attribute__ ((__nonnull__))
+bool bmm_dem_report(struct bmm_dem const*);
+
+/// The call `bmm_dem_run(dem)`
+/// processes all incoming messages and
+/// handles signals with the simulation state `dem`.
 __attribute__ ((__nonnull__))
 bool bmm_dem_run(struct bmm_dem*);
 
+/// The call `bmm_dem_run_with(opts)`
+/// processes all incoming messages and
+/// handles signals with the simulation options `opts`.
 __attribute__ ((__nonnull__))
 bool bmm_dem_run_with(struct bmm_dem_opts const*);
 
@@ -447,7 +547,7 @@ inline bool bmm_dem_script_trans(struct bmm_dem* const dem) {
 inline bool bmm_dem_cache_fresh(struct bmm_dem const* const dem) {
   for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
     double const dx = dem->opts.box.x[idim] /
-      (2.0 * (double) dem->opts.cache.ncell[idim]);
+      (double) ((dem->opts.cache.ncell[idim] - 2) * 2);
     // TODO Use this instead of `dx - dem->part.r[ipart]`.
     // double const d = dx - dem->opts.part.rnew[1];
 

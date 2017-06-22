@@ -296,6 +296,27 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
           (float) r, (float) (r * 0.25), (float) (r * 0.5),
           (float) a, ncorner);
 
+      // Cached ghosts.
+      {
+        double x0[BMM_NDIM];
+        double x1[BMM_NDIM];
+
+        (void) memcpy(x0, sdl->dem.part.x[ipart], sizeof x0);
+        (void) memcpy(x1, sdl->dem.cache.x[ipart], sizeof x1);
+
+        double dx[BMM_NDIM];
+        dx[0] = x0[0] + bmm_fp_swrap(x1[0] - x0[0], sdl->dem.opts.box.x[0]);
+        dx[1] = x1[1];
+
+        x0[0] += off * sdl->dem.opts.box.x[0];
+        dx[0] += off * sdl->dem.opts.box.x[0];
+
+        glBegin(GL_LINES);
+        glVertex2dv(x0);
+        glVertex2dv(dx);
+        glEnd();
+      }
+
       // Neighbors.
       memcpy(blent, glBlue, sizeof glBlack);
       blent[3] = 1.0f;

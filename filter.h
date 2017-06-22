@@ -27,8 +27,9 @@ struct bmm_filter {
 __attribute__ ((__nonnull__))
 void bmm_filter_opts_def(struct bmm_filter_opts*);
 
-/// The call `bmm_filter_def(filter)`
-/// writes the default filter state into `filter`.
+/// The call `bmm_filter_def(filter, opts)`
+/// writes the default filter state into `filter`
+/// with the filter options `opts`.
 __attribute__ ((__nonnull__))
 void bmm_filter_def(struct bmm_filter*, struct bmm_filter_opts const*);
 
@@ -49,7 +50,7 @@ __attribute__ ((__nonnull__))
 bool bmm_filter_run(struct bmm_filter*);
 
 /// The call `bmm_filter_run_with(opts)`
-/// processes all incoming messages and handles signals.
+/// processes all incoming messages and
 /// handles signals with the filter options `opts`.
 __attribute__ ((__nonnull__))
 bool bmm_filter_run_with(struct bmm_filter_opts const*);
