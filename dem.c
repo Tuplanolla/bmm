@@ -166,13 +166,11 @@ bool bmm_dem_cache_doinfrom(struct bmm_dem* const dem, size_t const ipart) {
 __attribute__ ((__nonnull__))
 static void bmm_dem_cache_undoto(struct bmm_dem* const dem,
     size_t const ipart, size_t const nneigh, size_t const ngroup) {
-  size_t ij[BMM_NDIM];
-
   for (size_t ineigh = 0; ineigh < nneigh; ++ineigh) {
     // This statement is covariant with respect to half-neighborhoods.
-    bmm_neigh_ijcpuhr(ij, dem->cache.cell[ipart], ineigh,
-        BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per);
-    size_t const icell = bmm_size_unhcd(ij, BMM_NDIM, dem->opts.cache.ncell);
+    size_t const icell = bmm_neigh_icp(dem->cache.cell[ipart], ineigh,
+        BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per,
+        BMM_NEIGH_MASK_RUPPERH);
 
     for (size_t igroup = 0; igroup < dem->cache.part[icell].n; ++igroup) {
       size_t const jpart = dem->cache.part[icell].i[igroup];
@@ -184,9 +182,9 @@ static void bmm_dem_cache_undoto(struct bmm_dem* const dem,
   }
 
   // This statement is covariant with respect to half-neighborhoods.
-  bmm_neigh_ijcpuhr(ij, dem->cache.cell[ipart], nneigh,
-      BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per);
-  size_t const icell = bmm_size_unhcd(ij, BMM_NDIM, dem->opts.cache.ncell);
+  size_t const icell = bmm_neigh_icp(dem->cache.cell[ipart], nneigh,
+      BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per,
+      BMM_NEIGH_MASK_RUPPERH);
 
   for (size_t igroup = 0; igroup < ngroup; ++igroup) {
     size_t const jpart = dem->cache.part[icell].i[igroup];
@@ -198,28 +196,16 @@ static void bmm_dem_cache_undoto(struct bmm_dem* const dem,
 }
 
 bool bmm_dem_cache_doto(struct bmm_dem* const dem, size_t const ipart) {
-  // TODO This can be elided,
-  // which leads to reformulating `bmm_dem_cache_cell` and `bmm_neigh_*`.
-  size_t ij[BMM_NDIM];
-
   // This statement is covariant with respect to half-neighborhoods.
-  size_t const nneigh = bmm_neigh_ncpuhr(ij, dem->cache.cell[ipart],
-      BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per);
+  size_t const nneigh = bmm_neigh_ncp(dem->cache.cell[ipart],
+      BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per,
+      BMM_NEIGH_MASK_RUPPERH);
 
   for (size_t ineigh = 0; ineigh < nneigh; ++ineigh) {
     // This statement is covariant with respect to half-neighborhoods.
-    /*
-    bmm_neigh_ijcpuhr(ij, dem->cache.cell[ipart], ineigh,
-        BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per);
-    size_t const icell = bmm_size_unhcd(ij, BMM_NDIM, dem->opts.cache.ncell);
-    */
-    size_t const icell = bmm_neigh_icpuhr(dem->cache.cell[ipart], ineigh,
-        BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per);
-    /*
     size_t const icell = bmm_neigh_icp(dem->cache.cell[ipart], ineigh,
         BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per,
-        BMM_NEIGH_MASK_NONE | BMM_NEIGH_MASK_CENTER | BMM_NEIGH_MASK_UPPER);
-    */
+        BMM_NEIGH_MASK_RUPPERH);
 
     for (size_t igroup = 0; igroup < dem->cache.part[icell].n; ++igroup) {
       size_t const jpart = dem->cache.part[icell].i[igroup];
@@ -244,13 +230,11 @@ bool bmm_dem_cache_doto(struct bmm_dem* const dem, size_t const ipart) {
 __attribute__ ((__nonnull__))
 static void bmm_dem_cache_undofrom(struct bmm_dem* const dem,
     size_t const ipart, size_t const nneigh, size_t const ngroup) {
-  size_t ij[BMM_NDIM];
-
   for (size_t ineigh = 0; ineigh < nneigh; ++ineigh) {
     // This statement is contravariant with respect to half-neighborhoods.
-    bmm_neigh_ijcplhr(ij, dem->cache.cell[ipart], ineigh,
-        BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per);
-    size_t const icell = bmm_size_unhcd(ij, BMM_NDIM, dem->opts.cache.ncell);
+    size_t const icell = bmm_neigh_icp(dem->cache.cell[ipart], ineigh,
+        BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per,
+        BMM_NEIGH_MASK_RLOWERH);
 
     for (size_t igroup = 0; igroup < dem->cache.part[icell].n; ++igroup) {
       size_t const jpart = dem->cache.part[icell].i[igroup];
@@ -262,9 +246,9 @@ static void bmm_dem_cache_undofrom(struct bmm_dem* const dem,
   }
 
   // This statement is contravariant with respect to half-neighborhoods.
-  bmm_neigh_ijcplhr(ij, dem->cache.cell[ipart], nneigh,
-      BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per);
-  size_t const icell = bmm_size_unhcd(ij, BMM_NDIM, dem->opts.cache.ncell);
+  size_t const icell = bmm_neigh_icp(dem->cache.cell[ipart], nneigh,
+      BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per,
+      BMM_NEIGH_MASK_RLOWERH);
 
   for (size_t igroup = 0; igroup < ngroup; ++igroup) {
     size_t const jpart = dem->cache.part[icell].i[igroup];
@@ -276,17 +260,16 @@ static void bmm_dem_cache_undofrom(struct bmm_dem* const dem,
 }
 
 bool bmm_dem_cache_dofrom(struct bmm_dem* const dem, size_t const ipart) {
-  size_t ij[BMM_NDIM];
-
   // This statement is contravariant with respect to half-neighborhoods.
-  size_t const nneigh = bmm_neigh_ncplhr(ij, dem->cache.cell[ipart],
-      BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per);
+  size_t const nneigh = bmm_neigh_ncp(dem->cache.cell[ipart],
+      BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per,
+      BMM_NEIGH_MASK_RLOWERH);
 
   for (size_t ineigh = 0; ineigh < nneigh; ++ineigh) {
     // This statement is contravariant with respect to half-neighborhoods.
-    bmm_neigh_ijcplhr(ij, dem->cache.cell[ipart], ineigh,
-        BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per);
-    size_t const icell = bmm_size_unhcd(ij, BMM_NDIM, dem->opts.cache.ncell);
+    size_t const icell = bmm_neigh_icp(dem->cache.cell[ipart], ineigh,
+        BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per,
+        BMM_NEIGH_MASK_RLOWERH);
 
     for (size_t igroup = 0; igroup < dem->cache.part[icell].n; ++igroup) {
       size_t const jpart = dem->cache.part[icell].i[igroup];
