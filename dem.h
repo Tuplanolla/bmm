@@ -377,31 +377,9 @@ inline bool bmm_dem_cache_eligible(struct bmm_dem const* const dem,
 __attribute__ ((__nonnull__))
 void bmm_dem_cache_x(struct bmm_dem*);
 
-/// The call `bmm_dem_cache_dointo(dem, ipart)`
-/// tries to add all the eligible particles inside the neighbor cell
-/// of the particle `ipart` to its neighbors
-/// in the simulation `dem`.
-/// If there is enough capacity and the operation succeeds,
-/// `true` is returned.
-/// Otherwise `false` is returned and
-/// the previous neighbor relations are restored.
-__attribute__ ((__nonnull__))
-bool bmm_dem_cache_dointo(struct bmm_dem*, size_t);
-
-/// The call `bmm_dem_cache_doinfrom(dem, ipart)`
-/// tries to add the particle `ipart` to the neighbors
-/// of all the eligible particles inside its neighbor cell
-/// in the simulation `dem`.
-/// If there is enough capacity and the operation succeeds,
-/// `true` is returned.
-/// Otherwise `false` is returned and
-/// the previous neighbor relations are restored.
-__attribute__ ((__nonnull__))
-bool bmm_dem_cache_doinfrom(struct bmm_dem*, size_t);
-
-/// The call `bmm_dem_cache_doto(dem, ipart)`
+/// The call `bmm_dem_cache_doto(dem, ipart, mask)`
 /// tries to add all the eligible particles
-/// inside the reduced upper Moore half-neighborhood
+/// inside the `mask`-masked neighborhood
 /// of the particle `ipart` to its neighbors
 /// in the simulation `dem`.
 /// If there is enough capacity and the operation succeeds,
@@ -409,19 +387,19 @@ bool bmm_dem_cache_doinfrom(struct bmm_dem*, size_t);
 /// Otherwise `false` is returned and
 /// the previous neighbor relations are restored.
 __attribute__ ((__nonnull__))
-bool bmm_dem_cache_doto(struct bmm_dem*, size_t);
+bool bmm_dem_cache_doto(struct bmm_dem*, size_t, int);
 
 /// The call `bmm_dem_cache_dofrom(dem, ipart)`
 /// tries to add the particle `ipart` to the neighbors
 /// of all the eligible particles
-/// inside its reduced lower Moore half-neighborhood
+/// inside its `mask`-masked neighborhood
 /// in the simulation `dem`.
 /// If there is enough capacity and the operation succeeds,
 /// `true` is returned.
 /// Otherwise `false` is returned and
 /// the previous neighbor relations are restored.
 __attribute__ ((__nonnull__))
-bool bmm_dem_cache_dofrom(struct bmm_dem*, size_t);
+bool bmm_dem_cache_dofrom(struct bmm_dem*, size_t, int);
 
 /// The call `bmm_dem_ijcell(pijcell, dem, x)`
 /// writes the neighbor cell of the particle at `x`
