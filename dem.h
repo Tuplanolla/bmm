@@ -331,9 +331,9 @@ struct bmm_dem {
     /// Previous positions.
     double x[BMM_MPART][BMM_NDIM];
     /// Which neighbor cell each particle was in previously.
-    size_t cell[BMM_MPART][BMM_NDIM];
+    size_t ijcell[BMM_MPART][BMM_NDIM];
     /// Which neighbor cell each particle was in previously, with vengeance.
-    size_t hurr[BMM_MPART];
+    size_t icell[BMM_MPART];
     /// Which particles were previously in each neighbor cell.
     struct {
       /// Number of particles.
@@ -352,70 +352,14 @@ struct bmm_dem {
   } cache;
 };
 
-/// The call `bmm_dem_cache_eligible(dem, ipart, jpart)`
-/// checks whether the particles `ipart` and `jpart` are eligible neighbors
+/// The call `bmm_dem_cache_build(dem)`
+/// tries to cache everything that supports caching
 /// in the simulation `dem`.
-/// Note that this function is neither symmetric nor reflexive
-/// with respect to particle indices.
-__attribute__ ((__nonnull__, __pure__))
-inline bool bmm_dem_cache_eligible(struct bmm_dem const* const dem,
-    size_t const ipart, size_t const jpart) {
-  if (dem->cache.hurr[ipart] == dem->cache.hurr[jpart] && jpart <= ipart)
-    return false;
-
-  if (bmm_geom2d_cpdist2(dem->part.x[ipart], dem->part.x[jpart],
-        dem->opts.box.x, dem->opts.box.per) >
-      bmm_fp_sq(dem->opts.cache.rcutoff))
-    return false;
-
-  return true;
-}
-
-/// The call `bmm_dem_cache_x(dem)`
-/// caches the position of every particle
-/// in the simulation `dem`.
-__attribute__ ((__nonnull__))
-void bmm_dem_cache_x(struct bmm_dem*);
-
-/// The call `bmm_dem_cache_doto(dem, ipart, mask)`
-/// tries to add all the eligible particles
-/// inside the `mask`-masked neighborhood
-/// of the particle `ipart` to its neighbors
-/// in the simulation `dem`.
-/// If there is enough capacity and the operation succeeds,
+/// If there is enough capacity and the operation is successful,
 /// `true` is returned.
 /// Otherwise `false` is returned and
-/// the previous neighbor relations are restored.
-__attribute__ ((__nonnull__))
-bool bmm_dem_cache_doto(struct bmm_dem*, size_t, int);
-
-/// The call `bmm_dem_cache_dofrom(dem, ipart)`
-/// tries to add the particle `ipart` to the neighbors
-/// of all the eligible particles
-/// inside its `mask`-masked neighborhood
-/// in the simulation `dem`.
-/// If there is enough capacity and the operation succeeds,
-/// `true` is returned.
-/// Otherwise `false` is returned and
-/// the previous neighbor relations are restored.
-__attribute__ ((__nonnull__))
-bool bmm_dem_cache_dofrom(struct bmm_dem*, size_t, int);
-
-/// The call `bmm_dem_ijcell(pijcell, dem, x)`
-/// writes the neighbor cell of the particle at `x`
-/// in the simulation `dem`
-/// into the index vector `pijcell`
-__attribute__ ((__nonnull__))
-void bmm_dem_ijcell(size_t*, struct bmm_dem const*, double const*);
-
-/// The call `bmm_dem_cache_cell(dem, ipart)`
-/// tries to add the particle `ipart` to the appropriate neighbor cell
-/// in the simulation `dem`.
-/// If there is enough capacity and the operation succeeds,
-/// `true` is returned.
-/// Otherwise `false` is returned.
-__attribute__ ((__nonnull__))
-bool bmm_dem_cache_cell(struct bmm_dem*, size_t);
+/// the cache is left in an undefined state.
+bool bmm_dem_cache_build(struct bmm_dem*);
 
 /// The call `bmm_dem_inspart(dem, r, m)`
 /// places a new particle with radius `r` and mass `m`

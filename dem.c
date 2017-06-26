@@ -25,19 +25,36 @@
 // dynamic_assert(n >= 3, "Too few neighbor cells");
 // dynamic_assert(n >= 5, "Too few neighbor cells");
 
-void bmm_dem_ijcell(size_t* const pijcell,
-    struct bmm_dem const* const dem, double const* const x) {
+/// The call `bmm_dem_cache_x(dem, ipart)`
+/// caches the position of the particle `ipart`
+/// in the simulation `dem`.
+__attribute__ ((__nonnull__))
+static void bmm_dem_cache_x(struct bmm_dem* const dem,
+    size_t const ipart) {
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+    dem->cache.x[ipart][idim] = dem->part.x[ipart][idim];
+}
+
+/// The call `bmm_dem_cache_ijcell(dem, ipart)`
+/// caches the neighbor cell index vector of the particle `ipart`
+/// in the simulation `dem`.
+/// The positions need to be cached first
+/// by calling `bmm_dem_cache_x`.
+__attribute__ ((__nonnull__))
+static void bmm_dem_cache_ijcell(struct bmm_dem* const dem,
+    size_t const ipart) {
   for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
     size_t const i = dem->opts.cache.ncell[idim] - 1;
 
     double const a = 1.0;
     double const b = (double) i;
-    double const t = bmm_fp_lerp(x[idim], 0.0, dem->opts.box.x[idim], a, b);
+    double const t = bmm_fp_lerp(dem->cache.x[ipart][idim],
+        0.0, dem->opts.box.x[idim], a, b);
 
     if (t < a)
-      pijcell[idim] = 0;
+      dem->cache.ijcell[ipart][idim] = 0;
     else if (t >= b)
-      pijcell[idim] = i;
+      dem->cache.ijcell[ipart][idim] = i;
     else {
       size_t const j = (size_t) t;
 
@@ -45,20 +62,36 @@ void bmm_dem_ijcell(size_t* const pijcell,
       // `dynamic_assert(j >= 0 && j < i, "Invalid truncation")`.
       dynamic_assert(j < i, "Invalid truncation");
 
-      pijcell[idim] = j;
+      dem->cache.ijcell[ipart][idim] = j;
     }
   }
 }
 
-extern inline bool bmm_dem_cache_eligible(struct bmm_dem const*,
-    size_t, size_t);
-
-bool bmm_dem_cache_cell(struct bmm_dem* const dem, size_t const ipart) {
-  bmm_dem_ijcell(dem->cache.cell[ipart], dem, dem->cache.x[ipart]);
-
-  size_t const icell = bmm_size_unhcd(dem->cache.cell[ipart],
+/// The call `bmm_dem_cache_icell(dem, ipart)`
+/// caches the neighbor cell index of the particle `ipart`
+/// in the simulation `dem`.
+/// The neighbor cell index vectors need to be cached first
+/// by calling `bmm_dem_cache_ijcell`.
+__attribute__ ((__nonnull__))
+static void bmm_dem_cache_icell(struct bmm_dem* const dem,
+    size_t const ipart) {
+  dem->cache.icell[ipart] = bmm_size_unhcd(dem->cache.ijcell[ipart],
       BMM_NDIM, dem->opts.cache.ncell);
-  dem->cache.hurr[ipart] = icell;
+}
+
+/// The call `bmm_dem_cache_part(dem, ipart)`
+/// tries to cache the neighbor cell index mapping of the particle `ipart`
+/// in the simulation `dem`.
+/// If there is enough capacity and the operation is successful,
+/// `true` is returned.
+/// Otherwise `false` is returned and
+/// the previous neighbor relations are restored.
+/// The neighbor cell indices need to be cached first
+/// by calling `bmm_dem_cache_icell`.
+__attribute__ ((__nonnull__))
+static bool bmm_dem_cache_part(struct bmm_dem* const dem,
+    size_t const ipart) {
+  size_t const icell = dem->cache.icell[ipart];
 
   if (dem->cache.part[icell].n >= nmembof(dem->cache.part[icell].i))
     return false;
@@ -69,34 +102,40 @@ bool bmm_dem_cache_cell(struct bmm_dem* const dem, size_t const ipart) {
   return true;
 }
 
-void bmm_dem_cache_x(struct bmm_dem* const dem) {
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-      dem->cache.x[ipart][idim] = dem->part.x[ipart][idim];
+/// The call `bmm_dem_cache_eligible(dem, ipart, jpart)`
+/// checks whether the particles `ipart` and `jpart` are eligible neighbors
+/// in the simulation `dem`.
+/// The neighbor cell indices need to be cached first
+/// by calling `bmm_dem_cache_icell`.
+/// Note that this function is neither symmetric nor reflexive
+/// with respect to particle indices.
+__attribute__ ((__nonnull__, __pure__))
+static bool bmm_dem_cache_eligible(struct bmm_dem const* const dem,
+    size_t const ipart, size_t const jpart) {
+  if (dem->cache.icell[ipart] == dem->cache.icell[jpart] && jpart <= ipart)
+    return false;
+
+  if (bmm_geom2d_cpdist2(dem->cache.x[ipart], dem->cache.x[jpart],
+        dem->opts.box.x, dem->opts.box.per) >
+      bmm_fp_sq(dem->opts.cache.rcutoff))
+    return false;
+
+  return true;
 }
 
-/// The call `bmm_dem_cache_part(dem)`
-/// moves every particle to the appropriate neighbor cell
-/// except for those particles whose cell group becomes full.
-bool bmm_dem_cache_part(struct bmm_dem* const dem) {
-  for (size_t icell = 0; icell < nmembof(dem->cache.part); ++icell)
-    dem->cache.part[icell].n = 0;
+// The following procedures are identical
+// except for those parts that are marked covariant or contravariant
+// with respect to particle indices.
 
-  bool p = true;
-
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    if (!bmm_dem_cache_cell(dem, ipart))
-      p = false;
-
-  return p;
-}
-
+/// The call `bmm_dem_cache_remfrom(dem, ipart, nneigh, ngroup, mask)`
+/// undoes what `bmm_dem_cache_addfrom(dem, ipart, mask)` has done
+/// up to `nneigh` neighbor cells and `ngroup` particles inside the last cell.
 __attribute__ ((__nonnull__))
-static void bmm_dem_cache_undoto(struct bmm_dem* const dem,
+static void bmm_dem_cache_remfrom(struct bmm_dem* const dem,
     size_t const ipart, size_t const nneigh, size_t const ngroup,
     int const mask) {
   for (size_t ineigh = 0; ineigh < nneigh; ++ineigh) {
-    size_t const icell = bmm_neigh_icp(dem->cache.cell[ipart], ineigh,
+    size_t const icell = bmm_neigh_icp(dem->cache.ijcell[ipart], ineigh,
         BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per, mask);
 
     for (size_t igroup = 0; igroup < dem->cache.part[icell].n; ++igroup) {
@@ -108,7 +147,7 @@ static void bmm_dem_cache_undoto(struct bmm_dem* const dem,
     }
   }
 
-  size_t const icell = bmm_neigh_icp(dem->cache.cell[ipart], nneigh,
+  size_t const icell = bmm_neigh_icp(dem->cache.ijcell[ipart], nneigh,
       BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per, mask);
 
   for (size_t igroup = 0; igroup < ngroup; ++igroup) {
@@ -120,13 +159,30 @@ static void bmm_dem_cache_undoto(struct bmm_dem* const dem,
   }
 }
 
-bool bmm_dem_cache_doto(struct bmm_dem* const dem, size_t const ipart,
-    int const mask) {
-  size_t const nneigh = bmm_neigh_ncp(dem->cache.cell[ipart],
+/// The call `bmm_dem_cache_addfrom(dem, ipart, mask)`
+/// tries to add all the eligible particles
+/// inside the `mask`-masked neighborhood
+/// of the particle `ipart` to its neighbors
+/// in the simulation `dem`.
+/// If there is enough capacity and the operation is successful,
+/// `true` is returned.
+/// Otherwise `false` is returned and
+/// the previous neighbor relations are restored.
+/// The neighbor cell index mappings need to be cached first
+/// by calling `bmm_dem_cache_part`.
+__attribute__ ((__nonnull__))
+static bool bmm_dem_cache_addfrom(struct bmm_dem* const dem,
+    size_t const ipart, int const mask) {
+  size_t const nneigh = bmm_neigh_ncp(dem->cache.ijcell[ipart],
       BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per, mask);
 
   for (size_t ineigh = 0; ineigh < nneigh; ++ineigh) {
-    size_t const icell = bmm_neigh_icp(dem->cache.cell[ipart], ineigh,
+    // TODO Finish this test.
+    /*
+    size_t const icell = bmm_neigh_icp(dem->cache.ijcell[ipart], ineigh,
+        BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per, mask);
+    */
+    size_t const icell = bmm_neigh_icplin(dem->cache.icell[ipart], ineigh,
         BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per, mask);
 
     for (size_t igroup = 0; igroup < dem->cache.part[icell].n; ++igroup) {
@@ -135,7 +191,7 @@ bool bmm_dem_cache_doto(struct bmm_dem* const dem, size_t const ipart,
       // This block is covariant.
       if (bmm_dem_cache_eligible(dem, ipart, jpart)) {
         if (dem->cache.neigh[ipart].n >= nmembof(dem->cache.neigh[ipart].i)) {
-          bmm_dem_cache_undoto(dem, ipart, ineigh, igroup, mask);
+          bmm_dem_cache_remfrom(dem, ipart, ineigh, igroup, mask);
 
           return false;
         }
@@ -149,12 +205,15 @@ bool bmm_dem_cache_doto(struct bmm_dem* const dem, size_t const ipart,
   return true;
 }
 
+/// The call `bmm_dem_cache_remto(dem, ipart, nneigh, ngroup, mask)`
+/// undoes what `bmm_dem_cache_addto(dem, ipart, mask)` has done
+/// up to `nneigh` neighbor cells and `ngroup` particles inside the last cell.
 __attribute__ ((__nonnull__))
-static void bmm_dem_cache_undofrom(struct bmm_dem* const dem,
+static void bmm_dem_cache_remto(struct bmm_dem* const dem,
     size_t const ipart, size_t const nneigh, size_t const ngroup,
     int const mask) {
   for (size_t ineigh = 0; ineigh < nneigh; ++ineigh) {
-    size_t const icell = bmm_neigh_icp(dem->cache.cell[ipart], ineigh,
+    size_t const icell = bmm_neigh_icp(dem->cache.ijcell[ipart], ineigh,
         BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per, mask);
 
     for (size_t igroup = 0; igroup < dem->cache.part[icell].n; ++igroup) {
@@ -166,7 +225,7 @@ static void bmm_dem_cache_undofrom(struct bmm_dem* const dem,
     }
   }
 
-  size_t const icell = bmm_neigh_icp(dem->cache.cell[ipart], nneigh,
+  size_t const icell = bmm_neigh_icp(dem->cache.ijcell[ipart], nneigh,
       BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per, mask);
 
   for (size_t igroup = 0; igroup < ngroup; ++igroup) {
@@ -178,13 +237,25 @@ static void bmm_dem_cache_undofrom(struct bmm_dem* const dem,
   }
 }
 
-bool bmm_dem_cache_dofrom(struct bmm_dem* const dem, size_t const ipart,
-    int const mask) {
-  size_t const nneigh = bmm_neigh_ncp(dem->cache.cell[ipart],
+/// The call `bmm_dem_cache_addto(dem, ipart)`
+/// tries to add the particle `ipart` to the neighbors
+/// of all the eligible particles
+/// inside its `mask`-masked neighborhood
+/// in the simulation `dem`.
+/// If there is enough capacity and the operation is successful,
+/// `true` is returned.
+/// Otherwise `false` is returned and
+/// the previous neighbor relations are restored.
+/// The neighbor cell index mappings need to be cached first
+/// by calling `bmm_dem_cache_part`.
+__attribute__ ((__nonnull__))
+static bool bmm_dem_cache_addto(struct bmm_dem* const dem,
+    size_t const ipart, int const mask) {
+  size_t const nneigh = bmm_neigh_ncp(dem->cache.ijcell[ipart],
       BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per, mask);
 
   for (size_t ineigh = 0; ineigh < nneigh; ++ineigh) {
-    size_t const icell = bmm_neigh_icp(dem->cache.cell[ipart], ineigh,
+    size_t const icell = bmm_neigh_icp(dem->cache.ijcell[ipart], ineigh,
         BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per, mask);
 
     for (size_t igroup = 0; igroup < dem->cache.part[icell].n; ++igroup) {
@@ -193,7 +264,7 @@ bool bmm_dem_cache_dofrom(struct bmm_dem* const dem, size_t const ipart,
       // This block is contravariant.
       if (bmm_dem_cache_eligible(dem, jpart, ipart)) {
         if (dem->cache.neigh[jpart].n >= nmembof(dem->cache.neigh[jpart].i)) {
-          bmm_dem_cache_undofrom(dem, ipart, ineigh, igroup, mask);
+          bmm_dem_cache_remto(dem, ipart, ineigh, igroup, mask);
 
           return false;
         }
@@ -207,20 +278,31 @@ bool bmm_dem_cache_dofrom(struct bmm_dem* const dem, size_t const ipart,
   return true;
 }
 
-bool bmm_dem_cache_neigh(struct bmm_dem* const dem) {
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
+bool bmm_dem_cache_build(struct bmm_dem* const dem) {
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    bmm_dem_cache_x(dem, ipart);
+
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    bmm_dem_cache_ijcell(dem, ipart);
+
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    bmm_dem_cache_icell(dem, ipart);
+
+  for (size_t icell = 0; icell < nmembof(dem->cache.part); ++icell)
+    dem->cache.part[icell].n = 0;
+
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    if (!bmm_dem_cache_part(dem, ipart))
+      return false;
+
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     dem->cache.neigh[ipart].n = 0;
 
-    (void) bmm_dem_cache_doto(dem, ipart, BMM_NEIGH_MASK_UPPERH);
-  }
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    if (!bmm_dem_cache_addfrom(dem, ipart, BMM_NEIGH_MASK_UPPERH))
+      return false;
 
   return true;
-}
-
-bool bmm_dem_cache(struct bmm_dem* const dem) {
-  bmm_dem_cache_x(dem);
-
-  return bmm_dem_cache_part(dem) && bmm_dem_cache_neigh(dem);
 }
 
 size_t bmm_dem_inspart(struct bmm_dem* const dem,
@@ -229,11 +311,6 @@ size_t bmm_dem_inspart(struct bmm_dem* const dem,
 
   if (ipart >= BMM_MPART)
     return BMM_MPART;
-
-  ++dem->part.n;
-
-  dem->part.l[ipart] = dem->part.lnew;
-  ++dem->part.lnew;
 
   dem->part.role[ipart] = BMM_DEM_ROLE_FREE;
 
@@ -261,16 +338,22 @@ size_t bmm_dem_inspart(struct bmm_dem* const dem,
 
   dem->part.tau[ipart] = 0.0;
 
-  // "In this case..."
-  if (!bmm_dem_cache_cell(dem, ipart))
+  bmm_dem_cache_ijcell(dem, ipart);
+  bmm_dem_cache_icell(dem, ipart);
+
+  if (!bmm_dem_cache_part(dem, ipart))
     return BMM_MPART;
 
-  // "However..."
   dem->cache.neigh[ipart].n = 0;
 
-  // "Additionally..."
-  (void) bmm_dem_cache_doto(dem, ipart, BMM_NEIGH_MASK_UPPERH);
-  (void) bmm_dem_cache_dofrom(dem, ipart, BMM_NEIGH_MASK_LOWERH);
+  if (!bmm_dem_cache_addfrom(dem, ipart, BMM_NEIGH_MASK_UPPERH) ||
+      !bmm_dem_cache_addto(dem, ipart, BMM_NEIGH_MASK_LOWERH))
+    return BMM_MPART;
+
+  ++dem->part.n;
+
+  dem->part.l[ipart] = dem->part.lnew;
+  ++dem->part.lnew;
 
   return ipart;
 }
@@ -331,12 +414,12 @@ bool bmm_dem_delpart(struct bmm_dem* const dem, size_t const ipart) {
 
   {
     for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-      dem->cache.cell[ipart][idim] = dem->cache.cell[jpart][idim];
+      dem->cache.ijcell[ipart][idim] = dem->cache.ijcell[jpart][idim];
 
-    dem->cache.hurr[ipart] = dem->cache.hurr[jpart];
+    dem->cache.icell[ipart] = dem->cache.icell[jpart];
 
     // The cell the particle being removed is registered to.
-    size_t const icell = dem->cache.hurr[jpart];
+    size_t const icell = dem->cache.icell[jpart];
 
     for (size_t kpart = 0; kpart < dem->cache.part[icell].n; ++kpart)
       if (dem->cache.part[icell].i[kpart] == ipart) {
@@ -978,7 +1061,7 @@ bool bmm_dem_step(struct bmm_dem* const dem) {
   }
 
   if (!bmm_dem_cache_fresh(dem)) {
-    if (!bmm_dem_cache(dem))
+    if (!bmm_dem_cache_build(dem))
       return false;
 
     dem->cache.tprev = dem->time.t;
