@@ -359,6 +359,7 @@ struct bmm_dem {
 /// `true` is returned.
 /// Otherwise `false` is returned and
 /// the cache is left in an undefined state.
+__attribute__ ((__nonnull__))
 bool bmm_dem_cache_build(struct bmm_dem*);
 
 /// The call `bmm_dem_inspart(dem, r, m)`
@@ -408,6 +409,13 @@ bool bmm_dem_step(struct bmm_dem*);
 
 __attribute__ ((__nonnull__))
 bool bmm_dem_comm(struct bmm_dem*);
+
+/// The call `bmm_dem_stab(dem)`
+/// stabilizes the simulation `dem`
+/// by wrapping periodic values, renormalizing normal vectors and so on.
+/// This should only affect the behavior of the simulation over long timespans.
+__attribute__ ((__nonnull__))
+void bmm_dem_stab(struct bmm_dem*);
 
 /// The call `bmm_dem_report(dem)`
 /// prints informal diagnostics for the simulation state `dem`.

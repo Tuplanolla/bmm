@@ -21,7 +21,7 @@ static struct {
 } bmm_msg_decl[] = {
 #define BMM_MSG_DECLARE(id, _) \
   {.num = BMM_MSG_NUM_##id, .str = #id, .lowered = false},
-#include "msg.part.h"
+#include "msg_.h"
 #undef BMM_MSG_DECLARE
 };
 

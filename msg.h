@@ -97,7 +97,7 @@ bool bmm_msg_spec_write(struct bmm_msg_spec const*, bmm_msg_writer, void*);
 enum bmm_msg_num {
 #define BMM_MSG_DECLARE(id, num) \
   BMM_MSG_NUM_##id = num,
-#include "msg.part.h"
+#include "msg_.h"
 #undef BMM_MSG_DECLARE
 };
 

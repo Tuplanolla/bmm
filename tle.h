@@ -12,7 +12,7 @@
 enum bmm_tle_num {
 #define BMM_TLE_DECLARE(id) \
   BMM_TLE_NUM_##id,
-#include "tle.part.h"
+#include "tle_.h"
 #undef BMM_TLE_DECLARE
 };
 
