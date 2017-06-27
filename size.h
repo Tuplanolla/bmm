@@ -313,17 +313,6 @@ inline void bmm_size_hc(size_t* const pij,
 
     pij[ndim - 1 - idim] = qr.rem;
   }
-
-  // The following implementation is slower, but suitable for loop fusion.
-  /*
-  for (size_t idim = 0; idim < ndim; ++idim) {
-    bmm_size_div_t qr = {.quot = i, .rem = 0};
-    for (size_t jdim = 0; jdim < ndim - idim; ++jdim)
-      qr = bmm_size_div(qr.quot, nper);
-
-    pij[idim] = qr.rem;
-  }
-  */
 }
 
 /// The call `bmm_size_unhc(ij, ndim, nper)`
@@ -364,6 +353,22 @@ inline void bmm_size_hcd(size_t* restrict const pij,
 
     pij[idim] = qr.rem;
   }
+  */
+
+  // The following implementation is less reliable,
+  // but suitable for loop fusion.
+  /*
+  size_t* const buf = alloca(ndim * sizeof *pij);
+
+  bmm_size_div_t qr = {.quot = i, .rem = 0};
+  for (size_t idim = 0; idim < ndim; ++idim) {
+    qr = bmm_size_div(qr.quot, nper[ndim - 1 - idim]);
+
+    buf[ndim - 1 - idim] = qr.rem;
+  }
+
+  for (size_t idim = 0; idim < ndim; ++idim)
+    pij[idim] = buf[idim];
   */
 }
 

@@ -3,23 +3,32 @@
 
 #include "neigh.h"
 
-extern inline bool bmm_neigh_qijcp(size_t* restrict, size_t const* restrict,
+extern inline bool bmm_neigh_qijcpij(size_t* restrict, size_t const* restrict,
     size_t, size_t, size_t const* restrict, bool const*);
 
-extern inline size_t bmm_neigh_qicp(size_t const* restrict,
+extern inline bool bmm_neigh_qijcpi(size_t* restrict, size_t,
     size_t, size_t, size_t const* restrict, bool const*);
 
-extern inline size_t bmm_neigh_qicplin(size_t,
+extern inline size_t bmm_neigh_qicpij(size_t const* restrict,
+    size_t, size_t, size_t const* restrict, bool const*);
+
+extern inline size_t bmm_neigh_qicpi(size_t,
     size_t, size_t, size_t const*, bool const*);
 
-extern inline size_t bmm_neigh_ncp(size_t const* restrict,
+extern inline size_t bmm_neigh_ncpij(size_t const* restrict,
     size_t, size_t const* restrict, bool const*, int);
 
-extern inline void bmm_neigh_ijcp(size_t* restrict, size_t const* restrict,
+extern inline size_t bmm_neigh_ncpi(size_t,
+    size_t, size_t const*, bool const*, int);
+
+extern inline void bmm_neigh_ijcpij(size_t* restrict, size_t const* restrict,
     size_t, size_t, size_t const* restrict, bool const*, int);
 
-extern inline size_t bmm_neigh_icp(size_t const* restrict,
+extern inline void bmm_neigh_ijcpi(size_t* restrict, size_t,
     size_t, size_t, size_t const* restrict, bool const*, int);
 
-extern inline size_t bmm_neigh_icplin(size_t,
+extern inline size_t bmm_neigh_icpij(size_t const* restrict,
+    size_t, size_t, size_t const* restrict, bool const*, int);
+
+extern inline size_t bmm_neigh_icpi(size_t,
     size_t, size_t, size_t const*, bool const*, int);

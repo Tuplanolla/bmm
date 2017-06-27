@@ -21,10 +21,6 @@
 #include "size.h"
 #include "tle.h"
 
-// TODO Use this somewhere.
-// dynamic_assert(n >= 3, "Too few neighbor cells");
-// dynamic_assert(n >= 5, "Too few neighbor cells");
-
 /// The call `bmm_dem_cache_j(dem, ipart)`
 /// caches the moment of inertia of the particle `ipart`
 /// in the simulation `dem`.
@@ -178,16 +174,11 @@ static void bmm_dem_cache_clrneighs(struct bmm_dem* const dem) {
 __attribute__ ((__nonnull__))
 static bool bmm_dem_cache_addfrom(struct bmm_dem* const dem,
     size_t const ipart, int const mask) {
-  size_t const nneigh = bmm_neigh_ncp(dem->cache.ijcell[ipart],
+  size_t const nneigh = bmm_neigh_ncpij(dem->cache.ijcell[ipart],
       BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per, mask);
 
   for (size_t ineigh = 0; ineigh < nneigh; ++ineigh) {
-    // TODO Finish this test.
-    /*
-    size_t const icell = bmm_neigh_icp(dem->cache.ijcell[ipart], ineigh,
-        BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per, mask);
-    */
-    size_t const icell = bmm_neigh_icplin(dem->cache.icell[ipart], ineigh,
+    size_t const icell = bmm_neigh_icpij(dem->cache.ijcell[ipart], ineigh,
         BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per, mask);
 
     for (size_t igroup = 0; igroup < dem->cache.part[icell].n; ++igroup) {
@@ -221,11 +212,11 @@ static bool bmm_dem_cache_addfrom(struct bmm_dem* const dem,
 __attribute__ ((__nonnull__))
 static bool bmm_dem_cache_addto(struct bmm_dem* const dem,
     size_t const ipart, int const mask) {
-  size_t const nneigh = bmm_neigh_ncp(dem->cache.ijcell[ipart],
+  size_t const nneigh = bmm_neigh_ncpij(dem->cache.ijcell[ipart],
       BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per, mask);
 
   for (size_t ineigh = 0; ineigh < nneigh; ++ineigh) {
-    size_t const icell = bmm_neigh_icp(dem->cache.ijcell[ipart], ineigh,
+    size_t const icell = bmm_neigh_icpij(dem->cache.ijcell[ipart], ineigh,
         BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per, mask);
 
     for (size_t igroup = 0; igroup < dem->cache.part[icell].n; ++igroup) {
@@ -307,143 +298,63 @@ size_t bmm_dem_addpart(struct bmm_dem* const dem) {
   return ipart;
 }
 
-size_t bmm_dem_cache_newpart(struct bmm_dem* const dem,
-    size_t const ipart) {
-  bmm_dem_cache_j(dem, ipart);
-  bmm_dem_cache_x(dem, ipart);
-  bmm_dem_cache_ijcell(dem, ipart);
-  bmm_dem_cache_icell(dem, ipart);
+/// The call `bmm_dem_reassign(dem, ipart, jpart)`
+/// reassigns the particle `jpart` to `ipart`.
+__attribute__ ((__nonnull__))
+static void bmm_dem_reassign(struct bmm_dem* const dem,
+    size_t const ipart, size_t const jpart) {
+  dem->part.role[ipart] = dem->part.role[jpart];
+  dem->part.l[ipart] = dem->part.l[jpart];
+  dem->part.r[ipart] = dem->part.r[jpart];
+  dem->part.m[ipart] = dem->part.m[jpart];
+  dem->part.jred[ipart] = dem->part.jred[jpart];
 
-  if (!bmm_dem_cache_addpart(dem, ipart))
-    return false;
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+    dem->part.x[ipart][idim] = dem->part.x[jpart][idim];
 
-  bmm_dem_cache_clrneigh(dem, ipart);
-  if (!bmm_dem_cache_addfrom(dem, ipart, BMM_NEIGH_MASK_UPPERH) ||
-      !bmm_dem_cache_addto(dem, ipart, BMM_NEIGH_MASK_LOWERH))
-    return false;
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+    dem->part.v[ipart][idim] = dem->part.v[jpart][idim];
 
-  return true;
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+    dem->part.a[ipart][idim] = dem->part.a[jpart][idim];
+
+  dem->part.phi[ipart] = dem->part.phi[jpart];
+  dem->part.omega[ipart] = dem->part.omega[jpart];
+  dem->part.alpha[ipart] = dem->part.alpha[jpart];
+
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+    dem->part.f[ipart][idim] = dem->part.f[jpart][idim];
+
+  dem->part.tau[ipart] = dem->part.tau[jpart];
+
+  dem->link.part[ipart].n = dem->link.part[jpart].n;
+
+  for (size_t ilink = 0; ilink < dem->link.part[jpart].n; ++ilink)
+    dem->link.part[ipart].i[ilink] = dem->link.part[jpart].i[ilink];
+
+  for (size_t ilink = 0; ilink < dem->link.part[jpart].n; ++ilink)
+    dem->link.part[ipart].rrest[ilink] = dem->link.part[jpart].rrest[ilink];
+
+  for (size_t ilink = 0; ilink < dem->link.part[jpart].n; ++ilink)
+    for (size_t iend = 0; iend < nmembof(dem->link.part[ipart].phirest[ilink]); ++iend)
+      dem->link.part[ipart].phirest[ilink][iend] =
+        dem->link.part[jpart].phirest[ilink][iend];
+
+  for (size_t ilink = 0; ilink < dem->link.part[jpart].n; ++ilink)
+    dem->link.part[ipart].rlim[ilink] = dem->link.part[jpart].rlim[ilink];
+
+  for (size_t ilink = 0; ilink < dem->link.part[jpart].n; ++ilink)
+    dem->link.part[ipart].philim[ilink] = dem->link.part[jpart].philim[ilink];
 }
 
-bool bmm_dem_rempart(struct bmm_dem* const dem, size_t const ipart) {
-  dynamic_assert(ipart < dem->part.n, "Index out of bounds");
-
-  size_t const jpart = dem->part.n - 1;
-
-  {
-    dem->part.l[ipart] = dem->part.l[jpart];
-
-    dem->part.role[ipart] = dem->part.role[jpart];
-
-    dem->part.r[ipart] = dem->part.r[jpart];
-    dem->part.m[ipart] = dem->part.m[jpart];
-    dem->part.jred[ipart] = dem->part.jred[jpart];
-
-    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-      dem->part.x[ipart][idim] = dem->part.x[jpart][idim];
-
-    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-      dem->part.v[ipart][idim] = dem->part.v[jpart][idim];
-
-    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-      dem->part.a[ipart][idim] = dem->part.a[jpart][idim];
-
-    dem->part.phi[ipart] = dem->part.phi[jpart];
-    dem->part.omega[ipart] = dem->part.omega[jpart];
-    dem->part.alpha[ipart] = dem->part.alpha[jpart];
-
-    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-      dem->part.f[ipart][idim] = dem->part.f[jpart][idim];
-
-    dem->part.tau[ipart] = dem->part.tau[jpart];
-  }
-
-  {
-    dem->link.part[ipart].n = dem->link.part[jpart].n;
-
-    for (size_t ilink = 0; ilink < dem->link.part[jpart].n; ++ilink)
-      dem->link.part[ipart].i[ilink] = dem->link.part[jpart].i[ilink];
-
-    for (size_t ilink = 0; ilink < dem->link.part[jpart].n; ++ilink)
-      dem->link.part[ipart].rrest[ilink] = dem->link.part[jpart].rrest[ilink];
-
-    for (size_t ilink = 0; ilink < dem->link.part[jpart].n; ++ilink)
-      for (size_t iend = 0; iend < nmembof(dem->link.part[ipart].phirest[ilink]); ++iend)
-        dem->link.part[ipart].phirest[ilink][iend] =
-          dem->link.part[jpart].phirest[ilink][iend];
-
-    for (size_t ilink = 0; ilink < dem->link.part[jpart].n; ++ilink)
-      dem->link.part[ipart].rlim[ilink] = dem->link.part[jpart].rlim[ilink];
-
-    for (size_t ilink = 0; ilink < dem->link.part[jpart].n; ++ilink)
-      dem->link.part[ipart].philim[ilink] = dem->link.part[jpart].philim[ilink];
-  }
-
-  {
-    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-      dem->cache.ijcell[ipart][idim] = dem->cache.ijcell[jpart][idim];
-
-    dem->cache.icell[ipart] = dem->cache.icell[jpart];
-
-    // The cell the particle being removed is registered to.
-    size_t const icell = dem->cache.icell[jpart];
-
-    for (size_t kpart = 0; kpart < dem->cache.part[icell].n; ++kpart)
-      if (dem->cache.part[icell].i[kpart] == ipart) {
-        size_t const lpart = dem->cache.part[icell].n - 1;
-
-        dem->cache.part[icell].i[kpart] = dem->cache.part[icell].i[lpart];
-
-        --dem->cache.part[icell].n;
-
-        // TODO What if not found?
-        break;
-      }
-
-    dem->cache.neigh[ipart].n = dem->cache.neigh[jpart].n;
-
-    for (size_t kpart = 0; kpart < dem->cache.neigh[jpart].n; ++kpart)
-      dem->cache.neigh[ipart].i[kpart] = dem->cache.neigh[jpart].i[kpart];
-
-    dem->cache.neigh[ipart].n = dem->cache.neigh[jpart].n;
-
-    for (size_t kpart = 0; kpart < dem->cache.neigh[jpart].n; ++kpart)
-      dem->cache.neigh[ipart].i[kpart] = dem->cache.neigh[jpart].i[kpart];
-  }
-
+void bmm_dem_rempart(struct bmm_dem* const dem,
+    size_t const ipart) {
   --dem->part.n;
 
-  // TODO Factor index structure adjustment.
-  // This is the slow part.
-  {
-    for (size_t kpart = 0; kpart < dem->part.n; ++kpart)
-      for (size_t lpart = 0; lpart < dem->link.part[kpart].n; ++lpart)
-        if (dem->link.part[kpart].i[lpart] == jpart) {
-          dem->link.part[kpart].i[lpart] = ipart;
+  size_t const jpart = dem->part.n;
 
-          break;
-        }
-
-    size_t const ncell = bmm_size_prod(dem->opts.cache.ncell, BMM_NDIM);
-
-    for (size_t icell = 0; icell < ncell; ++icell)
-      for (size_t kpart = 0; kpart < dem->cache.part[icell].n; ++kpart)
-        if (dem->cache.part[icell].i[kpart] == jpart) {
-          dem->cache.part[icell].i[kpart] = ipart;
-
-          break;
-        }
-
-    for (size_t kpart = 0; kpart < dem->part.n; ++kpart)
-      for (size_t lpart = 0; lpart < dem->cache.neigh[kpart].n; ++lpart)
-        if (dem->cache.neigh[kpart].i[lpart] == jpart) {
-          dem->cache.neigh[kpart].i[lpart] = ipart;
-
-          break;
-        }
-  }
-
-  return true;
+  if (jpart != ipart)
+    bmm_dem_reassign(dem, ipart, jpart);
 }
 
 void bmm_dem_force_pair(struct bmm_dem* const dem,
