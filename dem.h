@@ -362,21 +362,32 @@ struct bmm_dem {
 __attribute__ ((__nonnull__))
 bool bmm_dem_cache_build(struct bmm_dem*);
 
-/// The call `bmm_dem_inspart(dem, r, m)`
-/// places a new particle with radius `r` and mass `m`
-/// in the origin at rest and
-/// returns the index of the new particle.
-/// Otherwise `BMM_MPART` is returned.
+/// The call `bmm_dem_addpart(dem)`
+/// tries to place a new particle with unit radius and unit mass
+/// at rest at the origin.
+/// If there is enough capacity and the operation is successful,
+/// the index of the new particle is returned.
+/// Otherwise `SIZE_MAX` is returned.
 __attribute__ ((__nonnull__))
-size_t bmm_dem_inspart(struct bmm_dem*, double, double);
+size_t bmm_dem_addpart(struct bmm_dem*);
 
-/// The call `bmm_dem_delpart(dem, ipart)`
+/// The call `bmm_dem_cache_newpart(dem, ipart)`
+/// tries to cache the previously added particle `ipart`
+/// in the simulation `dem`.
+/// If there is enough capacity and the operation is successful,
+/// `true` is returned.
+/// Otherwise `false` is returned and
+/// the cache is left in an undefined state.
+__attribute__ ((__nonnull__))
+size_t bmm_dem_cache_newpart(struct bmm_dem*, size_t);
+
+/// The call `bmm_dem_rempart(dem, ipart)`
 /// removes the particle with the index `ipart`.
 /// Note that the index may be immediately assigned to another particle,
 /// so all index caches should be purged.
 /// This operation may be slow due to index reassignment.
 __attribute__ ((__nonnull__))
-bool bmm_dem_delpart(struct bmm_dem*, size_t);
+bool bmm_dem_rempart(struct bmm_dem*, size_t);
 
 /// The call `bmm_dem_opts_def(opts)`
 /// writes the default simulation options into `opts`.

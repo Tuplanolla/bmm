@@ -25,6 +25,16 @@
 // dynamic_assert(n >= 3, "Too few neighbor cells");
 // dynamic_assert(n >= 5, "Too few neighbor cells");
 
+/// The call `bmm_dem_cache_j(dem, ipart)`
+/// caches the moment of inertia of the particle `ipart`
+/// in the simulation `dem`.
+__attribute__ ((__nonnull__))
+static void bmm_dem_cache_j(struct bmm_dem* const dem,
+    size_t const ipart) {
+  dem->cache.j[ipart] = dem->part.jred[ipart] *
+    dem->part.m[ipart] * bmm_fp_sq(dem->part.r[ipart]);
+}
+
 /// The call `bmm_dem_cache_x(dem, ipart)`
 /// caches the position of the particle `ipart`
 /// in the simulation `dem`.
@@ -79,11 +89,11 @@ static void bmm_dem_cache_icell(struct bmm_dem* const dem,
       BMM_NDIM, dem->opts.cache.ncell);
 }
 
-/// The call `bmm_dem_cache_clrpart(dem)`
+/// The call `bmm_dem_cache_clrparts(dem)`
 /// clears the neighbor cell index mapping cache
 /// in the simulation `dem`.
 __attribute__ ((__nonnull__))
-static void bmm_dem_cache_clrpart(struct bmm_dem* const dem) {
+static void bmm_dem_cache_clrparts(struct bmm_dem* const dem) {
   for (size_t icell = 0; icell < nmembof(dem->cache.part); ++icell)
     dem->cache.part[icell].n = 0;
 }
@@ -132,13 +142,22 @@ static bool bmm_dem_cache_eligible(struct bmm_dem const* const dem,
   return true;
 }
 
-/// The call `bmm_dem_cache_clrneigh(dem)`
+/// The call `bmm_dem_cache_clrneigh(dem, ipart)`
+/// clears the neighbor cache of the particle `ipart`
+/// in the simulation `dem`.
+__attribute__ ((__nonnull__))
+static void bmm_dem_cache_clrneigh(struct bmm_dem* const dem,
+    size_t const ipart) {
+  dem->cache.neigh[ipart].n = 0;
+}
+
+/// The call `bmm_dem_cache_clrneighs(dem)`
 /// clears the neighbor cache
 /// in the simulation `dem`.
 __attribute__ ((__nonnull__))
-static void bmm_dem_cache_clrneigh(struct bmm_dem* const dem) {
+static void bmm_dem_cache_clrneighs(struct bmm_dem* const dem) {
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    dem->cache.neigh[ipart].n = 0;
+    bmm_dem_cache_clrneigh(dem, ipart);
 }
 
 // The procedures `bmm_dem_cache_addfrom` and `bmm_dem_cache_addto`
@@ -228,6 +247,9 @@ static bool bmm_dem_cache_addto(struct bmm_dem* const dem,
 
 bool bmm_dem_cache_build(struct bmm_dem* const dem) {
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    bmm_dem_cache_j(dem, ipart);
+
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     bmm_dem_cache_x(dem, ipart);
 
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
@@ -236,12 +258,12 @@ bool bmm_dem_cache_build(struct bmm_dem* const dem) {
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     bmm_dem_cache_icell(dem, ipart);
 
-  bmm_dem_cache_clrpart(dem);
+  bmm_dem_cache_clrparts(dem);
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     if (!bmm_dem_cache_addpart(dem, ipart))
       return false;
 
-  bmm_dem_cache_clrneigh(dem);
+  bmm_dem_cache_clrneighs(dem);
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     if (!bmm_dem_cache_addfrom(dem, ipart, BMM_NEIGH_MASK_UPPERH))
       return false;
@@ -249,20 +271,20 @@ bool bmm_dem_cache_build(struct bmm_dem* const dem) {
   return true;
 }
 
-size_t bmm_dem_inspart(struct bmm_dem* const dem,
-    double const r, double const m) {
+size_t bmm_dem_addpart(struct bmm_dem* const dem) {
   size_t const ipart = dem->part.n;
 
   if (ipart >= BMM_MPART)
-    return BMM_MPART;
+    return SIZE_MAX;
+
+  ++dem->part.n;
+  dem->part.l[ipart] = dem->part.lnew;
+  ++dem->part.lnew;
 
   dem->part.role[ipart] = BMM_DEM_ROLE_FREE;
-
-  dem->part.r[ipart] = r;
-  dem->part.m[ipart] = m;
+  dem->part.r[ipart] = 1.0;
+  dem->part.m[ipart] = 1.0;
   dem->part.jred[ipart] = bmm_geom_ballprmoi(BMM_NDIM);
-
-  dem->cache.j[ipart] = dem->part.jred[ipart] * m * bmm_fp_sq(r);
 
   for (size_t idim = 0; idim < BMM_NDIM; ++idim)
     dem->part.x[ipart][idim] = 0.0;
@@ -282,27 +304,28 @@ size_t bmm_dem_inspart(struct bmm_dem* const dem,
 
   dem->part.tau[ipart] = 0.0;
 
+  return ipart;
+}
+
+size_t bmm_dem_cache_newpart(struct bmm_dem* const dem,
+    size_t const ipart) {
+  bmm_dem_cache_j(dem, ipart);
+  bmm_dem_cache_x(dem, ipart);
   bmm_dem_cache_ijcell(dem, ipart);
   bmm_dem_cache_icell(dem, ipart);
 
   if (!bmm_dem_cache_addpart(dem, ipart))
-    return BMM_MPART;
+    return false;
 
-  dem->cache.neigh[ipart].n = 0;
-
+  bmm_dem_cache_clrneigh(dem, ipart);
   if (!bmm_dem_cache_addfrom(dem, ipart, BMM_NEIGH_MASK_UPPERH) ||
       !bmm_dem_cache_addto(dem, ipart, BMM_NEIGH_MASK_LOWERH))
-    return BMM_MPART;
+    return false;
 
-  ++dem->part.n;
-
-  dem->part.l[ipart] = dem->part.lnew;
-  ++dem->part.lnew;
-
-  return ipart;
+  return true;
 }
 
-bool bmm_dem_delpart(struct bmm_dem* const dem, size_t const ipart) {
+bool bmm_dem_rempart(struct bmm_dem* const dem, size_t const ipart) {
   dynamic_assert(ipart < dem->part.n, "Index out of bounds");
 
   size_t const jpart = dem->part.n - 1;
@@ -1076,7 +1099,10 @@ static bool bmm_dem_run_(struct bmm_dem* const dem) {
 
   // Random stuff.
   for (size_t ipart = 0; ipart < 64 - 0; ++ipart) {
-    size_t const jpart = bmm_dem_inspart(dem, 0.03, 1.0);
+    size_t const jpart = bmm_dem_addpart(dem);
+
+    dem->part.r[jpart] = 0.03;
+    dem->part.m[jpart] = 1.0;
 
     for (size_t idim = 0; idim < nmembof(dem->part.x[jpart]); ++idim)
       dem->part.x[jpart][idim] += gsl_rng_uniform(dem->rng) * dem->opts.box.x[idim];
@@ -1086,12 +1112,16 @@ static bool bmm_dem_run_(struct bmm_dem* const dem) {
 
   // Rotating couple.
   size_t jpart;
-  jpart = bmm_dem_inspart(dem, 0.03, 1.0);
+  jpart = bmm_dem_addpart(dem);
+  dem->part.r[jpart] = 0.03;
+  dem->part.m[jpart] = 1.0;
   dem->part.x[jpart][0] += 0.45;
   dem->part.x[jpart][1] += 0.25;
   dem->part.v[jpart][0] += 1.0;
   dem->part.omega[jpart] += 400.0;
-  jpart = bmm_dem_inspart(dem, 0.03, 1.0);
+  jpart = bmm_dem_addpart(dem);
+  dem->part.r[jpart] = 0.03;
+  dem->part.m[jpart] = 1.0;
   dem->part.x[jpart][0] += 0.55;
   dem->part.x[jpart][1] += 0.25;
   dem->part.v[jpart][0] -= 1.0;
