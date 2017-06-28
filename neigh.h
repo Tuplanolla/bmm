@@ -1,5 +1,5 @@
 #ifndef BMM_NEIGH_H
-/// Moore neighborhoods.
+/// Moore neighborhoods that do not overlap themselves.
 ///
 /// The naming convention for the procedures in this translation unit
 /// obey the following ANTLR 4 grammar.

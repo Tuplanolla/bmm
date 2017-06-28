@@ -187,6 +187,8 @@ struct bmm_dem_opts {
       struct {
         /// Target packing fraction.
         double eta;
+        /// Spacing factor.
+        double cspace;
       } create;
       /// For `BMM_DEM_MODE_CRUNCH`.
       struct {
@@ -204,6 +206,8 @@ struct bmm_dem_opts {
       struct {
         /// Cohesive force.
         double fcohes;
+        /// Strength of cohesive force.
+        double kcohes;
       } sediment;
     } params[BMM_MSTAGE];
   } script;
@@ -320,6 +324,8 @@ struct bmm_dem {
   /// Neighbor cache.
   /// This is only used for performance optimization.
   struct {
+    /// Freshness right now.
+    bool stale;
     /// Current revision.
     size_t i;
     /// Time of previous partial update.
@@ -368,16 +374,16 @@ bool bmm_dem_cache_build(struct bmm_dem*);
 /// If there is enough capacity and the operation is successful,
 /// the index of the new particle is returned.
 /// Otherwise `SIZE_MAX` is returned.
-/// Note that placing new particles requires rebuilding all caches
+/// Note that placing new particles triggers rebuilding all caches
 /// by calling `bmm_dem_cache_build`.
 __attribute__ ((__nonnull__))
 size_t bmm_dem_addpart(struct bmm_dem*);
 
 /// The call `bmm_dem_rempart(dem, ipart)`
 /// removes the particle with the index `ipart`.
-/// Note that removing particles requires rebuilding all caches
+/// Indices may be reassigned in the process.
+/// Note that removing particles triggers rebuilding all caches
 /// by calling `bmm_dem_cache_build`.
-/// Indices may also be reassigned in the process.
 __attribute__ ((__nonnull__))
 void bmm_dem_rempart(struct bmm_dem*, size_t);
 
@@ -475,23 +481,10 @@ inline bool bmm_dem_script_trans(struct bmm_dem* const dem) {
   return true;
 }
 
-/// The call `bmm_dem_cache_fresh(dem)`
-/// checks whether the cache for the simulation `dem` is not yet stale.
-inline bool bmm_dem_cache_fresh(struct bmm_dem const* const dem) {
-  for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
-    double const dx = dem->opts.box.x[idim] /
-      (double) ((dem->opts.cache.ncell[idim] - 2) * 2);
-    // TODO Use this instead of `dx - dem->part.r[ipart]`.
-    // double const d = dx - dem->opts.part.rnew[1];
-
-    for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-      if (fabs(bmm_fp_swrap(dem->part.x[ipart][idim] -
-              dem->cache.x[ipart][idim], dem->opts.box.x[idim])) >=
-          dx - dem->part.r[ipart])
-        return false;
-  }
-
-  return true;
-}
+/// The call `bmm_dem_cache_expired(dem)`
+/// checks whether particles have moved enough to require rebuilding caches
+/// in the simulation `dem`.
+__attribute__ ((__nonnull__, __pure__))
+bool bmm_dem_cache_expired(struct bmm_dem const*);
 
 #endif

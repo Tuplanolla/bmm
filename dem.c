@@ -138,22 +138,13 @@ static bool bmm_dem_cache_eligible(struct bmm_dem const* const dem,
   return true;
 }
 
-/// The call `bmm_dem_cache_clrneigh(dem, ipart)`
-/// clears the neighbor cache of the particle `ipart`
-/// in the simulation `dem`.
-__attribute__ ((__nonnull__))
-static void bmm_dem_cache_clrneigh(struct bmm_dem* const dem,
-    size_t const ipart) {
-  dem->cache.neigh[ipart].n = 0;
-}
-
 /// The call `bmm_dem_cache_clrneighs(dem)`
 /// clears the neighbor cache
 /// in the simulation `dem`.
 __attribute__ ((__nonnull__))
 static void bmm_dem_cache_clrneighs(struct bmm_dem* const dem) {
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    bmm_dem_cache_clrneigh(dem, ipart);
+    dem->cache.neigh[ipart].n = 0;
 }
 
 // The procedures `bmm_dem_cache_addfrom` and `bmm_dem_cache_addto`
@@ -259,6 +250,8 @@ bool bmm_dem_cache_build(struct bmm_dem* const dem) {
     if (!bmm_dem_cache_addfrom(dem, ipart, BMM_NEIGH_MASK_UPPERH))
       return false;
 
+  dem->cache.stale = false;
+
   return true;
 }
 
@@ -294,6 +287,8 @@ size_t bmm_dem_addpart(struct bmm_dem* const dem) {
     dem->part.f[ipart][idim] = 0.0;
 
   dem->part.tau[ipart] = 0.0;
+
+  dem->cache.stale = true;
 
   return ipart;
 }
@@ -355,6 +350,8 @@ void bmm_dem_rempart(struct bmm_dem* const dem,
 
   if (jpart != ipart)
     bmm_dem_reassign(dem, ipart, jpart);
+
+  dem->cache.stale = true;
 }
 
 void bmm_dem_force_pair(struct bmm_dem* const dem,
@@ -383,7 +380,6 @@ void bmm_dem_force_pair(struct bmm_dem* const dem,
   double vdiff[BMM_NDIM];
   bmm_geom2d_diff(vdiff, dem->part.v[ipart], dem->part.v[jpart]);
 
-  // TODO Apply 3.2 for real now.
   double const xi = r - d;
   double const dotxi = bmm_geom2d_dot(vdiff, xnorm);
   double const vtang = bmm_geom2d_dot(vdiff, xtang) +
@@ -432,13 +428,12 @@ void bmm_dem_force_pair(struct bmm_dem* const dem,
   dem->part.tau[jpart] += ft * dem->part.r[jpart];
 }
 
+// TODO Flatten these to allow loop-invariant code motion.
 void bmm_dem_force_ambient(struct bmm_dem* const dem, size_t const ipart) {
-  // TODO Shimmy these switches outside the loops,
-  // perhaps by passing in function pointers.
   switch (dem->opts.famb) {
     case BMM_DEM_FAMB_CREEPING:
       for (size_t idim = 0; idim < nmembof(dem->part.f[ipart]); ++idim)
-        dem->part.f[ipart][idim] *= 1.0;
+        dem->part.f[ipart][idim] *= 1.0 - 1e-2;
 
       break;
     case BMM_DEM_FAMB_QUAD:
@@ -458,6 +453,17 @@ void bmm_dem_force_link(struct bmm_dem* const dem,
     size_t const ipart, size_t const jpart, size_t const ilink) {
   // TODO This.
   return;
+}
+
+void bmm_dem_force_external(struct bmm_dem* const dem, size_t const ipart) {
+  // TODO Force field strength.
+
+  switch (dem->opts.script.mode[dem->script.i]) {
+    case BMM_DEM_MODE_SEDIMENT:
+      dem->part.f[ipart][1] +=
+        dem->opts.script.params[dem->script.i].sediment.kcohes *
+        (dem->opts.box.x[1] / 2.0 - dem->part.x[ipart][1]);
+  }
 }
 
 void bmm_dem_force(struct bmm_dem* const dem) {
@@ -490,6 +496,9 @@ void bmm_dem_force(struct bmm_dem* const dem) {
     for (size_t ilink = 0; ilink < dem->link.part[ipart].n; ++ilink)
       bmm_dem_force_link(dem, ipart, dem->link.part[ipart].i[ilink], ilink);
 
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    bmm_dem_force_external(dem, ipart);
+
   // TODO Calculate force feedback from the residuals.
 }
 
@@ -498,22 +507,18 @@ void bmm_dem_integ_euler(struct bmm_dem* const dem) {
 
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
     for (size_t idim = 0; idim < 2; ++idim) {
+      dem->part.a[ipart][idim] = dem->part.f[ipart][idim] / dem->part.m[ipart];
+      dem->part.v[ipart][idim] = dem->part.v[ipart][idim] + dem->part.a[ipart][idim] * dt;
       dem->part.x[ipart][idim] = dem->part.x[ipart][idim] + dem->part.v[ipart][idim] * dt;
+
       if (dem->opts.box.per[idim])
         dem->part.x[ipart][idim] = bmm_fp_uwrap(dem->part.x[ipart][idim],
             dem->opts.box.x[idim]);
-
-      // TODO Ordering.
-      dem->part.v[ipart][idim] = dem->part.v[ipart][idim] + dem->part.a[ipart][idim] * dt;
-
-      dem->part.a[ipart][idim] = dem->part.f[ipart][idim] / dem->part.m[ipart];
     }
 
-    dem->part.phi[ipart] = dem->part.phi[ipart] + dem->part.omega[ipart] * dt;
-
-    dem->part.omega[ipart] = dem->part.omega[ipart] + dem->part.alpha[ipart] * dt;
-
     dem->part.alpha[ipart] = dem->part.tau[ipart] / dem->cache.j[ipart];
+    dem->part.phi[ipart] = dem->part.phi[ipart] + dem->part.omega[ipart] * dt;
+    dem->part.omega[ipart] = dem->part.omega[ipart] + dem->part.alpha[ipart] * dt;
   }
 }
 
@@ -739,7 +744,7 @@ void bmm_dem_opts_def(struct bmm_dem_opts* const opts) {
   // This is here just to help Valgrind and cover up my mistakes.
   (void) memset(opts, 0, sizeof *opts);
 
-  opts->verbose = true;
+  opts->verbose = false;
 
   opts->init = BMM_DEM_INIT_TRIAL;
   opts->integ = BMM_DEM_INTEG_EULER;
@@ -818,6 +823,7 @@ void bmm_dem_def(struct bmm_dem* const dem,
 
   dem->comm.tprev = 0.0;
 
+  dem->cache.stale = false;
   dem->cache.i = 0;
   dem->cache.tpart = 0.0;
   dem->cache.tprev = 0.0;
@@ -874,28 +880,86 @@ bool bmm_dem_puts(struct bmm_dem const* const dem,
     bmm_dem_puts_stuff(dem, num);
 }
 
-bool bmm_dem_script_pushidle(struct bmm_dem_opts* const opts,
-    double const tspan) {
-  if (opts->script.n >= nmembof(opts->script.mode))
-    return false;
-
-  double const dt = 1.0e-4;
-  enum bmm_dem_mode mode = BMM_DEM_MODE_IDLE;
-
-  opts->script.tspan[opts->script.n] = tspan;
-  opts->script.dt[opts->script.n] = dt;
-  opts->script.mode[opts->script.n] = mode;
-
-  ++opts->script.n;
-
-  return true;
-}
-
 extern inline bool bmm_dem_script_ongoing(struct bmm_dem const*);
 
 extern inline bool bmm_dem_script_trans(struct bmm_dem*);
 
-extern inline bool bmm_dem_cache_fresh(struct bmm_dem const*);
+bool bmm_dem_cache_expired(struct bmm_dem const* const dem) {
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
+    double const dx = dem->opts.box.x[idim] /
+      (double) ((dem->opts.cache.ncell[idim] - 2) * 2);
+    // TODO Use this instead of `dx - dem->part.r[ipart]`.
+    // double const d = dx - dem->opts.part.rnew[1];
+
+    for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+      if (fabs(bmm_fp_swrap(dem->part.x[ipart][idim] -
+              dem->cache.x[ipart][idim], dem->opts.box.x[idim])) >=
+          dx - dem->part.r[ipart])
+        return true;
+  }
+
+  return false;
+}
+
+__attribute__ ((__nonnull__))
+double bmm_rng_get(gsl_rng* const rng, double const* const x) {
+  return gsl_rng_uniform(rng) * (x[1] - x[0]) + x[0];
+}
+
+__attribute__ ((__nonnull__))
+static bool bmm_dem_script_create_hc(struct bmm_dem* const dem) {
+  double const etahc = bmm_geom_ballvol(0.5, BMM_NDIM);
+  double const vhc = bmm_fp_prod(dem->opts.box.x, BMM_NDIM);
+  double const eta = dem->opts.script.params[dem->script.i].create.eta;
+  double const v = vhc * (etahc / eta);
+
+  double const vlim = vhc * eta;
+
+  // TODO Density.
+  double const rho = 1.0;
+
+  double x[BMM_NDIM];
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+    x[idim] = 0.0;
+
+  double rmax = 0.0;
+  double vnow = 0.0;
+
+  for ever {
+    double const r = bmm_rng_get(dem->rng, dem->opts.part.rnew);
+    double const v = bmm_geom_ballvol(r, BMM_NDIM);
+
+    double const vnext = vnow + v;
+
+    if (vnext < vlim) {
+      size_t ipart = bmm_dem_addpart(dem);
+      dem->part.r[ipart] = r;
+      dem->part.m[ipart] = rho * v;
+
+      // TODO Warning: nontermination.
+      if (x[0] + 2.0 * r >= dem->opts.box.x[0]) {
+        x[0] = 0.0;
+        x[1] += 2.0 * rmax;
+        rmax = 0.0;
+      }
+
+      for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+        dem->part.x[ipart][idim] = x[idim] + r;
+
+      x[0] += 2.0 * r;
+
+      rmax = fmax(rmax, r);
+      vnow = vnext;
+    } else
+      break;
+  }
+
+  return true;
+}
+
+__attribute__ ((__nonnull__))
+static bool bmm_dem_script_create_ball(struct bmm_dem* const dem) {
+}
 
 /// The call `bmm_dem_step(dem)`
 /// advances the simulation `dem` by one step.
@@ -904,6 +968,8 @@ extern inline bool bmm_dem_cache_fresh(struct bmm_dem const*);
 bool bmm_dem_step(struct bmm_dem* const dem) {
   switch (dem->opts.script.mode[dem->script.i]) {
     case BMM_DEM_MODE_CREATE:
+      if (!bmm_dem_script_create_hc(dem))
+        return false;
 
       break;
     case BMM_DEM_MODE_SEDIMENT:
@@ -926,7 +992,7 @@ bool bmm_dem_step(struct bmm_dem* const dem) {
       break;
   }
 
-  if (!bmm_dem_cache_fresh(dem)) {
+  if (dem->cache.stale || bmm_dem_cache_expired(dem)) {
     if (!bmm_dem_cache_build(dem))
       return false;
 
@@ -998,18 +1064,20 @@ static bool bmm_dem_run_(struct bmm_dem* const dem) {
   dem->opts.box.per[0] = true;
   dem->opts.box.per[1] = false;
 
-  dem->opts.cache.rcutoff = 1.0;
+  // TODO Take into account in staleness calculations.
+  dem->opts.cache.rcutoff = 0.5;
 
-  dem->opts.part.y = 1.0e+4;
+  dem->opts.part.rnew[0] = 0.04;
+  dem->opts.part.rnew[1] = 0.06;
+
+  dem->opts.part.y = 1.0e+3;
+  dem->opts.norm.params.dashpot.gamma = 1.0;
 
   dem->opts.comm.dt = 1.0e-3;
 
-  bmm_dem_script_pushidle(&dem->opts, 0.04);
-  bmm_dem_script_pushidle(&dem->opts, 0.26);
-  // bmm_dem_script_pushidle(&dem->opts, 0.96);
-
+  /*
   // Random stuff.
-  for (size_t ipart = 0; ipart < 64 - 0; ++ipart) {
+  for (size_t ipart = 0; ipart < 64; ++ipart) {
     size_t const jpart = bmm_dem_addpart(dem);
 
     dem->part.r[jpart] = 0.03;
@@ -1037,6 +1105,7 @@ static bool bmm_dem_run_(struct bmm_dem* const dem) {
   dem->part.x[jpart][1] += 0.25;
   dem->part.v[jpart][0] -= 1.0;
   dem->part.omega[jpart] += 400.0;
+  */
 
   for ever {
     int signum;
