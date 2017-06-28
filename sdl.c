@@ -45,6 +45,8 @@ enum bmm_io_read bmm_dem_gets_stuff(struct bmm_dem* const dem,
   switch (num) {
     case BMM_MSG_NUM_ISTEP:
       return msg_read(&dem->time, sizeof dem->time, NULL);
+    case BMM_MSG_NUM_OPTS:
+      return msg_read(&dem->opts, sizeof dem->opts, NULL);
     case BMM_MSG_NUM_NEIGH:
       switch (msg_read(&dem->cache, sizeof dem->cache, NULL)) {
         case BMM_IO_READ_ERROR:

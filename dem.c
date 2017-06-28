@@ -377,8 +377,11 @@ void bmm_dem_force_pair(struct bmm_dem* const dem,
   double xtang[BMM_NDIM];
   bmm_geom2d_rperp(xtang, xnorm);
 
+  double nvdiff[BMM_NDIM];
+  bmm_geom2d_diff(nvdiff, dem->part.v[ipart], dem->part.v[jpart]);
+  // TODO ??
   double vdiff[BMM_NDIM];
-  bmm_geom2d_diff(vdiff, dem->part.v[ipart], dem->part.v[jpart]);
+  bmm_geom2d_scale(vdiff, nvdiff, -1.0);
 
   double const xi = r - d;
   double const dotxi = bmm_geom2d_dot(vdiff, xnorm);
@@ -795,11 +798,24 @@ void bmm_dem_opts_def(struct bmm_dem_opts* const opts) {
     // TODO Use this somewhere.
     /*
     dynamic_assert(opts->box.x[idim] / (double) (opts->cache.ncell[idim] * 2) >
-        opts->part.rnew[1], "Too small neighbor cells");
+        opts->part.rnew[1],
+        "Neighbor cells too small");
     */
   }
 
-  opts->cache.rcutoff = 1.0;
+  opts->cache.rcutoff = (double) INFINITY;
+
+  for (size_t idim = 0; idim < nmembof(opts->cache.ncell); ++idim) {
+    opts->cache.rcutoff = fmin(opts->cache.rcutoff,
+        opts->box.x[idim] / (double) (opts->cache.ncell[idim] - 2));
+
+    // TODO Use this somewhere.
+    /*
+    dynamic_assert(opts->cache.rcutoff <= opts->box.x[idim] /
+        (double) ((opts->cache.ncell[idim] - 2) * 2),
+        "Neighbor cells too small");
+    */
+  }
 }
 
 void bmm_dem_def(struct bmm_dem* const dem,
@@ -844,6 +860,8 @@ size_t bmm_dem_sniff_size(struct bmm_dem const* const dem,
   switch (num) {
     case BMM_MSG_NUM_ISTEP:
       return sizeof dem->time;
+    case BMM_MSG_NUM_OPTS:
+      return sizeof dem->opts;
     case BMM_MSG_NUM_NEIGH:
       return sizeof dem->cache + sizeof dem->link;
     case BMM_MSG_NUM_PARTS:
@@ -858,6 +876,8 @@ bool bmm_dem_puts_stuff(struct bmm_dem const* const dem,
   switch (num) {
     case BMM_MSG_NUM_ISTEP:
       return msg_write(&dem->time, sizeof dem->time, NULL);
+    case BMM_MSG_NUM_OPTS:
+      return msg_write(&dem->opts, sizeof dem->opts, NULL);
     case BMM_MSG_NUM_NEIGH:
       return msg_write(&dem->cache, sizeof dem->cache, NULL) &&
         msg_write(&dem->link, sizeof dem->link, NULL);
@@ -885,18 +905,14 @@ extern inline bool bmm_dem_script_ongoing(struct bmm_dem const*);
 extern inline bool bmm_dem_script_trans(struct bmm_dem*);
 
 bool bmm_dem_cache_expired(struct bmm_dem const* const dem) {
-  for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
-    double const dx = dem->opts.box.x[idim] /
-      (double) ((dem->opts.cache.ncell[idim] - 2) * 2);
-    // TODO Use this instead of `dx - dem->part.r[ipart]`.
-    // double const d = dx - dem->opts.part.rnew[1];
+  // TODO Use `dem->opts.part.rnew[1]` instead of `dem->part.r[ipart]`.
+  double const r = dem->opts.cache.rcutoff / 2.0;
 
-    for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-      if (fabs(bmm_fp_swrap(dem->part.x[ipart][idim] -
-              dem->cache.x[ipart][idim], dem->opts.box.x[idim])) >=
-          dx - dem->part.r[ipart])
-        return true;
-  }
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    if (bmm_geom2d_cpdist2(dem->part.x[ipart], dem->cache.x[ipart],
+          dem->opts.box.x, dem->opts.box.per) >=
+        bmm_fp_sq(r - dem->part.r[ipart]))
+      return true;
 
   return false;
 }
@@ -1064,14 +1080,13 @@ static bool bmm_dem_run_(struct bmm_dem* const dem) {
   dem->opts.box.per[0] = true;
   dem->opts.box.per[1] = false;
 
-  // TODO Take into account in staleness calculations.
   dem->opts.cache.rcutoff = 0.5;
 
   dem->opts.part.rnew[0] = 0.04;
   dem->opts.part.rnew[1] = 0.06;
 
   dem->opts.part.y = 1.0e+3;
-  dem->opts.norm.params.dashpot.gamma = 1.0;
+  dem->opts.norm.params.dashpot.gamma = 1.0e+1;
 
   dem->opts.comm.dt = 1.0e-3;
 

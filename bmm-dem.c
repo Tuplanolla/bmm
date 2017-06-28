@@ -75,8 +75,8 @@ static bool f(char const* const key, char const* const value,
     if (strcmp(value, "mix") == 0) {
       bmm_dem_script_pushidle(opts, 0.01);
       bmm_dem_script_pushcreate(opts, 0.75);
-      bmm_dem_script_pushsediment(opts, 0.26, 0.2);
-      bmm_dem_script_pushidle(opts, 0.26);
+      bmm_dem_script_pushsediment(opts, 0.29, 1.0);
+      bmm_dem_script_pushidle(opts, 0.20);
       // bmm_dem_script_pushidle(opts, 0.96);
     } else if (strcmp(value, "couple") == 0) {
     } else

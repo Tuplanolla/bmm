@@ -40,7 +40,7 @@ build: bmm-dem bmm-filter bmm-glut bmm-nc bmm-sdl
 
 run: bmm-dem bmm-filter bmm-sdl
 	./bmm-dem --script mix --verbose yes | \
-	./bmm-filter --mode whitelist --pass istep --pass parts --pass neigh --verbose yes | \
+	./bmm-filter --mode whitelist --pass opts --pass istep --pass parts --pass neigh --verbose yes | \
 	./bmm-sdl
 
 run-store: bmm-dem bmm-filter
