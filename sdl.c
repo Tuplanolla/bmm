@@ -319,6 +319,36 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
         glEnd();
       }
 
+      // Links.
+      memcpy(blent, glMagenta, sizeof glBlack);
+      blent[3] = 1.0f;
+      memcpy(nope, blent, sizeof glBlack);
+      nope[3] = 0.0f;
+      blent[3] = 1.0f - (float) t;
+      glColor4fv(blent);
+
+      for (size_t ilink = 0; ilink < sdl->dem.link.part[ipart].n; ++ilink) {
+        size_t const jpart = sdl->dem.link.part[ipart].i[ilink];
+
+        double x0[BMM_NDIM];
+        double x1[BMM_NDIM];
+
+        (void) memcpy(x0, sdl->dem.part.x[ipart], sizeof x0);
+        (void) memcpy(x1, sdl->dem.part.x[jpart], sizeof x1);
+
+        double dx[BMM_NDIM];
+        dx[0] = x0[0] + bmm_fp_swrap(x1[0] - x0[0], sdl->dem.opts.box.x[0]);
+        dx[1] = x1[1];
+
+        x0[0] += off * sdl->dem.opts.box.x[0];
+        dx[0] += off * sdl->dem.opts.box.x[0];
+
+        glBegin(GL_LINES);
+        glVertex2dv(x0);
+        glVertex2dv(dx);
+        glEnd();
+      }
+
       // Neighbors.
       memcpy(blent, glBlue, sizeof glBlack);
       blent[3] = 1.0f;
@@ -390,9 +420,8 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
   (void) snprintf(strbuf, sizeof strbuf, "p (total vector momentum) = %g",
       bmm_dem_pvector(&sdl->dem));
   glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
-  (void) snprintf(strbuf, sizeof strbuf, "p + L (total momentum) = %g + %g = %g",
-      bmm_dem_pscalar(&sdl->dem), bmm_dem_lscalar(&sdl->dem),
-      bmm_dem_pscalar(&sdl->dem) + bmm_dem_lscalar(&sdl->dem));
+  (void) snprintf(strbuf, sizeof strbuf, "p + L (total momentum) = %g + %g",
+      bmm_dem_pscalar(&sdl->dem), bmm_dem_lscalar(&sdl->dem));
   glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
   (void) snprintf(strbuf, sizeof strbuf, "t (now) = %g (%zu)",
       sdl->dem.time.t, sdl->dem.time.istep);

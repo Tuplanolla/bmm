@@ -65,6 +65,9 @@ enum bmm_dem_role {
 enum bmm_dem_mode {
   /// Do nothing.
   BMM_DEM_MODE_IDLE,
+  /// Tests.
+  BMM_DEM_MODE_TEST_GAS,
+  BMM_DEM_MODE_TEST_COUPLE,
   /// Create a fixed number of particles, sparse in the y-direction.
   BMM_DEM_MODE_CREATE,
   /// Draw particles towards a harmonic force field zero along the x-axis.

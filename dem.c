@@ -790,6 +790,7 @@ void bmm_dem_opts_def(struct bmm_dem_opts* const opts) {
   opts->famb = BMM_DEM_FAMB_CREEPING;
   opts->fnorm = BMM_DEM_FNORM_DASHPOT;
   opts->ftang = BMM_DEM_FTANG_HW;
+  opts->flink = BMM_DEM_FLINK_BEAM;
 
   opts->norm.params.dashpot.gamma = 1.0;
   opts->tang.params.hw.gamma = 1.0;
@@ -1058,6 +1059,40 @@ __attribute__ ((__nonnull__))
 static bool bmm_dem_script_create_ball(struct bmm_dem* const dem) {
 }
 
+__attribute__ ((__nonnull__))
+static bool bmm_dem_script_create_gas(struct bmm_dem* const dem) {
+  for (size_t ipart = 0; ipart < 64; ++ipart) {
+    size_t const jpart = bmm_dem_addpart(dem);
+
+    dem->part.r[jpart] = 0.03;
+    dem->part.m[jpart] = 1.0;
+
+    for (size_t idim = 0; idim < nmembof(dem->part.x[jpart]); ++idim)
+      dem->part.x[jpart][idim] += gsl_rng_uniform(dem->rng) * dem->opts.box.x[idim];
+
+      dem->part.omega[jpart] += (double) (rand() % 512 - 256);
+  }
+}
+
+__attribute__ ((__nonnull__))
+static bool bmm_dem_script_create_couple(struct bmm_dem* const dem) {
+  size_t jpart;
+  jpart = bmm_dem_addpart(dem);
+  dem->part.r[jpart] = 0.03;
+  dem->part.m[jpart] = 1.0;
+  dem->part.x[jpart][0] += 0.45;
+  dem->part.x[jpart][1] += 0.25;
+  dem->part.v[jpart][0] += 1.0;
+  dem->part.omega[jpart] += 400.0;
+  jpart = bmm_dem_addpart(dem);
+  dem->part.r[jpart] = 0.03;
+  dem->part.m[jpart] = 1.0;
+  dem->part.x[jpart][0] += 0.55;
+  dem->part.x[jpart][1] += 0.25;
+  dem->part.v[jpart][0] -= 1.0;
+  dem->part.omega[jpart] += 400.0;
+}
+
 /// The call `bmm_dem_step(dem)`
 /// advances the simulation `dem` by one step.
 /// Make sure the simulation has not ended prior to the call
@@ -1071,10 +1106,26 @@ bool bmm_dem_step(struct bmm_dem* const dem) {
       bmm_dem_script_balance(dem);
 
       break;
+    case BMM_DEM_MODE_TEST_GAS:
+      if (!bmm_dem_script_create_gas(dem))
+        return false;
+
+      bmm_dem_script_balance(dem);
+
+      break;
+    case BMM_DEM_MODE_TEST_COUPLE:
+      if (!bmm_dem_script_create_couple(dem))
+        return false;
+
+      bmm_dem_script_balance(dem);
+
+      break;
     case BMM_DEM_MODE_SEDIMENT:
 
       break;
     case BMM_DEM_MODE_LINK:
+      if (!bmm_dem_link(dem))
+        return false;
 
       break;
     case BMM_DEM_MODE_FAULT:
@@ -1149,7 +1200,6 @@ bool bmm_dem_report(struct bmm_dem const* const dem) {
   return true;
 }
 
-// TODO Would it be beneficial to be higher-order?
 static bool bmm_dem_run_(struct bmm_dem* const dem) {
   int const sigs[] = {SIGINT, SIGQUIT, SIGTERM, SIGPIPE};
   if (bmm_sig_register(sigs, nmembof(sigs)) != SIZE_MAX) {
@@ -1157,56 +1207,6 @@ static bool bmm_dem_run_(struct bmm_dem* const dem) {
 
     return false;
   }
-
-  // TODO Get rid of these after refactoring `dem.c`.
-
-  dem->opts.box.per[0] = true;
-  dem->opts.box.per[1] = false;
-
-  // dem->opts.cache.rcutoff /= 2.0;
-
-  double const mu = 0.05;
-
-  dem->opts.part.rnew[0] = 2.0 * mu / (1.0 + sqrt(2.0));
-  dem->opts.part.rnew[1] = 4.0 * mu / (2.0 + sqrt(2.0));
-
-  dem->opts.part.rho = 1.0;
-  dem->opts.part.y = 1.0e+3;
-  dem->opts.norm.params.dashpot.gamma = 1.0e+1;
-
-  dem->opts.comm.dt = 1.0e-3;
-
-  /*
-  // Random stuff.
-  for (size_t ipart = 0; ipart < 64; ++ipart) {
-    size_t const jpart = bmm_dem_addpart(dem);
-
-    dem->part.r[jpart] = 0.03;
-    dem->part.m[jpart] = 1.0;
-
-    for (size_t idim = 0; idim < nmembof(dem->part.x[jpart]); ++idim)
-      dem->part.x[jpart][idim] += gsl_rng_uniform(dem->rng) * dem->opts.box.x[idim];
-
-      dem->part.omega[jpart] += (double) (rand() % 512 - 256);
-  }
-
-  // Rotating couple.
-  size_t jpart;
-  jpart = bmm_dem_addpart(dem);
-  dem->part.r[jpart] = 0.03;
-  dem->part.m[jpart] = 1.0;
-  dem->part.x[jpart][0] += 0.45;
-  dem->part.x[jpart][1] += 0.25;
-  dem->part.v[jpart][0] += 1.0;
-  dem->part.omega[jpart] += 400.0;
-  jpart = bmm_dem_addpart(dem);
-  dem->part.r[jpart] = 0.03;
-  dem->part.m[jpart] = 1.0;
-  dem->part.x[jpart][0] += 0.55;
-  dem->part.x[jpart][1] += 0.25;
-  dem->part.v[jpart][0] -= 1.0;
-  dem->part.omega[jpart] += 400.0;
-  */
 
   for ever {
     int signum;

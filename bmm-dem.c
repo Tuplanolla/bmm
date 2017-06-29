@@ -21,13 +21,27 @@ static bool f(char const* const key, char const* const value,
   struct bmm_dem_opts* const opts = ptr;
 
   // TODO Refactor these at some point.
+  double const dtstuff = 1.0e-4;
+  size_t istage;
+
+  opts->box.per[0] = true;
+  opts->box.per[1] = false;
+
+  // opts->cache.rcutoff /= 2.0;
+
+  double const mu = 0.05;
+
+  opts->part.rnew[0] = 2.0 * mu / (1.0 + sqrt(2.0));
+  opts->part.rnew[1] = 4.0 * mu / (2.0 + sqrt(2.0));
+
+  opts->part.rho = 1.0;
+  opts->part.y = 1.0e+3;
+  opts->norm.params.dashpot.gamma = 1.0e+1;
+
+  opts->comm.dt = 1.0e-3;
 
   if (strcmp(key, "script") == 0) {
     if (strcmp(value, "mix") == 0) {
-      double const dtstuff = 1.0e-4;
-
-      size_t istage;
-
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
       opts->script.tspan[istage] = 0.005;
@@ -39,15 +53,25 @@ static bool f(char const* const key, char const* const value,
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_SEDIMENT;
-      opts->script.tspan[istage] = 0.3;
+      opts->script.tspan[istage] = 0.2;
       opts->script.dt[istage] = dtstuff;
       opts->script.params[istage].sediment.kcohes = 2.0;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_LINK;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
       opts->script.tspan[istage] = 0.2;
       opts->script.dt[istage] = dtstuff;
     } else if (strcmp(value, "couple") == 0) {
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_TEST_COUPLE;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
+      opts->script.tspan[istage] = 0.2;
+      opts->script.dt[istage] = dtstuff;
     } else
       return false;
   } else if (strcmp(key, "verbose") == 0) {
