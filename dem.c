@@ -466,15 +466,35 @@ void bmm_dem_force_pair(struct bmm_dem* const dem,
   dem->part.tau[jpart] += ft * dem->part.r[jpart];
 }
 
+void bmm_dem_force_creeping(struct bmm_dem* const dem,
+    size_t const ipart) {
+  double const v = bmm_geom2d_norm(dem->part.v[ipart]);
+
+  if (v == 0.0)
+    return;
+
+  // TODO Is this a correct implementation of Faxén's laws?
+
+  double vunit[BMM_NDIM];
+  bmm_geom2d_scale(vunit, dem->part.v[ipart], 1.0 / v);
+
+  double const f = -3.0 * M_2PI * dem->opts.ambient.params.creeping.mu *
+    dem->part.r[ipart] * v;
+
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+    dem->part.f[ipart][idim] += f * vunit[idim];
+
+  double const tau = -4.0 * M_2PI * dem->opts.ambient.params.creeping.mu *
+    bmm_fp_cb(dem->part.r[ipart]);
+
+  dem->part.tau[ipart] += tau * dem->part.omega[ipart];
+}
+
 // TODO Flatten these to allow loop-invariant code motion.
 void bmm_dem_force_ambient(struct bmm_dem* const dem, size_t const ipart) {
   switch (dem->opts.famb) {
     case BMM_DEM_FAMB_CREEPING:
-      for (size_t idim = 0; idim < nmembof(dem->part.f[ipart]); ++idim)
-        dem->part.f[ipart][idim] -= 3.0 * M_2PI *
-          dem->opts.ambient.params.creeping.mu *
-          dem->part.r[ipart] *
-          dem->part.v[ipart][idim];
+      bmm_dem_force_creeping(dem, ipart);
 
       break;
     case BMM_DEM_FAMB_QUAD:

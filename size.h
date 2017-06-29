@@ -113,6 +113,13 @@ inline size_t bmm_size_sq(size_t const n) {
   return n * n;
 }
 
+/// The call `bmm_size_cb(n)` returns `n` cubed.
+/// This is analogous to `bmm_fp_cb`.
+__attribute__ ((__const__, __pure__))
+inline size_t bmm_size_cb(size_t const n) {
+  return n * n * n;
+}
+
 /// The call `bmm_size_firt(n, k)` returns the floor of the `k`th root of `n`.
 /// This is analogous to `bmm_fp_rt`.
 /// Note that the result may be wrong for large arguments.

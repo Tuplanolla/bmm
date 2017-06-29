@@ -108,6 +108,12 @@ inline double bmm_fp_sq(double const x) {
   return x * x;
 }
 
+/// The call `bmm_fp_cb(x)` returns `x` cubed.
+__attribute__ ((__const__, __pure__))
+inline double bmm_fp_cb(double const x) {
+  return x * x * x;
+}
+
 /// The call `bmm_fp_rt(x, y)` returns the `y`th root of `x`.
 /// This is analogous to `bmm_size_firt` or `bmm_size_cirt`.
 __attribute__ ((__const__, __pure__))

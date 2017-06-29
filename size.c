@@ -24,6 +24,8 @@ extern inline size_t bmm_size_midpoint(size_t, size_t);
 
 extern inline size_t bmm_size_sq(size_t);
 
+extern inline size_t bmm_size_cb(size_t);
+
 extern inline size_t bmm_size_firt(size_t, size_t);
 
 extern inline size_t bmm_size_cirt(size_t, size_t);

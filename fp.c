@@ -21,6 +21,8 @@ extern inline double bmm_fp_midpoint(double, double);
 
 extern inline double bmm_fp_sq(double);
 
+extern inline double bmm_fp_cb(double);
+
 extern inline double bmm_fp_rt(double, double);
 
 extern inline double bmm_fp_log(double, double);
