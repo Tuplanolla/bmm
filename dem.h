@@ -72,7 +72,7 @@ enum bmm_dem_mode {
   /// Link nearby particles together.
   BMM_DEM_MODE_LINK,
   // TODO Consider another way to do this:
-  // use an partitioning indicator function when linking.
+  // use a partitioning indicator function when linking.
   /// Break the links that cross the zero along the x-axis.
   BMM_DEM_MODE_FAULT,
   /// Pull the material apart in the y-direction.
@@ -90,6 +90,7 @@ struct bmm_dem_opts {
   enum bmm_dem_init init;
   /// Integration scheme.
   enum bmm_dem_integ integ;
+  // TODO These should not be options (scripts may change them).
   /// Caching scheme.
   enum bmm_dem_caching caching;
   /// Ambient force scheme.
@@ -149,6 +150,8 @@ struct bmm_dem_opts {
   } time;
   /// Particles.
   struct {
+    /// Mass density.
+    double rho;
     /// Young's modulus.
     double y;
     /// Particle sizes expressed as the width of the uniform distribution.
@@ -175,12 +178,12 @@ struct bmm_dem_opts {
   struct {
     /// Number of stages.
     size_t n;
+    /// Functionalities.
+    enum bmm_dem_mode mode[BMM_MSTAGE];
     /// Timespans.
     double tspan[BMM_MSTAGE];
     /// Time steps.
     double dt[BMM_MSTAGE];
-    /// Functionalities.
-    enum bmm_dem_mode mode[BMM_MSTAGE];
     /// Parameters.
     union {
       /// For `BMM_DEM_MODE_CREATE`.
@@ -358,6 +361,30 @@ struct bmm_dem {
   } cache;
 };
 
+/// The call `bmm_dem_script_addstage(opts)`
+/// tries to add an idle stage with zero duration to the script
+/// in the simulation options `opts`.
+/// If there is enough capacity and the operation is successful,
+/// the index of the new stage is returned.
+/// Otherwise `SIZE_MAX` is returned.
+/// Note that zero duration means that the stage
+/// takes exactly one frame during which no time elapses.
+__attribute__ ((__nonnull__))
+size_t bmm_dem_script_addstage(struct bmm_dem_opts*);
+
+/// The call `bmm_dem_script_ongoing(dem)`
+/// checks whether the simulation `dem` has not ended.
+__attribute__ ((__nonnull__, __pure__))
+bool bmm_dem_script_ongoing(struct bmm_dem const*);
+
+/// The call `bmm_dem_script_trans(dem)`
+/// transitions the simulation `dem` to the next state and
+/// checks whether the simulation did not end while doing so.
+/// Make sure the simulation has not ended prior to the call
+/// by calling `bmm_dem_script_ongoing`.
+__attribute__ ((__nonnull__))
+bool bmm_dem_script_trans(struct bmm_dem*);
+
 /// The call `bmm_dem_cache_build(dem)`
 /// tries to cache everything that supports caching
 /// in the simulation `dem`.
@@ -453,33 +480,6 @@ bool bmm_dem_puts_stuff(struct bmm_dem const* const dem,
 
 bool bmm_dem_puts(struct bmm_dem const* const dem,
     enum bmm_msg_num const num);
-
-/// The call `bmm_dem_script_ongoing(dem)`
-/// checks whether the simulation `dem` has not ended.
-inline bool bmm_dem_script_ongoing(struct bmm_dem const* const dem) {
-  return dem->script.i < dem->opts.script.n;
-}
-
-/// The call `bmm_dem_script_trans(dem)`
-/// transitions the simulation `dem` to the next state and
-/// checks whether the simulation did not end while doing so.
-/// Make sure the simulation has not ended prior to the call
-/// by calling `bmm_dem_script_ongoing`.
-inline bool bmm_dem_script_trans(struct bmm_dem* const dem) {
-  double const toff = dem->time.t - dem->script.tprev -
-    dem->opts.script.tspan[dem->script.i];
-
-  if (toff >= 0.0) {
-    dem->script.tprev = dem->time.t;
-    dem->script.ttrans[dem->script.i] = dem->time.t;
-    dem->script.toff[dem->script.i] = toff;
-    ++dem->script.i;
-
-    return bmm_dem_script_ongoing(dem);
-  }
-
-  return true;
-}
 
 /// The call `bmm_dem_cache_expired(dem)`
 /// checks whether particles have moved enough to require rebuilding caches

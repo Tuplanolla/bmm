@@ -15,55 +15,6 @@
 #include "str.h"
 #include "tle.h"
 
-static double const dtstuff = 1.0e-4;
-
-__attribute__ ((__deprecated__))
-static bool bmm_dem_script_pushidle(struct bmm_dem_opts* const opts,
-    double const tspan) {
-  if (opts->script.n >= nmembof(opts->script.mode))
-    return false;
-
-  opts->script.tspan[opts->script.n] = tspan;
-  opts->script.dt[opts->script.n] = dtstuff;
-  opts->script.mode[opts->script.n] = BMM_DEM_MODE_IDLE;
-
-  ++opts->script.n;
-
-  return true;
-}
-
-__attribute__ ((__deprecated__))
-static bool bmm_dem_script_pushcreate(struct bmm_dem_opts* const opts,
-    double const eta) {
-  if (opts->script.n >= nmembof(opts->script.mode))
-    return false;
-
-  opts->script.tspan[opts->script.n] = 0.0;
-  opts->script.dt[opts->script.n] = 1.0e-9;
-  opts->script.mode[opts->script.n] = BMM_DEM_MODE_CREATE;
-  opts->script.params[opts->script.n].create.eta = eta;
-
-  ++opts->script.n;
-
-  return true;
-}
-
-__attribute__ ((__deprecated__))
-static bool bmm_dem_script_pushsediment(struct bmm_dem_opts* const opts,
-    double const tspan, double const kcohes) {
-  if (opts->script.n >= nmembof(opts->script.mode))
-    return false;
-
-  opts->script.tspan[opts->script.n] = tspan;
-  opts->script.dt[opts->script.n] = dtstuff;
-  opts->script.mode[opts->script.n] = BMM_DEM_MODE_SEDIMENT;
-  opts->script.params[opts->script.n].sediment.kcohes = kcohes;
-
-  ++opts->script.n;
-
-  return true;
-}
-
 __attribute__ ((__nonnull__ (1, 2)))
 static bool f(char const* const key, char const* const value,
     void* const ptr) {
@@ -73,11 +24,29 @@ static bool f(char const* const key, char const* const value,
 
   if (strcmp(key, "script") == 0) {
     if (strcmp(value, "mix") == 0) {
-      bmm_dem_script_pushidle(opts, 0.01);
-      bmm_dem_script_pushcreate(opts, 0.75);
-      bmm_dem_script_pushsediment(opts, 0.29, 1.0);
-      bmm_dem_script_pushidle(opts, 0.20);
-      // bmm_dem_script_pushidle(opts, 0.96);
+      double const dtstuff = 1.0e-4;
+
+      size_t istage;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
+      opts->script.tspan[istage] = 0.005;
+      opts->script.dt[istage] = dtstuff;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_CREATE;
+      opts->script.params[istage].create.eta = 1.0;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_SEDIMENT;
+      opts->script.tspan[istage] = 0.3;
+      opts->script.dt[istage] = dtstuff;
+      opts->script.params[istage].sediment.kcohes = 2.0;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
+      opts->script.tspan[istage] = 0.2;
+      opts->script.dt[istage] = dtstuff;
     } else if (strcmp(value, "couple") == 0) {
     } else
       return false;

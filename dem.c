@@ -21,6 +21,41 @@
 #include "size.h"
 #include "tle.h"
 
+size_t bmm_dem_script_addstage(struct bmm_dem_opts* const opts) {
+  size_t const istage = opts->script.n;
+
+  if (istage >= BMM_MSTAGE)
+    return SIZE_MAX;
+
+  ++opts->script.n;
+
+  opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
+  opts->script.tspan[istage] = 0.0;
+  opts->script.dt[istage] = 0.0;
+
+  return istage;
+}
+
+bool bmm_dem_script_ongoing(struct bmm_dem const* const dem) {
+  return dem->script.i < dem->opts.script.n;
+}
+
+bool bmm_dem_script_trans(struct bmm_dem* const dem) {
+  double const toff = dem->time.t - dem->script.tprev -
+    dem->opts.script.tspan[dem->script.i];
+
+  if (toff >= 0.0) {
+    dem->script.tprev = dem->time.t;
+    dem->script.ttrans[dem->script.i] = dem->time.t;
+    dem->script.toff[dem->script.i] = toff;
+    ++dem->script.i;
+
+    return bmm_dem_script_ongoing(dem);
+  }
+
+  return true;
+}
+
 /// The call `bmm_dem_cache_j(dem, ipart)`
 /// caches the moment of inertia of the particle `ipart`
 /// in the simulation `dem`.
@@ -436,17 +471,16 @@ void bmm_dem_force_ambient(struct bmm_dem* const dem, size_t const ipart) {
   switch (dem->opts.famb) {
     case BMM_DEM_FAMB_CREEPING:
       for (size_t idim = 0; idim < nmembof(dem->part.f[ipart]); ++idim)
-        dem->part.f[ipart][idim] *= 1.0 - 1e-2;
+        dem->part.f[ipart][idim] -= 3.0 * M_2PI *
+          dem->opts.ambient.params.creeping.mu *
+          dem->part.r[ipart] *
+          dem->part.v[ipart][idim];
 
       break;
     case BMM_DEM_FAMB_QUAD:
-      for (size_t idim = 0; idim < nmembof(dem->part.f[ipart]); ++idim)
-        dem->part.f[ipart][idim] *= 1.0;
 
       break;
     case BMM_DEM_FAMB_CORR:
-      for (size_t idim = 0; idim < nmembof(dem->part.f[ipart]); ++idim)
-        dem->part.f[ipart][idim] *= 1.0;
 
       break;
   }
@@ -767,7 +801,7 @@ void bmm_dem_opts_def(struct bmm_dem_opts* const opts) {
   for (size_t idim = 0; idim < nmembof(opts->box.per); ++idim)
     opts->box.per[idim] = false;
 
-  opts->ambient.params.creeping.mu = 0.0;
+  opts->ambient.params.creeping.mu = 1.0;
 
   opts->time.istab = 1000;
 
@@ -900,10 +934,6 @@ bool bmm_dem_puts(struct bmm_dem const* const dem,
     bmm_dem_puts_stuff(dem, num);
 }
 
-extern inline bool bmm_dem_script_ongoing(struct bmm_dem const*);
-
-extern inline bool bmm_dem_script_trans(struct bmm_dem*);
-
 bool bmm_dem_cache_expired(struct bmm_dem const* const dem) {
   // TODO Use `dem->opts.part.rnew[1]` instead of `dem->part.r[ipart]`.
   double const r = dem->opts.cache.rcutoff / 2.0;
@@ -922,6 +952,57 @@ double bmm_rng_get(gsl_rng* const rng, double const* const x) {
   return gsl_rng_uniform(rng) * (x[1] - x[0]) + x[0];
 }
 
+__attribute__ ((__nonnull__, __pure__))
+static double bmm_dem_est_mass(struct bmm_dem* const dem) {
+  double m = 0.0;
+
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    m += dem->part.m[ipart];
+
+  return m;
+}
+
+__attribute__ ((__nonnull__))
+static void bmm_dem_est_center(double* const pxcenter,
+    struct bmm_dem* const dem) {
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+    pxcenter[idim] = dem->opts.box.x[idim] / 2.0;
+}
+
+__attribute__ ((__nonnull__))
+static void bmm_dem_est_com(double* const pxcom,
+    struct bmm_dem* const dem) {
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+    pxcom[idim] = 0.0;
+
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+      pxcom[idim] += dem->part.m[ipart] * dem->part.x[ipart][idim];
+
+  double const m = bmm_dem_est_mass(dem);
+
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+    pxcom[idim] /= m;
+}
+
+__attribute__ ((__nonnull__))
+static void bmm_dem_script_balance(struct bmm_dem* const dem) {
+  double xcenter[BMM_NDIM];
+  bmm_dem_est_center(xcenter, dem);
+
+  double xcom[BMM_NDIM];
+  bmm_dem_est_com(xcom, dem);
+
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
+      dem->part.x[ipart][idim] += xcenter[idim] - xcom[idim];
+
+      if (dem->opts.box.per[idim])
+        dem->part.x[ipart][idim] = bmm_fp_uwrap(dem->part.x[ipart][idim],
+            dem->opts.box.x[idim]);
+    }
+}
+
 __attribute__ ((__nonnull__))
 static bool bmm_dem_script_create_hc(struct bmm_dem* const dem) {
   double const etahc = bmm_geom_ballvol(0.5, BMM_NDIM);
@@ -930,15 +1011,12 @@ static bool bmm_dem_script_create_hc(struct bmm_dem* const dem) {
   double const v = vhc * (etahc / eta);
 
   double const vlim = vhc * eta;
-
-  // TODO Density.
-  double const rho = 1.0;
+  double const rspace = dem->opts.part.rnew[0];
 
   double x[BMM_NDIM];
   for (size_t idim = 0; idim < BMM_NDIM; ++idim)
     x[idim] = 0.0;
 
-  double rmax = 0.0;
   double vnow = 0.0;
 
   for ever {
@@ -950,21 +1028,24 @@ static bool bmm_dem_script_create_hc(struct bmm_dem* const dem) {
     if (vnext < vlim) {
       size_t ipart = bmm_dem_addpart(dem);
       dem->part.r[ipart] = r;
-      dem->part.m[ipart] = rho * v;
+      dem->part.m[ipart] = dem->opts.part.rho * v;
 
       // TODO Warning: nontermination.
       if (x[0] + 2.0 * r >= dem->opts.box.x[0]) {
         x[0] = 0.0;
-        x[1] += 2.0 * rmax;
-        rmax = 0.0;
+        x[1] += 2.0 * rspace;
       }
 
       for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-        dem->part.x[ipart][idim] = x[idim] + r;
+        dem->part.x[ipart][idim] = x[idim] + dem->opts.part.rnew[1];
 
-      x[0] += 2.0 * r;
+      // TODO Wow, lewd.
+      for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+        dem->part.x[ipart][idim] += bmm_rng_get(dem->rng,
+            dem->opts.part.rnew) / 4.0;
 
-      rmax = fmax(rmax, r);
+      x[0] += 2.0 * rspace;
+
       vnow = vnext;
     } else
       break;
@@ -986,6 +1067,8 @@ bool bmm_dem_step(struct bmm_dem* const dem) {
     case BMM_DEM_MODE_CREATE:
       if (!bmm_dem_script_create_hc(dem))
         return false;
+
+      bmm_dem_script_balance(dem);
 
       break;
     case BMM_DEM_MODE_SEDIMENT:
@@ -1080,11 +1163,14 @@ static bool bmm_dem_run_(struct bmm_dem* const dem) {
   dem->opts.box.per[0] = true;
   dem->opts.box.per[1] = false;
 
-  dem->opts.cache.rcutoff = 0.5;
+  // dem->opts.cache.rcutoff /= 2.0;
 
-  dem->opts.part.rnew[0] = 0.04;
-  dem->opts.part.rnew[1] = 0.06;
+  double const mu = 0.05;
 
+  dem->opts.part.rnew[0] = 2.0 * mu / (1.0 + sqrt(2.0));
+  dem->opts.part.rnew[1] = 4.0 * mu / (2.0 + sqrt(2.0));
+
+  dem->opts.part.rho = 1.0;
   dem->opts.part.y = 1.0e+3;
   dem->opts.norm.params.dashpot.gamma = 1.0e+1;
 
@@ -1141,11 +1227,11 @@ static bool bmm_dem_run_(struct bmm_dem* const dem) {
     if (!bmm_dem_comm(dem))
       return false;
 
-    if (!bmm_dem_script_trans(dem))
-      return true;
-
     if (!bmm_dem_step(dem))
       return false;
+
+    if (!bmm_dem_script_trans(dem))
+      return true;
   }
 
   return true;
