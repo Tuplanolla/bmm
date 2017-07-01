@@ -25,7 +25,7 @@ static bool f(char const* const key, char const* const value,
   size_t istage;
 
   opts->box.per[0] = true;
-  opts->box.per[1] = true;
+  opts->box.per[1] = false;
 
   // opts->cache.rcutoff /= 2.0;
 

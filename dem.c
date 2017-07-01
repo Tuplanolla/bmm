@@ -1,5 +1,4 @@
 #include <gsl/gsl_rng.h>
-#include <gsl/gsl_randist.h>
 #include <math.h>
 #include <signal.h>
 #include <stdbool.h>
@@ -400,6 +399,8 @@ void bmm_dem_force_pair(struct bmm_dem* const dem,
   double const r = dem->part.r[ipart] + dem->part.r[jpart];
   double const r2 = bmm_fp_sq(r);
 
+  // TODO Investigate.
+
   // TODO !!
   if (d2 > r2 || d2 == 0.0)
     return;
@@ -433,7 +434,6 @@ void bmm_dem_force_pair(struct bmm_dem* const dem,
       break;
   }
 
-  // TODO Investigate the sign.
   double fdiff[2];
   bmm_geom2d_scale(fdiff, xnorm, -fn);
 
@@ -472,8 +472,6 @@ void bmm_dem_force_creeping(struct bmm_dem* const dem,
 
   if (v == 0.0)
     return;
-
-  // TODO Is this a correct implementation of Faxén's laws?
 
   double vunit[BMM_NDIM];
   bmm_geom2d_scale(vunit, dem->part.v[ipart], 1.0 / v);
@@ -693,48 +691,11 @@ bool bmm_dem_unlink(struct bmm_dem* const dem) {
   return true;
 }
 
-// TODO These are dubious for empty sets.
-
-// Maximum velocity estimator.
-void bmm_dem_maxvel(double* const v, struct bmm_dem const* const dem) {
-  for (size_t idim = 0; idim < 2; ++idim) {
-    v[idim] = 0.0;
-
-    for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-      v[idim] = fmax(v[idim], dem->part.v[ipart][idim]);
-  }
-}
-
-// Maximum radius estimator.
-double bmm_dem_maxrad(struct bmm_dem const* const dem) {
-  double r = 0.0;
-
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    r = fmax(r, dem->part.r[ipart]);
-
-  return r;
-}
-
-// Drift time estimator.
-double bmm_dem_drift(struct bmm_dem const* const dem) {
-  double t = (double) INFINITY;
-
-  // TODO Make this a configuration constant.
-  double const rad = bmm_dem_maxrad(dem);
-
-  double v[2];
-  bmm_dem_maxvel(v, dem);
-
-  for (size_t idim = 0; idim < 2; ++idim)
-    t = fmin(t, (0.5 *
-          dem->opts.box.x[idim] / (double) dem->opts.cache.ncell[idim]) - rad) /
-        (v[idim] + 0.01);
-
-  return t;
-}
-
-// Total kinetic energy estimator.
-double bmm_dem_ekinetic(struct bmm_dem const* const dem) {
+/// The call `bmm_dem_est_ekin(dem)`
+/// returns the total kinetic energy of the particles
+/// in the simulation `dem`.
+__attribute__ ((__nonnull__, __pure__))
+double bmm_dem_est_ekin(struct bmm_dem const* const dem) {
   double e = 0.0;
 
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
@@ -744,45 +705,58 @@ double bmm_dem_ekinetic(struct bmm_dem const* const dem) {
     e += dem->cache.j[ipart] * bmm_fp_sq(dem->part.omega[ipart]);
   }
 
-  return e * 0.5;
+  return e / 2.0;
 }
 
-// Total momentum estimator.
-double bmm_dem_pvector(struct bmm_dem const* const dem) {
-  double p[2];
-  for (size_t idim = 0; idim < 2; ++idim)
-    p[idim] = 0.0;
+/// The call `bmm_dem_est_mass(dem)`
+/// returns the total mass of the particles
+/// in the simulation `dem`.
+__attribute__ ((__nonnull__, __pure__))
+double bmm_dem_est_mass(struct bmm_dem* const dem) {
+  double m = 0.0;
 
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    for (size_t idim = 0; idim < 2; ++idim)
-      p[idim] += dem->part.m[ipart] * dem->part.v[ipart][idim];
+    m += dem->part.m[ipart];
 
-  return bmm_geom2d_norm(p);
+  return m;
 }
 
-// Individual momentum estimator.
-double bmm_dem_pscalar(struct bmm_dem const* const dem) {
-  double p = 0.0;
+/// The call `bmm_dem_est_center(pxcenter, dem)`
+/// sets `pxcenter` to the center of the bounding box
+/// in the simulation `dem`.
+__attribute__ ((__nonnull__))
+void bmm_dem_est_center(double* const pxcenter,
+    struct bmm_dem* const dem) {
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+    pxcenter[idim] = dem->opts.box.x[idim] / 2.0;
+}
+
+/// The call `bmm_dem_est_com(pxcom, dem)`
+/// sets `pxcom` to the center of mass of the particles
+/// in the simulation `dem`.
+__attribute__ ((__nonnull__))
+void bmm_dem_est_com(double* const pxcom,
+    struct bmm_dem* const dem) {
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+    pxcom[idim] = 0.0;
 
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    p += dem->part.m[ipart] * bmm_geom2d_norm(dem->part.v[ipart]);
+    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+      pxcom[idim] += dem->part.m[ipart] * dem->part.x[ipart][idim];
 
-  return p;
+  double const m = bmm_dem_est_mass(dem);
+
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+    pxcom[idim] /= m;
 }
 
-// Individual angular momentum estimator.
-double bmm_dem_lscalar(struct bmm_dem const* const dem) {
-  double l = 0.0;
-
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    l += dem->cache.j[ipart] * dem->part.omega[ipart];
-
-  return l;
-}
-
-// Mean coefficient of restitution
-// (just linear dashpot for now, also a bit wrong).
-double bmm_dem_cor(struct bmm_dem const* const dem) {
+/// The call `bmm_dem_est_cor(dem)`
+/// returns the mean coefficient of restitution of the particles
+/// in the simulation `dem`.
+/// The result only applies to the linear dashpot model and
+/// even then it is a bit wrong.
+__attribute__ ((__deprecated__, __nonnull__, __pure__))
+double bmm_dem_est_cor(struct bmm_dem const* const dem) {
   double e = 0.0;
 
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
@@ -969,44 +943,6 @@ bool bmm_dem_cache_expired(struct bmm_dem const* const dem) {
 }
 
 __attribute__ ((__nonnull__))
-double bmm_rng_get(gsl_rng* const rng, double const* const x) {
-  return gsl_rng_uniform(rng) * (x[1] - x[0]) + x[0];
-}
-
-__attribute__ ((__nonnull__, __pure__))
-static double bmm_dem_est_mass(struct bmm_dem* const dem) {
-  double m = 0.0;
-
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    m += dem->part.m[ipart];
-
-  return m;
-}
-
-__attribute__ ((__nonnull__))
-static void bmm_dem_est_center(double* const pxcenter,
-    struct bmm_dem* const dem) {
-  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-    pxcenter[idim] = dem->opts.box.x[idim] / 2.0;
-}
-
-__attribute__ ((__nonnull__))
-static void bmm_dem_est_com(double* const pxcom,
-    struct bmm_dem* const dem) {
-  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-    pxcom[idim] = 0.0;
-
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-      pxcom[idim] += dem->part.m[ipart] * dem->part.x[ipart][idim];
-
-  double const m = bmm_dem_est_mass(dem);
-
-  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-    pxcom[idim] /= m;
-}
-
-__attribute__ ((__nonnull__))
 static void bmm_dem_script_balance(struct bmm_dem* const dem) {
   double xcenter[BMM_NDIM];
   bmm_dem_est_center(xcenter, dem);
@@ -1041,7 +977,7 @@ static bool bmm_dem_script_create_hc(struct bmm_dem* const dem) {
   double vnow = 0.0;
 
   for ever {
-    double const r = bmm_rng_get(dem->rng, dem->opts.part.rnew);
+    double const r = bmm_random_get(dem->rng, dem->opts.part.rnew);
     double const v = bmm_geom_ballvol(r, BMM_NDIM);
 
     double const vnext = vnow + v;
@@ -1062,7 +998,7 @@ static bool bmm_dem_script_create_hc(struct bmm_dem* const dem) {
 
       // TODO Wow, lewd.
       for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-        dem->part.x[ipart][idim] += bmm_rng_get(dem->rng,
+        dem->part.x[ipart][idim] += bmm_random_get(dem->rng,
             dem->opts.part.rnew) / 4.0;
 
       x[0] += 2.0 * rspace;

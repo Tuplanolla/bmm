@@ -428,20 +428,8 @@ void bmm_dem_opts_def(struct bmm_dem_opts*);
 __attribute__ ((__nonnull__))
 void bmm_dem_def(struct bmm_dem*, struct bmm_dem_opts const*);
 
-__attribute__ ((__nonnull__))
-double bmm_dem_ekinetic(struct bmm_dem const*);
-
-__attribute__ ((__nonnull__))
-double bmm_dem_pvector(struct bmm_dem const*);
-
-__attribute__ ((__nonnull__))
-double bmm_dem_pscalar(struct bmm_dem const*);
-
-__attribute__ ((__nonnull__))
-double bmm_dem_lscalar(struct bmm_dem const*);
-
-__attribute__ ((__nonnull__))
-double bmm_dem_cor(struct bmm_dem const*);
+double bmm_dem_est_ekin(struct bmm_dem const*);
+double bmm_dem_est_cor(struct bmm_dem const*);
 
 __attribute__ ((__nonnull__))
 bool bmm_dem_step(struct bmm_dem*);
