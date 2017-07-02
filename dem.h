@@ -14,13 +14,6 @@
 #include "io.h"
 #include "msg.h"
 
-enum bmm_dem_init {
-  BMM_DEM_INIT_NONE,
-  BMM_DEM_INIT_TRIAL,
-  BMM_DEM_INIT_CUBIC,
-  BMM_DEM_INIT_POISSOND
-};
-
 enum bmm_dem_integ {
   BMM_DEM_INTEG_EULER,
   BMM_DEM_INTEG_GEAR
@@ -89,21 +82,6 @@ enum bmm_dem_mode {
 struct bmm_dem_opts {
   /// Report statistics.
   bool verbose;
-  /// Initialization scheme.
-  enum bmm_dem_init init;
-  /// Integration scheme.
-  enum bmm_dem_integ integ;
-  // TODO These should not be options (scripts may change them).
-  /// Caching scheme.
-  enum bmm_dem_caching caching;
-  /// Ambient force scheme.
-  enum bmm_dem_famb famb;
-  /// Normal force scheme.
-  enum bmm_dem_fnorm fnorm;
-  /// Tangential force scheme.
-  enum bmm_dem_ftang ftang;
-  /// Link force scheme.
-  enum bmm_dem_flink flink;
   /// Bounding box.
   struct {
     /// Extents.
@@ -111,41 +89,6 @@ struct bmm_dem_opts {
     /// Periodicities.
     bool per[BMM_NDIM];
   } box;
-  /// Ambient properties.
-  struct {
-    /// Parameters.
-    union {
-      /// For `BMM_DEM_FAMB_CREEPING`.
-      struct {
-        /// Dynamic viscosity of compressible solution.
-        double mu;
-      } creeping;
-    } params;
-  } ambient;
-  /// Normal forces.
-  struct {
-    /// Parameters.
-    union {
-      /// For `BMM_DEM_FNORM_DASHPOT`.
-      struct {
-        /// Dashpot elasticity.
-        double gamma;
-      } dashpot;
-    } params;
-  } norm;
-  /// Tangential forces.
-  struct {
-    /// Parameters.
-    union {
-      /// For `BMM_DEM_FTANG_HW`.
-      struct {
-        /// Haff--Werner elasticity.
-        double gamma;
-        /// Coulomb friction parameter.
-        double mu;
-      } hw;
-    } params;
-  } tang;
   /// Timekeeping.
   struct {
     /// Stabilization frequency (frame rule).
@@ -245,6 +188,54 @@ struct bmm_dem {
   struct bmm_dem_opts opts;
   /// Random number generator state.
   gsl_rng* rng;
+  // TODO These should not be options (scripts may change them).
+  /// Integration scheme.
+  enum bmm_dem_integ integ;
+  /// Caching scheme.
+  enum bmm_dem_caching caching;
+  /// Ambient force scheme.
+  enum bmm_dem_famb famb;
+  /// Normal force scheme.
+  enum bmm_dem_fnorm fnorm;
+  /// Tangential force scheme.
+  enum bmm_dem_ftang ftang;
+  /// Link force scheme.
+  enum bmm_dem_flink flink;
+  /// Ambient properties.
+  struct {
+    /// Parameters.
+    union {
+      /// For `BMM_DEM_FAMB_CREEPING`.
+      struct {
+        /// Dynamic viscosity of compressible solution.
+        double mu;
+      } creeping;
+    } params;
+  } ambient;
+  /// Normal forces.
+  struct {
+    /// Parameters.
+    union {
+      /// For `BMM_DEM_FNORM_DASHPOT`.
+      struct {
+        /// Dashpot elasticity.
+        double gamma;
+      } dashpot;
+    } params;
+  } norm;
+  /// Tangential forces.
+  struct {
+    /// Parameters.
+    union {
+      /// For `BMM_DEM_FTANG_HW`.
+      struct {
+        /// Haff--Werner elasticity.
+        double gamma;
+        /// Coulomb friction parameter.
+        double mu;
+      } hw;
+    } params;
+  } tang;
   /// Timekeeping.
   struct {
     /// Time.

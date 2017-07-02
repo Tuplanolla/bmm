@@ -7,6 +7,7 @@
 
 #include "conf.h"
 #include "ext.h"
+#include "io.h"
 
 /// This structure contains filter options such as the whitelist.
 struct bmm_filter_opts {

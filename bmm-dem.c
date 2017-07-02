@@ -36,7 +36,6 @@ static bool f(char const* const key, char const* const value,
 
   opts->part.rho = 1.0;
   opts->part.y = 1.0e+3;
-  opts->norm.params.dashpot.gamma = 1.0e+1;
 
   opts->comm.dt = 1.0e-3;
 
