@@ -40,7 +40,7 @@
 #define BMM_MCELL 32
 
 /// Maximum number of particles per neighbor cell.
-#define BMM_MGROUP 128
+#define BMM_MGROUP 256
 
 /// Maximum number of message numbers.
 /// This is not adjustable without other changes.

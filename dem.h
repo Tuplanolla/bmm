@@ -16,12 +16,19 @@
 
 enum bmm_dem_integ {
   BMM_DEM_INTEG_EULER,
+  BMM_DEM_INTEG_TAYLOR3,
   BMM_DEM_INTEG_GEAR
 };
 
 enum bmm_dem_caching {
   BMM_DEM_CACHING_NONE,
   BMM_DEM_CACHING_NEIGH
+};
+
+enum bmm_dem_fext {
+  BMM_DEM_FEXT_NONE,
+  BMM_DEM_FEXT_ABS,
+  BMM_DEM_FEXT_HARM
 };
 
 enum bmm_dem_famb {
@@ -193,6 +200,8 @@ struct bmm_dem {
   enum bmm_dem_integ integ;
   /// Caching scheme.
   enum bmm_dem_caching caching;
+  /// External force scheme.
+  enum bmm_dem_fext fext;
   /// Ambient force scheme.
   enum bmm_dem_famb famb;
   /// Normal force scheme.
@@ -201,7 +210,37 @@ struct bmm_dem {
   enum bmm_dem_ftang ftang;
   /// Link force scheme.
   enum bmm_dem_flink flink;
-  /// Ambient properties.
+  /// Predictor data.
+  union {
+    /// For `BMM_DEM_INTEG_GEAR`.
+    struct {
+      /// Accelerations.
+      double a[BMM_MPART][BMM_NDIM];
+      /// Accelerations.
+      double b[BMM_MPART][BMM_NDIM];
+      /// Angular accelerations.
+      double alpha[BMM_MPART];
+      /// Angular accelerations.
+      double beta[BMM_MPART];
+    } gear;
+  } pred;
+  /// External forces.
+  struct {
+    /// Parameters.
+    union {
+      /// For `BMM_DEM_FEXT_ABS`.
+      struct {
+        /// Force.
+        double fcohes;
+      } abs;
+      /// For `BMM_DEM_FEXT_HARM`.
+      struct {
+        /// Harmonic constant.
+        double kcohes;
+      } harm;
+    } params;
+  } ext;
+  /// Ambient forces.
   struct {
     /// Parameters.
     union {
@@ -265,12 +304,16 @@ struct bmm_dem {
     double v[BMM_MPART][BMM_NDIM];
     /// Accelerations.
     double a[BMM_MPART][BMM_NDIM];
+    /// Previous accelerations.
+    double aprev[1][BMM_MPART][BMM_NDIM];
     /// Angles.
     double phi[BMM_MPART];
     /// Angular velocities.
     double omega[BMM_MPART];
     /// Angular accelerations.
     double alpha[BMM_MPART];
+    /// Previous angular accelerations.
+    double alphaprev[1][BMM_MPART];
     /// Forces.
     double f[BMM_MPART][BMM_NDIM];
     /// Torques.

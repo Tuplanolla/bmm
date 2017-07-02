@@ -143,8 +143,11 @@ static bool bmm_dem_cache_addpart(struct bmm_dem* const dem,
     size_t const ipart) {
   size_t const icell = dem->cache.icell[ipart];
 
-  if (dem->cache.part[icell].n >= nmembof(dem->cache.part[icell].i))
+  if (dem->cache.part[icell].n >= nmembof(dem->cache.part[icell].i)) {
+    BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Neighbor cell capacity exhausted");
+
     return false;
+  }
 
   dem->cache.part[icell].i[dem->cache.part[icell].n] = ipart;
   ++dem->cache.part[icell].n;
@@ -212,8 +215,11 @@ static bool bmm_dem_cache_addfrom(struct bmm_dem* const dem,
 
       // This block is covariant.
       if (bmm_dem_cache_eligible(dem, ipart, jpart)) {
-        if (dem->cache.neigh[ipart].n >= nmembof(dem->cache.neigh[ipart].i))
+        if (dem->cache.neigh[ipart].n >= nmembof(dem->cache.neigh[ipart].i)) {
+          BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Neighbor capacity exhausted");
+
           return false;
+        }
 
         dem->cache.neigh[ipart].i[dem->cache.neigh[ipart].n] = jpart;
         ++dem->cache.neigh[ipart].n;
@@ -250,8 +256,11 @@ static bool bmm_dem_cache_addto(struct bmm_dem* const dem,
 
       // This block is contravariant.
       if (bmm_dem_cache_eligible(dem, jpart, ipart)) {
-        if (dem->cache.neigh[jpart].n >= nmembof(dem->cache.neigh[jpart].i))
+        if (dem->cache.neigh[jpart].n >= nmembof(dem->cache.neigh[jpart].i)) {
+          BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Neighbor capacity exhausted");
+
           return false;
+        }
 
         dem->cache.neigh[jpart].i[dem->cache.neigh[jpart].n] = ipart;
         ++dem->cache.neigh[jpart].n;
@@ -314,9 +323,16 @@ size_t bmm_dem_addpart(struct bmm_dem* const dem) {
   for (size_t idim = 0; idim < BMM_NDIM; ++idim)
     dem->part.a[ipart][idim] = 0.0;
 
+  for (size_t istep = 0; istep < nmembof(dem->part.aprev); ++istep)
+    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+      dem->part.aprev[istep][ipart][idim] = 0.0;
+
   dem->part.phi[ipart] = 0.0;
   dem->part.omega[ipart] = 0.0;
   dem->part.alpha[ipart] = 0.0;
+
+  for (size_t istep = 0; istep < nmembof(dem->part.alphaprev); ++istep)
+    dem->part.alphaprev[istep][ipart] = 0.0;
 
   for (size_t idim = 0; idim < BMM_NDIM; ++idim)
     dem->part.f[ipart][idim] = 0.0;
@@ -348,9 +364,17 @@ static void bmm_dem_reassign(struct bmm_dem* const dem,
   for (size_t idim = 0; idim < BMM_NDIM; ++idim)
     dem->part.a[ipart][idim] = dem->part.a[jpart][idim];
 
+  for (size_t istep = 0; istep < nmembof(dem->part.aprev); ++istep)
+    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+      dem->part.aprev[istep][ipart][idim] =
+        dem->part.aprev[istep][jpart][idim];
+
   dem->part.phi[ipart] = dem->part.phi[jpart];
   dem->part.omega[ipart] = dem->part.omega[jpart];
   dem->part.alpha[ipart] = dem->part.alpha[jpart];
+
+  for (size_t istep = 0; istep < nmembof(dem->part.alphaprev); ++istep)
+    dem->part.alphaprev[istep][ipart] = dem->part.alphaprev[istep][jpart];
 
   for (size_t idim = 0; idim < BMM_NDIM; ++idim)
     dem->part.f[ipart][idim] = dem->part.f[jpart][idim];
@@ -512,13 +536,17 @@ void bmm_dem_force_link(struct bmm_dem* const dem,
 }
 
 void bmm_dem_force_external(struct bmm_dem* const dem, size_t const ipart) {
-  // TODO Force field strength.
+  switch (dem->fext) {
+    case BMM_DEM_FEXT_ABS:
+      dem->part.f[ipart][1] += copysign(dem->ext.params.abs.fcohes,
+          dem->opts.box.x[1] / 2.0 - dem->part.x[ipart][1]);
 
-  switch (dem->opts.script.mode[dem->script.i]) {
-    case BMM_DEM_MODE_SEDIMENT:
-      dem->part.f[ipart][1] +=
-        dem->opts.script.params[dem->script.i].sediment.kcohes *
+      break;
+    case BMM_DEM_FEXT_HARM:
+      dem->part.f[ipart][1] += dem->ext.params.harm.kcohes *
         (dem->opts.box.x[1] / 2.0 - dem->part.x[ipart][1]);
+
+      break;
   }
 }
 
@@ -561,20 +589,186 @@ void bmm_dem_force(struct bmm_dem* const dem) {
 void bmm_dem_integ_euler(struct bmm_dem* const dem) {
   double const dt = dem->opts.script.dt[dem->script.i];
 
+  if (dt == 0.0)
+    return;
+
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
-    for (size_t idim = 0; idim < 2; ++idim) {
-      dem->part.a[ipart][idim] = dem->part.f[ipart][idim] / dem->part.m[ipart];
-      dem->part.v[ipart][idim] = dem->part.v[ipart][idim] + dem->part.a[ipart][idim] * dt;
-      dem->part.x[ipart][idim] = dem->part.x[ipart][idim] + dem->part.v[ipart][idim] * dt;
+    double const m = dem->part.m[ipart];
+    double const j = dem->cache.j[ipart];
+
+    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+      dem->part.a[ipart][idim] = dem->part.f[ipart][idim] / m;
+
+    dem->part.alpha[ipart] = dem->part.tau[ipart] / j;
+  }
+
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
+    for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
+      dem->part.x[ipart][idim] += dem->part.v[ipart][idim] * dt;
+      dem->part.v[ipart][idim] += dem->part.a[ipart][idim] * dt;
 
       if (dem->opts.box.per[idim])
         dem->part.x[ipart][idim] = bmm_fp_uwrap(dem->part.x[ipart][idim],
             dem->opts.box.x[idim]);
     }
 
-    dem->part.alpha[ipart] = dem->part.tau[ipart] / dem->cache.j[ipart];
-    dem->part.phi[ipart] = dem->part.phi[ipart] + dem->part.omega[ipart] * dt;
-    dem->part.omega[ipart] = dem->part.omega[ipart] + dem->part.alpha[ipart] * dt;
+    dem->part.phi[ipart] += dem->part.omega[ipart] * dt;
+    dem->part.omega[ipart] += dem->part.alpha[ipart] * dt;
+  }
+}
+
+void bmm_dem_integ_taylor3(struct bmm_dem* const dem) {
+  double const dt = dem->opts.script.dt[dem->script.i];
+
+  if (dt == 0.0)
+    return;
+
+  double const dt2 = dt * dt;
+  double const dt3 = dt2 * dt;
+
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
+    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+      dem->part.aprev[0][ipart][idim] = dem->part.a[ipart][idim];
+
+    dem->part.alphaprev[0][ipart] = dem->part.alpha[ipart];
+  }
+
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
+    double const m = dem->part.m[ipart];
+    double const j = dem->cache.j[ipart];
+
+    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+      dem->part.a[ipart][idim] = dem->part.f[ipart][idim] / m;
+
+    dem->part.alpha[ipart] = dem->part.tau[ipart] / j;
+  }
+
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
+    for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
+      double const b = (dem->part.a[ipart][idim] -
+          dem->part.aprev[0][ipart][idim]) / dt;
+
+      dem->part.x[ipart][idim] += dem->part.v[ipart][idim] * dt +
+        (1.0 / 2.0) * dem->part.a[ipart][idim] * dt2 +
+        (1.0 / 6.0) * b * dt3;
+      dem->part.v[ipart][idim] += dem->part.a[ipart][idim] * dt +
+        (1.0 / 2.0) * b * dt2;
+
+      if (dem->opts.box.per[idim])
+        dem->part.x[ipart][idim] = bmm_fp_uwrap(dem->part.x[ipart][idim],
+            dem->opts.box.x[idim]);
+    }
+
+    double const beta = (dem->part.alpha[ipart] -
+        dem->part.alphaprev[0][ipart]) / dt;
+
+    dem->part.phi[ipart] += dem->part.omega[ipart] * dt;
+      (1.0 / 2.0) * dem->part.alpha[ipart] * dt2 +
+      (1.0 / 6.0) * beta * dt3;
+    dem->part.omega[ipart] += dem->part.alpha[ipart] * dt +
+      (1.0 / 2.0) * beta * dt2;
+  }
+}
+
+void bmm_dem_integ_gear4pred(struct bmm_dem* const dem) {
+  double const dt = dem->opts.script.dt[dem->script.i];
+
+  if (dt == 0.0)
+    return;
+
+  double const dt2 = dt * dt;
+  double const dt3 = dt2 * dt;
+
+  // TODO Almost the same as part of `taylor3`.
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
+    for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
+      double const b = (dem->part.a[ipart][idim] -
+          dem->part.aprev[0][ipart][idim]) / dt;
+
+      dem->part.x[ipart][idim] += dem->part.v[ipart][idim] * dt +
+        (1.0 / 2.0) * dem->part.a[ipart][idim] * dt2 +
+        (1.0 / 6.0) * b * dt3;
+      dem->part.v[ipart][idim] += dem->part.a[ipart][idim] * dt +
+        (1.0 / 2.0) * b * dt2;
+      dem->part.a[ipart][idim] += b * dt;
+      dem->pred.gear.b[ipart][idim] = b;
+
+      if (dem->opts.box.per[idim])
+        dem->part.x[ipart][idim] = bmm_fp_uwrap(dem->part.x[ipart][idim],
+            dem->opts.box.x[idim]);
+    }
+
+    double const beta = (dem->part.alpha[ipart] -
+        dem->part.alphaprev[0][ipart]) / dt;
+
+    dem->part.phi[ipart] += dem->part.omega[ipart] * dt;
+      (1.0 / 2.0) * dem->part.alpha[ipart] * dt2 +
+      (1.0 / 6.0) * beta * dt3;
+    dem->part.omega[ipart] += dem->part.alpha[ipart] * dt +
+      (1.0 / 2.0) * beta * dt2;
+    dem->part.alpha[ipart] += beta * dt;
+    dem->pred.gear.beta[ipart] = beta;
+  }
+}
+
+void bmm_dem_integ_gear4corr(struct bmm_dem* const dem) {
+  static double const c[] = {1.0 / 6.0, 5.0 / 6.0, 1.0 / 1.0, 1.0 / 3.0};
+
+  double const dt = dem->opts.script.dt[dem->script.i];
+
+  if (dt == 0.0)
+    return;
+
+  double const dt2 = dt * dt;
+  double const dt3 = dt2 * dt;
+
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
+    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+      dem->pred.gear.a[ipart][idim] = dem->part.a[ipart][idim];
+
+    dem->pred.gear.alpha[ipart] = dem->part.alpha[ipart];
+  }
+
+  // TODO Same as part of `taylor3`.
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
+    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+      dem->part.aprev[0][ipart][idim] = dem->part.a[ipart][idim];
+
+    dem->part.alphaprev[0][ipart] = dem->part.alpha[ipart];
+  }
+
+  // TODO Same as part of `taylor3`.
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
+    double const m = dem->part.m[ipart];
+    double const j = dem->cache.j[ipart];
+
+    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+      dem->part.a[ipart][idim] = dem->part.f[ipart][idim] / m;
+
+    dem->part.alpha[ipart] = dem->part.tau[ipart] / j;
+  }
+
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
+    for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
+      double const da = dem->part.a[ipart][idim] -
+          dem->pred.gear.a[ipart][idim];
+
+      dem->part.x[ipart][idim] += 1.0 * (1.0 / 2.0) * c[0] * da * dt2;
+      dem->part.v[ipart][idim] += 1.0 * (1.0 / 2.0) * c[1] * da * dt;
+      dem->part.a[ipart][idim] += 2.0 * (1.0 / 2.0) * c[2] * da;
+      dem->pred.gear.b[ipart][idim] += 6.0 * (1.0 / 2.0) * c[3] * da / dt;
+
+      if (dem->opts.box.per[idim])
+        dem->part.x[ipart][idim] = bmm_fp_uwrap(dem->part.x[ipart][idim],
+            dem->opts.box.x[idim]);
+    }
+
+    double const dalpha = dem->part.alpha[ipart] - dem->pred.gear.alpha[ipart];
+
+    dem->part.phi[ipart] += 1.0 * (1.0 / 2.0) * c[0] * dalpha * dt2;
+    dem->part.omega[ipart] += 1.0 * (1.0 / 2.0) * c[1] * dalpha * dt;
+    dem->part.alpha[ipart] += 2.0 * (1.0 / 2.0) * c[2] * dalpha;
+    dem->pred.gear.beta[ipart] += 6.0 * (1.0 / 2.0) * c[3] * dalpha / dt;
   }
 }
 
@@ -585,10 +779,8 @@ void bmm_dem_stab(struct bmm_dem* const dem) {
 
 void bmm_dem_predict(struct bmm_dem* const dem) {
   switch (dem->integ) {
-    case BMM_DEM_INTEG_EULER:
-      break;
     case BMM_DEM_INTEG_GEAR:
-      // bmm_dem_integ_gearpred(dem);
+      bmm_dem_integ_gear4pred(dem);
 
       break;
   }
@@ -600,8 +792,12 @@ void bmm_dem_correct(struct bmm_dem* const dem) {
       bmm_dem_integ_euler(dem);
 
       break;
+    case BMM_DEM_INTEG_TAYLOR3:
+      bmm_dem_integ_taylor3(dem);
+
+      break;
     case BMM_DEM_INTEG_GEAR:
-      // bmm_dem_integ_gearcorr(dem);
+      bmm_dem_integ_gear4corr(dem);
 
       break;
   }
@@ -706,7 +902,7 @@ double bmm_dem_est_ekin(struct bmm_dem const* const dem) {
     e += dem->cache.j[ipart] * bmm_fp_sq(dem->part.omega[ipart]);
   }
 
-  return e / 2.0;
+  return (1.0 / 2.0) * e;
 }
 
 /// The call `bmm_dem_est_mass(dem)`
@@ -841,8 +1037,11 @@ void bmm_dem_def(struct bmm_dem* const dem,
   dem->opts = *opts;
 
   dem->integ = BMM_DEM_INTEG_EULER;
+  dem->integ = BMM_DEM_INTEG_TAYLOR3;
+  dem->integ = BMM_DEM_INTEG_GEAR;
   dem->caching = BMM_DEM_CACHING_NONE;
   dem->caching = BMM_DEM_CACHING_NEIGH;
+  dem->fext = BMM_DEM_FEXT_NONE;
   dem->famb = BMM_DEM_FAMB_CREEPING;
   dem->fnorm = BMM_DEM_FNORM_DASHPOT;
   dem->ftang = BMM_DEM_FTANG_HW;
@@ -967,7 +1166,8 @@ static bool bmm_dem_script_create_hc(struct bmm_dem* const dem) {
   double const v = vhc * (etahc / eta);
 
   double const vlim = vhc * eta;
-  double const rspace = dem->opts.part.rnew[0];
+  // double const rspace = dem->opts.part.rnew[0];
+  double const rspace = dem->opts.part.rnew[1];
 
   double x[BMM_NDIM];
   for (size_t idim = 0; idim < BMM_NDIM; ++idim)
@@ -1012,6 +1212,7 @@ static bool bmm_dem_script_create_hc(struct bmm_dem* const dem) {
 
 __attribute__ ((__nonnull__))
 static bool bmm_dem_script_create_ball(struct bmm_dem* const dem) {
+  return false;
 }
 
 __attribute__ ((__nonnull__))
@@ -1076,9 +1277,18 @@ bool bmm_dem_step(struct bmm_dem* const dem) {
 
       break;
     case BMM_DEM_MODE_SEDIMENT:
+      // TODO This scheme sucks.
+      dem->fext = BMM_DEM_FEXT_ABS;
+      dem->ext.params.abs.fcohes = 1.0e+1;
+
+      dem->fext = BMM_DEM_FEXT_HARM;
+      dem->ext.params.harm.kcohes =
+        dem->opts.script.params[dem->script.i].sediment.kcohes;
 
       break;
     case BMM_DEM_MODE_LINK:
+      dem->fext = BMM_DEM_FEXT_NONE;
+
       if (!bmm_dem_link(dem))
         return false;
 
