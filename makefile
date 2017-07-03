@@ -39,7 +39,7 @@ endif
 build: bmm-dem bmm-filter bmm-glut bmm-nc bmm-sdl
 
 run: bmm-dem bmm-filter bmm-sdl
-	./bmm-dem --script mix --verbose yes | \
+	./bmm-dem --script couple --verbose yes | \
 	./bmm-filter --mode whitelist --pass opts --pass istep --pass parts --pass neigh --verbose yes | \
 	./bmm-sdl
 
@@ -66,7 +66,7 @@ check-static: build
 	cppcheck -I/usr/include --enable=all *.c *.h | grep '^\['
 
 check-dynamic: build
-	valgrind --tool=memcheck --leak-check=full ./bmm-dem > /dev/null
+	valgrind --tool=memcheck --leak-check=full ./bmm-dem --script couple > /dev/null
 
 profile-sample: build
 	./bmm-dem > /dev/null

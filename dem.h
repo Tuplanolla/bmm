@@ -17,7 +17,7 @@
 enum bmm_dem_integ {
   BMM_DEM_INTEG_EULER,
   BMM_DEM_INTEG_TAYLOR3,
-  BMM_DEM_INTEG_GEAR
+  BMM_DEM_INTEG_GEAR3
 };
 
 enum bmm_dem_caching {
@@ -216,16 +216,8 @@ struct bmm_dem {
     struct {
       /// Accelerations.
       double a[BMM_MPART][BMM_NDIM];
-      /// Previous accelerations.
-      double aprev[1][BMM_MPART][BMM_NDIM];
-      /// Jerks.
-      double b[BMM_MPART][BMM_NDIM];
       /// Angular accelerations.
       double alpha[BMM_MPART];
-      /// Previous angular accelerations.
-      double alphaprev[1][BMM_MPART];
-      /// Angular jerks.
-      double beta[BMM_MPART];
     } gear;
   } pred;
   /// External forces.
@@ -308,14 +300,18 @@ struct bmm_dem {
     double v[BMM_MPART][BMM_NDIM];
     /// Accelerations.
     double a[BMM_MPART][BMM_NDIM];
-    /// Previous accelerations.
-    double aprev[1][BMM_MPART][BMM_NDIM];
+    /// Jerks.
+    double b[BMM_MPART][BMM_NDIM];
     /// Angles.
     double phi[BMM_MPART];
     /// Angular velocities.
     double omega[BMM_MPART];
     /// Angular accelerations.
     double alpha[BMM_MPART];
+    /// Angular jerks.
+    double beta[BMM_MPART];
+    /// Previous accelerations.
+    double aprev[1][BMM_MPART][BMM_NDIM];
     /// Previous angular accelerations.
     double alphaprev[1][BMM_MPART];
     /// Forces.
