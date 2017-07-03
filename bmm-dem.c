@@ -29,7 +29,7 @@ static bool f(char const* const key, char const* const value,
 
   // opts->cache.rcutoff /= 2.0;
 
-  double const mu = 0.04;
+  double const mu = 0.02;
 
   opts->part.rnew[0] = 2.0 * mu / (1.0 + sqrt(2.0));
   opts->part.rnew[1] = 4.0 * mu / (2.0 + sqrt(2.0));

@@ -15,9 +15,12 @@
 #include "msg.h"
 
 enum bmm_dem_integ {
+  /// Forward Euler.
   BMM_DEM_INTEG_EULER,
-  BMM_DEM_INTEG_TAYLOR3,
-  BMM_DEM_INTEG_GEAR3
+  /// Taylor series.
+  BMM_DEM_INTEG_TAYLOR,
+  /// Velocity Verlet.
+  BMM_DEM_INTEG_VELVET
 };
 
 enum bmm_dem_caching {
@@ -212,13 +215,13 @@ struct bmm_dem {
   enum bmm_dem_flink flink;
   /// Predictor data.
   union {
-    /// For `BMM_DEM_INTEG_GEAR`.
+    /// For `BMM_DEM_INTEG_VELVET`.
     struct {
       /// Accelerations.
       double a[BMM_MPART][BMM_NDIM];
       /// Angular accelerations.
       double alpha[BMM_MPART];
-    } gear;
+    } velvet;
   } pred;
   /// External forces.
   struct {
@@ -300,20 +303,12 @@ struct bmm_dem {
     double v[BMM_MPART][BMM_NDIM];
     /// Accelerations.
     double a[BMM_MPART][BMM_NDIM];
-    /// Jerks.
-    double b[BMM_MPART][BMM_NDIM];
     /// Angles.
     double phi[BMM_MPART];
     /// Angular velocities.
     double omega[BMM_MPART];
     /// Angular accelerations.
     double alpha[BMM_MPART];
-    /// Angular jerks.
-    double beta[BMM_MPART];
-    /// Previous accelerations.
-    double aprev[1][BMM_MPART][BMM_NDIM];
-    /// Previous angular accelerations.
-    double alphaprev[1][BMM_MPART];
     /// Forces.
     double f[BMM_MPART][BMM_NDIM];
     /// Torques.
