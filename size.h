@@ -258,6 +258,18 @@ inline size_t bmm_size_dec(size_t const n, size_t const a, size_t const b) {
   return (n % c + c - a % c - 1) % c + a;
 }
 
+/// The call `bmm_size_fact(n)`
+/// returns the factorial of `n`.
+__attribute__ ((__const__, __pure__))
+inline size_t bmm_size_fact(size_t const n) {
+  size_t k = 1;
+
+  for (size_t i = n; i > 1; --i)
+    k *= i;
+
+  return k;
+}
+
 /// The call `bmm_size_sum(n, k)`
 /// returns the sum of the array `n` of length `k`.
 __attribute__ ((__pure__))

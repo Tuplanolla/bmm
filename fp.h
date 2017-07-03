@@ -191,6 +191,18 @@ inline double bmm_fp_uwrap(double const x, double const b) {
   return x - b * floor(x / b);
 }
 
+/// The call `bmm_fp_fact(n)`
+/// returns the factorial of `n`.
+__attribute__ ((__const__, __pure__))
+inline double bmm_fp_fact(size_t const n) {
+  double x = 1.0;
+
+  for (size_t i = n; i > 1; --i)
+    x *= (double) i;
+
+  return x;
+}
+
 /// The call `bmm_fp_sum(x, n)`
 /// returns the sum of the array `x` of length `n`.
 __attribute__ ((__pure__))

@@ -39,6 +39,8 @@ extern inline double bmm_fp_swrap(double, double);
 
 extern inline double bmm_fp_uwrap(double, double);
 
+extern inline double bmm_fp_fact(size_t);
+
 extern inline double bmm_fp_sum(double const*, size_t);
 
 extern inline double bmm_fp_prod(double const*, size_t);

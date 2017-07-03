@@ -552,7 +552,7 @@ void bmm_dem_force_external(struct bmm_dem* const dem, size_t const ipart) {
 
 void bmm_dem_force(struct bmm_dem* const dem) {
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
-    for (size_t idim = 0; idim < nmembof(dem->part.f[ipart]); ++idim)
+    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
       dem->part.f[ipart][idim] = 0.0;
 
     dem->part.tau[ipart] = 0.0;
@@ -648,11 +648,13 @@ void bmm_dem_integ_taylor3(struct bmm_dem* const dem) {
       double const b = (dem->part.a[ipart][idim] -
           dem->part.aprev[0][ipart][idim]) / dt;
 
-      dem->part.x[ipart][idim] += dem->part.v[ipart][idim] * dt +
-        (1.0 / 2.0) * dem->part.a[ipart][idim] * dt2 +
-        (1.0 / 6.0) * b * dt3;
-      dem->part.v[ipart][idim] += dem->part.a[ipart][idim] * dt +
-        (1.0 / 2.0) * b * dt2;
+      dem->part.x[ipart][idim] +=
+        (1.0 / bmm_fp_fact(1)) * dem->part.v[ipart][idim] * dt +
+        (1.0 / bmm_fp_fact(2)) * dem->part.a[ipart][idim] * dt2 +
+        (1.0 / bmm_fp_fact(3)) * b * dt3;
+      dem->part.v[ipart][idim] +=
+        (1.0 / bmm_fp_fact(1)) * dem->part.a[ipart][idim] * dt +
+        (1.0 / bmm_fp_fact(2)) * b * dt2;
 
       if (dem->opts.box.per[idim])
         dem->part.x[ipart][idim] = bmm_fp_uwrap(dem->part.x[ipart][idim],
@@ -662,11 +664,13 @@ void bmm_dem_integ_taylor3(struct bmm_dem* const dem) {
     double const beta = (dem->part.alpha[ipart] -
         dem->part.alphaprev[0][ipart]) / dt;
 
-    dem->part.phi[ipart] += dem->part.omega[ipart] * dt;
-      (1.0 / 2.0) * dem->part.alpha[ipart] * dt2 +
-      (1.0 / 6.0) * beta * dt3;
-    dem->part.omega[ipart] += dem->part.alpha[ipart] * dt +
-      (1.0 / 2.0) * beta * dt2;
+    dem->part.phi[ipart] +=
+      (1.0 / bmm_fp_fact(1)) * dem->part.omega[ipart] * dt;
+      (1.0 / bmm_fp_fact(2)) * dem->part.alpha[ipart] * dt2 +
+      (1.0 / bmm_fp_fact(3)) * beta * dt3;
+    dem->part.omega[ipart] +=
+      (1.0 / bmm_fp_fact(1)) * dem->part.alpha[ipart] * dt +
+      (1.0 / bmm_fp_fact(2)) * beta * dt2;
   }
 }
 
@@ -679,11 +683,19 @@ void bmm_dem_integ_gear4pred(struct bmm_dem* const dem) {
   double const dt2 = dt * dt;
   double const dt3 = dt2 * dt;
 
+  // TODO Same as part of `taylor3`.
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
+    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+      dem->pred.gear.aprev[0][ipart][idim] = dem->part.a[ipart][idim];
+
+    dem->pred.gear.alphaprev[0][ipart] = dem->part.alpha[ipart];
+  }
+
   // TODO Almost the same as part of `taylor3`.
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
     for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
-      double const b = (dem->part.a[ipart][idim] -
-          dem->part.aprev[0][ipart][idim]) / dt;
+      // double const b = (dem->part.a[ipart][idim] - dem->part.aprev[0][ipart][idim]) / dt;
+      double const b = dem->pred.gear.b[ipart][idim];
 
       dem->part.x[ipart][idim] += dem->part.v[ipart][idim] * dt +
         (1.0 / 2.0) * dem->part.a[ipart][idim] * dt2 +
@@ -698,8 +710,8 @@ void bmm_dem_integ_gear4pred(struct bmm_dem* const dem) {
             dem->opts.box.x[idim]);
     }
 
-    double const beta = (dem->part.alpha[ipart] -
-        dem->part.alphaprev[0][ipart]) / dt;
+    // double const beta = (dem->part.alpha[ipart] - dem->part.alphaprev[0][ipart]) / dt;
+    double const beta = dem->pred.gear.beta[ipart];
 
     dem->part.phi[ipart] += dem->part.omega[ipart] * dt;
       (1.0 / 2.0) * dem->part.alpha[ipart] * dt2 +
@@ -731,14 +743,6 @@ void bmm_dem_integ_gear4corr(struct bmm_dem* const dem) {
 
   // TODO Same as part of `taylor3`.
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
-    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-      dem->part.aprev[0][ipart][idim] = dem->part.a[ipart][idim];
-
-    dem->part.alphaprev[0][ipart] = dem->part.alpha[ipart];
-  }
-
-  // TODO Same as part of `taylor3`.
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
     double const m = dem->part.m[ipart];
     double const j = dem->cache.j[ipart];
 
@@ -753,10 +757,14 @@ void bmm_dem_integ_gear4corr(struct bmm_dem* const dem) {
       double const da = dem->part.a[ipart][idim] -
           dem->pred.gear.a[ipart][idim];
 
-      dem->part.x[ipart][idim] += 1.0 * (1.0 / 2.0) * c[0] * da * dt2;
-      dem->part.v[ipart][idim] += 1.0 * (1.0 / 2.0) * c[1] * da * dt;
-      dem->part.a[ipart][idim] += 2.0 * (1.0 / 2.0) * c[2] * da;
-      dem->pred.gear.b[ipart][idim] += 6.0 * (1.0 / 2.0) * c[3] * da / dt;
+      dem->part.x[ipart][idim] +=
+        bmm_fp_fact(0) * (1.0 / 2.0) * c[0] * da * dt2;
+      dem->part.v[ipart][idim] +=
+        bmm_fp_fact(1) * (1.0 / 2.0) * c[1] * da * dt;
+      dem->part.a[ipart][idim] +=
+        bmm_fp_fact(2) * (1.0 / 2.0) * c[2] * da;
+      dem->pred.gear.b[ipart][idim] +=
+        bmm_fp_fact(3) * (1.0 / 2.0) * c[3] * da / dt;
 
       if (dem->opts.box.per[idim])
         dem->part.x[ipart][idim] = bmm_fp_uwrap(dem->part.x[ipart][idim],
@@ -765,10 +773,22 @@ void bmm_dem_integ_gear4corr(struct bmm_dem* const dem) {
 
     double const dalpha = dem->part.alpha[ipart] - dem->pred.gear.alpha[ipart];
 
-    dem->part.phi[ipart] += 1.0 * (1.0 / 2.0) * c[0] * dalpha * dt2;
-    dem->part.omega[ipart] += 1.0 * (1.0 / 2.0) * c[1] * dalpha * dt;
-    dem->part.alpha[ipart] += 2.0 * (1.0 / 2.0) * c[2] * dalpha;
-    dem->pred.gear.beta[ipart] += 6.0 * (1.0 / 2.0) * c[3] * dalpha / dt;
+    dem->part.phi[ipart] +=
+      bmm_fp_fact(0) * (1.0 / 2.0) * c[0] * dalpha * dt2;
+    dem->part.omega[ipart] +=
+      bmm_fp_fact(1) * (1.0 / 2.0) * c[1] * dalpha * dt;
+    dem->part.alpha[ipart] +=
+      bmm_fp_fact(2) * (1.0 / 2.0) * c[2] * dalpha;
+    dem->pred.gear.beta[ipart] +=
+      bmm_fp_fact(3) * (1.0 / 2.0) * c[3] * dalpha / dt;
+  }
+
+  // TODO Same as part of `taylor3`.
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
+    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+      dem->part.aprev[0][ipart][idim] = dem->pred.gear.aprev[0][ipart][idim];
+
+    dem->part.alphaprev[0][ipart] = dem->pred.gear.alphaprev[0][ipart];
   }
 }
 
@@ -974,10 +994,10 @@ void bmm_dem_opts_def(struct bmm_dem_opts* const opts) {
 
   opts->verbose = false;
 
-  for (size_t idim = 0; idim < nmembof(opts->box.x); ++idim)
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
     opts->box.x[idim] = 1.0;
 
-  for (size_t idim = 0; idim < nmembof(opts->box.per); ++idim)
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
     opts->box.per[idim] = false;
 
   opts->time.istab = 1000;
@@ -1003,7 +1023,7 @@ void bmm_dem_opts_def(struct bmm_dem_opts* const opts) {
   opts->comm.flap = true;
   opts->comm.flup = true;
 
-  for (size_t idim = 0; idim < nmembof(opts->cache.ncell); ++idim) {
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
     opts->cache.ncell[idim] = 5;
 
     // TODO Use this somewhere.
@@ -1016,7 +1036,7 @@ void bmm_dem_opts_def(struct bmm_dem_opts* const opts) {
 
   opts->cache.rcutoff = (double) INFINITY;
 
-  for (size_t idim = 0; idim < nmembof(opts->cache.ncell); ++idim) {
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
     opts->cache.rcutoff = fmin(opts->cache.rcutoff,
         opts->box.x[idim] / (double) (opts->cache.ncell[idim] - 2));
 
@@ -1223,7 +1243,7 @@ static bool bmm_dem_script_create_gas(struct bmm_dem* const dem) {
     dem->part.r[jpart] = 0.03;
     dem->part.m[jpart] = 1.0;
 
-    for (size_t idim = 0; idim < nmembof(dem->part.x[jpart]); ++idim)
+    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
       dem->part.x[jpart][idim] += gsl_rng_uniform(dem->rng) * dem->opts.box.x[idim];
 
       dem->part.omega[jpart] += (double) (rand() % 512 - 256);

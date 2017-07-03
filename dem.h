@@ -216,11 +216,15 @@ struct bmm_dem {
     struct {
       /// Accelerations.
       double a[BMM_MPART][BMM_NDIM];
-      /// Accelerations.
+      /// Previous accelerations.
+      double aprev[1][BMM_MPART][BMM_NDIM];
+      /// Jerks.
       double b[BMM_MPART][BMM_NDIM];
       /// Angular accelerations.
       double alpha[BMM_MPART];
-      /// Angular accelerations.
+      /// Previous angular accelerations.
+      double alphaprev[1][BMM_MPART];
+      /// Angular jerks.
       double beta[BMM_MPART];
     } gear;
   } pred;

@@ -16,6 +16,14 @@ CHEAT_DECLARE(
   static bool const per[] = {true, false};
 )
 
+CHEAT_TEST(size_fact,
+  cheat_assert_size(bmm_size_fact(0), 1);
+  cheat_assert_size(bmm_size_fact(1), 1);
+  cheat_assert_size(bmm_size_fact(2), 2);
+  cheat_assert_size(bmm_size_fact(3), 6);
+  cheat_assert_size(bmm_size_fact(4), 24);
+)
+
 CHEAT_TEST(size_hc_ord,
   size_t ij[2];
 
