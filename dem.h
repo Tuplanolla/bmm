@@ -198,33 +198,25 @@ struct bmm_dem {
   struct bmm_dem_opts opts;
   /// Random number generator state.
   gsl_rng* rng;
-  // TODO These should not be options (scripts may change them).
-  /// Integration scheme.
-  enum bmm_dem_integ integ;
-  /// Caching scheme.
-  enum bmm_dem_caching caching;
-  /// External force scheme.
-  enum bmm_dem_fext fext;
-  /// Ambient force scheme.
-  enum bmm_dem_famb famb;
-  /// Normal force scheme.
-  enum bmm_dem_fnorm fnorm;
-  /// Tangential force scheme.
-  enum bmm_dem_ftang ftang;
-  /// Link force scheme.
-  enum bmm_dem_flink flink;
   /// Predictor data.
   union {
-    /// For `BMM_DEM_INTEG_VELVET`.
-    struct {
-      /// Accelerations.
-      double a[BMM_MPART][BMM_NDIM];
-      /// Angular accelerations.
-      double alpha[BMM_MPART];
-    } velvet;
-  } pred;
+    /// Integration scheme.
+    enum bmm_dem_integ tag;
+    /// Parameters.
+    union {
+      /// For `BMM_DEM_INTEG_VELVET`.
+      struct {
+        /// Accelerations.
+        double a[BMM_MPART][BMM_NDIM];
+        /// Angular accelerations.
+        double alpha[BMM_MPART];
+      } velvet;
+    } params;
+  } integ;
   /// External forces.
   struct {
+    /// External force scheme.
+    enum bmm_dem_fext tag;
     /// Parameters.
     union {
       /// For `BMM_DEM_FEXT_ABS`.
@@ -241,6 +233,8 @@ struct bmm_dem {
   } ext;
   /// Ambient forces.
   struct {
+    /// Ambient force scheme.
+    enum bmm_dem_famb tag;
     /// Parameters.
     union {
       /// For `BMM_DEM_FAMB_CREEPING`.
@@ -249,9 +243,11 @@ struct bmm_dem {
         double mu;
       } creeping;
     } params;
-  } ambient;
+  } amb;
   /// Normal forces.
   struct {
+    /// Normal force scheme.
+    enum bmm_dem_fnorm tag;
     /// Parameters.
     union {
       /// For `BMM_DEM_FNORM_DASHPOT`.
@@ -263,6 +259,8 @@ struct bmm_dem {
   } norm;
   /// Tangential forces.
   struct {
+    /// Tangential force scheme.
+    enum bmm_dem_ftang tag;
     /// Parameters.
     union {
       /// For `BMM_DEM_FTANG_HW`.
@@ -316,6 +314,8 @@ struct bmm_dem {
   } part;
   /// Links between particles.
   struct {
+    /// Link force scheme.
+    enum bmm_dem_flink tag;
     /// Which other particles each particle is linked to.
     struct {
       /// Number of links from this particle.
@@ -359,6 +359,8 @@ struct bmm_dem {
   /// Neighbor cache.
   /// This is only used for performance optimization.
   struct {
+    /// Caching scheme.
+    enum bmm_dem_caching tag;
     /// Freshness right now.
     bool stale;
     /// Current revision.
