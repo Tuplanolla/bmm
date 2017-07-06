@@ -260,7 +260,7 @@ inline size_t bmm_size_dec(size_t const n, size_t const a, size_t const b) {
 
 /// The call `bmm_size_fact(n)`
 /// returns the factorial of `n`.
-__attribute__ ((__const__, __pure__))
+__attribute__ ((__const__, __deprecated__, __pure__))
 inline size_t bmm_size_fact(size_t const n) {
   size_t k = 1;
 

@@ -9,7 +9,7 @@ static bool terms(size_t const n) {
     return false;
 
   for (size_t i = 0; i < n; ++i)
-    if (printf(" * (x)") < 0)
+    if (printf(" * %zu", i + 1) < 0)
       return false;
 
   if (printf(")") < 0)
@@ -20,7 +20,7 @@ static bool terms(size_t const n) {
 
 static bool dirs(size_t const n) {
   for (size_t i = 0; i <= n; ++i)
-    if (printf("#define BMM_POW_%zu(x) ", i) < 0 ||
+    if (printf("#define BMM_FACT_%zu() ", i) < 0 ||
         !terms(i) ||
         printf("\n") < 0)
       return false;

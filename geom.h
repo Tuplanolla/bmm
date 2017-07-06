@@ -5,6 +5,7 @@
 #include <math.h>
 #include <stddef.h>
 
+#include "cpp.h"
 #include "ext.h"
 #include "fp.h"
 
@@ -15,12 +16,12 @@
 __attribute__ ((__const__, __pure__))
 inline double bmm_geom_ballvol(double const r, size_t d) {
   // return d == 0 ? 1.0 : d == 1 ? 2.0 * r :
-  //   (M_2PI * bmm_fp_sq(r) / (double) d) * bmm_geom_ballvol(r, d - 2);
+  //   (M_2PI * BMM_POW(r, 2) / (double) d) * bmm_geom_ballvol(r, d - 2);
 
   double v = d % 2 == 0 ? 1.0 : 2.0 * r;
 
   while (d > 1) {
-    v *= M_2PI * bmm_fp_sq(r) / (double) d;
+    v *= M_2PI * BMM_POW(r, 2) / (double) d;
     d -= 2;
   }
 
@@ -35,13 +36,13 @@ inline double bmm_geom_ballvol(double const r, size_t d) {
 __attribute__ ((__const__, __pure__))
 inline double bmm_geom_ballsurf(double const r, size_t d) {
   // return d == 0 ? 0.0 : d == 1 ? 2.0 : d == 2 ? M_2PI * r :
-  //   (M_2PI * bmm_fp_sq(r) / (double) (d - 2)) * bmm_geom_ballsurf(r, d - 2);
+  //   (M_2PI * BMM_POW(r, 2) / (double) (d - 2)) * bmm_geom_ballsurf(r, d - 2);
 
   double a = d == 0 ? 0.0 : d % 2 == 1 ? 2.0 : M_2PI * r;
 
   while (d > 2) {
     d -= 2;
-    a *= M_2PI * bmm_fp_sq(r) / (double) d;
+    a *= M_2PI * BMM_POW(r, 2) / (double) d;
   }
 
   return a;
@@ -71,7 +72,7 @@ inline double bmm_geom_ballrmoi(size_t const d) {
 __attribute__ ((__const__, __pure__))
 inline double bmm_geom_ballmoi(double const m, double const r,
     size_t const d) {
-  return bmm_geom_ballrmoi(d) * m * bmm_fp_sq(r);
+  return bmm_geom_ballrmoi(d) * m * BMM_POW(r, 2);
 }
 
 /// The call `bmm_geom_ballprmoi(d)`
@@ -97,7 +98,48 @@ inline double bmm_geom_ballprmoi(size_t const d) {
 __attribute__ ((__const__, __pure__))
 inline double bmm_geom_ballpmoi(double const m, double const r,
     size_t const d) {
-  return bmm_geom_ballprmoi(d) * m * bmm_fp_sq(r);
+  return bmm_geom_ballprmoi(d) * m * BMM_POW(r, 2);
+}
+
+/// The call `bmm_geom_ballmpd(d)`
+/// returns the maximal packing density of balls in `d` dimensions.
+/// The density is only known for
+///
+/// * 1,
+/// * 2,
+/// * 3,
+/// * 8 and
+/// * 24
+///
+/// dimensions; densities for all other dimensions are approximations.
+__attribute__ ((__const__, __pure__))
+inline double bmm_geom_ballmpd(size_t const d) {
+  static double const delta[] = {
+    NAN, 0.5, 0.28868, 0.17678, 0.125, 0.08839,
+    0.07217, 0.0625, 0.0625, 0.04419, 0.03906, 0.03516,
+    0.03704, 0.03516, 0.03608, 0.04419, 0.0625, 0.0625,
+    0.07508, 0.08839, 0.13154, 0.17678, 0.33254, 0.5,
+    1.0, 0.70711, 0.57735, 0.70711, 1.0, 0.70711,
+    1.0, 1.2095, 2.5658, 2.2220, 2.2220, 2.8284, 4.4394
+  };
+
+  // TODO This.
+  // return (pow(M_PI, (double) d / 2.0) / gsl_sf_gamma((double) d / 2.0 + 1)) * delta[d];
+
+  switch (d) {
+    case 1:
+      return 1.0;
+    case 2:
+      return M_2PI / (4.0 * sqrt(2.0));
+    case 3:
+      return M_2PI / (6.0 * sqrt(2.0));
+    case 8:
+      return BMM_POW(M_2PI / 4.0, 4) / BMM_FACT(4);
+    case 24:
+      return BMM_POW(M_2PI / 2.0, 12) / BMM_FACT(12);
+  }
+
+  return NAN;
 }
 
 #endif

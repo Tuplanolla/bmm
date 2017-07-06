@@ -194,7 +194,7 @@ inline double bmm_fp_uwrap(double const x, double const b) {
 
 /// The call `bmm_fp_fact(n)`
 /// returns the factorial of `n`.
-__attribute__ ((__const__, __pure__))
+__attribute__ ((__const__, __deprecated__, __pure__))
 inline double bmm_fp_fact(size_t const n) {
   double x = 1.0;
 
