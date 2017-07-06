@@ -3,6 +3,7 @@
 #define BMM_FP_H
 
 #include <math.h>
+#include <stddef.h>
 
 #include "ext.h"
 

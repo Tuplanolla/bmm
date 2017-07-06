@@ -75,6 +75,8 @@ enum bmm_dem_mode {
   BMM_DEM_MODE_CREATE,
   /// Draw particles towards a harmonic force field zero along the x-axis.
   BMM_DEM_MODE_SEDIMENT,
+  /// Remove particles outside the bounding box.
+  BMM_DEM_MODE_CLIP,
   /// Link nearby particles together.
   BMM_DEM_MODE_LINK,
   // TODO Consider another way to do this:
@@ -199,7 +201,7 @@ struct bmm_dem {
   /// Random number generator state.
   gsl_rng* rng;
   /// Predictor data.
-  union {
+  struct {
     /// Integration scheme.
     enum bmm_dem_integ tag;
     /// Parameters.

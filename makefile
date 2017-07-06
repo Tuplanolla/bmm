@@ -92,7 +92,7 @@ shallow-clean:
 bmm-dem: CFLAGS+=$$(pkg-config --cflags gsl)
 bmm-dem: LDLIBS+=$$(pkg-config --libs gsl)
 bmm-dem: bmm-dem.o \
-	dem.o endy.o fp.o geom.o geom2d.o hack.o io.o msg.o \
+	dem.o endy.o fp.o geom.o geom2d.o hack.o io.o ival.o msg.o \
 	neigh.o opt.o random.o sec.o sig.o size.o str.o tle.o
 
 bmm-filter: bmm-filter.o \
@@ -102,7 +102,7 @@ bmm-filter: bmm-filter.o \
 bmm-glut: CFLAGS+=$$(pkg-config --cflags freeglut gl glew gsl)
 bmm-glut: LDLIBS+=$$(pkg-config --libs freeglut gl glew gsl)
 bmm-glut: bmm-glut.o \
-	dem.o endy.o fp.o geom.o geom2d.o gl2.o glut.o hack.o io.o msg.o \
+	dem.o endy.o fp.o geom.o geom2d.o gl2.o glut.o hack.o io.o ival.o msg.o \
 	neigh.o opt.o random.o sec.o sig.o size.o str.o tle.o
 
 bmm-nc: CFLAGS+=$$(pkg-config --cflags netcdf)
@@ -114,11 +114,11 @@ bmm-nc: bmm-nc.o \
 bmm-sdl: CFLAGS+=$$(pkg-config --cflags freeglut gl gsl sdl2)
 bmm-sdl: LDLIBS+=$$(pkg-config --libs freeglut gl gsl sdl2)
 bmm-sdl: bmm-sdl.o \
-	dem.o endy.o fp.o geom.o geom2d.o gl.o hack.o io.o msg.o \
+	dem.o endy.o fp.o geom.o geom2d.o gl.o hack.o io.o ival.o msg.o \
 	neigh.o opt.o sdl.o random.o sec.o sig.o size.o str.o tle.o
 
 tests: CFLAGS+=$$(pkg-config --cflags cheat gsl)
 tests: LDLIBS+=$$(pkg-config --libs cheat gsl)
 tests: tests.o \
-	endy.o fp.o geom.o geom2d.o hack.o io.o msg.o \
+	endy.o fp.o geom.o geom2d.o hack.o io.o ival.o msg.o \
 	neigh.o opt.o random.o sec.o sig.o size.o str.o tle.o

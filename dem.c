@@ -14,6 +14,7 @@
 #include "geom.h"
 #include "geom2d.h"
 #include "io.h"
+#include "ival.h"
 #include "neigh.h"
 #include "msg.h"
 #include "random.h"
@@ -924,6 +925,10 @@ void bmm_dem_opts_def(struct bmm_dem_opts* const opts) {
     */
   }
 
+  // TODO No!
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+    opts->cache.ncell[idim] = 12;
+
   opts->cache.rcutoff = (double) INFINITY;
 
   for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
@@ -1076,8 +1081,8 @@ static bool bmm_dem_script_create_hc(struct bmm_dem* const dem) {
   double const v = vhc * (etahc / eta);
 
   double const vlim = vhc * eta;
-  // double const rspace = dem->opts.part.rnew[0];
-  double const rspace = dem->opts.part.rnew[1];
+  // TODO Overlap factor.
+  double const rspace = bmm_ival_midpoint(dem->opts.part.rnew);
 
   double x[BMM_NDIM];
   for (size_t idim = 0; idim < BMM_NDIM; ++idim)
@@ -1091,19 +1096,16 @@ static bool bmm_dem_script_create_hc(struct bmm_dem* const dem) {
 
     double const vnext = vnow + v;
 
-    if (vnext < vlim) {
+    if (vnext <= vlim) {
       size_t ipart = bmm_dem_addpart(dem);
+      if (ipart == SIZE_MAX)
+        return false;
+
       dem->part.r[ipart] = r;
       dem->part.m[ipart] = dem->opts.part.rho * v;
 
-      // TODO Warning: nontermination.
-      if (x[0] + 2.0 * r >= dem->opts.box.x[0]) {
-        x[0] = 0.0;
-        x[1] += 2.0 * rspace;
-      }
-
       for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-        dem->part.x[ipart][idim] = x[idim] + dem->opts.part.rnew[1];
+        dem->part.x[ipart][idim] = x[idim] + rspace;
 
       // TODO Wow, lewd.
       for (size_t idim = 0; idim < BMM_NDIM; ++idim)
@@ -1111,6 +1113,11 @@ static bool bmm_dem_script_create_hc(struct bmm_dem* const dem) {
             dem->opts.part.rnew) / 4.0;
 
       x[0] += 2.0 * rspace;
+
+      if (x[0] + 2.0 * rspace >= dem->opts.box.x[0]) {
+        x[0] = 0.0;
+        x[1] += 2.0 * rspace;
+      }
 
       vnow = vnext;
     } else
@@ -1121,8 +1128,63 @@ static bool bmm_dem_script_create_hc(struct bmm_dem* const dem) {
 }
 
 __attribute__ ((__nonnull__))
-static bool bmm_dem_script_create_ball(struct bmm_dem* const dem) {
-  return false;
+static bool bmm_dem_script_create_hex(struct bmm_dem* const dem) {
+  double const etahc = bmm_geom_ballvol(0.5, BMM_NDIM);
+  double const vhc = bmm_fp_prod(dem->opts.box.x, BMM_NDIM);
+  double const eta = dem->opts.script.params[dem->script.i].create.eta;
+  double const v = vhc * (etahc / eta);
+
+  double const vlim = vhc * eta;
+  double const rspace = bmm_ival_midpoint(dem->opts.part.rnew);
+  double const dspace = (sqrt(3.0) / 2.0) * rspace;
+
+  double x[BMM_NDIM];
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+    x[idim] = 0.0;
+
+  double vnow = 0.0;
+  bool parity = false;
+
+  for ever {
+    double const r = bmm_random_get(dem->rng, dem->opts.part.rnew);
+    double const v = bmm_geom_ballvol(r, BMM_NDIM);
+
+    double const vnext = vnow + v;
+
+    if (vnext <= vlim) {
+      size_t ipart = bmm_dem_addpart(dem);
+      if (ipart == SIZE_MAX)
+        return false;
+
+      dem->part.r[ipart] = r;
+      dem->part.m[ipart] = dem->opts.part.rho * v;
+
+      for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+        dem->part.x[ipart][idim] = x[idim] + rspace;
+
+      x[0] += 2.0 * rspace;
+
+      if (x[0] + 2.0 * rspace >= dem->opts.box.x[0]) {
+        x[0] = parity ? 0.0 : rspace;
+        x[1] += 2.0 * dspace;
+        parity = !parity;
+      }
+
+      vnow = vnext;
+    } else
+      break;
+  }
+
+  return true;
+}
+
+// TODO Bad!
+__attribute__ ((__nonnull__))
+static void bmm_dem_script_perturb(struct bmm_dem* const dem) {
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+      dem->part.x[ipart][idim] += bmm_random_get(dem->rng,
+          dem->opts.part.rnew) / 4.0;
 }
 
 __attribute__ ((__nonnull__))
@@ -1161,6 +1223,40 @@ static bool bmm_dem_script_create_couple(struct bmm_dem* const dem) {
   return true;
 }
 
+// TODO Interval arithmetic.
+// TODO Not quite! Edges may overlap if periodicity is turned on.
+__attribute__ ((__nonnull__, __pure__))
+static bool bmm_dem_inside(struct bmm_dem const* const dem,
+    size_t const ipart) {
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+    if (dem->part.x[ipart][idim] < 0.0 ||
+        dem->part.x[ipart][idim] >= dem->opts.box.x[idim])
+      return false;
+
+  return true;
+}
+
+// TODO Not quite! Edges may be excavated if periodicity is turned off.
+__attribute__ ((__nonnull__, __pure__))
+static bool bmm_dem_insider(struct bmm_dem const* const dem,
+    size_t const ipart) {
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+    if (dem->part.x[ipart][idim] - dem->part.r[ipart] < 0.0 ||
+        dem->part.x[ipart][idim] + dem->part.r[ipart] >= dem->opts.box.x[idim])
+      return false;
+
+  return true;
+}
+
+__attribute__ ((__nonnull__))
+static void bmm_dem_script_clip(struct bmm_dem* const dem) {
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    if (!bmm_dem_inside(dem, ipart)) {
+      bmm_dem_rempart(dem, ipart);
+      --ipart;
+    }
+}
+
 /// The call `bmm_dem_step(dem)`
 /// advances the simulation `dem` by one step.
 /// Make sure the simulation has not ended prior to the call
@@ -1169,7 +1265,10 @@ bool bmm_dem_step(struct bmm_dem* const dem) {
   switch (dem->opts.script.mode[dem->script.i]) {
     case BMM_DEM_MODE_CREATE:
       if (!bmm_dem_script_create_hc(dem))
+      // if (!bmm_dem_script_create_hex(dem))
         return false;
+
+      bmm_dem_script_perturb(dem);
 
       bmm_dem_script_balance(dem);
 
@@ -1196,6 +1295,10 @@ bool bmm_dem_step(struct bmm_dem* const dem) {
       dem->ext.tag = BMM_DEM_FEXT_HARM;
       dem->ext.params.harm.kcohes =
         dem->opts.script.params[dem->script.i].sediment.kcohes;
+
+      break;
+    case BMM_DEM_MODE_CLIP:
+      bmm_dem_script_clip(dem);
 
       break;
     case BMM_DEM_MODE_LINK:

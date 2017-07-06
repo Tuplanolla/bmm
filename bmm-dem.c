@@ -57,6 +57,9 @@ static bool f(char const* const key, char const* const value,
       opts->script.params[istage].sediment.kcohes = 2.0;
 
       istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_CLIP;
+
+      istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_LINK;
 
       istage = bmm_dem_script_addstage(opts);
