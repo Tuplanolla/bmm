@@ -2,6 +2,7 @@
 /// Index space operations.
 #define BMM_SIZE_H
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -39,6 +40,20 @@ inline bmm_size_div_t bmm_size_div(size_t const n, size_t const k) {
 __attribute__ ((__const__, __pure__))
 inline int bmm_size_cmp(size_t const n, size_t const k) {
   return n < k ? -1 : n > k ? 1 : 0;
+}
+
+/// The call `bmm_size_even(n)`
+/// checks whether `n` is even.
+__attribute__ ((__const__, __pure__))
+inline bool bmm_size_even(size_t const n) {
+  return n % 2 == 0;
+}
+
+/// The call `bmm_size_odd(n)`
+/// checks whether `n` is odd.
+__attribute__ ((__const__, __pure__))
+inline bool bmm_size_odd(size_t const n) {
+  return n % 2 == 1;
 }
 
 /// The call `bmm_size_min(n, k)` returns the lesser of `n` and `k`.
@@ -120,7 +135,8 @@ inline size_t bmm_size_cb(size_t const n) {
   return n * n * n;
 }
 
-/// The call `bmm_size_firt(n, k)` returns the floor of the `k`th root of `n`.
+/// The call `bmm_size_firt(n, k)`
+/// returns the floor of the `k`th root of `n`.
 /// This is analogous to `bmm_fp_rt`.
 /// Note that the result may be wrong for large arguments.
 __attribute__ ((__const__, __pure__))
@@ -141,7 +157,8 @@ inline size_t bmm_size_firt(size_t const n, size_t const k) {
   }
 }
 
-/// The call `bmm_size_cirt(n, k)` returns the ceiling of the `k`th root of `n`.
+/// The call `bmm_size_cirt(n, k)`
+/// returns the ceiling of the `k`th root of `n`.
 /// This is analogous to `bmm_fp_rt`.
 /// Note that the result may be wrong for large arguments.
 __attribute__ ((__const__, __pure__))
@@ -258,16 +275,16 @@ inline size_t bmm_size_dec(size_t const n, size_t const a, size_t const b) {
   return (n % c + c - a % c - 1) % c + a;
 }
 
-/// The call `bmm_size_fact(n)`
-/// returns the factorial of `n`.
-__attribute__ ((__const__, __deprecated__, __pure__))
-inline size_t bmm_size_fact(size_t const n) {
-  size_t k = 1;
+/// The call `bmm_size_fact(n, k)`
+/// returns the `k`-factorial of `n`.
+__attribute__ ((__const__, __pure__))
+inline size_t bmm_size_fact(size_t const n, size_t const k) {
+  size_t m = 1;
 
-  for (size_t i = n; i > 1; --i)
-    k *= i;
+  for (size_t i = n; i > 1; i -= k)
+    m *= i;
 
-  return k;
+  return m;
 }
 
 /// The call `bmm_size_sum(n, k)`

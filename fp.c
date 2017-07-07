@@ -23,6 +23,8 @@ extern inline double bmm_fp_sq(double);
 
 extern inline double bmm_fp_cb(double);
 
+extern inline double bmm_fp_pow(double, size_t);
+
 extern inline double bmm_fp_rt(double, double);
 
 extern inline double bmm_fp_log(double, double);
@@ -39,7 +41,7 @@ extern inline double bmm_fp_swrap(double, double);
 
 extern inline double bmm_fp_uwrap(double, double);
 
-extern inline double bmm_fp_fact(size_t);
+extern inline double bmm_fp_fact(size_t, size_t);
 
 extern inline double bmm_fp_sum(double const*, size_t);
 

@@ -8,6 +8,7 @@
 #include "cpp.h"
 #include "ext.h"
 #include "fp.h"
+#include "size.h"
 
 /// The call `bmm_geom_ballvol(r, d)`
 /// returns the volume of the `d`-dimensional ball of radius `r`.
@@ -15,10 +16,11 @@
 /// $V_0(r) = 1$, $V_1(r) = 2 r$, $V_d(r) = (\\twopi r^2 / d) V_{d - 2}(r)$.
 __attribute__ ((__const__, __pure__))
 inline double bmm_geom_ballvol(double const r, size_t d) {
+  // This would not be guaranteed to be tail-call optimized.
   // return d == 0 ? 1.0 : d == 1 ? 2.0 * r :
   //   (M_2PI * BMM_POW(r, 2) / (double) d) * bmm_geom_ballvol(r, d - 2);
 
-  double v = d % 2 == 0 ? 1.0 : 2.0 * r;
+  double v = bmm_size_even(d) ? 1.0 : 2.0 * r;
 
   while (d > 1) {
     v *= M_2PI * BMM_POW(r, 2) / (double) d;
@@ -35,10 +37,11 @@ inline double bmm_geom_ballvol(double const r, size_t d) {
 /// $A_d(r) = (\\twopi r^2 / (d - 2)) A_{d - 2}(r)$.
 __attribute__ ((__const__, __pure__))
 inline double bmm_geom_ballsurf(double const r, size_t d) {
+  // This would not be guaranteed to be tail-call optimized.
   // return d == 0 ? 0.0 : d == 1 ? 2.0 : d == 2 ? M_2PI * r :
   //   (M_2PI * BMM_POW(r, 2) / (double) (d - 2)) * bmm_geom_ballsurf(r, d - 2);
 
-  double a = d == 0 ? 0.0 : d % 2 == 1 ? 2.0 : M_2PI * r;
+  double a = d == 0 ? 0.0 : bmm_size_odd(d) ? 2.0 : M_2PI * r;
 
   while (d > 2) {
     d -= 2;
@@ -101,45 +104,75 @@ inline double bmm_geom_ballpmoi(double const m, double const r,
   return bmm_geom_ballprmoi(d) * m * BMM_POW(r, 2);
 }
 
-/// The call `bmm_geom_ballmpd(d)`
-/// returns the maximal packing density of balls in `d` dimensions.
+/// The call `bmm_geom_ballmpcd(d)`
+/// returns the maximal packing center density of balls in `d` dimensions.
 /// The density is only known for
 ///
-/// * 1,
-/// * 2,
-/// * 3,
-/// * 8 and
-/// * 24
+/// * the $1$-dimensional point lattice,
+/// * the $2$-dimensional hexagonal lattice,
+/// * the $3$-dimensional face-centered cubic lattice or
+///   the $equally dense hexagonal close-packing,
+/// * the $8$-dimensional $E_8$ lattice and
+/// * the $24$-dimensional Leech lattice.
 ///
-/// dimensions; densities for all other dimensions are approximations.
+/// Hypothetical answers exist for
+///
+/// * the $4$-dimensional $16$-cell honeycomb lattice,
+/// * the $5$-dimensional $5$-demicubic honeycomb lattice,
+/// * the $6$-dimensional $2_{22}$ honeycomb lattice and
+/// * the $7$-dimensional $3_{31}$ honeycomb lattice.
+///
+/// Various approximate answers are used for other dimensions up to $36$.
+/// Anything beyond $36$ dimensions is undefined.
+/// The data source is `arXiv:math/0110009`.
 __attribute__ ((__const__, __pure__))
-inline double bmm_geom_ballmpd(size_t const d) {
-  static double const delta[] = {
-    NAN, 0.5, 0.28868, 0.17678, 0.125, 0.08839,
-    0.07217, 0.0625, 0.0625, 0.04419, 0.03906, 0.03516,
-    0.03704, 0.03516, 0.03608, 0.04419, 0.0625, 0.0625,
-    0.07508, 0.08839, 0.13154, 0.17678, 0.33254, 0.5,
-    1.0, 0.70711, 0.57735, 0.70711, 1.0, 0.70711,
-    1.0, 1.2095, 2.5658, 2.2220, 2.2220, 2.8284, 4.4394
+inline double bmm_geom_ballmpcd(size_t const d) {
+  static double const data[] = {
+    1.0, 0.5, 0.28868, 0.17678, 0.125, 0.08839, 0.07217, 0.0625,
+    0.0625, 0.04419, 0.03906, 0.03516, 0.03704, 0.03516, 0.03608, 0.04419,
+    0.0625, 0.0625, 0.07508, 0.08839, 0.13154, 0.17678, 0.33254, 0.5,
+    1.0, 0.70711, 0.57735, 0.70711, 1.0, 0.70711, 1.0, 1.2095,
+    2.5658, 2.2220, 2.2220, 2.8284, 4.4394
   };
 
-  // TODO This.
-  // return (pow(M_PI, (double) d / 2.0) / gsl_sf_gamma((double) d / 2.0 + 1)) * delta[d];
+  return d < nmembof(data) ? data[d] : (double) NAN;
+}
 
-  switch (d) {
-    case 1:
-      return 1.0;
-    case 2:
-      return M_2PI / (4.0 * sqrt(2.0));
-    case 3:
-      return M_2PI / (6.0 * sqrt(2.0));
-    case 8:
-      return BMM_POW(M_2PI / 4.0, 4) / BMM_FACT(4);
-    case 24:
-      return BMM_POW(M_2PI / 2.0, 12) / BMM_FACT(12);
+/// The call `bmm_geom_ballmpd(d)`
+/// returns the maximal packing density of balls in `d` dimensions.
+/// The density $\\Delta$ is related to the center density $\\delta$ by
+/// $$\\frac \\Delta \\delta =
+/// \\Big(\\frac \\twopi 2\\Big)^{d / 2} \\frac 1{\\Gamma(d / 2 + 1)}$$
+/// or, in simplified form,
+/// $$\\frac \\Delta \\delta =
+/// \\Big(\\frac \\twopi 2\\Big)^{d / 2} \\frac 1{(d / 2)!}$$
+/// for even $d$ and
+/// $$\\frac \\Delta \\delta =
+/// \\frac{(2 \\twopi)^{(d + 1) / 2}}{\\twopi / 2}
+/// \\frac{((d + 1) / 2)!}{(d + 1)!} =
+/// \\frac{\\twopi^{(d + 1) / 2}}{\\twopi / 2} \\frac 1{d!!}$$
+/// for odd $d$.
+///
+/// See `bmm_geom_ballmpcd`.
+__attribute__ ((__const__, __pure__))
+inline double bmm_geom_ballmpd(size_t const d) {
+  double c;
+
+  if (bmm_size_even(d)) {
+    size_t const n = d / 2;
+
+    c = bmm_fp_pow(M_PI, n) / bmm_fp_fact(n, 1);
+  } else {
+    size_t const k = d + 1;
+    size_t const n = k / 2;
+
+    // This could be unstable.
+    // c = (bmm_fp_pow(M_4PI, n) / M_PI) *
+    //   (bmm_fp_fact(n, 1) / bmm_fp_fact(k, 1));
+    c = (bmm_fp_pow(M_2PI, n) / M_PI) * (1.0 / bmm_fp_fact(d, 2));
   }
 
-  return NAN;
+  return c * bmm_geom_ballmpcd(d);
 }
 
 #endif

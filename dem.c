@@ -145,7 +145,7 @@ static bool bmm_dem_cache_addpart(struct bmm_dem* const dem,
   size_t const icell = dem->cache.icell[ipart];
 
   if (dem->cache.part[icell].n >= nmembof(dem->cache.part[icell].i)) {
-    BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Neighbor cell capacity exhausted");
+    BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Neighbor cell capacity exceeded");
 
     return false;
   }
@@ -217,7 +217,7 @@ static bool bmm_dem_cache_addfrom(struct bmm_dem* const dem,
       // This block is covariant.
       if (bmm_dem_cache_eligible(dem, ipart, jpart)) {
         if (dem->cache.neigh[ipart].n >= nmembof(dem->cache.neigh[ipart].i)) {
-          BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Neighbor capacity exhausted");
+          BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Neighbor capacity exceeded");
 
           return false;
         }
@@ -258,7 +258,7 @@ static bool bmm_dem_cache_addto(struct bmm_dem* const dem,
       // This block is contravariant.
       if (bmm_dem_cache_eligible(dem, jpart, ipart)) {
         if (dem->cache.neigh[jpart].n >= nmembof(dem->cache.neigh[jpart].i)) {
-          BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Neighbor capacity exhausted");
+          BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Neighbor capacity exceeded");
 
           return false;
         }
@@ -593,9 +593,9 @@ void bmm_dem_integ_euler(struct bmm_dem* const dem) {
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
     for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
       dem->part.x[ipart][idim] +=
-        (1.0 / bmm_fp_fact(1)) * dem->part.v[ipart][idim] * dt;
+        (1.0 / (double) BMM_FACT(1)) * dem->part.v[ipart][idim] * dt;
       dem->part.v[ipart][idim] +=
-        (1.0 / bmm_fp_fact(1)) * dem->part.a[ipart][idim] * dt;
+        (1.0 / (double) BMM_FACT(1)) * dem->part.a[ipart][idim] * dt;
 
       if (dem->opts.box.per[idim])
         dem->part.x[ipart][idim] = bmm_fp_uwrap(dem->part.x[ipart][idim],
@@ -603,9 +603,9 @@ void bmm_dem_integ_euler(struct bmm_dem* const dem) {
     }
 
     dem->part.phi[ipart] +=
-      (1.0 / bmm_fp_fact(1)) * dem->part.omega[ipart] * dt;
+      (1.0 / (double) BMM_FACT(1)) * dem->part.omega[ipart] * dt;
     dem->part.omega[ipart] +=
-      (1.0 / bmm_fp_fact(1)) * dem->part.alpha[ipart] * dt;
+      (1.0 / (double) BMM_FACT(1)) * dem->part.alpha[ipart] * dt;
   }
 }
 
@@ -620,10 +620,10 @@ void bmm_dem_integ_taylor(struct bmm_dem* const dem) {
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
     for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
       dem->part.x[ipart][idim] +=
-        (1.0 / bmm_fp_fact(1)) * dem->part.v[ipart][idim] * dt +
-        (1.0 / bmm_fp_fact(2)) * dem->part.a[ipart][idim] * dt2;
+        (1.0 / (double) BMM_FACT(1)) * dem->part.v[ipart][idim] * dt +
+        (1.0 / (double) BMM_FACT(2)) * dem->part.a[ipart][idim] * dt2;
       dem->part.v[ipart][idim] +=
-        (1.0 / bmm_fp_fact(1)) * dem->part.a[ipart][idim] * dt;
+        (1.0 / (double) BMM_FACT(1)) * dem->part.a[ipart][idim] * dt;
 
       if (dem->opts.box.per[idim])
         dem->part.x[ipart][idim] = bmm_fp_uwrap(dem->part.x[ipart][idim],
@@ -631,10 +631,10 @@ void bmm_dem_integ_taylor(struct bmm_dem* const dem) {
     }
 
     dem->part.phi[ipart] +=
-      (1.0 / bmm_fp_fact(1)) * dem->part.omega[ipart] * dt +
-      (1.0 / bmm_fp_fact(2)) * dem->part.alpha[ipart] * dt2;
+      (1.0 / (double) BMM_FACT(1)) * dem->part.omega[ipart] * dt +
+      (1.0 / (double) BMM_FACT(2)) * dem->part.alpha[ipart] * dt2;
     dem->part.omega[ipart] +=
-      (1.0 / bmm_fp_fact(1)) * dem->part.alpha[ipart] * dt;
+      (1.0 / (double) BMM_FACT(1)) * dem->part.alpha[ipart] * dt;
   }
 }
 
@@ -649,8 +649,8 @@ void bmm_dem_integ_vel(struct bmm_dem* const dem) {
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
     for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
       dem->part.x[ipart][idim] +=
-        (1.0 / bmm_fp_fact(1)) * dem->part.v[ipart][idim] * dt +
-        (1.0 / bmm_fp_fact(2)) * dem->part.a[ipart][idim] * dt2;
+        (1.0 / (double) BMM_FACT(1)) * dem->part.v[ipart][idim] * dt +
+        (1.0 / (double) BMM_FACT(2)) * dem->part.a[ipart][idim] * dt2;
 
       if (dem->opts.box.per[idim])
         dem->part.x[ipart][idim] = bmm_fp_uwrap(dem->part.x[ipart][idim],
@@ -660,8 +660,8 @@ void bmm_dem_integ_vel(struct bmm_dem* const dem) {
     }
 
     dem->part.phi[ipart] +=
-      (1.0 / bmm_fp_fact(1)) * dem->part.omega[ipart] * dt +
-      (1.0 / bmm_fp_fact(2)) * dem->part.alpha[ipart] * dt2;
+      (1.0 / (double) BMM_FACT(1)) * dem->part.omega[ipart] * dt +
+      (1.0 / (double) BMM_FACT(2)) * dem->part.alpha[ipart] * dt2;
 
     dem->integ.params.velvet.alpha[ipart] = dem->part.alpha[ipart];
   }
@@ -675,10 +675,10 @@ void bmm_dem_integ_vet(struct bmm_dem* const dem) {
 
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
     for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-      dem->part.v[ipart][idim] += (1.0 / bmm_fp_fact(2)) *
+      dem->part.v[ipart][idim] += (1.0 / (double) BMM_FACT(2)) *
         (dem->integ.params.velvet.a[ipart][idim] + dem->part.a[ipart][idim]) * dt;
 
-    dem->part.omega[ipart] += (1.0 / bmm_fp_fact(2)) *
+    dem->part.omega[ipart] += (1.0 / (double) BMM_FACT(2)) *
       (dem->integ.params.velvet.alpha[ipart] + dem->part.alpha[ipart]) * dt;
   }
 }

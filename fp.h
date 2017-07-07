@@ -15,6 +15,10 @@
 #define M_2PI 6.283185307179586
 #endif
 
+#ifndef M_4PI
+#define M_4PI 12.566370614359172
+#endif
+
 /// This structure holds the quotient and remainder of a division
 /// in unspecified order.
 typedef struct {
@@ -115,6 +119,13 @@ inline double bmm_fp_cb(double const x) {
   return x * x * x;
 }
 
+/// The call `bmm_fp_pow(x, n)` returns the `n`th power of `x`.
+/// This is analogous to `pow`.
+__attribute__ ((__const__, __pure__))
+inline double bmm_fp_pow(double const x, size_t const n) {
+  return pow(x, (double) n);
+}
+
 /// The call `bmm_fp_rt(x, y)` returns the `y`th root of `x`.
 /// This is analogous to `bmm_size_firt` or `bmm_size_cirt`.
 __attribute__ ((__const__, __pure__))
@@ -192,13 +203,13 @@ inline double bmm_fp_uwrap(double const x, double const b) {
   return x - b * floor(x / b);
 }
 
-/// The call `bmm_fp_fact(n)`
-/// returns the factorial of `n`.
-__attribute__ ((__const__, __deprecated__, __pure__))
-inline double bmm_fp_fact(size_t const n) {
+/// The call `bmm_fp_fact(n, k)`
+/// returns the `k`-factorial of `n`.
+__attribute__ ((__const__, __pure__))
+inline double bmm_fp_fact(size_t const n, size_t const k) {
   double x = 1.0;
 
-  for (size_t i = n; i > 1; --i)
+  for (size_t i = n; i > 1; i -= k)
     x *= (double) i;
 
   return x;

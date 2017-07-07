@@ -22,6 +22,16 @@ CHEAT_TEST(size_fact,
   cheat_assert_size(bmm_size_fact(2), 2);
   cheat_assert_size(bmm_size_fact(3), 6);
   cheat_assert_size(bmm_size_fact(4), 24);
+  cheat_assert_size(bmm_size_fact(5), 120);
+)
+
+CHEAT_TEST(size_fact2,
+  cheat_assert_size(bmm_size_fact2(0), 1);
+  cheat_assert_size(bmm_size_fact2(1), 1);
+  cheat_assert_size(bmm_size_fact2(2), 2);
+  cheat_assert_size(bmm_size_fact2(3), 3);
+  cheat_assert_size(bmm_size_fact2(4), 8);
+  cheat_assert_size(bmm_size_fact2(5), 15);
 )
 
 CHEAT_TEST(size_hc_ord,

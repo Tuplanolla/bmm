@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <stddef.h>
 
 #include "size.h"
@@ -5,6 +6,10 @@
 extern inline bmm_size_div_t bmm_size_div(size_t, size_t);
 
 extern inline int bmm_size_cmp(size_t, size_t);
+
+extern inline bool bmm_size_even(size_t);
+
+extern inline bool bmm_size_odd(size_t);
 
 extern inline size_t bmm_size_min(size_t, size_t);
 
@@ -48,7 +53,7 @@ extern inline size_t bmm_size_udec(size_t, size_t);
 
 extern inline size_t bmm_size_dec(size_t, size_t, size_t);
 
-extern inline size_t bmm_size_fact(size_t);
+extern inline size_t bmm_size_fact(size_t, size_t);
 
 extern inline size_t bmm_size_sum(size_t const*, size_t);
 

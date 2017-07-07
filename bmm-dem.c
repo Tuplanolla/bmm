@@ -12,6 +12,7 @@
 #include "dem.h"
 #include "ext.h"
 #include "fp.h"
+#include "geom.h"
 #include "opt.h"
 #include "str.h"
 #include "tle.h"
@@ -49,7 +50,7 @@ static bool f(char const* const key, char const* const value,
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CREATE;
-      opts->script.params[istage].create.eta = M_2PI / (4.0 * sqrt(3.0));
+      opts->script.params[istage].create.eta = bmm_geom_ballmpd(BMM_NDIM);
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_SEDIMENT;
