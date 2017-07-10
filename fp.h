@@ -119,13 +119,6 @@ inline double bmm_fp_cb(double const x) {
   return x * x * x;
 }
 
-/// The call `bmm_fp_pow(x, n)` returns the `n`th power of `x`.
-/// This is analogous to `pow`.
-__attribute__ ((__const__, __pure__))
-inline double bmm_fp_pow(double const x, size_t const n) {
-  return pow(x, (double) n);
-}
-
 /// The call `bmm_fp_rt(x, y)` returns the `y`th root of `x`.
 /// This is analogous to `bmm_size_firt` or `bmm_size_cirt`.
 __attribute__ ((__const__, __pure__))
@@ -203,18 +196,6 @@ inline double bmm_fp_uwrap(double const x, double const b) {
   return x - b * floor(x / b);
 }
 
-/// The call `bmm_fp_fact(n, k)`
-/// returns the `k`-factorial of `n`.
-__attribute__ ((__const__, __pure__))
-inline double bmm_fp_fact(size_t const n, size_t const k) {
-  double x = 1.0;
-
-  for (size_t i = n; i > 1; i -= k)
-    x *= (double) i;
-
-  return x;
-}
-
 /// The call `bmm_fp_sum(x, n)`
 /// returns the sum of the array `x` of length `n`.
 __attribute__ ((__pure__))
@@ -287,7 +268,49 @@ inline double bmm_fp_lorp(double const x,
 /// returns the approximate percentage of `x` in `y`.
 __attribute__ ((__const__, __pure__))
 inline double bmm_fp_percent(double const x, double const y) {
-  return y != 0.0 ? x / y * 100.0 : 100.0;
+  return y != 0.0 ? (x / y) * 100.0 : 100.0;
+}
+
+/// The call `bmm_fp_pow(x, n)` returns the `n`th power of `x`.
+/// This is analogous to `pow`.
+__attribute__ ((__const__, __pure__))
+inline double bmm_fp_pow(double const x, size_t const n) {
+  return pow(x, (double) n);
+}
+
+/// The call `bmm_fp_fact(n, k)`
+/// returns the `k`-factorial of `n`.
+__attribute__ ((__const__, __pure__))
+inline double bmm_fp_fact(size_t const n, size_t const k) {
+  double x = 1.0;
+
+  for (size_t i = n; i > 1; i -= k)
+    x *= (double) i;
+
+  return x;
+}
+
+/// The call `n = bmm_fp_iclerp(x, x0, x1, n0, n1)`
+/// is a discrete clamped version of `bmm_fp_lerp`.
+__attribute__ ((__const__, __pure__))
+inline size_t bmm_fp_iclerp(double const x,
+    double const x0, double const x1, size_t const n0, size_t const n1) {
+  dynamic_assert(n0 > 0, "Lower bound could wrap");
+  // dynamic_assert(n1 <= SIZE_MAX, "Upper bound could wrap");
+
+  double const y0 = (double) n0;
+  double const y1 = (double) n1;
+  double const y = bmm_fp_lerp(x, x0, x1, y0, y1);
+
+  if (y < y0)
+    return n0 - 1;
+  else if (y >= y1)
+    return n1;
+
+  size_t const n = (size_t) y;
+  dynamic_assert(n >= n0 && n < n1, "Invalid truncation");
+
+  return n;
 }
 
 #endif

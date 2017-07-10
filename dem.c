@@ -13,6 +13,7 @@
 #include "fp.h"
 #include "geom.h"
 #include "geom2d.h"
+#include "hist.h"
 #include "io.h"
 #include "ival.h"
 #include "neigh.h"
@@ -85,28 +86,9 @@ static void bmm_dem_cache_x(struct bmm_dem* const dem,
 __attribute__ ((__nonnull__))
 static void bmm_dem_cache_ijcell(struct bmm_dem* const dem,
     size_t const ipart) {
-  for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
-    size_t const i = dem->opts.cache.ncell[idim] - 1;
-
-    double const a = 1.0;
-    double const b = (double) i;
-    double const t = bmm_fp_lerp(dem->cache.x[ipart][idim],
-        0.0, dem->opts.box.x[idim], a, b);
-
-    if (t < a)
-      dem->cache.ijcell[ipart][idim] = 0;
-    else if (t >= b)
-      dem->cache.ijcell[ipart][idim] = i;
-    else {
-      size_t const j = (size_t) t;
-
-      // The equivalent for a signed type would be
-      // `dynamic_assert(j >= 0 && j < i, "Invalid truncation")`.
-      dynamic_assert(j < i, "Invalid truncation");
-
-      dem->cache.ijcell[ipart][idim] = j;
-    }
-  }
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+    dem->cache.ijcell[ipart][idim] = bmm_fp_iclerp(dem->cache.x[ipart][idim],
+        0.0, dem->opts.box.x[idim], 1, dem->opts.cache.ncell[idim] - 1);
 }
 
 /// The call `bmm_dem_cache_icell(dem, ipart)`
@@ -879,6 +861,49 @@ double bmm_dem_est_cor(struct bmm_dem const* const dem) {
   return e / (double) dem->part.n;
 }
 
+/// The call `bmm_dem_est_raddist(pr, pg, dem, nr)`
+/// sets `pr` and `pg` of length `nr`
+/// to the radial distribution function of the particles
+/// in the simulation `dem`.
+__attribute__ ((__nonnull__))
+bool bmm_dem_est_raddist(double* const pr, double* const pg,
+    struct bmm_dem const* const dem, size_t const nr, double const rmax) {
+  struct bmm_hist* const hist = bmm_hist_alloc(1, nr, 0.0, rmax);
+  if (hist == NULL)
+    return false;
+
+  // TODO This is not restrictive enough to produce a correct result.
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    for (size_t jpart = ipart + 1; jpart < dem->part.n; ++jpart) {
+      double const d = bmm_geom2d_pdist(dem->part.x[ipart], dem->part.x[jpart],
+            dem->opts.box.x);
+
+      (void) bmm_hist_accum(hist, &d);
+    }
+
+  for (size_t ibin = 0; ibin < bmm_hist_nbin(hist); ++ibin) {
+    double r0;
+    bmm_hist_funbin(hist, &r0, ibin);
+
+    double r1;
+    bmm_hist_cunbin(hist, &r1, ibin);
+
+    double const v = bmm_geom_ballvol(r1, BMM_NDIM) -
+      bmm_geom_ballvol(r0, BMM_NDIM);
+
+    double r;
+    bmm_hist_unbin(hist, &r, ibin);
+
+    pr[ibin] = r;
+    pg[ibin] = ((double) bmm_hist_hits(hist, ibin) /
+      (double) bmm_hist_sumhits(hist)) / v;
+  }
+
+  bmm_hist_free(hist);
+
+  return true;
+}
+
 void bmm_dem_opts_def(struct bmm_dem_opts* const opts) {
   // This is here just to help Valgrind and cover up my mistakes.
   (void) memset(opts, 0, sizeof *opts);
@@ -1107,11 +1132,6 @@ static bool bmm_dem_script_create_hc(struct bmm_dem* const dem) {
       for (size_t idim = 0; idim < BMM_NDIM; ++idim)
         dem->part.x[ipart][idim] = x[idim] + rspace;
 
-      // TODO Wow, lewd.
-      for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-        dem->part.x[ipart][idim] += bmm_random_get(dem->rng,
-            dem->opts.part.rnew) / 4.0;
-
       x[0] += 2.0 * rspace;
 
       if (x[0] + 2.0 * rspace >= dem->opts.box.x[0]) {
@@ -1264,13 +1284,18 @@ static void bmm_dem_script_clip(struct bmm_dem* const dem) {
 bool bmm_dem_step(struct bmm_dem* const dem) {
   switch (dem->opts.script.mode[dem->script.i]) {
     case BMM_DEM_MODE_CREATE:
-      if (!bmm_dem_script_create_hc(dem))
-      // if (!bmm_dem_script_create_hex(dem))
+      // if (!bmm_dem_script_create_hc(dem))
+      if (!bmm_dem_script_create_hex(dem))
         return false;
 
       bmm_dem_script_perturb(dem);
 
       bmm_dem_script_balance(dem);
+
+      /*
+      for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+        dem->part.r[ipart] = bmm_ival_midpoint(dem->opts.part.rnew);
+      */
 
       break;
     case BMM_DEM_MODE_TEST_GAS:
@@ -1411,6 +1436,64 @@ static bool postgarbage(struct bmm_dem const* const dem) {
   return true;
 }
 
+static bool rubbish(struct bmm_dem const* const dem) {
+  FILE* const stream = fopen("rubbish.data", "w");
+  if (stream == NULL) {
+    BMM_TLE_STDS();
+
+    return false;
+  }
+
+  double* const r = malloc(BMM_MBIN * sizeof *r);
+  double* const g = malloc(BMM_MBIN * sizeof *g);
+  dynamic_assert(r != NULL && g != NULL, "Allocated");
+  size_t const nbin = 128 + 32;
+  double const rmax = dem->opts.box.x[0] / 2.0;
+
+  if (!bmm_dem_est_raddist(r, g, dem, nbin, rmax))
+    return false;
+
+  for (size_t ibin = 0; ibin < nbin; ++ibin)
+    if (fprintf(stream, "%g %g\n", r[ibin], g[ibin]) < 0) {
+      BMM_TLE_STDS();
+
+      return false;
+    }
+
+  // TODO Cut this.
+
+  // Snip.
+
+  double const v = bmm_fp_prod(dem->opts.box.x, BMM_NDIM);
+  double const rho = (double) dem->part.n / v;
+  double a = 0.0;
+
+  for (size_t ibin = 0; ibin < nbin; ++ibin)
+    a += (g[ibin] * log(g[ibin] + 1e-6) - (g[ibin] - 1)) *
+      (rmax / (double) nbin);
+
+  double const sk = -(rho / 2.0) * a;
+
+  if (fprintf(stderr, "s / k = %g\n", sk) < 0) {
+    BMM_TLE_STDS();
+
+    return false;
+  }
+
+  // Snap.
+
+  free(g);
+  free(r);
+
+  if (fclose(stream) != 0) {
+    BMM_TLE_STDS();
+
+    return false;
+  }
+
+  return true;
+}
+
 static double abserr(double const x, double const z,
     __attribute__ ((__unused__)) void* const ptr) {
   return fabs(x) + z;
@@ -1435,7 +1518,8 @@ static bool bmm_dem_run_(struct bmm_dem* const dem) {
     return false;
   }
 
-  pregarbage(dem);
+  if (!pregarbage(dem))
+    BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Fucked up");
 
   for ever {
     int signum;
@@ -1456,7 +1540,8 @@ static bool bmm_dem_run_(struct bmm_dem* const dem) {
     if (!bmm_dem_comm(dem))
       return false;
 
-    garbage(dem);
+    if (!garbage(dem))
+      BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Fucked up");
 
     if (!bmm_dem_step(dem))
       return false;
@@ -1472,7 +1557,11 @@ bool bmm_dem_run(struct bmm_dem* const dem) {
   bool const run = bmm_dem_run_(dem);
   bool const report = bmm_dem_report(dem);
 
-  postgarbage(dem);
+  if (!postgarbage(dem))
+    BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Fucked up");
+
+  if (!rubbish(dem))
+    BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Fucked up");
 
   return run && report;
 }
