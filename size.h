@@ -287,6 +287,14 @@ inline size_t bmm_size_fact(size_t const n, size_t const k) {
   return m;
 }
 
+/// The call `bmm_size_tri(n)`
+/// returns the `n`th triangular number.
+__attribute__ ((__const__, __pure__))
+inline size_t bmm_size_tri(size_t const n) {
+  // return bmm_size_choose(n + 1, 2);
+  return n * (n + 1) / 2;
+}
+
 /// The call `bmm_size_sum(n, k)`
 /// returns the sum of the array `n` of length `k`.
 __attribute__ ((__pure__))

@@ -7,6 +7,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef _GNU_SOURCE
+#include <fenv.h>
+#endif
+
 #include "conf.h"
 #include "cpp.h"
 #include "dem.h"
@@ -781,6 +785,40 @@ bool bmm_dem_unlink(struct bmm_dem* const dem) {
   return true;
 }
 
+// TODO Interval arithmetic.
+// TODO Not quite! Edges may overlap if periodicity is turned on.
+__attribute__ ((__nonnull__, __pure__))
+static bool bmm_dem_inside(struct bmm_dem const* const dem,
+    size_t const ipart) {
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+    if (dem->part.x[ipart][idim] < 0.0 ||
+        dem->part.x[ipart][idim] >= dem->opts.box.x[idim])
+      return false;
+
+  return true;
+}
+
+// TODO Not quite! Edges may be excavated if periodicity is turned off.
+__attribute__ ((__nonnull__, __pure__))
+static bool bmm_dem_insider(struct bmm_dem const* const dem,
+    size_t const ipart) {
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+    if (dem->part.x[ipart][idim] - dem->part.r[ipart] < 0.0 ||
+        dem->part.x[ipart][idim] + dem->part.r[ipart] >= dem->opts.box.x[idim])
+      return false;
+
+  return true;
+}
+
+__attribute__ ((__nonnull__))
+static void bmm_dem_script_clip(struct bmm_dem* const dem) {
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    if (!bmm_dem_inside(dem, ipart)) {
+      bmm_dem_rempart(dem, ipart);
+      --ipart;
+    }
+}
+
 /// The call `bmm_dem_est_ekin(dem)`
 /// returns the total kinetic energy of the particles
 /// in the simulation `dem`.
@@ -861,25 +899,99 @@ double bmm_dem_est_cor(struct bmm_dem const* const dem) {
   return e / (double) dem->part.n;
 }
 
+// TODO Clean this up.
+__attribute__ ((__nonnull__))
+double bmm_dem_est_shellvol(struct bmm_dem const* const dem,
+    size_t const ipart, double const r) {
+  if (!bmm_dem_inside(dem, ipart) || r == 0.0)
+    return 0.0;
+
+  bool const p = !dem->opts.box.per[0];
+  bool const q = !dem->opts.box.per[1];
+  double const w = dem->opts.box.x[0];
+  double const h = dem->opts.box.x[1];
+  double x = dem->part.x[ipart][0];
+  double y = dem->part.x[ipart][1];
+  double wx = w - x;
+  double hy = h - y;
+
+  double v = 0.0;
+
+  // First quadrant.
+  {
+    bool c[3];
+    c[0] = wx < r;
+    c[1] = hy < r;
+    // !!
+    c[2] = bmm_fp_pow(wx, 2) + bmm_fp_pow(hy, 2) > bmm_fp_pow(r, 2);
+
+    if (c[2]) {
+      double const a = p && c[0] ? acos(wx / r) : 0.0;
+      double const b = q && c[1] ? asin(hy / r) : M_PI_2;
+
+      v += r * (b - a);
+    }
+  }
+
+  // TODO Absolutely disgusting.
+  x = w - dem->part.x[ipart][0];
+  y = dem->part.x[ipart][1];
+  wx = w - x;
+  hy = h - y;
+  { bool c[3]; c[0] = wx < r; c[1] = hy < r; c[2] = bmm_fp_pow(wx, 2) + bmm_fp_pow(hy, 2) < bmm_fp_pow(r, 2); if (c[2]) { double const a = p && c[0] ? acos(wx / r) : 0.0; double const b = q && c[1] ? asin(hy / r) : M_PI_2; v += r * (b - a); } }
+
+  x = dem->part.x[ipart][0];
+  y = h - dem->part.x[ipart][1];
+  wx = w - x;
+  hy = h - y;
+  { bool c[3]; c[0] = wx < r; c[1] = hy < r; c[2] = bmm_fp_pow(wx, 2) + bmm_fp_pow(hy, 2) < bmm_fp_pow(r, 2); if (c[2]) { double const a = p && c[0] ? acos(wx / r) : 0.0; double const b = q && c[1] ? asin(hy / r) : M_PI_2; v += r * (b - a); } }
+
+  x = w - dem->part.x[ipart][0];
+  y = h - dem->part.x[ipart][1];
+  wx = w - x;
+  hy = h - y;
+  { bool c[3]; c[0] = wx < r; c[1] = hy < r; c[2] = bmm_fp_pow(wx, 2) + bmm_fp_pow(hy, 2) < bmm_fp_pow(r, 2); if (c[2]) { double const a = p && c[0] ? acos(wx / r) : 0.0; double const b = q && c[1] ? asin(hy / r) : M_PI_2; v += r * (b - a); } }
+
+  return v;
+}
+
 /// The call `bmm_dem_est_raddist(pr, pg, dem, nr)`
 /// sets `pr` and `pg` of length `nr`
 /// to the radial distribution function of the particles
 /// in the simulation `dem`.
 __attribute__ ((__nonnull__))
 bool bmm_dem_est_raddist(double* const pr, double* const pg,
-    struct bmm_dem const* const dem, size_t const nr, double const rmax) {
-  struct bmm_hist* const hist = bmm_hist_alloc(1, nr, 0.0, rmax);
+    struct bmm_dem const* const dem, size_t const n, double const rmax) {
+  // double g[BMM_TRI(BMM_MPART)];
+  size_t const nmemb = bmm_size_tri(dem->part.n);
+  double* const w = malloc(nmemb * sizeof *w);
+  if (w == NULL)
+    return false;
+  double* const r = malloc(nmemb * sizeof *r);
+  if (r == NULL)
+    return false;
+
+  size_t i = 0;
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    for (size_t jpart = ipart + 1; jpart < dem->part.n; ++jpart) {
+      double const d = bmm_geom2d_cpdist(dem->part.x[ipart],
+          dem->part.x[jpart], dem->opts.box.x, dem->opts.box.per);
+
+      double const v = bmm_dem_est_shellvol(dem, ipart, d);
+      // double const v = bmm_geom_ballsurf(d, 2);
+
+      r[i] = d;
+      w[i] = d == 0.0 ? 0.0 : v / (M_2PI * d);
+      ++i;
+    }
+
+  // TODO This is bad and stupid.
+  struct bmm_hist* const hist = bmm_hist_alloc(1, n, 0.0, rmax);
   if (hist == NULL)
     return false;
 
-  // TODO This is not restrictive enough to produce a correct result.
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    for (size_t jpart = ipart + 1; jpart < dem->part.n; ++jpart) {
-      double const d = bmm_geom2d_pdist(dem->part.x[ipart], dem->part.x[jpart],
-            dem->opts.box.x);
-
-      (void) bmm_hist_accum(hist, &d);
-    }
+  for (size_t i = 0; i < nmemb; ++i)
+    (void) bmm_whist_accum(hist, &r[i], w[i]);
 
   for (size_t ibin = 0; ibin < bmm_hist_nbin(hist); ++ibin) {
     double r0;
@@ -895,11 +1007,13 @@ bool bmm_dem_est_raddist(double* const pr, double* const pg,
     bmm_hist_unbin(hist, &r, ibin);
 
     pr[ibin] = r;
-    pg[ibin] = ((double) bmm_hist_hits(hist, ibin) /
-      (double) bmm_hist_sumhits(hist)) / v;
+    pg[ibin] = (bmm_whist_hits(hist, ibin) / bmm_whist_sumhits(hist)) / v;
   }
 
   bmm_hist_free(hist);
+
+  free(r);
+  free(w);
 
   return true;
 }
@@ -909,6 +1023,9 @@ void bmm_dem_opts_def(struct bmm_dem_opts* const opts) {
   (void) memset(opts, 0, sizeof *opts);
 
   opts->verbose = false;
+
+  opts->trap.enabled = false;
+  opts->trap.mask = FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW | FE_UNDERFLOW;
 
   for (size_t idim = 0; idim < BMM_NDIM; ++idim)
     opts->box.x[idim] = 1.0;
@@ -975,6 +1092,8 @@ void bmm_dem_def(struct bmm_dem* const dem,
   (void) memset(dem, 0, sizeof *dem);
 
   dem->opts = *opts;
+
+  dem->trap.remask = 0;
 
   dem->integ.tag = BMM_DEM_INTEG_EULER;
   dem->integ.tag = BMM_DEM_INTEG_TAYLOR;
@@ -1243,40 +1362,6 @@ static bool bmm_dem_script_create_couple(struct bmm_dem* const dem) {
   return true;
 }
 
-// TODO Interval arithmetic.
-// TODO Not quite! Edges may overlap if periodicity is turned on.
-__attribute__ ((__nonnull__, __pure__))
-static bool bmm_dem_inside(struct bmm_dem const* const dem,
-    size_t const ipart) {
-  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-    if (dem->part.x[ipart][idim] < 0.0 ||
-        dem->part.x[ipart][idim] >= dem->opts.box.x[idim])
-      return false;
-
-  return true;
-}
-
-// TODO Not quite! Edges may be excavated if periodicity is turned off.
-__attribute__ ((__nonnull__, __pure__))
-static bool bmm_dem_insider(struct bmm_dem const* const dem,
-    size_t const ipart) {
-  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-    if (dem->part.x[ipart][idim] - dem->part.r[ipart] < 0.0 ||
-        dem->part.x[ipart][idim] + dem->part.r[ipart] >= dem->opts.box.x[idim])
-      return false;
-
-  return true;
-}
-
-__attribute__ ((__nonnull__))
-static void bmm_dem_script_clip(struct bmm_dem* const dem) {
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    if (!bmm_dem_inside(dem, ipart)) {
-      bmm_dem_rempart(dem, ipart);
-      --ipart;
-    }
-}
-
 /// The call `bmm_dem_step(dem)`
 /// advances the simulation `dem` by one step.
 /// Make sure the simulation has not ended prior to the call
@@ -1284,8 +1369,8 @@ static void bmm_dem_script_clip(struct bmm_dem* const dem) {
 bool bmm_dem_step(struct bmm_dem* const dem) {
   switch (dem->opts.script.mode[dem->script.i]) {
     case BMM_DEM_MODE_CREATE:
-      // if (!bmm_dem_script_create_hc(dem))
-      if (!bmm_dem_script_create_hex(dem))
+      if (!bmm_dem_script_create_hc(dem))
+      // if (!bmm_dem_script_create_hex(dem))
         return false;
 
       bmm_dem_script_perturb(dem);
@@ -1447,7 +1532,7 @@ static bool rubbish(struct bmm_dem const* const dem) {
   double* const r = malloc(BMM_MBIN * sizeof *r);
   double* const g = malloc(BMM_MBIN * sizeof *g);
   dynamic_assert(r != NULL && g != NULL, "Allocated");
-  size_t const nbin = 128 + 32;
+  size_t const nbin = 128;
   double const rmax = dem->opts.box.x[0] / 2.0;
 
   if (!bmm_dem_est_raddist(r, g, dem, nbin, rmax))
@@ -1469,7 +1554,7 @@ static bool rubbish(struct bmm_dem const* const dem) {
   double a = 0.0;
 
   for (size_t ibin = 0; ibin < nbin; ++ibin)
-    a += (g[ibin] * log(g[ibin] + 1e-6) - (g[ibin] - 1)) *
+    a += (g[ibin] * log(g[ibin] + 1.0e-9) - (g[ibin] - 1)) *
       (rmax / (double) nbin);
 
   double const sk = -(rho / 2.0) * a;
@@ -1553,9 +1638,50 @@ static bool bmm_dem_run_(struct bmm_dem* const dem) {
   return true;
 }
 
+bool bmm_dem_trap_on(struct bmm_dem* const dem) {
+  if (dem->opts.trap.enabled) {
+#ifdef _GNU_SOURCE
+    dem->trap.remask = feenableexcept(dem->opts.trap.mask);
+    if (dem->trap.remask == -1) {
+      BMM_TLE_STDS();
+
+      return false;
+    }
+#else
+    BMM_TLE_EXTS(BMM_TLE_NUM_UNSUPP, "Trapping exceptions unsupported");
+
+    return false;
+#endif
+  }
+
+  return true;
+}
+
+bool bmm_dem_trap_off(struct bmm_dem* const dem) {
+  if (dem->opts.trap.enabled) {
+#ifdef _GNU_SOURCE
+    if (feenableexcept(dem->trap.remask) == -1) {
+      BMM_TLE_STDS();
+
+      return false;
+    }
+#else
+    BMM_TLE_EXTS(BMM_TLE_NUM_UNSUPP, "Trapping exceptions unsupported");
+
+    return false;
+#endif
+  }
+
+  return true;
+}
+
 bool bmm_dem_run(struct bmm_dem* const dem) {
+  bmm_dem_trap_on(dem);
+
   bool const run = bmm_dem_run_(dem);
   bool const report = bmm_dem_report(dem);
+
+  bmm_dem_trap_off(dem);
 
   if (!postgarbage(dem))
     BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Fucked up");

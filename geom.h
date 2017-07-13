@@ -111,7 +111,7 @@ inline double bmm_geom_ballpmoi(double const m, double const r,
 /// * the $1$-dimensional point lattice,
 /// * the $2$-dimensional hexagonal lattice,
 /// * the $3$-dimensional face-centered cubic lattice or
-///   the $equally dense hexagonal close-packing,
+///   the equally dense hexagonal close-packing,
 /// * the $8$-dimensional $E_8$ lattice and
 /// * the $24$-dimensional Leech lattice.
 ///

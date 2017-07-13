@@ -94,6 +94,13 @@ enum bmm_dem_mode {
 struct bmm_dem_opts {
   /// Report statistics.
   bool verbose;
+  /// Floating-point exceptions.
+  struct {
+    /// Trap exceptions.
+    bool enabled;
+    /// Exception mask.
+    int mask;
+  } trap;
   /// Bounding box.
   struct {
     /// Extents.
@@ -200,6 +207,11 @@ struct bmm_dem {
   struct bmm_dem_opts opts;
   /// Random number generator state.
   gsl_rng* rng;
+  /// Floating-point exceptions.
+  struct {
+    /// Original mask to restore.
+    int remask;
+  } trap;
   /// Predictor data.
   struct {
     /// Integration scheme.
@@ -481,6 +493,19 @@ void bmm_dem_stab(struct bmm_dem*);
 /// prints informal diagnostics for the simulation state `dem`.
 __attribute__ ((__nonnull__))
 bool bmm_dem_report(struct bmm_dem const*);
+
+/// The call `bmm_dem_trap_on(dem)`
+/// enables floating-point exception trapping
+/// in the simulation `dem`.
+__attribute__ ((__nonnull__))
+bool bmm_dem_trap_on(struct bmm_dem*);
+
+/// The call `bmm_dem_trap_off(dem)`
+/// disables floating-point exception trapping and
+/// restores the original state of the processor
+/// in the simulation `dem`.
+__attribute__ ((__nonnull__))
+bool bmm_dem_trap_off(struct bmm_dem*);
 
 /// The call `bmm_dem_run(dem)`
 /// processes all incoming messages and

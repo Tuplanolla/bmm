@@ -39,7 +39,7 @@ endif
 build: bmm-dem bmm-filter bmm-glut bmm-nc bmm-sdl
 
 run: bmm-dem bmm-filter bmm-sdl
-	./bmm-dem --script mix --verbose yes | \
+	./bmm-dem --script mix --trap yes --verbose yes | \
 	./bmm-filter --mode whitelist --pass opts --pass istep --pass parts --pass neigh --verbose yes | \
 	./bmm-sdl
 

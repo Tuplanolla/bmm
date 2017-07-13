@@ -55,6 +55,8 @@ extern inline size_t bmm_size_dec(size_t, size_t, size_t);
 
 extern inline size_t bmm_size_fact(size_t, size_t);
 
+extern inline size_t bmm_size_tri(size_t);
+
 extern inline size_t bmm_size_sum(size_t const*, size_t);
 
 extern inline size_t bmm_size_prod(size_t const*, size_t);

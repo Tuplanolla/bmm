@@ -6,10 +6,13 @@
 #include "ext.h"
 
 // TODO Get rid of useless indirection and enable inlining.
+// TODO Restore previous version without weights.
+// TODO Give up trying to fix this shit.
 
 /// This structure holds hit counts and cached values.
 struct bmm_hist {
   size_t* m;
+  double* wm;
   size_t* tmp;
   size_t ndim;
   size_t nlin;
@@ -17,6 +20,7 @@ struct bmm_hist {
   double a;
   double b;
   size_t nsum;
+  double wnsum;
 };
 
 /// The call `bmm_hist_free(hist)` releases the memory
@@ -67,6 +71,9 @@ void bmm_hist_cunbin(struct bmm_hist const*, double*, size_t);
 __attribute__ ((__nonnull__))
 bool bmm_hist_accum(struct bmm_hist*, double const*);
 
+__attribute__ ((__nonnull__))
+bool bmm_whist_accum(struct bmm_hist*, double const*, double);
+
 /// The call `bmm_hist_ndim(hist)` returns
 /// the number of dimensions in the histogram `hist`.
 /// The time complexity is $O(1)$.
@@ -115,11 +122,17 @@ double bmm_hist_volume(struct bmm_hist const*);
 __attribute__ ((__nonnull__, __pure__))
 size_t bmm_hist_hits(struct bmm_hist const*, size_t);
 
+__attribute__ ((__nonnull__, __pure__))
+double bmm_whist_hits(struct bmm_hist const*, size_t);
+
 /// The call `bmm_hist_sumhits(hist)` returns
 /// the total hit count in the histogram `hist`.
 /// The time complexity is $O(1)$.
 __attribute__ ((__nonnull__, __pure__))
 size_t bmm_hist_sumhits(struct bmm_hist const*);
+
+__attribute__ ((__nonnull__, __pure__))
+double bmm_whist_sumhits(struct bmm_hist const*);
 
 /// The call `bmm_hist_normhits(hist, i)` returns
 /// the normalized hit count for bin `i` in the histogram `hist`.

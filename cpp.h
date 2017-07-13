@@ -87,6 +87,8 @@
 
 /// The preprocessor directive `BMM_POW(x, n)`
 /// expands to `x` raised to the power `n`.
+/// If the value is not known at compile time,
+/// use `bmm_fp_pow` instead.
 /// See `BMM_POW_0`.
 #define BMM_POW(x, n) BMM_POW_(x, n)
 
@@ -163,6 +165,8 @@
 
 /// The preprocessor directive `BMM_FACT(x, n)`
 /// expands to the factorial of `n`.
+/// If the value is not known at compile time,
+/// use `bmm_fp_fact` instead.
 /// See `BMM_FACT_0`.
 #define BMM_FACT(n) BMM_FACT_(n)
 

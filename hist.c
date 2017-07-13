@@ -12,6 +12,7 @@ void bmm_hist_free(struct bmm_hist* const hist) {
     free(hist->tmp);
 
     free(hist->m);
+    free(hist->wm);
   }
 
   free(hist);
@@ -20,6 +21,9 @@ void bmm_hist_free(struct bmm_hist* const hist) {
 void bmm_hist_forget(struct bmm_hist* const hist) {
   for (size_t i = 0; i < hist->ncub; ++i)
     hist->m[i] = 0;
+
+  for (size_t i = 0; i < hist->ncub; ++i)
+    hist->wm[i] = 0.0;
 
   hist->nsum = 0;
 }
@@ -41,8 +45,13 @@ struct bmm_hist* bmm_hist_alloc(size_t const ndim, size_t const nlin,
     hist->m = malloc(hist->ncub * sizeof *hist->m);
     if (hist->m == NULL)
       p = false;
-    else
-      bmm_hist_forget(hist);
+    else {
+      hist->wm = malloc(hist->ncub * sizeof *hist->wm);
+      if (hist->wm == NULL)
+        p = false;
+      else
+        bmm_hist_forget(hist);
+    }
 
     hist->tmp = malloc(ndim * sizeof *hist->tmp);
     if (hist->tmp == NULL)
@@ -109,6 +118,21 @@ bool bmm_hist_accum(struct bmm_hist* const hist, double const* const x) {
   }
 }
 
+bool bmm_whist_accum(struct bmm_hist* const hist, double const* const x,
+    double const w) {
+  size_t const i = bmm_hist_bin(hist, x);
+
+  if (i == SIZE_MAX)
+    return false;
+  else {
+    hist->wm[i] += w;
+
+    hist->wnsum += w;
+
+    return true;
+  }
+}
+
 size_t bmm_hist_ndim(struct bmm_hist const* const hist) {
   return hist->ndim;
 }
@@ -141,8 +165,16 @@ size_t bmm_hist_hits(struct bmm_hist const* const hist, size_t const i) {
   return hist->m[i];
 }
 
+double bmm_whist_hits(struct bmm_hist const* const hist, size_t const i) {
+  return hist->wm[i];
+}
+
 size_t bmm_hist_sumhits(struct bmm_hist const* const hist) {
   return hist->nsum;
+}
+
+double bmm_whist_sumhits(struct bmm_hist const* const hist) {
+  return hist->wnsum;
 }
 
 double bmm_hist_normhits(struct bmm_hist const* const hist, size_t const i) {
