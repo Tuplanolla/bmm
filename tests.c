@@ -1,11 +1,14 @@
 #include <cheat.h>
 #include <cheats.h>
+#include <math.h>
 #include <stdint.h>
 #include <string.h>
 
 #include "cpp.h"
 #include "endy.h"
 #include "ext.h"
+#include "fp.h"
+#include "geom2d.h"
 #include "neigh.h"
 #include "msg.h"
 #include "size.h"
@@ -17,21 +20,33 @@ CHEAT_DECLARE(
 )
 
 CHEAT_TEST(size_fact,
-  cheat_assert_size(bmm_size_fact(0), 1);
-  cheat_assert_size(bmm_size_fact(1), 1);
-  cheat_assert_size(bmm_size_fact(2), 2);
-  cheat_assert_size(bmm_size_fact(3), 6);
-  cheat_assert_size(bmm_size_fact(4), 24);
-  cheat_assert_size(bmm_size_fact(5), 120);
+  cheat_assert_size(bmm_size_fact(0, 1), 1);
+  cheat_assert_size(bmm_size_fact(1, 1), 1);
+  cheat_assert_size(bmm_size_fact(2, 1), 2);
+  cheat_assert_size(bmm_size_fact(3, 1), 6);
+  cheat_assert_size(bmm_size_fact(4, 1), 24);
+  cheat_assert_size(bmm_size_fact(5, 1), 120);
 )
 
 CHEAT_TEST(size_fact2,
-  cheat_assert_size(bmm_size_fact2(0), 1);
-  cheat_assert_size(bmm_size_fact2(1), 1);
-  cheat_assert_size(bmm_size_fact2(2), 2);
-  cheat_assert_size(bmm_size_fact2(3), 3);
-  cheat_assert_size(bmm_size_fact2(4), 8);
-  cheat_assert_size(bmm_size_fact2(5), 15);
+  cheat_assert_size(bmm_size_fact(0, 2), 1);
+  cheat_assert_size(bmm_size_fact(1, 2), 1);
+  cheat_assert_size(bmm_size_fact(2, 2), 2);
+  cheat_assert_size(bmm_size_fact(3, 2), 3);
+  cheat_assert_size(bmm_size_fact(4, 2), 8);
+  cheat_assert_size(bmm_size_fact(5, 2), 15);
+)
+
+CHEAT_TEST(geom2d_shell,
+  double const x[] = {0.5, 0.5};
+  double const r = 1.0 / sqrt(3.0);
+  double const xper[] = {1.0, 1.0};
+  bool const per[] = {false, false};
+
+  cheat_assert_double(bmm_geom2d_quadal(x, r, xper, per),
+      (M_PI_2 / 3.0) * r, 1e-6);
+  cheat_assert_double(bmm_geom2d_shellal(x, r, xper, per),
+      (M_2PI / 3.0) * r, 1e-6);
 )
 
 CHEAT_TEST(size_hc_ord,

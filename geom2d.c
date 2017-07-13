@@ -81,3 +81,9 @@ extern inline double bmm_geom2d_cpdist(double const* restrict,
 
 extern inline double bmm_geom2d_cpangle(double const* restrict,
     double const* restrict, double const* restrict, bool const* restrict);
+
+extern inline double bmm_geom2d_quadal(double const* restrict,
+    double, double const* restrict, bool const*);
+
+extern inline double bmm_geom2d_shellal(double const* restrict,
+    double, double const* restrict, bool const*);

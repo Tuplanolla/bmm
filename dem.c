@@ -899,62 +899,6 @@ double bmm_dem_est_cor(struct bmm_dem const* const dem) {
   return e / (double) dem->part.n;
 }
 
-// TODO Clean this up.
-__attribute__ ((__nonnull__))
-double bmm_dem_est_shellvol(struct bmm_dem const* const dem,
-    size_t const ipart, double const r) {
-  if (!bmm_dem_inside(dem, ipart) || r == 0.0)
-    return 0.0;
-
-  bool const p = !dem->opts.box.per[0];
-  bool const q = !dem->opts.box.per[1];
-  double const w = dem->opts.box.x[0];
-  double const h = dem->opts.box.x[1];
-  double x = dem->part.x[ipart][0];
-  double y = dem->part.x[ipart][1];
-  double wx = w - x;
-  double hy = h - y;
-
-  double v = 0.0;
-
-  // First quadrant.
-  {
-    bool c[3];
-    c[0] = wx < r;
-    c[1] = hy < r;
-    // !!
-    c[2] = bmm_fp_pow(wx, 2) + bmm_fp_pow(hy, 2) > bmm_fp_pow(r, 2);
-
-    if (c[2]) {
-      double const a = p && c[0] ? acos(wx / r) : 0.0;
-      double const b = q && c[1] ? asin(hy / r) : M_PI_2;
-
-      v += r * (b - a);
-    }
-  }
-
-  // TODO Absolutely disgusting.
-  x = w - dem->part.x[ipart][0];
-  y = dem->part.x[ipart][1];
-  wx = w - x;
-  hy = h - y;
-  { bool c[3]; c[0] = wx < r; c[1] = hy < r; c[2] = bmm_fp_pow(wx, 2) + bmm_fp_pow(hy, 2) < bmm_fp_pow(r, 2); if (c[2]) { double const a = p && c[0] ? acos(wx / r) : 0.0; double const b = q && c[1] ? asin(hy / r) : M_PI_2; v += r * (b - a); } }
-
-  x = dem->part.x[ipart][0];
-  y = h - dem->part.x[ipart][1];
-  wx = w - x;
-  hy = h - y;
-  { bool c[3]; c[0] = wx < r; c[1] = hy < r; c[2] = bmm_fp_pow(wx, 2) + bmm_fp_pow(hy, 2) < bmm_fp_pow(r, 2); if (c[2]) { double const a = p && c[0] ? acos(wx / r) : 0.0; double const b = q && c[1] ? asin(hy / r) : M_PI_2; v += r * (b - a); } }
-
-  x = w - dem->part.x[ipart][0];
-  y = h - dem->part.x[ipart][1];
-  wx = w - x;
-  hy = h - y;
-  { bool c[3]; c[0] = wx < r; c[1] = hy < r; c[2] = bmm_fp_pow(wx, 2) + bmm_fp_pow(hy, 2) < bmm_fp_pow(r, 2); if (c[2]) { double const a = p && c[0] ? acos(wx / r) : 0.0; double const b = q && c[1] ? asin(hy / r) : M_PI_2; v += r * (b - a); } }
-
-  return v;
-}
-
 /// The call `bmm_dem_est_raddist(pr, pg, dem, nr)`
 /// sets `pr` and `pg` of length `nr`
 /// to the radial distribution function of the particles
@@ -962,6 +906,8 @@ double bmm_dem_est_shellvol(struct bmm_dem const* const dem,
 __attribute__ ((__nonnull__))
 bool bmm_dem_est_raddist(double* const pr, double* const pg,
     struct bmm_dem const* const dem, size_t const n, double const rmax) {
+  // TODO This is bad and stupid.
+
   // double g[BMM_TRI(BMM_MPART)];
   size_t const nmemb = bmm_size_tri(dem->part.n);
   double* const w = malloc(nmemb * sizeof *w);
@@ -977,15 +923,16 @@ bool bmm_dem_est_raddist(double* const pr, double* const pg,
       double const d = bmm_geom2d_cpdist(dem->part.x[ipart],
           dem->part.x[jpart], dem->opts.box.x, dem->opts.box.per);
 
-      double const v = bmm_dem_est_shellvol(dem, ipart, d);
       // double const v = bmm_geom_ballsurf(d, 2);
+      double const v = bmm_dem_inside(dem, ipart) ?
+        bmm_geom2d_shellal(dem->part.x[ipart], d,
+            dem->opts.box.x, dem->opts.box.per) : 0.0;
 
       r[i] = d;
       w[i] = d == 0.0 ? 0.0 : v / (M_2PI * d);
       ++i;
     }
 
-  // TODO This is bad and stupid.
   struct bmm_hist* const hist = bmm_hist_alloc(1, n, 0.0, rmax);
   if (hist == NULL)
     return false;

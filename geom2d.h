@@ -8,6 +8,9 @@
 
 #include "ext.h"
 #include "fp.h"
+#include "ival.h"
+
+// TODO Add __nonnull__.
 
 /// The call `bmm_geom2d_dot(x)`
 /// returns the dot product of the vectors `x` and `y`.
@@ -297,6 +300,55 @@ inline double bmm_geom2d_cpangle(double const* restrict const x0,
   bmm_geom2d_cpdiff(x, x0, x1, xper, per);
 
   return bmm_geom2d_dir(x);
+}
+
+__attribute__ ((__nonnull__, __pure__))
+inline double bmm_geom2d_quadal(double const* restrict const x,
+    double const r,
+    double const* restrict const xper, bool const* const per) {
+  if (r <= 0.0)
+    return 0.0;
+
+  double y[2];
+  bmm_geom2d_diff(y, x, xper);
+
+  if (bmm_geom2d_norm2(y) <= bmm_fp_pow(r, 2))
+    return 0.0;
+
+  double a[2];
+  a[0] = per[0] || y[0] >= r ? 0.0 : acos(y[0] / r);
+  a[1] = per[1] || y[1] >= r ? M_PI_2 : asin(y[1] / r);
+
+  return r * bmm_ival_length(a);
+}
+
+__attribute__ ((__nonnull__, __pure__))
+inline double bmm_geom2d_shellal(double const* restrict const x,
+    double const r,
+    double const* restrict const xper, bool const* const per) {
+  // TODO Inside?
+  double al = 0.0;
+
+  double y[2];
+
+  // TODO Reflect explicitly?
+  y[0] = x[0];
+  y[1] = x[1];
+  al += bmm_geom2d_quadal(y, r, xper, per);
+
+  y[0] = xper[0] - x[0];
+  y[1] = x[1];
+  al += bmm_geom2d_quadal(y, r, xper, per);
+
+  y[0] = x[0];
+  y[1] = xper[1] - x[1];
+  al += bmm_geom2d_quadal(y, r, xper, per);
+
+  y[0] = xper[0] - x[0];
+  y[1] = xper[1] - x[1];
+  al += bmm_geom2d_quadal(y, r, xper, per);
+
+  return al;
 }
 
 #endif
