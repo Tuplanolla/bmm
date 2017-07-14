@@ -37,16 +37,24 @@ CHEAT_TEST(size_fact2,
   cheat_assert_size(bmm_size_fact(5, 2), 15);
 )
 
-CHEAT_TEST(geom2d_shell,
+CHEAT_TEST(geom2d_shell_inside,
   double const x[] = {0.5, 0.5};
   double const r = 1.0 / sqrt(3.0);
   double const xper[] = {1.0, 1.0};
   bool const per[] = {false, false};
 
-  cheat_assert_double(bmm_geom2d_quadal(x, r, xper, per),
-      (M_PI_2 / 3.0) * r, 1e-6);
-  cheat_assert_double(bmm_geom2d_shellal(x, r, xper, per),
+  cheat_assert_double(bmm_geom2d_shellvol(x, r, xper, per),
       (M_2PI / 3.0) * r, 1e-6);
+)
+
+CHEAT_TEST(geom2d_shell_outside,
+  double const x[] = {-0.5, -0.5};
+  double const r = 1.0;
+  double const xper[] = {1.0, 1.0};
+  bool const per[] = {false, false};
+
+  cheat_assert_double(bmm_geom2d_shellvol(x, r, xper, per),
+      (M_PI_2 / 3.0) * r, 1e-6);
 )
 
 CHEAT_TEST(size_hc_ord,

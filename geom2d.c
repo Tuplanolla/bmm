@@ -48,6 +48,9 @@ extern inline void bmm_geom2d_from_polar2(double* restrict,
 extern inline void bmm_geom2d_diff(double* restrict,
     double const* restrict, double const* restrict);
 
+extern inline void bmm_geom2d_diffto(double* restrict,
+    double const* restrict);
+
 extern inline double bmm_geom2d_dist2(double const* restrict,
     double const* restrict);
 
@@ -82,8 +85,11 @@ extern inline double bmm_geom2d_cpdist(double const* restrict,
 extern inline double bmm_geom2d_cpangle(double const* restrict,
     double const* restrict, double const* restrict, bool const* restrict);
 
-extern inline double bmm_geom2d_quadal(double const* restrict,
-    double, double const* restrict, bool const*);
+extern inline void bmm_geom2d_refl(double* restrict,
+    double const* restrict, double const* restrict, int);
 
-extern inline double bmm_geom2d_shellal(double const* restrict,
+extern inline void bmm_geom2d_reflto(double* restrict,
+    double const* restrict, int);
+
+extern inline double bmm_geom2d_shellvol(double const* restrict,
     double, double const* restrict, bool const*);

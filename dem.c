@@ -924,9 +924,8 @@ bool bmm_dem_est_raddist(double* const pr, double* const pg,
           dem->part.x[jpart], dem->opts.box.x, dem->opts.box.per);
 
       // double const v = bmm_geom_ballsurf(d, 2);
-      double const v = bmm_dem_inside(dem, ipart) ?
-        bmm_geom2d_shellal(dem->part.x[ipart], d,
-            dem->opts.box.x, dem->opts.box.per) : 0.0;
+      double const v = bmm_geom2d_shellvol(dem->part.x[ipart], d,
+          dem->opts.box.x, dem->opts.box.per);
 
       r[i] = d;
       w[i] = d == 0.0 ? 0.0 : v / (M_2PI * d);
