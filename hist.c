@@ -26,6 +26,8 @@ void bmm_hist_forget(struct bmm_hist* const hist) {
     hist->wm[i] = 0.0;
 
   hist->nsum = 0;
+
+  hist->wnsum = 0.0;
 }
 
 struct bmm_hist* bmm_hist_alloc(size_t const ndim, size_t const nlin,
@@ -45,17 +47,17 @@ struct bmm_hist* bmm_hist_alloc(size_t const ndim, size_t const nlin,
     hist->m = malloc(hist->ncub * sizeof *hist->m);
     if (hist->m == NULL)
       p = false;
-    else {
-      hist->wm = malloc(hist->ncub * sizeof *hist->wm);
-      if (hist->wm == NULL)
-        p = false;
-      else
-        bmm_hist_forget(hist);
-    }
+
+    hist->wm = malloc(hist->ncub * sizeof *hist->wm);
+    if (hist->wm == NULL)
+      p = false;
 
     hist->tmp = malloc(ndim * sizeof *hist->tmp);
     if (hist->tmp == NULL)
       p = false;
+
+    if (p)
+      bmm_hist_forget(hist);
   }
 
   if (p)

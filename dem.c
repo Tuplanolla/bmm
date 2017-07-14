@@ -1,3 +1,4 @@
+#include <gsl/gsl_min.h>
 #include <gsl/gsl_rng.h>
 #include <math.h>
 #include <signal.h>
@@ -899,13 +900,51 @@ double bmm_dem_est_cor(struct bmm_dem const* const dem) {
   return e / (double) dem->part.n;
 }
 
+struct bmm_fn_crap {
+  struct bmm_hist** phist;
+  double* r;
+  double* w;
+  size_t nmemb;
+  double rmax;
+};
+
+double fn(double delta, void* params) {
+  struct bmm_fn_crap* crap = params;
+
+  size_t n = (size_t) (crap->rmax / delta);
+
+  bmm_hist_free(*crap->phist);
+
+  struct bmm_hist* const hist = bmm_hist_alloc(1, n, 0.0, crap->rmax);
+  if (hist == NULL)
+    dynamic_assert(false, "Fucked up");
+
+  *crap->phist = hist;
+
+  for (size_t i = 0; i < crap->nmemb; ++i)
+    (void) bmm_whist_accum(hist, &crap->r[i], crap->w[i]);
+
+  double k = 0.0;
+  for (size_t i = 0; i < hist->ncub; ++i)
+    k += hist->wm[i];
+  k /= (double) hist->ncub;
+
+  double v = 0.0;
+  for (size_t i = 0; i < hist->ncub; ++i)
+    v += bmm_fp_pow(hist->wm[i] - k, 2);
+  v /= (double) hist->ncub;
+
+  return (2 * k - v) / bmm_fp_pow(delta, 2);
+}
+
 /// The call `bmm_dem_est_raddist(pr, pg, dem, nr)`
 /// sets `pr` and `pg` of length `nr`
 /// to the radial distribution function of the particles
 /// in the simulation `dem`.
 __attribute__ ((__nonnull__))
 bool bmm_dem_est_raddist(double* const pr, double* const pg,
-    struct bmm_dem const* const dem, size_t const n, double const rmax) {
+    size_t* const nbin,
+    struct bmm_dem const* const dem, double const rmax) {
   // TODO This is bad and stupid.
 
   // double g[BMM_TRI(BMM_MPART)];
@@ -932,12 +971,48 @@ bool bmm_dem_est_raddist(double* const pr, double* const pg,
       ++i;
     }
 
-  struct bmm_hist* const hist = bmm_hist_alloc(1, n, 0.0, rmax);
+  struct bmm_hist* const hist = bmm_hist_alloc(1, 1, 0.0, rmax);
   if (hist == NULL)
     return false;
 
-  for (size_t i = 0; i < nmemb; ++i)
-    (void) bmm_whist_accum(hist, &r[i], w[i]);
+  {
+    int status;
+    double a = 1.0 / 4096.0, b = 1.0 / 8.0;
+    double m = bmm_fp_midpoint(a, b);
+    gsl_function f;
+
+    struct bmm_fn_crap crap = {
+      .phist = &hist, .r = r, .w = w, .nmemb = nmemb, .rmax = rmax
+    };
+
+    f.function = fn;
+    f.params = &crap;
+
+    gsl_min_fminimizer* s = gsl_min_fminimizer_alloc(gsl_min_fminimizer_brent);
+    gsl_min_fminimizer_set(s, &f, m, a, b);
+
+    size_t iter = 0, max_iter = 256;
+    do {
+      status = gsl_min_fminimizer_iterate(s);
+
+      m = gsl_min_fminimizer_x_minimum(s);
+      a = gsl_min_fminimizer_x_lower(s);
+      b = gsl_min_fminimizer_x_upper(s);
+
+      status = gsl_min_test_interval(a, b, 1.0e-3, 0.0);
+
+      ++iter;
+      fprintf(stderr, "Iteration %zu produced %g at %g!\n", iter,
+          gsl_min_fminimizer_f_minimum(s), m);
+    } while (status == GSL_CONTINUE && iter < max_iter);
+
+    if (status != GSL_SUCCESS)
+      fprintf(stderr, "Did not converge!\n");
+
+    gsl_min_fminimizer_free(s);
+  }
+
+  *nbin = bmm_hist_nbin(hist);
 
   for (size_t ibin = 0; ibin < bmm_hist_nbin(hist); ++ibin) {
     double r0;
@@ -954,9 +1029,9 @@ bool bmm_dem_est_raddist(double* const pr, double* const pg,
 
     pr[ibin] = r;
     pg[ibin] = (bmm_whist_hits(hist, ibin) / bmm_whist_sumhits(hist)) / v;
-  }
 
-  bmm_hist_free(hist);
+    bmm_hist_free(hist);
+  }
 
   free(r);
   free(w);
@@ -1477,11 +1552,11 @@ static bool rubbish(struct bmm_dem const* const dem) {
 
   double* const r = malloc(BMM_MBIN * sizeof *r);
   double* const g = malloc(BMM_MBIN * sizeof *g);
+  size_t nbin;
   dynamic_assert(r != NULL && g != NULL, "Allocated");
-  size_t const nbin = 128;
   double const rmax = dem->opts.box.x[0] / 2.0;
 
-  if (!bmm_dem_est_raddist(r, g, dem, nbin, rmax))
+  if (!bmm_dem_est_raddist(r, g, &nbin, dem, rmax))
     return false;
 
   for (size_t ibin = 0; ibin < nbin; ++ibin)
