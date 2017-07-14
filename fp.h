@@ -220,6 +220,30 @@ inline double bmm_fp_prod(double const* const x, size_t const n) {
   return y;
 }
 
+/// The call `bmm_fp_min(x, n)`
+/// returns the minimum of the array `x` of length `n`.
+__attribute__ ((__pure__))
+inline double bmm_fp_min(double const* const x, size_t const n) {
+  double y = (double) INFINITY;
+
+  for (size_t i = 0; i < n; ++i)
+    y = fmin(y, x[i]);
+
+  return y;
+}
+
+/// The call `bmm_fp_max(x, n)`
+/// returns the maximum of the array `x` of length `n`.
+__attribute__ ((__pure__))
+inline double bmm_fp_max(double const* const x, size_t const n) {
+  double y = -(double) INFINITY;
+
+  for (size_t i = 0; i < n; ++i)
+    y = fmax(y, x[i]);
+
+  return y;
+}
+
 /// The call `bmm_fp_lfold(f, x, n, z, ptr)`
 /// folds the procedure `f` over the array `x` of length `n`.
 /// by starting from the left with `z`.

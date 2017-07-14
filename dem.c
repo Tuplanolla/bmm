@@ -903,14 +903,15 @@ double bmm_dem_est_cor(struct bmm_dem const* const dem) {
 /// sets `pr` and `pg` of length `nr`
 /// to the radial distribution function of the particles
 /// in the simulation `dem`.
+/// The simulation cell must be full for this to produce an accurate result.
 __attribute__ ((__nonnull__))
 bool bmm_dem_est_raddist(double* const pr, double* const pg,
     size_t* const nbin,
-    struct bmm_dem const* const dem, double const rmax) {
+    struct bmm_dem const* const dem) {
   // TODO This is bad and stupid.
 
   // double g[BMM_TRI(BMM_MPART)];
-  size_t const nmemb = bmm_size_tri(dem->part.n);
+  size_t nmemb = bmm_size_tri(dem->part.n);
   double* const w = malloc(nmemb * sizeof *w);
   if (w == NULL)
     return false;
@@ -920,46 +921,79 @@ bool bmm_dem_est_raddist(double* const pr, double* const pg,
 
   size_t i = 0;
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    for (size_t jpart = ipart + 1; jpart < dem->part.n; ++jpart) {
-      double const d = bmm_geom2d_cpdist(dem->part.x[ipart],
-          dem->part.x[jpart], dem->opts.box.x, dem->opts.box.per);
+    if (bmm_dem_inside(dem, ipart))
+      for (size_t jpart = ipart + 1; jpart < dem->part.n; ++jpart)
+        if (bmm_dem_inside(dem, jpart)) {
 
-      // double const v = bmm_geom_ballsurf(d, 2);
-      double const v = bmm_geom2d_shellvol(dem->part.x[ipart], d,
-          dem->opts.box.x, dem->opts.box.per);
+          double const d = bmm_geom2d_cpdist(dem->part.x[ipart],
+              dem->part.x[jpart], dem->opts.box.x, dem->opts.box.per);
 
-      r[i] = d;
-      w[i] = d == 0.0 ? 0.0 : v / (M_2PI * d);
-      ++i;
+          // double const v = bmm_geom_ballsurf(d, 2);
+          double const v = bmm_geom2d_shellvol(dem->part.x[ipart], d,
+              dem->opts.box.x, dem->opts.box.per);
+
+          r[i] = d;
+          w[i] = d == 0.0 ? 0.0 : v / (M_2PI * d);
+          ++i;
+        }
+
+  nmemb = i;
+
+  // TODO This needs weighted kernel density estimation (as seen below)
+  // instead of histogram construction (as seen further below).
+  {
+    FILE* const stream = fopen("kde.data", "w");
+    if (stream == NULL) {
+      BMM_TLE_STDS();
+
+      abort();
     }
 
-  struct bmm_hist* const hist = bmm_hist_alloc(1, 256, 0.0, rmax);
-  if (hist == NULL)
-    return false;
+    for (size_t i = 0; i < nmemb; ++i)
+      if (fprintf(stream, "%g %g\n", r[i], w[i]) < 0) {
+        BMM_TLE_STDS();
 
-  *nbin = bmm_hist_nbin(hist);
+        abort();
+      }
 
-  for (size_t i = 0; i < nmemb; ++i)
-    (void) bmm_whist_accum(hist, &r[i], w[i]);
+    if (fclose(stream) != 0) {
+      BMM_TLE_STDS();
 
-  for (size_t ibin = 0; ibin < bmm_hist_nbin(hist); ++ibin) {
-    double r0;
-    bmm_hist_funbin(hist, &r0, ibin);
-
-    double r1;
-    bmm_hist_cunbin(hist, &r1, ibin);
-
-    double const v = bmm_geom_ballvol(r1, BMM_NDIM) -
-      bmm_geom_ballvol(r0, BMM_NDIM);
-
-    double r;
-    bmm_hist_unbin(hist, &r, ibin);
-
-    pr[ibin] = r;
-    pg[ibin] = (bmm_whist_hits(hist, ibin) / bmm_whist_sumhits(hist)) / v;
+      abort();
+    }
   }
 
-  bmm_hist_free(hist);
+  // Here.
+  {
+    double const rmax = bmm_fp_min(dem->opts.box.x, BMM_NDIM);
+    struct bmm_hist* const hist = bmm_hist_alloc(1, 256, 0.0, rmax);
+    if (hist == NULL)
+      return false;
+
+    *nbin = bmm_hist_nbin(hist);
+
+    for (size_t i = 0; i < nmemb; ++i)
+      (void) bmm_whist_accum(hist, &r[i], w[i]);
+
+    for (size_t ibin = 0; ibin < bmm_hist_nbin(hist); ++ibin) {
+      double r0;
+      bmm_hist_funbin(hist, &r0, ibin);
+
+      double r1;
+      bmm_hist_cunbin(hist, &r1, ibin);
+
+      double const v = bmm_geom_ballvol(r1, BMM_NDIM) -
+        bmm_geom_ballvol(r0, BMM_NDIM);
+
+      double r;
+      bmm_hist_unbin(hist, &r, ibin);
+
+      pr[ibin] = r;
+      pg[ibin] = (bmm_whist_hits(hist, ibin) / bmm_whist_sumhits(hist)) / v;
+    }
+
+    bmm_hist_free(hist);
+  }
 
   free(r);
   free(w);
@@ -1482,9 +1516,8 @@ static bool rubbish(struct bmm_dem const* const dem) {
   double* const g = malloc(BMM_MBIN * sizeof *g);
   size_t nbin;
   dynamic_assert(r != NULL && g != NULL, "Allocated");
-  double const rmax = dem->opts.box.x[0] / 2.0;
 
-  if (!bmm_dem_est_raddist(r, g, &nbin, dem, rmax))
+  if (!bmm_dem_est_raddist(r, g, &nbin, dem))
     return false;
 
   for (size_t ibin = 0; ibin < nbin; ++ibin)
@@ -1500,6 +1533,7 @@ static bool rubbish(struct bmm_dem const* const dem) {
 
   double const v = bmm_fp_prod(dem->opts.box.x, BMM_NDIM);
   double const rho = (double) dem->part.n / v;
+  double const rmax = bmm_fp_min(dem->opts.box.x, BMM_NDIM);
   double a = 0.0;
 
   for (size_t ibin = 0; ibin < nbin; ++ibin)

@@ -43,6 +43,10 @@ extern inline double bmm_fp_sum(double const*, size_t);
 
 extern inline double bmm_fp_prod(double const*, size_t);
 
+extern inline double bmm_fp_min(double const*, size_t);
+
+extern inline double bmm_fp_max(double const*, size_t);
+
 extern inline double bmm_fp_lfold(double (*)(double, double, void*),
     double const* restrict, size_t, double, void* restrict);
 
