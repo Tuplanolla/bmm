@@ -23,7 +23,7 @@ extern inline double bmm_fp_sq(double);
 
 extern inline double bmm_fp_cb(double);
 
-extern inline double bmm_fp_rt(double, double);
+extern inline double bmm_fp_rt(double, size_t);
 
 extern inline double bmm_fp_log(double, double);
 

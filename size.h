@@ -21,6 +21,7 @@ typedef struct {
 /// where `m.quot` is the quotient and `m.rem` is the remainder
 /// of the expression `n / k`.
 /// This is analogous to `div` or `bmm_fp_div`.
+/// Overflows are handled appropriately.
 __attribute__ ((__const__, __pure__))
 inline bmm_size_div_t bmm_size_div(size_t const n, size_t const k) {
   bmm_size_div_t const qr = {
@@ -59,6 +60,7 @@ inline bool bmm_size_odd(size_t const n) {
 
 /// The call `bmm_size_min(n, k)` returns the lesser of `n` and `k`.
 /// This is analogous to `fmin`.
+/// Overflows are handled appropriately.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_min(size_t const n, size_t const k) {
   return n < k ? n : k;
@@ -66,6 +68,7 @@ inline size_t bmm_size_min(size_t const n, size_t const k) {
 
 /// The call `bmm_size_max(n, k)` returns the greater of `n` and `k`.
 /// This is analogous to `fmax`.
+/// Overflows are handled appropriately.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_max(size_t const n, size_t const k) {
   return n > k ? n : k;
@@ -73,6 +76,7 @@ inline size_t bmm_size_max(size_t const n, size_t const k) {
 
 /// The call `bmm_size_identity(n)` returns `n`.
 /// This is analogous to `bmm_fp_identity`.
+/// Overflows are handled appropriately.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_identity(size_t const n) {
   return n;
@@ -80,6 +84,7 @@ inline size_t bmm_size_identity(size_t const n) {
 
 /// The call `bmm_size_constant(n, k)` returns `n`.
 /// This is analogous to `bmm_fp_constant`.
+/// Overflows are handled appropriately.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_constant(size_t const n,
     __attribute__ ((__unused__)) size_t const k) {
@@ -88,6 +93,7 @@ inline size_t bmm_size_constant(size_t const n,
 
 /// The call `bmm_size_zero(n)` returns `0`.
 /// This is analogous to `bmm_fp_zero`.
+/// Overflows are handled appropriately.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_zero(__attribute__ ((__unused__)) size_t const n) {
   return 0;
@@ -95,6 +101,7 @@ inline size_t bmm_size_zero(__attribute__ ((__unused__)) size_t const n) {
 
 /// The call `bmm_size_one(n)` returns `1`.
 /// This is analogous to `bmm_fp_one`.
+/// Overflows are handled appropriately.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_one(__attribute__ ((__unused__)) size_t const n) {
   return 1;
@@ -103,15 +110,23 @@ inline size_t bmm_size_one(__attribute__ ((__unused__)) size_t const n) {
 /// The call `bmm_size_midpoint(n, k)`
 /// returns the arithmetic mean of `n` and `k`.
 /// This is analogous to `bmm_fp_midpoint`.
+/// Overflows are handled appropriately.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_midpoint(size_t const n, size_t const k) {
-  // Note that `(n + k) / 2` could wrap and
-  // `n < k ? n + (k - n) / 2 : k + (n - k) / 2` could have bad performance.
   return n / 2 + k / 2 + (n % 2 + k % 2) / 2;
+
+  // The following implementation is less laborious,
+  // but slower for branch prediction.
+  // return n < k ? n + (k - n) / 2 : k + (n - k) / 2;
+
+  // The following implementation is less complicated,
+  // but susceptible to overflowing.
+  // return (n + k) / 2;
 }
 
 /// The call `bmm_size_sq(n)` returns `n` squared.
 /// This is analogous to `bmm_fp_sq`.
+/// Overflows are not handled appropriately.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_sq(size_t const n) {
   return n * n;
@@ -119,6 +134,7 @@ inline size_t bmm_size_sq(size_t const n) {
 
 /// The call `bmm_size_cb(n)` returns `n` cubed.
 /// This is analogous to `bmm_fp_cb`.
+/// Overflows are not handled appropriately.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_cb(size_t const n) {
   return n * n * n;
@@ -127,8 +143,8 @@ inline size_t bmm_size_cb(size_t const n) {
 /// The call `bmm_size_flog(n, k)`
 /// returns the floor of the base `k` logarithm of `n`.
 /// If `n == 0` or `k < 1`, the behavior is undefined.
-/// Overflows are handled appropriately.
 /// This is analogous to `bmm_fp_log`.
+/// Overflows are handled appropriately.
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
@@ -152,8 +168,8 @@ inline size_t bmm_size_flog(size_t n, size_t const k) {
 /// The call `bmm_size_clog(n, k)`
 /// returns the ceiling of the base `k` logarithm of `n`.
 /// If `n == 0` or `k < 1`, the behavior is undefined.
-/// Overflows are handled appropriately.
 /// This is analogous to `bmm_fp_log`.
+/// Overflows are handled appropriately.
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
@@ -196,7 +212,7 @@ inline size_t bmm_size_pow(size_t const n, size_t const k) {
 /// The call `bmm_size_firt(n, k)`
 /// returns the floor of the `k`th root of `n`.
 /// This is analogous to `bmm_fp_rt`.
-/// Note that the result may be wrong for large arguments.
+/// Overflows are not handled appropriately.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_firt(size_t const n, size_t const k) {
   if (n <= 1)
@@ -218,7 +234,7 @@ inline size_t bmm_size_firt(size_t const n, size_t const k) {
 /// The call `bmm_size_cirt(n, k)`
 /// returns the ceiling of the `k`th root of `n`.
 /// This is analogous to `bmm_fp_rt`.
-/// Note that the result may be wrong for large arguments.
+/// Overflows are not handled appropriately.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_cirt(size_t const n, size_t const k) {
   return n <= 1 ? n : bmm_size_firt(n - 1, k) + 1;
@@ -230,6 +246,7 @@ inline size_t bmm_size_cirt(size_t const n, size_t const k) {
 /// * `b - 1` if `n >= b`.
 ///
 /// This is analogous to `bmm_fp_uclamp`.
+/// Overflows are handled appropriately.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_uclamp(size_t const n, size_t const b) {
   return n >= b ? b - 1 : n;
@@ -239,6 +256,7 @@ inline size_t bmm_size_uclamp(size_t const n, size_t const b) {
 /// solves the periodic equation `m == n - a + k * a` for `m`,
 /// where `a <= m < b` and `k` is some integer.
 /// This is analogous to `bmm_fp_wrap`.
+/// Overflows are handled appropriately.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_wrap(size_t const n, size_t const a, size_t const b) {
   size_t const c = b - a;
@@ -267,6 +285,7 @@ inline size_t bmm_size_wrap(size_t const n, size_t const a, size_t const b) {
 /// where `0 <= m < b` and `k` is some integer.
 /// This is analogous to `bmm_fp_uwrap`.
 /// The `u` prefix means unsigned or unsymmetric (asymmetric).
+/// Overflows are handled appropriately.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_uwrap(size_t const n, size_t const b) {
   return n % b;
@@ -274,6 +293,7 @@ inline size_t bmm_size_uwrap(size_t const n, size_t const b) {
 
 /// The call `bmm_size_uinc(n, b)`
 /// is equivalent to `bmm_size_inc(n, 0, b)`.
+/// Overflows are handled appropriately.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_uinc(size_t const n, size_t const b) {
   return (n + 1) % b;
@@ -281,6 +301,7 @@ inline size_t bmm_size_uinc(size_t const n, size_t const b) {
 
 /// The call `bmm_size_inc(n, a, b)`
 /// is equivalent to `bmm_size_wrap(n + 1, a, b)` without wrapping.
+/// Overflows are handled appropriately.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_inc(size_t const n, size_t const a, size_t const b) {
   size_t const c = b - a;
@@ -290,6 +311,7 @@ inline size_t bmm_size_inc(size_t const n, size_t const a, size_t const b) {
 
 /// The call `bmm_size_udec(n, b)`
 /// is equivalent to `bmm_size_dec(n, 0, b)`.
+/// Overflows are handled appropriately.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_udec(size_t const n, size_t const b) {
   return (n + b - 1) % b;
@@ -297,6 +319,7 @@ inline size_t bmm_size_udec(size_t const n, size_t const b) {
 
 /// The call `bmm_size_dec(n, a, b)`
 /// is equivalent to `bmm_size_wrap(n - 1, a, b)` without wrapping.
+/// Overflows are handled appropriately.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_dec(size_t const n, size_t const a, size_t const b) {
   size_t const c = b - a;
@@ -306,6 +329,7 @@ inline size_t bmm_size_dec(size_t const n, size_t const a, size_t const b) {
 
 /// The call `bmm_size_fact(n, k)`
 /// returns the `k`-factorial of `n`.
+/// Overflows are not handled appropriately.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_fact(size_t const n, size_t const k) {
   size_t m = 1;
@@ -318,6 +342,7 @@ inline size_t bmm_size_fact(size_t const n, size_t const k) {
 
 /// The call `bmm_size_tri(n)`
 /// returns the `n`th triangular number.
+/// Overflows are not handled appropriately.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_tri(size_t const n) {
   // return bmm_size_choose(n + 1, 2);
@@ -326,6 +351,7 @@ inline size_t bmm_size_tri(size_t const n) {
 
 /// The call `bmm_size_sum(n, k)`
 /// returns the sum of the array `n` of length `k`.
+/// Overflows are not handled appropriately.
 __attribute__ ((__pure__))
 inline size_t bmm_size_sum(size_t const* const n, size_t const k) {
   size_t m = 0;
@@ -338,6 +364,7 @@ inline size_t bmm_size_sum(size_t const* const n, size_t const k) {
 
 /// The call `bmm_size_prod(n, k)`
 /// returns the product of the array `n` of length `k`.
+/// Overflows are not handled appropriately.
 __attribute__ ((__pure__))
 inline size_t bmm_size_prod(size_t const* const n, size_t const k) {
   size_t m = 1;
@@ -377,6 +404,7 @@ inline size_t bmm_size_rfold(size_t (* const f)(size_t, size_t, void*),
 /// The call `bmm_size_hc(pij, i, ndim, nper)`
 /// sets the index vector `pij` to the index `i`
 /// in a hypercube with dimension `ndim` and side length `nper`.
+/// Overflows are handled appropriately.
 __attribute__ ((__nonnull__))
 inline void bmm_size_hc(size_t* const pij,
     size_t const i, size_t const ndim, size_t const nper) {
@@ -391,6 +419,7 @@ inline void bmm_size_hc(size_t* const pij,
 /// The call `bmm_size_unhc(ij, ndim, nper)`
 /// returns the index of the index vector `ij`
 /// in a hypercube with dimension `ndim` and side length `nper`.
+/// Overflows are not handled appropriately.
 __attribute__ ((__nonnull__, __pure__))
 inline size_t bmm_size_unhc(size_t const* const ij,
     size_t const ndim, size_t const nper) {
@@ -407,6 +436,7 @@ inline size_t bmm_size_unhc(size_t const* const ij,
 /// The call `bmm_size_hc(pij, i, ndim, nper)`
 /// sets the index vector `pij` to the index `i`
 /// in a hypercuboid with dimension `ndim` and side lengths `nper`.
+/// Overflows are handled appropriately.
 __attribute__ ((__nonnull__))
 inline void bmm_size_hcd(size_t* restrict const pij,
     size_t const i, size_t const ndim, size_t const* restrict const nper) {
@@ -444,6 +474,7 @@ inline void bmm_size_hcd(size_t* restrict const pij,
 /// The call `bmm_size_unhc(ij, ndim, nper)`
 /// returns the index of the index vector `ij`
 /// in a hypercuboid with dimension `ndim` and side lengths `nper`.
+/// Overflows are not handled appropriately.
 __attribute__ ((__nonnull__, __pure__))
 inline size_t bmm_size_unhcd(size_t const* restrict const ij,
     size_t const ndim, size_t const* restrict const nper) {

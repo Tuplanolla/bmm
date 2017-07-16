@@ -119,11 +119,11 @@ inline double bmm_fp_cb(double const x) {
   return x * x * x;
 }
 
-/// The call `bmm_fp_rt(x, y)` returns the `y`th root of `x`.
+/// The call `bmm_fp_rt(x, n)` returns the `n`th root of `x`.
 /// This is analogous to `bmm_size_firt` or `bmm_size_cirt`.
 __attribute__ ((__const__, __pure__))
-inline double bmm_fp_rt(double const x, double const y) {
-  return pow(x, 1.0 / y);
+inline double bmm_fp_rt(double const x, size_t const n) {
+  return pow(x, 1.0 / (double) n);
 }
 
 /// The call `bmm_fp_log(x, y)` returns the the base `y` logarithm of `x`.

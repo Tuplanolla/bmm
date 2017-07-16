@@ -69,7 +69,7 @@ __attribute__ ((__nonnull__))
 static void bmm_dem_cache_j(struct bmm_dem* const dem,
     size_t const ipart) {
   dem->cache.j[ipart] = dem->part.jred[ipart] *
-    dem->part.m[ipart] * BMM_POW(dem->part.r[ipart], 2);
+    dem->part.m[ipart] * bmm_fp_pow(dem->part.r[ipart], 2);
 }
 
 /// The call `bmm_dem_cache_x(dem, ipart)`
@@ -157,7 +157,7 @@ static bool bmm_dem_cache_eligible(struct bmm_dem const* const dem,
 
   if (bmm_geom2d_cpdist2(dem->cache.x[ipart], dem->cache.x[jpart],
         dem->opts.box.x, dem->opts.box.per) >
-      BMM_POW(dem->opts.cache.rcutoff, 2))
+      bmm_fp_pow(dem->opts.cache.rcutoff, 2))
     return false;
 
   return true;
@@ -394,7 +394,7 @@ void bmm_dem_force_pair(struct bmm_dem* const dem,
   double const d2 = bmm_geom2d_norm2(xdiff);
 
   double const r = dem->part.r[ipart] + dem->part.r[jpart];
-  double const r2 = BMM_POW(r, 2);
+  double const r2 = bmm_fp_pow(r, 2);
 
   // TODO Investigate.
 
@@ -480,7 +480,7 @@ void bmm_dem_force_creeping(struct bmm_dem* const dem,
     dem->part.f[ipart][idim] += f * vunit[idim];
 
   double const tau = -4.0 * M_2PI * dem->amb.params.creeping.mu *
-    BMM_POW(dem->part.r[ipart], 3);
+    bmm_fp_pow(dem->part.r[ipart], 3);
 
   dem->part.tau[ipart] += tau * dem->part.omega[ipart];
 }
@@ -601,7 +601,7 @@ void bmm_dem_integ_taylor(struct bmm_dem* const dem) {
   if (dt == 0.0)
     return;
 
-  double const dt2 = BMM_POW(dt, 2);
+  double const dt2 = bmm_fp_pow(dt, 2);
 
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
     for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
@@ -630,7 +630,7 @@ void bmm_dem_integ_vel(struct bmm_dem* const dem) {
   if (dt == 0.0)
     return;
 
-  double const dt2 = BMM_POW(dt, 2);
+  double const dt2 = bmm_fp_pow(dt, 2);
 
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
     for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
@@ -709,7 +709,7 @@ bool bmm_dem_link_pair(struct bmm_dem* const dem,
   double const d2 = bmm_geom2d_norm2(xdiff);
 
   double const r = dem->part.r[ipart] + dem->part.r[jpart];
-  double const r2 = BMM_POW(r, 2);
+  double const r2 = bmm_fp_pow(r, 2);
 
   if (d2 > r2 * dem->opts.link.ccrlink)
     return false;
@@ -828,9 +828,9 @@ double bmm_dem_est_ekin(struct bmm_dem const* const dem) {
 
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
     for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-      e += dem->part.m[ipart] * BMM_POW(dem->part.v[ipart][idim], 2);
+      e += dem->part.m[ipart] * bmm_fp_pow(dem->part.v[ipart][idim], 2);
 
-    e += dem->cache.j[ipart] * BMM_POW(dem->part.omega[ipart], 2);
+    e += dem->cache.j[ipart] * bmm_fp_pow(dem->part.omega[ipart], 2);
   }
 
   return (1.0 / 2.0) * e;
@@ -893,10 +893,44 @@ double bmm_dem_est_cor(struct bmm_dem const* const dem) {
       (dem->part.m[ipart] + dem->part.m[ipart]);
     e += exp(-M_PI * dem->norm.params.dashpot.gamma / (2.0 * mred) /
         sqrt(dem->opts.part.y / mred -
-          BMM_POW(dem->norm.params.dashpot.gamma / (2.0 * mred), 2)));
+          bmm_fp_pow(dem->norm.params.dashpot.gamma / (2.0 * mred), 2)));
   }
 
   return e / (double) dem->part.n;
+}
+
+// See Applied Smoothing Techniques for Data Analysis by
+// Adrian Bowman and Adelchi Azzalini from 1997.
+double bw(size_t const nsample, double const stdev) {
+  return stdev * bmm_fp_rt(4.0 / (3.0 * nsample), 5);
+}
+
+static double wkde_eval(double const* const xarr, double const* const warr,
+    size_t const nsample, double const x, double const bandwidth) {
+  double y = 0;
+
+  for (size_t i = 0; i < nsample; i++) {
+    double z = (x - xarr[i]) / bandwidth;
+    y += warr[i] * exp(-(1.0 / 2.0) * bmm_fp_pow(z, 2)) / bandwidth;
+  }
+
+  return y / sqrt(M_2PI);
+}
+
+static void wkde_sample(double* restrict const yarr,
+    double* restrict const yyarr,
+    double const* restrict const xarr,
+    double const* restrict const warr, size_t const nsample,
+    double const bandwidth,
+    size_t const narr, double const min, double const max) {
+  double step = (max - min) / (narr - 1);
+
+  for (size_t i = 0; i < narr; i++) {
+    double const x = min + i * step;
+
+    yarr[i] = x;
+    yyarr[i] = wkde_eval(xarr, warr, nsample, x, bandwidth);
+  }
 }
 
 /// The call `bmm_dem_est_raddist(pr, pg, dem, nr)`
@@ -1176,7 +1210,7 @@ bool bmm_dem_cache_expired(struct bmm_dem const* const dem) {
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     if (bmm_geom2d_cpdist2(dem->part.x[ipart], dem->cache.x[ipart],
           dem->opts.box.x, dem->opts.box.per) >=
-        BMM_POW(r - dem->part.r[ipart], 2))
+        bmm_fp_pow(r - dem->part.r[ipart], 2))
       return true;
 
   return false;
