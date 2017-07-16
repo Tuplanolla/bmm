@@ -6,6 +6,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "cpp.h"
 #include "ext.h"
 
 /// This structure holds the quotient and remainder of a division
@@ -70,18 +71,6 @@ inline size_t bmm_size_max(size_t const n, size_t const k) {
   return n > k ? n : k;
 }
 
-/// The call `bmm_size_pow(n, k)` returns `n` raised to the power `k`.
-/// This is analogous to `pow`.
-__attribute__ ((__const__, __pure__))
-inline size_t bmm_size_pow(size_t const n, size_t const k) {
-  size_t m = 1;
-
-  for (size_t i = 0; i < k; ++i)
-    m *= n;
-
-  return m;
-}
-
 /// The call `bmm_size_identity(n)` returns `n`.
 /// This is analogous to `bmm_fp_identity`.
 __attribute__ ((__const__, __pure__))
@@ -135,6 +124,75 @@ inline size_t bmm_size_cb(size_t const n) {
   return n * n * n;
 }
 
+/// The call `bmm_size_flog(n, k)`
+/// returns the floor of the base `k` logarithm of `n`.
+/// If `n == 0` or `k < 1`, the behavior is undefined.
+/// Overflows are handled appropriately.
+/// This is analogous to `bmm_fp_log`.
+#ifndef DEBUG
+__attribute__ ((__const__, __pure__))
+#endif
+inline size_t bmm_size_flog(size_t n, size_t const k) {
+#ifdef DEBUG
+  // These do not work together with the attributes.
+  dynamic_assert(n > 0, "Invalid argument");
+  dynamic_assert(k > 1, "Invalid base");
+#endif
+
+  size_t m = 0;
+
+  while (n >= k) {
+    n /= k;
+    ++m;
+  }
+
+  return m;
+}
+
+/// The call `bmm_size_clog(n, k)`
+/// returns the ceiling of the base `k` logarithm of `n`.
+/// If `n == 0` or `k < 1`, the behavior is undefined.
+/// Overflows are handled appropriately.
+/// This is analogous to `bmm_fp_log`.
+#ifndef DEBUG
+__attribute__ ((__const__, __pure__))
+#endif
+inline size_t bmm_size_clog(size_t const n, size_t const k) {
+#ifdef DEBUG
+  // These do not work together with the attributes.
+  dynamic_assert(n > 0, "Invalid argument");
+  dynamic_assert(k > 1, "Invalid base");
+#endif
+
+  return n <= 1 ? 0 : bmm_size_flog(n - 1, k) + 1;
+}
+
+/// The call `bmm_size_pow(n, k)` returns `n` raised to the power `k`.
+/// This is analogous to `bmm_fp_pow`.
+__attribute__ ((__const__, __pure__))
+inline size_t bmm_size_pow(size_t const n, size_t const k) {
+  if (k == 0)
+    return 1;
+
+  size_t m = 1;
+
+  size_t const r = bmm_size_flog(k, 2) + 1;
+  for (size_t i = 0, p = n; i < r; ++i, p = BMM_POW(p, 2))
+    if (BMM_TESTBIT(k, i))
+      m *= p;
+
+  return m;
+
+  // The following implementation is less complicated,
+  // but slower for large powers.
+  // size_t m = 1;
+  //
+  // for (size_t i = 0; i < k; ++i)
+  //   m *= n;
+  //
+  // return m;
+}
+
 /// The call `bmm_size_firt(n, k)`
 /// returns the floor of the `k`th root of `n`.
 /// This is analogous to `bmm_fp_rt`.
@@ -166,37 +224,6 @@ inline size_t bmm_size_cirt(size_t const n, size_t const k) {
   return n <= 1 ? n : bmm_size_firt(n - 1, k) + 1;
 }
 
-/// The call `bmm_size_flog(n, k)`
-/// returns the floor of the base `k` logarithm of `n`.
-/// This is analogous to `bmm_fp_log`.
-__attribute__ ((__const__, __pure__))
-inline size_t bmm_size_flog(size_t n, size_t const k) {
-  // These do not work because of the attributes.
-  // dynamic_assert(n <= 0, "invalid argument");
-  // dynamic_assert(k <= 1, "invalid base");
-
-  size_t m = 0;
-
-  while (n >= k) {
-    n /= k;
-    ++m;
-  }
-
-  return m;
-}
-
-/// The call `bmm_size_clog(n, k)`
-/// returns the ceiling of the base `k` logarithm of `n`.
-/// This is analogous to `bmm_fp_log`.
-__attribute__ ((__const__, __pure__))
-inline size_t bmm_size_clog(size_t const n, size_t const k) {
-  // These do not work because of the attributes.
-  // dynamic_assert(n <= 0, "invalid argument");
-  // dynamic_assert(k <= 1, "invalid base");
-
-  return n <= 1 ? 0 : bmm_size_flog(n - 1, k) + 1;
-}
-
 /// The call `bmm_size_uclamp(n, b)` returns
 ///
 /// * `n` if `0 <= n < b` and
@@ -216,7 +243,11 @@ __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_wrap(size_t const n, size_t const a, size_t const b) {
   size_t const c = b - a;
 
-  // This reference implementation is very slow.
+  return (n % c + c - a % c) % c + a;
+
+  // The following implementation is a lot slower, but easier to understand.
+  // size_t const c = b - a;
+  //
   // size_t k = n;
   //
   // if (k < a)
@@ -229,8 +260,6 @@ inline size_t bmm_size_wrap(size_t const n, size_t const a, size_t const b) {
   //   while (k >= b);
   //
   // return k;
-
-  return (n % c + c - a % c) % c + a;
 }
 
 /// The call `m = bmm_size_uwrap(n, b)`
@@ -388,32 +417,28 @@ inline void bmm_size_hcd(size_t* restrict const pij,
     pij[ndim - 1 - idim] = qr.rem;
   }
 
-  // The following implementation is slower, but suitable for loop fusion.
-  /*
-  for (size_t idim = 0; idim < ndim; ++idim) {
-    bmm_size_div_t qr = {.quot = i, .rem = 0};
-    for (size_t jdim = 0; jdim < ndim - idim; ++jdim)
-      qr = bmm_size_div(qr.quot, nper[ndim - 1 - jdim]);
-
-    pij[idim] = qr.rem;
-  }
-  */
-
   // The following implementation is less reliable,
   // but suitable for loop fusion.
-  /*
-  size_t* const buf = alloca(ndim * sizeof *pij);
+  // size_t* const buf = alloca(ndim * sizeof *buf);
+  //
+  // bmm_size_div_t qr = {.quot = i, .rem = 0};
+  // for (size_t idim = 0; idim < ndim; ++idim) {
+  //   qr = bmm_size_div(qr.quot, nper[ndim - 1 - idim]);
+  //
+  //   buf[ndim - 1 - idim] = qr.rem;
+  // }
+  //
+  // for (size_t idim = 0; idim < ndim; ++idim)
+  //   pij[idim] = buf[idim];
 
-  bmm_size_div_t qr = {.quot = i, .rem = 0};
-  for (size_t idim = 0; idim < ndim; ++idim) {
-    qr = bmm_size_div(qr.quot, nper[ndim - 1 - idim]);
-
-    buf[ndim - 1 - idim] = qr.rem;
-  }
-
-  for (size_t idim = 0; idim < ndim; ++idim)
-    pij[idim] = buf[idim];
-  */
+  // The following implementation is slower, but suitable for loop fusion.
+  // for (size_t idim = 0; idim < ndim; ++idim) {
+  //   bmm_size_div_t qr = {.quot = i, .rem = 0};
+  //   for (size_t jdim = 0; jdim < ndim - idim; ++jdim)
+  //     qr = bmm_size_div(qr.quot, nper[ndim - 1 - jdim]);
+  //
+  //   pij[idim] = qr.rem;
+  // }
 }
 
 /// The call `bmm_size_unhc(ij, ndim, nper)`

@@ -6,6 +6,10 @@
 /// expands to the version number string `"x.y.z"`.
 #define BMM_VERSION(x, y, z) #x "." #y "." #z
 
+/// The preprocessor directive `BMM_TESTBIT(x, n)`
+/// checks whether the bit `n` is set in `x`.
+#define BMM_TESTBIT(x, n) (((x) & 1 << (n)) != 0)
+
 /// The preprocessor directive `BMM_MIN(x, y)`
 /// expands to the lesser of `x` and `y`.
 #define BMM_MIN(x, y) ((x) < (y) ? (x) : (y))

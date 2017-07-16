@@ -37,6 +37,24 @@ CHEAT_TEST(size_fact2,
   cheat_assert_size(bmm_size_fact(5, 2), 15);
 )
 
+CHEAT_TEST(size_flog,
+  cheat_assert_size(bmm_size_flog(1, 2), 0);
+  cheat_assert_size(bmm_size_flog(2, 2), 1);
+  cheat_assert_size(bmm_size_flog(3, 2), 1);
+  cheat_assert_size(bmm_size_flog(4, 2), 2);
+  cheat_assert_size(bmm_size_flog(5, 2), 2);
+  cheat_assert_size(bmm_size_flog(6, 2), 2);
+)
+
+CHEAT_TEST(size_clog,
+  cheat_assert_size(bmm_size_clog(1, 2), 0);
+  cheat_assert_size(bmm_size_clog(2, 2), 1);
+  cheat_assert_size(bmm_size_clog(3, 2), 2);
+  cheat_assert_size(bmm_size_clog(4, 2), 2);
+  cheat_assert_size(bmm_size_clog(5, 2), 3);
+  cheat_assert_size(bmm_size_clog(6, 2), 3);
+)
+
 CHEAT_TEST(geom2d_shell_inside,
   double const x[] = {0.5, 0.5};
   double const r = 1.0 / sqrt(3.0);
