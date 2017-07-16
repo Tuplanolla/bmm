@@ -899,22 +899,28 @@ double bmm_dem_est_cor(struct bmm_dem const* const dem) {
   return e / (double) dem->part.n;
 }
 
+// TODO These procedures suck.
+
 // See Applied Smoothing Techniques for Data Analysis by
 // Adrian Bowman and Adelchi Azzalini from 1997.
 double bw(size_t const nsample, double const stdev) {
   return stdev * bmm_fp_rt(4.0 / (3.0 * nsample), 5);
 }
 
-static double wkde_eval(double const* const xarr, double const* const warr,
+static double wkde_eval(double const* restrict const xarr,
+    double const* restrict const warr,
     size_t const nsample, double const x, double const bandwidth) {
-  double y = 0;
+  double y = 0.0;
 
   for (size_t i = 0; i < nsample; i++) {
-    double z = (x - xarr[i]) / bandwidth;
-    y += warr[i] * exp(-(1.0 / 2.0) * bmm_fp_pow(z, 2)) / bandwidth;
+    double arg = (x - xarr[i]) / bandwidth;
+    double q = (1.0 / 2.0) * bmm_fp_pow(arg, 2);
+    double qq = q < 5.0 * bandwidth ? exp(-q) : 0.0;
+    double kern = qq / (bandwidth * sqrt(M_2PI));
+    y += warr[i] * kern;
   }
 
-  return y / sqrt(M_2PI);
+  return y;
 }
 
 static void wkde_sample(double* restrict const yarr,
@@ -923,10 +929,10 @@ static void wkde_sample(double* restrict const yarr,
     double const* restrict const warr, size_t const nsample,
     double const bandwidth,
     size_t const narr, double const min, double const max) {
-  double step = (max - min) / (narr - 1);
+  double const step = (max - min) / (double) (narr - 1);
 
   for (size_t i = 0; i < narr; i++) {
-    double const x = min + i * step;
+    double const x = min + (double) i * step;
 
     yarr[i] = x;
     yyarr[i] = wkde_eval(xarr, warr, nsample, x, bandwidth);
@@ -940,7 +946,7 @@ static void wkde_sample(double* restrict const yarr,
 /// The simulation cell must be full for this to produce an accurate result.
 __attribute__ ((__nonnull__))
 bool bmm_dem_est_raddist(double* const pr, double* const pg,
-    size_t* const nbin,
+    size_t const nbin, double const rmax,
     struct bmm_dem const* const dem) {
   // TODO This is bad and stupid.
 
@@ -950,8 +956,12 @@ bool bmm_dem_est_raddist(double* const pr, double* const pg,
   if (w == NULL)
     return false;
   double* const r = malloc(nmemb * sizeof *r);
-  if (r == NULL)
+  if (r == NULL) {
+    free(w);
     return false;
+  }
+
+// #define FUCK_WEIGHTS
 
   size_t i = 0;
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
@@ -962,72 +972,59 @@ bool bmm_dem_est_raddist(double* const pr, double* const pg,
           double const d = bmm_geom2d_cpdist(dem->part.x[ipart],
               dem->part.x[jpart], dem->opts.box.x, dem->opts.box.per);
 
-          // double const v = bmm_geom_ballsurf(d, 2);
+          double const v0 = bmm_geom_ballsurf(d, 2);
           double const v = bmm_geom2d_shellvol(dem->part.x[ipart], d,
               dem->opts.box.x, dem->opts.box.per);
 
           r[i] = d;
-          w[i] = d == 0.0 ? 0.0 : v / (M_2PI * d);
+#ifdef FUCK_WEIGHTS
+          w[i] = 1.0;
+#else
+          w[i] = d == 0.0 ? 0.0 : v0 / v;
+#endif
           ++i;
         }
 
   nmemb = i;
 
-  // TODO This needs weighted kernel density estimation (as seen below)
-  // instead of histogram construction (as seen further below).
   {
     FILE* const stream = fopen("kde.data", "w");
     if (stream == NULL) {
-      BMM_TLE_STDS();
-
-      abort();
+      BMM_TLE_STDS(); abort();
     }
 
     for (size_t i = 0; i < nmemb; ++i)
       if (fprintf(stream, "%g %g\n", r[i], w[i]) < 0) {
-        BMM_TLE_STDS();
-
-        abort();
+        BMM_TLE_STDS(); abort();
       }
 
     if (fclose(stream) != 0) {
-      BMM_TLE_STDS();
-
-      abort();
+      BMM_TLE_STDS(); abort();
     }
   }
 
-  // Here.
-  {
-    double const rmax = bmm_fp_min(dem->opts.box.x, BMM_NDIM);
-    struct bmm_hist* const hist = bmm_hist_alloc(1, 256, 0.0, rmax);
-    if (hist == NULL)
-      return false;
+  double wsum = bmm_fp_sum(w, nmemb);
+  for (size_t i = 0; i < nmemb; ++i)
+    w[i] /= wsum;
 
-    *nbin = bmm_hist_nbin(hist);
+  double const bw = bmm_ival_midpoint(dem->opts.part.rnew) / 2.0;
 
-    for (size_t i = 0; i < nmemb; ++i)
-      (void) bmm_whist_accum(hist, &r[i], w[i]);
+  wkde_sample(pr, pg, r, w, nmemb, bw, nbin, 0.0, rmax);
 
-    for (size_t ibin = 0; ibin < bmm_hist_nbin(hist); ++ibin) {
-      double r0;
-      bmm_hist_funbin(hist, &r0, ibin);
+  // TODO This normalization is horrifying.
+  double const v = bmm_fp_prod(dem->opts.box.x, BMM_NDIM);
+  double const rho = (double) dem->part.n / v;
+  double const dr = rmax / (double) nbin;
 
-      double r1;
-      bmm_hist_cunbin(hist, &r1, ibin);
-
-      double const v = bmm_geom_ballvol(r1, BMM_NDIM) -
-        bmm_geom_ballvol(r0, BMM_NDIM);
-
-      double r;
-      bmm_hist_unbin(hist, &r, ibin);
-
-      pr[ibin] = r;
-      pg[ibin] = (bmm_whist_hits(hist, ibin) / bmm_whist_sumhits(hist)) / v;
-    }
-
-    bmm_hist_free(hist);
-  }
+  double total = 0.0;
+  for (size_t i = 0; i < nbin; ++i)
+    total += pg[i] * dr;
+  for (size_t i = 0; i < nbin; ++i)
+    pg[i] /= total;
+  // It is a proper pdf now.
+  for (size_t i = 0; i < nbin; ++i)
+    pg[i] = pr[i] == 0.0 ?
+      0.0 : pg[i] / (rho * bmm_geom_ballsurf(pr[i], BMM_NDIM) * dr);
 
   free(r);
   free(w);
@@ -1546,12 +1543,14 @@ static bool rubbish(struct bmm_dem const* const dem) {
     return false;
   }
 
-  double* const r = malloc(BMM_MBIN * sizeof *r);
-  double* const g = malloc(BMM_MBIN * sizeof *g);
-  size_t nbin;
+  size_t nbin = 512;
+  double* const r = malloc(nbin * sizeof *r);
+  double* const g = malloc(nbin * sizeof *g);
   dynamic_assert(r != NULL && g != NULL, "Allocated");
 
-  if (!bmm_dem_est_raddist(r, g, &nbin, dem))
+  double const rmax = bmm_fp_min(dem->opts.box.x, BMM_NDIM) / 2.0;
+
+  if (!bmm_dem_est_raddist(r, g, nbin, rmax, dem))
     return false;
 
   for (size_t ibin = 0; ibin < nbin; ++ibin)
@@ -1567,12 +1566,11 @@ static bool rubbish(struct bmm_dem const* const dem) {
 
   double const v = bmm_fp_prod(dem->opts.box.x, BMM_NDIM);
   double const rho = (double) dem->part.n / v;
-  double const rmax = bmm_fp_min(dem->opts.box.x, BMM_NDIM);
+  double const dr = rmax / (double) nbin;
   double a = 0.0;
 
   for (size_t ibin = 0; ibin < nbin; ++ibin)
-    a += (g[ibin] * log(g[ibin] + 1.0e-9) - (g[ibin] - 1)) *
-      (rmax / (double) nbin);
+    a += (g[ibin] * log(g[ibin] + 1.0e-9) - (g[ibin] - 1)) * dr;
 
   double const sk = -(rho / 2.0) * a;
 

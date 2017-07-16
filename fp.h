@@ -200,7 +200,7 @@ inline double bmm_fp_uwrap(double const x, double const b) {
 /// returns the sum of the array `x` of length `n`.
 __attribute__ ((__pure__))
 inline double bmm_fp_sum(double const* const x, size_t const n) {
-  double y = 0;
+  double y = 0.0;
 
   for (size_t i = 0; i < n; ++i)
     y += x[i];
@@ -212,7 +212,7 @@ inline double bmm_fp_sum(double const* const x, size_t const n) {
 /// returns the product of the array `x` of length `n`.
 __attribute__ ((__pure__))
 inline double bmm_fp_prod(double const* const x, size_t const n) {
-  double y = 1;
+  double y = 1.0;
 
   for (size_t i = 0; i < n; ++i)
     y *= x[i];

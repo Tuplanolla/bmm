@@ -6,7 +6,9 @@ ifeq ($(CONFIG), debug)
 CFLAGS+=-D_GNU_SOURCE -DDEBUG -O0 -g \
 	-Weverything \
 	-Wno-aggregate-return -Wno-bad-function-cast -Wno-disabled-macro-expansion \
+	-Wno-missing-prototypes -Wno-padded \
 	-Wno-switch -Wno-used-but-marked-unused
+# TODO The second to last line should be removed later.
 endif
 ifeq ($(CONFIG), profile)
 CFLAGS+=-DNDEBUG -O3 -g -save-temps
@@ -26,7 +28,9 @@ CFLAGS+=-D_GNU_SOURCE -DDEBUG -Og -g \
 	-Wno-declaration-after-statement -Wno-unsuffixed-float-constants \
 	-Wno-address -Wno-aggregate-return \
 	-Wno-switch -Wno-switch-enum -Wno-switch-default \
+	-Wno-missing-prototypes -Wno-padded \
 	-Wno-missing-declarations -Wno-missing-prototypes
+# TODO The second to last line should be removed later.
 endif
 ifeq ($(CONFIG), profile)
 CFLAGS+=-D_GNU_SOURCE -DNDEBUG -O3 -g -pg -save-temps
