@@ -1,17 +1,14 @@
+# set terminal png size 1600, 800
+# set output 'kdes.png'
 set xrange [0.0 : 0.5]
-stats 'kde-amorphous.data' using (1.0 / $2) name 'stats'
-set table 'kde-amorphous-table.data'
-set samples 256
-plot 'kde-amorphous.data' using 1 : (1.0 / ($2 * stats_sum)) smooth kdensity bandwidth 3.0e-3
-unset table
-stats 'kde-crystalline.data' using 2 name 'stats'
-set table 'kde-crystalline-table.data'
-set samples 256
-plot 'kde-crystalline.data' using 1 : (1.0 / ($2 * stats_sum)) smooth kdensity bandwidth 3.0e-3
-unset table
+set yrange [0 : *]
 set dummy r
+set style fill transparent solid 0.5
+epsilon = 0.5
+low(x) = (1.0 - epsilon) ** x
+high(x) = (1.0 + epsilon) ** x
 plot 'kde-amorphous.data' every 2 using 1 : (rand(0) * rand(0)) with points linetype 1 pointtype 0 notitle, \
   'kde-crystalline.data' every 2 using 1 : (rand(0) * rand(0)) with points linetype 2 pointtype 0 notitle, \
-  'kde-amorphous-table.data' using 1 : ($2 * (3.0 / 2.0) / (2*pi * $1)) with lines linetype 1 title 'Amorphous', \
-  'kde-crystalline-table.data' using 1 : ($2 * (2.0 / 3.0) / (2*pi * $1)) with lines linetype 2 title 'Cystalline', \
+  'rubbish-amorphous.data' using 1 : ($2 * low($1)) : ($2 * high($1)) with filledcurves linetype 1 title 'Amorphous', \
+  'rubbish-crystalline.data' using 1 : ($2 * low($1)) : ($2 * high($1)) with filledcurves linetype 2 title 'Cystalline', \
   1.0 with lines linetype 3 notitle
