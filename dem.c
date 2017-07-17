@@ -20,6 +20,7 @@
 #include "hist.h"
 #include "io.h"
 #include "ival.h"
+#include "kernel.h"
 #include "neigh.h"
 #include "msg.h"
 #include "random.h"
@@ -899,11 +900,11 @@ double bmm_dem_est_cor(struct bmm_dem const* const dem) {
   return e / (double) dem->part.n;
 }
 
-// TODO These procedures suck.
+// TODO These procedures semisuck.
 
 // See Applied Smoothing Techniques for Data Analysis by
 // Adrian Bowman and Adelchi Azzalini from 1997.
-double bw(size_t const nsample, double const stdev) {
+double guess_gaussian_bw(size_t const nsample, double const stdev) {
   return stdev * bmm_fp_rt(4.0 / (3.0 * nsample), 5);
 }
 
@@ -912,13 +913,8 @@ static double wkde_eval(double const* restrict const xarr,
     size_t const nsample, double const x, double const bandwidth) {
   double y = 0.0;
 
-  for (size_t i = 0; i < nsample; i++) {
-    double arg = (x - xarr[i]) / bandwidth;
-    double q = (1.0 / 2.0) * bmm_fp_pow(arg, 2);
-    double qq = q < 5.0 * bandwidth ? exp(-q) : 0.0;
-    double kern = qq / (bandwidth * sqrt(M_2PI));
-    y += warr[i] * kern;
-  }
+  for (size_t i = 0; i < nsample; i++)
+    y += warr[i] * bmm_kernel_epan((x - xarr[i]) / bandwidth) / bandwidth;
 
   return y;
 }
@@ -1003,11 +999,23 @@ bool bmm_dem_est_raddist(double* const pr, double* const pg,
     }
   }
 
+  // We convert `w` from "importance weights"
+  // to "frequency weights" or "analytic weights".
   double wsum = bmm_fp_sum(w, nmemb);
   for (size_t i = 0; i < nmemb; ++i)
     w[i] /= wsum;
 
-  double const bw = bmm_ival_midpoint(dem->opts.part.rnew) / 2.0;
+  // Guessing is a bad idea.
+  // double rsum = 0.0;
+  // double r2sum = 0.0;
+  // for (size_t i = 0; i < nmemb; ++i) {
+  //   rsum += r[i];
+  //   r2sum += bmm_fp_pow(r[i], 2);
+  // }
+  // double const stdev = sqrt(r2sum / (double) nmemb -
+  //     bmm_fp_pow(rsum / (double) nmemb, 2));
+  // double const bw = guess_gaussian_bw(nmemb, stdev);
+  double const bw = bmm_ival_midpoint(dem->opts.part.rnew) / 8.0;
 
   wkde_sample(pr, pg, r, w, nmemb, bw, nbin, 0.0, rmax);
 
@@ -1016,6 +1024,9 @@ bool bmm_dem_est_raddist(double* const pr, double* const pg,
   double const rho = (double) dem->part.n / v;
   double const dr = rmax / (double) nbin;
 
+  // Ideal gas.
+  // for (size_t i = 0; i < nbin; ++i)
+  //   pg[i] = bmm_geom_ballsurf(pr[i], BMM_NDIM);
   double total = 0.0;
   for (size_t i = 0; i < nbin; ++i)
     total += pg[i] * dr;
@@ -1575,7 +1586,7 @@ static bool rubbish(struct bmm_dem const* const dem) {
   double a = 0.0;
 
   for (size_t ibin = 0; ibin < nbin; ++ibin)
-    a += (g[ibin] * log(g[ibin] + 1.0e-9) - (g[ibin] - 1)) * dr;
+    a += (g[ibin] * log(g[ibin] + 1.0e-9) - (g[ibin] - 1.0)) * dr;
 
   double const sk = -(rho / 2.0) * a;
 
