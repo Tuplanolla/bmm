@@ -7,6 +7,14 @@
 
 #include "ext.h"
 
+#ifndef M_PI_4
+#define M_PI_4 0.7853981633974483
+#endif
+
+#ifndef M_PI_2
+#define M_PI_2 1.5707963267948966
+#endif
+
 #ifndef M_PI
 #define M_PI 3.141592653589793
 #endif

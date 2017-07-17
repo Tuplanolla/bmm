@@ -62,6 +62,19 @@ static bool f(char const* const key, char const* const value,
       opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
       opts->script.tspan[istage] = 0.2;
       opts->script.dt[istage] = dtstuff;
+    } else if (strcmp(value, "test") == 0) {
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_CREATE;
+      opts->script.params[istage].create.eta = bmm_geom_ballmpd(BMM_NDIM);
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_SEDIMENT;
+      opts->script.tspan[istage] = 0.1;
+      opts->script.dt[istage] = dtstuff;
+      opts->script.params[istage].sediment.kcohes = 2.0;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_CLIP;
     } else if (strcmp(value, "couple") == 0) {
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_TEST_COUPLE;

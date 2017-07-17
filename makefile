@@ -11,10 +11,10 @@ CFLAGS+=-D_GNU_SOURCE -DDEBUG -O0 -g \
 # TODO The second to last line should be removed later.
 endif
 ifeq ($(CONFIG), profile)
-CFLAGS+=-DNDEBUG -O3 -g -save-temps
+CFLAGS+=-D_GNU_SOURCE -DNDEBUG -O3 -g -save-temps
 endif
 ifeq ($(CONFIG), release)
-CFLAGS+=-DNDEBUG -O3 -Wl,-s -w
+CFLAGS+=-D_GNU_SOURCE -DNDEBUG -O3 -Wl,-s -w
 endif
 endif
 

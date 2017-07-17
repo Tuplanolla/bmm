@@ -1023,8 +1023,9 @@ bool bmm_dem_est_raddist(double* const pr, double* const pg,
     pg[i] /= total;
   // It is a proper pdf now.
   for (size_t i = 0; i < nbin; ++i)
-    pg[i] = pr[i] == 0.0 ?
-      0.0 : pg[i] / (rho * bmm_geom_ballsurf(pr[i], BMM_NDIM) * dr);
+    pg[i] = pr[i] == 0.0 ? 0.0 :
+      (bmm_geom_ballsurf(rmax, BMM_NDIM) * pg[i] * dem->part.n * rmax * rmax) /
+      (rho * bmm_geom_ballsurf(pr[i], BMM_NDIM) * dr * nbin * v * 2.0);
 
   free(r);
   free(w);
@@ -1039,7 +1040,11 @@ void bmm_dem_opts_def(struct bmm_dem_opts* const opts) {
   opts->verbose = false;
 
   opts->trap.enabled = false;
+#ifdef _GNU_SOURCE
   opts->trap.mask = FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW | FE_UNDERFLOW;
+#else
+  opts->trap.mask = 0;
+#endif
 
   for (size_t idim = 0; idim < BMM_NDIM; ++idim)
     opts->box.x[idim] = 1.0;
