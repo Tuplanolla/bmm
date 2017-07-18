@@ -902,12 +902,6 @@ double bmm_dem_est_cor(struct bmm_dem const* const dem) {
 
 // TODO These procedures semisuck.
 
-// See Applied Smoothing Techniques for Data Analysis by
-// Adrian Bowman and Adelchi Azzalini from 1997.
-double guess_gaussian_bw(size_t const nsample, double const stdev) {
-  return stdev * bmm_fp_rt(4.0 / (3.0 * nsample), 5);
-}
-
 static double wkde_eval(double const* restrict const xarr,
     double const* restrict const warr,
     size_t const nsample, double const x, double const bandwidth) {
@@ -933,6 +927,58 @@ static void wkde_sample(double* restrict const yarr,
     yarr[i] = x;
     yyarr[i] = wkde_eval(xarr, warr, nsample, x, bandwidth);
   }
+}
+
+static double wkde_eval_sorted(double const* restrict const xarr,
+    double const* restrict const warr,
+    size_t const nsample, double const x, double const bandwidth,
+    size_t const iwin, size_t const jwin) {
+  double y = 0.0;
+
+  for (size_t i = iwin; i < jwin; i++)
+    y += warr[i] * bmm_kernel_epan((x - xarr[i]) / bandwidth) / bandwidth;
+
+  return y;
+}
+
+static void wkde_sample_sorted(double* restrict const yarr,
+    double* restrict const yyarr,
+    double const* restrict const xarr,
+    double const* restrict const warr, size_t const nsample,
+    double const bandwidth,
+    size_t const narr, double const min, double const max) {
+  double const step = (max - min) / (double) (narr - 1);
+
+  double const win = bandwidth;
+
+  double x = min;
+
+  // TODO Should use another `bsearch`-like function. This is also off by one.
+  size_t iwin = 0;
+  while (iwin < nsample && xarr[iwin] < x - win)
+    ++iwin;
+  size_t jwin = iwin;
+  while (jwin < nsample && xarr[jwin] < x + win)
+    ++jwin;
+
+  for (size_t i = 0; i < narr; i++) {
+    x = min + (double) i * step;
+
+    yarr[i] = x;
+    yyarr[i] = wkde_eval_sorted(xarr, warr, nsample, x, bandwidth, iwin, jwin);
+
+    while (iwin < nsample && xarr[iwin] < x - win)
+      ++iwin;
+    while (jwin < nsample && xarr[jwin] < x + win)
+      ++jwin;
+  }
+}
+
+static int compar(void const* const x0, void const* const x1) {
+  double const* const rw0 = x0;
+  double const* const rw1 = x1;
+
+  return bmm_fp_cmp(rw0[0], rw1[0]);
 }
 
 /// The call `bmm_dem_est_raddist(pr, pg, dem, nr)`
@@ -983,45 +1029,35 @@ bool bmm_dem_est_raddist(double* const pr, double* const pg,
 
   nmemb = i;
 
-  {
-    FILE* const stream = fopen("kde.data", "w");
-    if (stream == NULL) {
-      BMM_TLE_STDS(); abort();
-    }
-
-    for (size_t i = 0; i < nmemb; ++i)
-      if (fprintf(stream, "%g %g\n", r[i], w[i]) < 0) {
-        BMM_TLE_STDS(); abort();
-      }
-
-    if (fclose(stream) != 0) {
-      BMM_TLE_STDS(); abort();
-    }
-  }
-
   // We convert `w` from "importance weights"
   // to "frequency weights" or "analytic weights".
   double wsum = bmm_fp_sum(w, nmemb);
   for (size_t i = 0; i < nmemb; ++i)
     w[i] /= wsum;
 
-  // Guessing is a bad idea.
-  // double rsum = 0.0;
-  // double r2sum = 0.0;
-  // for (size_t i = 0; i < nmemb; ++i) {
-  //   rsum += r[i];
-  //   r2sum += bmm_fp_pow(r[i], 2);
-  // }
-  // double const stdev = sqrt(r2sum / (double) nmemb -
-  //     bmm_fp_pow(rsum / (double) nmemb, 2));
-  // double const bw = guess_gaussian_bw(nmemb, stdev);
   double const bw = bmm_ival_midpoint(dem->opts.part.rnew) / 8.0;
 
-  wkde_sample(pr, pg, r, w, nmemb, bw, nbin, 0.0, rmax);
+  // TODO Should use another `qsort`-like function.
+  double (* const rw)[2] = malloc(nmemb * sizeof *rw);
+  if (rw == NULL) {
+    free(r);
+    free(w);
+    return false;
+  }
+  for (size_t i = 0; i < nmemb; ++i) {
+    rw[i][0] = r[i];
+    rw[i][1] = w[i];
+  }
+  qsort(rw, nmemb, sizeof *rw, compar);
+  for (size_t i = 0; i < nmemb; ++i) {
+    r[i] = rw[i][0];
+    w[i] = rw[i][1];
+  }
+  free(rw);
 
-  // TODO This normalization is horrifying.
-  double const v = bmm_fp_prod(dem->opts.box.x, BMM_NDIM);
-  double const rho = (double) dem->part.n / v;
+  wkde_sample_sorted(pr, pg, r, w, nmemb, bw, nbin, 0.0, rmax);
+  // wkde_sample(pr, pg, r, w, nmemb, bw, nbin, 0.0, rmax);
+
   double const dr = rmax / (double) nbin;
 
   // Ideal gas.
@@ -1034,9 +1070,8 @@ bool bmm_dem_est_raddist(double* const pr, double* const pg,
     pg[i] /= total;
   // It is a proper pdf now.
   for (size_t i = 0; i < nbin; ++i)
-    pg[i] = pr[i] == 0.0 ? 0.0 :
-      (bmm_geom_ballsurf(rmax, BMM_NDIM) * pg[i] * dem->part.n * rmax * rmax) /
-      (rho * bmm_geom_ballsurf(pr[i], BMM_NDIM) * dr * nbin * v * 2.0);
+    pg[i] = pr[i] == 0.0 ? 0.0 : pg[i] *
+      (bmm_geom_ballvol(rmax, BMM_NDIM) / bmm_geom_ballsurf(pr[i], BMM_NDIM));
 
   free(r);
   free(w);
