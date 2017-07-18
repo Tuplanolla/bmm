@@ -12,8 +12,8 @@
 /// The closure `cls` is passed through to `compar` and `swap`.
 __attribute__ ((__nonnull__ (2, 3)))
 inline void hsort(size_t const nmemb,
-    int (* const compar)(size_t, size_t, void*),
-    void (* const swap)(size_t, size_t, void*), void* cls) {
+    int (* const compar)(size_t, size_t, void *),
+    void (* const swap)(size_t, size_t, void *), void *cls) {
   for (size_t i = 1; i < nmemb / 2 + 1; ++i) {
     size_t p = nmemb / 2 - i;
 

@@ -12,14 +12,14 @@
 
 /// This structure contains graphics options.
 struct bmm_glut_opts {
-  char const* vpath;
-  char const* fpath;
+  char const *vpath;
+  char const *fpath;
 };
 
 /// This structure tracks resources.
 struct bmm_glut {
   struct bmm_glut_opts opts;
-  char* prog;
+  char *prog;
   jmp_buf env;
   GLuint vshader;
   GLuint fshader;
@@ -30,28 +30,28 @@ struct bmm_glut {
 /// writes the default graphics options into `opts`.
 /// All messages are stopped by default.
 __attribute__ ((__nonnull__))
-void bmm_glut_opts_def(struct bmm_glut_opts*);
+void bmm_glut_opts_def(struct bmm_glut_opts *);
 
 /// The call `bmm_glut_def(glut)`
 /// writes the default graphics state into `glut`.
 __attribute__ ((__nonnull__))
-void bmm_glut_def(struct bmm_glut*, struct bmm_glut_opts const*);
+void bmm_glut_def(struct bmm_glut *, struct bmm_glut_opts const *);
 
 /// The call `bmm_glut_step(glut)`
 /// processes one iglutoming message with the graphics state `glut`.
 __attribute__ ((__nonnull__))
-enum bmm_io_read bmm_glut_step(struct bmm_glut*);
+enum bmm_io_read bmm_glut_step(struct bmm_glut *);
 
 /// The call `bmm_glut_run(glut)`
 /// processes all iglutoming messages and
 /// handles signals with the graphics state `glut`.
 __attribute__ ((__nonnull__))
-bool bmm_glut_run(struct bmm_glut*);
+bool bmm_glut_run(struct bmm_glut *);
 
 /// The call `bmm_glut_run_with(opts)`
 /// processes all iglutoming messages and
 /// handles signals with the graphics options `opts`.
 __attribute__ ((__nonnull__))
-bool bmm_glut_run_with(struct bmm_glut_opts const*);
+bool bmm_glut_run_with(struct bmm_glut_opts const *);
 
 #endif

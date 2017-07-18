@@ -6,9 +6,9 @@
 #include "ext.h"
 #include "tle.h"
 
-bool bmm_opt_parse(char const* const* const args, size_t const narg,
-    bool (* const f)(char const*, char const*, void*), void* const ptr) {
-  char const* key = NULL;
+bool bmm_opt_parse(char const *const *const args, size_t const narg,
+    bool (* const f)(char const *, char const *, void *), void *const ptr) {
+  char const *key = NULL;
   enum {KEY, VALUE} state = KEY;
 
   for (size_t iarg = 0; iarg < narg; ++iarg)
@@ -26,8 +26,8 @@ bool bmm_opt_parse(char const* const* const args, size_t const narg,
         }
       case VALUE:
         if (!f(key, args[iarg], ptr)) {
-          BMM_TLE_EXTS(BMM_TLE_NUM_PARSE, "Invalid key and value '%s' and '%s'",
-              key, args[iarg]);
+          BMM_TLE_EXTS(BMM_TLE_NUM_PARSE,
+              "Invalid key and value '%s' and '%s'", key, args[iarg]);
 
           return false;
         } else {

@@ -206,7 +206,7 @@ struct bmm_dem_opts {
 struct bmm_dem {
   struct bmm_dem_opts opts;
   /// Random number generator state.
-  gsl_rng* rng;
+  gsl_rng *rng;
   /// Floating-point exceptions.
   struct {
     /// Original mask to restore.
@@ -418,12 +418,12 @@ struct bmm_dem {
 /// Note that zero duration means that the stage
 /// takes exactly one frame during which no time elapses.
 __attribute__ ((__nonnull__))
-size_t bmm_dem_script_addstage(struct bmm_dem_opts*);
+size_t bmm_dem_script_addstage(struct bmm_dem_opts *);
 
 /// The call `bmm_dem_script_ongoing(dem)`
 /// checks whether the simulation `dem` has not ended.
 __attribute__ ((__nonnull__, __pure__))
-bool bmm_dem_script_ongoing(struct bmm_dem const*);
+bool bmm_dem_script_ongoing(struct bmm_dem const *);
 
 /// The call `bmm_dem_script_trans(dem)`
 /// transitions the simulation `dem` to the next state and
@@ -431,7 +431,7 @@ bool bmm_dem_script_ongoing(struct bmm_dem const*);
 /// Make sure the simulation has not ended prior to the call
 /// by calling `bmm_dem_script_ongoing`.
 __attribute__ ((__nonnull__))
-bool bmm_dem_script_trans(struct bmm_dem*);
+bool bmm_dem_script_trans(struct bmm_dem *);
 
 /// The call `bmm_dem_cache_build(dem)`
 /// tries to cache everything that supports caching
@@ -441,7 +441,7 @@ bool bmm_dem_script_trans(struct bmm_dem*);
 /// Otherwise `false` is returned and
 /// the cache is left in an undefined state.
 __attribute__ ((__nonnull__))
-bool bmm_dem_cache_build(struct bmm_dem*);
+bool bmm_dem_cache_build(struct bmm_dem *);
 
 /// The call `bmm_dem_addpart(dem)`
 /// tries to place a new particle with unit radius and unit mass
@@ -452,7 +452,7 @@ bool bmm_dem_cache_build(struct bmm_dem*);
 /// Note that placing new particles triggers rebuilding all caches
 /// by calling `bmm_dem_cache_build`.
 __attribute__ ((__nonnull__))
-size_t bmm_dem_addpart(struct bmm_dem*);
+size_t bmm_dem_addpart(struct bmm_dem *);
 
 /// The call `bmm_dem_rempart(dem, ipart)`
 /// removes the particle with the index `ipart`.
@@ -460,80 +460,80 @@ size_t bmm_dem_addpart(struct bmm_dem*);
 /// Note that removing particles triggers rebuilding all caches
 /// by calling `bmm_dem_cache_build`.
 __attribute__ ((__nonnull__))
-void bmm_dem_rempart(struct bmm_dem*, size_t);
+void bmm_dem_rempart(struct bmm_dem *, size_t);
 
 /// The call `bmm_dem_opts_def(opts)`
 /// writes the default simulation options into `opts`.
 __attribute__ ((__nonnull__))
-void bmm_dem_opts_def(struct bmm_dem_opts*);
+void bmm_dem_opts_def(struct bmm_dem_opts *);
 
 /// The call `bmm_dem_def(dem, opts)`
 /// writes the default simulation state into `dem`
 /// with the simulation options `opts`.
 __attribute__ ((__nonnull__))
-void bmm_dem_def(struct bmm_dem*, struct bmm_dem_opts const*);
+void bmm_dem_def(struct bmm_dem *, struct bmm_dem_opts const *);
 
-double bmm_dem_est_ekin(struct bmm_dem const*);
-double bmm_dem_est_cor(struct bmm_dem const*);
-
-__attribute__ ((__nonnull__))
-bool bmm_dem_step(struct bmm_dem*);
+double bmm_dem_est_ekin(struct bmm_dem const *);
+double bmm_dem_est_cor(struct bmm_dem const *);
 
 __attribute__ ((__nonnull__))
-bool bmm_dem_comm(struct bmm_dem*);
+bool bmm_dem_step(struct bmm_dem *);
+
+__attribute__ ((__nonnull__))
+bool bmm_dem_comm(struct bmm_dem *);
 
 /// The call `bmm_dem_stab(dem)`
 /// stabilizes the simulation `dem`
 /// by wrapping periodic values, renormalizing normal vectors and so on.
 /// This should only affect the behavior of the simulation over long timespans.
 __attribute__ ((__nonnull__))
-void bmm_dem_stab(struct bmm_dem*);
+void bmm_dem_stab(struct bmm_dem *);
 
 /// The call `bmm_dem_report(dem)`
 /// prints informal diagnostics for the simulation state `dem`.
 __attribute__ ((__nonnull__))
-bool bmm_dem_report(struct bmm_dem const*);
+bool bmm_dem_report(struct bmm_dem const *);
 
 /// The call `bmm_dem_trap_on(dem)`
 /// enables floating-point exception trapping
 /// in the simulation `dem`.
 __attribute__ ((__nonnull__))
-bool bmm_dem_trap_on(struct bmm_dem*);
+bool bmm_dem_trap_on(struct bmm_dem *);
 
 /// The call `bmm_dem_trap_off(dem)`
 /// disables floating-point exception trapping and
 /// restores the original state of the processor
 /// in the simulation `dem`.
 __attribute__ ((__nonnull__))
-bool bmm_dem_trap_off(struct bmm_dem*);
+bool bmm_dem_trap_off(struct bmm_dem *);
 
 /// The call `bmm_dem_run(dem)`
 /// processes all incoming messages and
 /// handles signals with the simulation state `dem`.
 __attribute__ ((__nonnull__))
-bool bmm_dem_run(struct bmm_dem*);
+bool bmm_dem_run(struct bmm_dem *);
 
 /// The call `bmm_dem_run_with(opts)`
 /// processes all incoming messages and
 /// handles signals with the simulation options `opts`.
 __attribute__ ((__nonnull__))
-bool bmm_dem_run_with(struct bmm_dem_opts const*);
+bool bmm_dem_run_with(struct bmm_dem_opts const *);
 
 // TODO These are questionable to expose.
 
-size_t bmm_dem_sniff_size(struct bmm_dem const* const dem,
+size_t bmm_dem_sniff_size(struct bmm_dem const *const dem,
     enum bmm_msg_num const num);
 
-bool bmm_dem_puts_stuff(struct bmm_dem const* const dem,
+bool bmm_dem_puts_stuff(struct bmm_dem const *const dem,
     enum bmm_msg_num const num);
 
-bool bmm_dem_puts(struct bmm_dem const* const dem,
+bool bmm_dem_puts(struct bmm_dem const *const dem,
     enum bmm_msg_num const num);
 
 /// The call `bmm_dem_cache_expired(dem)`
 /// checks whether particles have moved enough to require rebuilding caches
 /// in the simulation `dem`.
 __attribute__ ((__nonnull__, __pure__))
-bool bmm_dem_cache_expired(struct bmm_dem const*);
+bool bmm_dem_cache_expired(struct bmm_dem const *);
 
 #endif

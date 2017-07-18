@@ -43,7 +43,7 @@ static void bmm_msg_lower(size_t const i) {
   }
 }
 
-bool bmm_msg_to_str(char const** const ptr, enum bmm_msg_num const num) {
+bool bmm_msg_to_str(char const **const ptr, enum bmm_msg_num const num) {
   size_t const i = bmm_msg_find(num);
   if (i == SIZE_MAX)
     return false;
@@ -56,7 +56,7 @@ bool bmm_msg_to_str(char const** const ptr, enum bmm_msg_num const num) {
   return true;
 }
 
-bool bmm_msg_from_str(enum bmm_msg_num* const ptr, char const* const str) {
+bool bmm_msg_from_str(enum bmm_msg_num *const ptr, char const *const str) {
   for (size_t i = 0; i < nmembof(bmm_msg_decl); ++i) {
     bmm_msg_lower(i);
 
@@ -71,15 +71,15 @@ bool bmm_msg_from_str(enum bmm_msg_num* const ptr, char const* const str) {
   return false;
 }
 
-void bmm_msg_spec_def(struct bmm_msg_spec* const spec) {
+void bmm_msg_spec_def(struct bmm_msg_spec *const spec) {
   spec->prio = BMM_MSG_PRIO_LOW;
   spec->endy = bmm_endy_get();
   spec->tag = BMM_MSG_TAG_SP;
   spec->msg.size = 0;
 }
 
-enum bmm_io_read bmm_msg_spec_read(struct bmm_msg_spec* const spec,
-    bmm_msg_reader const f, void* const ptr) {
+enum bmm_io_read bmm_msg_spec_read(struct bmm_msg_spec *const spec,
+    bmm_msg_reader const f, void *const ptr) {
   unsigned char flags;
   switch (f(&flags, 1, ptr)) {
     case BMM_IO_READ_ERROR:
@@ -155,8 +155,8 @@ enum bmm_io_read bmm_msg_spec_read(struct bmm_msg_spec* const spec,
   return BMM_IO_READ_SUCCESS;
 }
 
-bool bmm_msg_spec_write(struct bmm_msg_spec const* const spec,
-    bmm_msg_writer const f, void* const ptr) {
+bool bmm_msg_spec_write(struct bmm_msg_spec const *const spec,
+    bmm_msg_writer const f, void *const ptr) {
   unsigned char flags = BMM_MASKBITS_0();
 
   switch (spec->prio) {
@@ -246,8 +246,8 @@ bool bmm_msg_spec_write(struct bmm_msg_spec const* const spec,
   return true;
 }
 
-enum bmm_io_read bmm_msg_num_read(enum bmm_msg_num* const num,
-    bmm_msg_reader const f, void* const ptr) {
+enum bmm_io_read bmm_msg_num_read(enum bmm_msg_num *const num,
+    bmm_msg_reader const f, void *const ptr) {
   unsigned char buf;
   switch (f(&buf, 1, ptr)) {
     case BMM_IO_READ_ERROR:
@@ -261,8 +261,8 @@ enum bmm_io_read bmm_msg_num_read(enum bmm_msg_num* const num,
   return BMM_IO_READ_SUCCESS;
 }
 
-bool bmm_msg_num_write(enum bmm_msg_num const* const num,
-    bmm_msg_writer const f, void* const ptr) {
+bool bmm_msg_num_write(enum bmm_msg_num const *const num,
+    bmm_msg_writer const f, void *const ptr) {
   dynamic_assert(*num <= 0xff, "Type would be truncated");
 
   unsigned char buf = (unsigned char) *num;

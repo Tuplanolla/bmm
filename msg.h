@@ -62,17 +62,17 @@ struct bmm_msg_spec {
 /// The call `bmm_msg_spec_def(spec)`
 /// writes the default message specification into `spec`.
 __attribute__ ((__nonnull__))
-void bmm_msg_spec_def(struct bmm_msg_spec*);
+void bmm_msg_spec_def(struct bmm_msg_spec *);
 
 /// Assuming `bmm_msg_reader f`, the call `f(buf, n, ptr)`
 /// reads `n` bytes into the buffer `buf`.
 /// The additional `ptr` can be used for passing in a closure.
-typedef enum bmm_io_read (* bmm_msg_reader)(void*, size_t, void*);
+typedef enum bmm_io_read (* bmm_msg_reader)(void *, size_t, void *);
 
 /// Assuming `bmm_msg_writer f`, the call `f(buf, n, ptr)`
 /// writes `n` bytes from the buffer `buf`.
 /// The additional `ptr` can be used for passing in a closure.
-typedef bool (* bmm_msg_writer)(void const*, size_t, void*);
+typedef bool (* bmm_msg_writer)(void const *, size_t, void *);
 
 /// The call `bmm_msg_spec_read(spec, f, ptr)`
 /// extracts the message specification `spec`
@@ -81,8 +81,8 @@ typedef bool (* bmm_msg_writer)(void const*, size_t, void*);
 /// in chunks of size `0 < k < n`.
 /// It is guaranteed that `n <= BMM_MSG_HEADSIZE`.
 __attribute__ ((__nonnull__ (1, 2)))
-enum bmm_io_read bmm_msg_spec_read(struct bmm_msg_spec*,
-    bmm_msg_reader, void*);
+enum bmm_io_read bmm_msg_spec_read(struct bmm_msg_spec *,
+    bmm_msg_reader, void *);
 
 /// The call `bmm_msg_spec_write(spec, f, ptr)`
 /// builds the message header `buf` of length `n`
@@ -91,7 +91,7 @@ enum bmm_io_read bmm_msg_spec_read(struct bmm_msg_spec*,
 /// in chunks of size `0 < k < n`.
 /// It is guaranteed that `n <= BMM_MSG_HEADSIZE`.
 __attribute__ ((__nonnull__ (1, 2)))
-bool bmm_msg_spec_write(struct bmm_msg_spec const*, bmm_msg_writer, void*);
+bool bmm_msg_spec_write(struct bmm_msg_spec const *, bmm_msg_writer, void *);
 
 /// This enumeration is generated for message numbers.
 enum bmm_msg_num {
@@ -104,12 +104,12 @@ enum bmm_msg_num {
 /// The call `bmm_msg_to_str(ptr, num)`
 /// sets the pointer `ptr` to
 /// the string representation of the message number `num`.
-bool bmm_msg_to_str(char const**, enum bmm_msg_num);
+bool bmm_msg_to_str(char const **, enum bmm_msg_num);
 
 /// The call `bmm_msg_from_str(ptr, str)`
 /// sets the pointer `ptr` to
 /// the message number of the string representation `str`.
-bool bmm_msg_from_str(enum bmm_msg_num*, char const*);
+bool bmm_msg_from_str(enum bmm_msg_num *, char const *);
 
 /// The call `bmm_msg_num_read(num, f, ptr)`
 /// extracts the message number `num`
@@ -118,7 +118,7 @@ bool bmm_msg_from_str(enum bmm_msg_num*, char const*);
 /// in chunks of size `0 < k < n`.
 /// It is guaranteed that `n <= BMM_MSG_NUMSIZE`.
 __attribute__ ((__nonnull__ (1, 2)))
-enum bmm_io_read bmm_msg_num_read(enum bmm_msg_num*, bmm_msg_reader, void*);
+enum bmm_io_read bmm_msg_num_read(enum bmm_msg_num *, bmm_msg_reader, void *);
 
 /// The call `bmm_msg_num_write(num, f, ptr)`
 /// builds the message header `buf` of length `n`
@@ -127,6 +127,6 @@ enum bmm_io_read bmm_msg_num_read(enum bmm_msg_num*, bmm_msg_reader, void*);
 /// in chunks of size `0 < k < n`.
 /// It is guaranteed that `n <= BMM_MSG_NUMSIZE`.
 __attribute__ ((__nonnull__ (1, 2)))
-bool bmm_msg_num_write(enum bmm_msg_num const*, bmm_msg_writer, void*);
+bool bmm_msg_num_write(enum bmm_msg_num const *, bmm_msg_writer, void *);
 
 #endif

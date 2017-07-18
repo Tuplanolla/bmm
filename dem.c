@@ -29,7 +29,7 @@
 #include "sort.h"
 #include "tle.h"
 
-size_t bmm_dem_script_addstage(struct bmm_dem_opts* const opts) {
+size_t bmm_dem_script_addstage(struct bmm_dem_opts *const opts) {
   size_t const istage = opts->script.n;
 
   if (istage >= BMM_MSTAGE)
@@ -44,11 +44,11 @@ size_t bmm_dem_script_addstage(struct bmm_dem_opts* const opts) {
   return istage;
 }
 
-bool bmm_dem_script_ongoing(struct bmm_dem const* const dem) {
+bool bmm_dem_script_ongoing(struct bmm_dem const *const dem) {
   return dem->script.i < dem->opts.script.n;
 }
 
-bool bmm_dem_script_trans(struct bmm_dem* const dem) {
+bool bmm_dem_script_trans(struct bmm_dem *const dem) {
   double const toff = dem->time.t - dem->script.tprev -
     dem->opts.script.tspan[dem->script.i];
 
@@ -68,7 +68,7 @@ bool bmm_dem_script_trans(struct bmm_dem* const dem) {
 /// caches the moment of inertia of the particle `ipart`
 /// in the simulation `dem`.
 __attribute__ ((__nonnull__))
-static void bmm_dem_cache_j(struct bmm_dem* const dem,
+static void bmm_dem_cache_j(struct bmm_dem *const dem,
     size_t const ipart) {
   dem->cache.j[ipart] = dem->part.jred[ipart] *
     dem->part.m[ipart] * bmm_fp_pow(dem->part.r[ipart], 2);
@@ -78,7 +78,7 @@ static void bmm_dem_cache_j(struct bmm_dem* const dem,
 /// caches the position of the particle `ipart`
 /// in the simulation `dem`.
 __attribute__ ((__nonnull__))
-static void bmm_dem_cache_x(struct bmm_dem* const dem,
+static void bmm_dem_cache_x(struct bmm_dem *const dem,
     size_t const ipart) {
   for (size_t idim = 0; idim < BMM_NDIM; ++idim)
     dem->cache.x[ipart][idim] = dem->part.x[ipart][idim];
@@ -90,7 +90,7 @@ static void bmm_dem_cache_x(struct bmm_dem* const dem,
 /// The positions need to be cached first
 /// by calling `bmm_dem_cache_x`.
 __attribute__ ((__nonnull__))
-static void bmm_dem_cache_ijcell(struct bmm_dem* const dem,
+static void bmm_dem_cache_ijcell(struct bmm_dem *const dem,
     size_t const ipart) {
   for (size_t idim = 0; idim < BMM_NDIM; ++idim)
     dem->cache.ijcell[ipart][idim] = bmm_fp_iclerp(dem->cache.x[ipart][idim],
@@ -103,7 +103,7 @@ static void bmm_dem_cache_ijcell(struct bmm_dem* const dem,
 /// The neighbor cell index vectors need to be cached first
 /// by calling `bmm_dem_cache_ijcell`.
 __attribute__ ((__nonnull__))
-static void bmm_dem_cache_icell(struct bmm_dem* const dem,
+static void bmm_dem_cache_icell(struct bmm_dem *const dem,
     size_t const ipart) {
   dem->cache.icell[ipart] = bmm_size_unhcd(dem->cache.ijcell[ipart],
       BMM_NDIM, dem->opts.cache.ncell);
@@ -113,7 +113,7 @@ static void bmm_dem_cache_icell(struct bmm_dem* const dem,
 /// clears the neighbor cell index mapping cache
 /// in the simulation `dem`.
 __attribute__ ((__nonnull__))
-static void bmm_dem_cache_clrparts(struct bmm_dem* const dem) {
+static void bmm_dem_cache_clrparts(struct bmm_dem *const dem) {
   for (size_t icell = 0; icell < nmembof(dem->cache.part); ++icell)
     dem->cache.part[icell].n = 0;
 }
@@ -128,7 +128,7 @@ static void bmm_dem_cache_clrparts(struct bmm_dem* const dem) {
 /// The neighbor cell indices need to be cached first
 /// by calling `bmm_dem_cache_icell`.
 __attribute__ ((__nonnull__))
-static bool bmm_dem_cache_addpart(struct bmm_dem* const dem,
+static bool bmm_dem_cache_addpart(struct bmm_dem *const dem,
     size_t const ipart) {
   size_t const icell = dem->cache.icell[ipart];
 
@@ -152,7 +152,7 @@ static bool bmm_dem_cache_addpart(struct bmm_dem* const dem,
 /// Note that this function is neither symmetric nor reflexive
 /// with respect to particle indices.
 __attribute__ ((__nonnull__, __pure__))
-static bool bmm_dem_cache_eligible(struct bmm_dem const* const dem,
+static bool bmm_dem_cache_eligible(struct bmm_dem const *const dem,
     size_t const ipart, size_t const jpart) {
   if (dem->cache.icell[ipart] == dem->cache.icell[jpart] && jpart <= ipart)
     return false;
@@ -169,7 +169,7 @@ static bool bmm_dem_cache_eligible(struct bmm_dem const* const dem,
 /// clears the neighbor cache
 /// in the simulation `dem`.
 __attribute__ ((__nonnull__))
-static void bmm_dem_cache_clrneighs(struct bmm_dem* const dem) {
+static void bmm_dem_cache_clrneighs(struct bmm_dem *const dem) {
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     dem->cache.neigh[ipart].n = 0;
 }
@@ -190,7 +190,7 @@ static void bmm_dem_cache_clrneighs(struct bmm_dem* const dem) {
 /// The neighbor cell index mappings need to be cached first
 /// by calling `bmm_dem_cache_addpart`.
 __attribute__ ((__nonnull__))
-static bool bmm_dem_cache_addfrom(struct bmm_dem* const dem,
+static bool bmm_dem_cache_addfrom(struct bmm_dem *const dem,
     size_t const ipart, int const mask) {
   size_t const nneigh = bmm_neigh_ncpij(dem->cache.ijcell[ipart],
       BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per, mask);
@@ -231,7 +231,7 @@ static bool bmm_dem_cache_addfrom(struct bmm_dem* const dem,
 /// The neighbor cell index mappings need to be cached first
 /// by calling `bmm_dem_cache_addpart`.
 __attribute__ ((__nonnull__))
-static bool bmm_dem_cache_addto(struct bmm_dem* const dem,
+static bool bmm_dem_cache_addto(struct bmm_dem *const dem,
     size_t const ipart, int const mask) {
   size_t const nneigh = bmm_neigh_ncpij(dem->cache.ijcell[ipart],
       BMM_NDIM, dem->opts.cache.ncell, dem->opts.box.per, mask);
@@ -260,7 +260,7 @@ static bool bmm_dem_cache_addto(struct bmm_dem* const dem,
   return true;
 }
 
-bool bmm_dem_cache_build(struct bmm_dem* const dem) {
+bool bmm_dem_cache_build(struct bmm_dem *const dem) {
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     bmm_dem_cache_j(dem, ipart);
 
@@ -288,7 +288,7 @@ bool bmm_dem_cache_build(struct bmm_dem* const dem) {
   return true;
 }
 
-size_t bmm_dem_addpart(struct bmm_dem* const dem) {
+size_t bmm_dem_addpart(struct bmm_dem *const dem) {
   size_t const ipart = dem->part.n;
 
   if (ipart >= BMM_MPART)
@@ -329,7 +329,7 @@ size_t bmm_dem_addpart(struct bmm_dem* const dem) {
 /// The call `bmm_dem_reassign(dem, ipart, jpart)`
 /// reassigns the particle `jpart` to `ipart`.
 __attribute__ ((__nonnull__))
-static void bmm_dem_reassign(struct bmm_dem* const dem,
+static void bmm_dem_reassign(struct bmm_dem *const dem,
     size_t const ipart, size_t const jpart) {
   dem->part.role[ipart] = dem->part.role[jpart];
   dem->part.l[ipart] = dem->part.l[jpart];
@@ -375,7 +375,7 @@ static void bmm_dem_reassign(struct bmm_dem* const dem,
     dem->link.part[ipart].philim[ilink] = dem->link.part[jpart].philim[ilink];
 }
 
-void bmm_dem_rempart(struct bmm_dem* const dem,
+void bmm_dem_rempart(struct bmm_dem *const dem,
     size_t const ipart) {
   --dem->part.n;
 
@@ -387,7 +387,7 @@ void bmm_dem_rempart(struct bmm_dem* const dem,
   dem->cache.stale = true;
 }
 
-void bmm_dem_force_pair(struct bmm_dem* const dem,
+void bmm_dem_force_pair(struct bmm_dem *const dem,
     size_t const ipart, size_t const jpart) {
   double xdiff[BMM_NDIM];
   bmm_geom2d_cpdiff(xdiff, dem->part.x[ipart], dem->part.x[jpart],
@@ -465,7 +465,7 @@ void bmm_dem_force_pair(struct bmm_dem* const dem,
   dem->part.tau[jpart] += ft * dem->part.r[jpart];
 }
 
-void bmm_dem_force_creeping(struct bmm_dem* const dem,
+void bmm_dem_force_creeping(struct bmm_dem *const dem,
     size_t const ipart) {
   double const v = bmm_geom2d_norm(dem->part.v[ipart]);
 
@@ -488,7 +488,7 @@ void bmm_dem_force_creeping(struct bmm_dem* const dem,
 }
 
 // TODO Flatten these to allow loop-invariant code motion.
-void bmm_dem_force_ambient(struct bmm_dem* const dem, size_t const ipart) {
+void bmm_dem_force_ambient(struct bmm_dem *const dem, size_t const ipart) {
   switch (dem->amb.tag) {
     case BMM_DEM_FAMB_CREEPING:
       bmm_dem_force_creeping(dem, ipart);
@@ -503,13 +503,13 @@ void bmm_dem_force_ambient(struct bmm_dem* const dem, size_t const ipart) {
   }
 }
 
-void bmm_dem_force_link(struct bmm_dem* const dem,
+void bmm_dem_force_link(struct bmm_dem *const dem,
     size_t const ipart, size_t const jpart, size_t const ilink) {
   // TODO This.
   return;
 }
 
-void bmm_dem_force_external(struct bmm_dem* const dem, size_t const ipart) {
+void bmm_dem_force_external(struct bmm_dem *const dem, size_t const ipart) {
   switch (dem->ext.tag) {
     case BMM_DEM_FEXT_ABS:
       dem->part.f[ipart][1] += copysign(dem->ext.params.abs.fcohes,
@@ -524,7 +524,7 @@ void bmm_dem_force_external(struct bmm_dem* const dem, size_t const ipart) {
   }
 }
 
-void bmm_dem_force(struct bmm_dem* const dem) {
+void bmm_dem_force(struct bmm_dem *const dem) {
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
     for (size_t idim = 0; idim < BMM_NDIM; ++idim)
       dem->part.f[ipart][idim] = 0.0;
@@ -560,7 +560,7 @@ void bmm_dem_force(struct bmm_dem* const dem) {
   // TODO Calculate force feedback from the residuals.
 }
 
-void bmm_dem_accel(struct bmm_dem* const dem) {
+void bmm_dem_accel(struct bmm_dem *const dem) {
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
     double const m = dem->part.m[ipart];
     double const j = dem->cache.j[ipart];
@@ -572,7 +572,7 @@ void bmm_dem_accel(struct bmm_dem* const dem) {
   }
 }
 
-void bmm_dem_integ_euler(struct bmm_dem* const dem) {
+void bmm_dem_integ_euler(struct bmm_dem *const dem) {
   double const dt = dem->opts.script.dt[dem->script.i];
 
   if (dt == 0.0)
@@ -597,7 +597,7 @@ void bmm_dem_integ_euler(struct bmm_dem* const dem) {
   }
 }
 
-void bmm_dem_integ_taylor(struct bmm_dem* const dem) {
+void bmm_dem_integ_taylor(struct bmm_dem *const dem) {
   double const dt = dem->opts.script.dt[dem->script.i];
 
   if (dt == 0.0)
@@ -626,7 +626,7 @@ void bmm_dem_integ_taylor(struct bmm_dem* const dem) {
   }
 }
 
-void bmm_dem_integ_vel(struct bmm_dem* const dem) {
+void bmm_dem_integ_vel(struct bmm_dem *const dem) {
   double const dt = dem->opts.script.dt[dem->script.i];
 
   if (dt == 0.0)
@@ -655,7 +655,7 @@ void bmm_dem_integ_vel(struct bmm_dem* const dem) {
   }
 }
 
-void bmm_dem_integ_vet(struct bmm_dem* const dem) {
+void bmm_dem_integ_vet(struct bmm_dem *const dem) {
   double const dt = dem->opts.script.dt[dem->script.i];
 
   if (dt == 0.0)
@@ -671,12 +671,12 @@ void bmm_dem_integ_vet(struct bmm_dem* const dem) {
   }
 }
 
-void bmm_dem_stab(struct bmm_dem* const dem) {
+void bmm_dem_stab(struct bmm_dem *const dem) {
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     dem->part.phi[ipart] = bmm_fp_uwrap(dem->part.phi[ipart], M_2PI);
 }
 
-void bmm_dem_predict(struct bmm_dem* const dem) {
+void bmm_dem_predict(struct bmm_dem *const dem) {
   switch (dem->integ.tag) {
     case BMM_DEM_INTEG_VELVET:
       bmm_dem_integ_vel(dem);
@@ -685,7 +685,7 @@ void bmm_dem_predict(struct bmm_dem* const dem) {
   }
 }
 
-void bmm_dem_correct(struct bmm_dem* const dem) {
+void bmm_dem_correct(struct bmm_dem *const dem) {
   switch (dem->integ.tag) {
     case BMM_DEM_INTEG_EULER:
       bmm_dem_integ_euler(dem);
@@ -702,7 +702,7 @@ void bmm_dem_correct(struct bmm_dem* const dem) {
   }
 }
 
-bool bmm_dem_link_pair(struct bmm_dem* const dem,
+bool bmm_dem_link_pair(struct bmm_dem *const dem,
     size_t const ipart, size_t const jpart) {
   double xdiff[BMM_NDIM];
   bmm_geom2d_cpdiff(xdiff, dem->part.x[ipart], dem->part.x[jpart],
@@ -761,7 +761,7 @@ bool bmm_dem_link_pair(struct bmm_dem* const dem,
 }
 
 // TODO Check triangulation quality and compare with Delaunay.
-bool bmm_dem_link(struct bmm_dem* const dem) {
+bool bmm_dem_link(struct bmm_dem *const dem) {
   switch (dem->cache.tag) {
     case BMM_DEM_CACHING_NONE:
       for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
@@ -780,7 +780,7 @@ bool bmm_dem_link(struct bmm_dem* const dem) {
   return true;
 }
 
-bool bmm_dem_unlink(struct bmm_dem* const dem) {
+bool bmm_dem_unlink(struct bmm_dem *const dem) {
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     dem->link.part[ipart].n = 0;
 
@@ -790,7 +790,7 @@ bool bmm_dem_unlink(struct bmm_dem* const dem) {
 // TODO Interval arithmetic.
 // TODO Not quite! Edges may overlap if periodicity is turned on.
 __attribute__ ((__nonnull__, __pure__))
-static bool bmm_dem_inside(struct bmm_dem const* const dem,
+static bool bmm_dem_inside(struct bmm_dem const *const dem,
     size_t const ipart) {
   for (size_t idim = 0; idim < BMM_NDIM; ++idim)
     if (dem->part.x[ipart][idim] < 0.0 ||
@@ -802,7 +802,7 @@ static bool bmm_dem_inside(struct bmm_dem const* const dem,
 
 // TODO Not quite! Edges may be excavated if periodicity is turned off.
 __attribute__ ((__nonnull__, __pure__))
-static bool bmm_dem_insider(struct bmm_dem const* const dem,
+static bool bmm_dem_insider(struct bmm_dem const *const dem,
     size_t const ipart) {
   for (size_t idim = 0; idim < BMM_NDIM; ++idim)
     if (dem->part.x[ipart][idim] - dem->part.r[ipart] < 0.0 ||
@@ -813,7 +813,7 @@ static bool bmm_dem_insider(struct bmm_dem const* const dem,
 }
 
 __attribute__ ((__nonnull__))
-static void bmm_dem_script_clip(struct bmm_dem* const dem) {
+static void bmm_dem_script_clip(struct bmm_dem *const dem) {
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     if (!bmm_dem_inside(dem, ipart)) {
       bmm_dem_rempart(dem, ipart);
@@ -825,7 +825,7 @@ static void bmm_dem_script_clip(struct bmm_dem* const dem) {
 /// returns the total kinetic energy of the particles
 /// in the simulation `dem`.
 __attribute__ ((__nonnull__, __pure__))
-double bmm_dem_est_ekin(struct bmm_dem const* const dem) {
+double bmm_dem_est_ekin(struct bmm_dem const *const dem) {
   double e = 0.0;
 
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
@@ -842,7 +842,7 @@ double bmm_dem_est_ekin(struct bmm_dem const* const dem) {
 /// returns the total mass of the particles
 /// in the simulation `dem`.
 __attribute__ ((__nonnull__, __pure__))
-double bmm_dem_est_mass(struct bmm_dem* const dem) {
+double bmm_dem_est_mass(struct bmm_dem *const dem) {
   double m = 0.0;
 
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
@@ -855,8 +855,8 @@ double bmm_dem_est_mass(struct bmm_dem* const dem) {
 /// sets `pxcenter` to the center of the bounding box
 /// in the simulation `dem`.
 __attribute__ ((__nonnull__))
-void bmm_dem_est_center(double* const pxcenter,
-    struct bmm_dem* const dem) {
+void bmm_dem_est_center(double *const pxcenter,
+    struct bmm_dem *const dem) {
   for (size_t idim = 0; idim < BMM_NDIM; ++idim)
     pxcenter[idim] = dem->opts.box.x[idim] / 2.0;
 }
@@ -865,8 +865,8 @@ void bmm_dem_est_center(double* const pxcenter,
 /// sets `pxcom` to the center of mass of the particles
 /// in the simulation `dem`.
 __attribute__ ((__nonnull__))
-void bmm_dem_est_com(double* const pxcom,
-    struct bmm_dem* const dem) {
+void bmm_dem_est_com(double *const pxcom,
+    struct bmm_dem *const dem) {
   for (size_t idim = 0; idim < BMM_NDIM; ++idim)
     pxcom[idim] = 0.0;
 
@@ -886,7 +886,7 @@ void bmm_dem_est_com(double* const pxcom,
 /// The result only applies to the linear dashpot model and
 /// even then it is a bit wrong.
 __attribute__ ((__deprecated__, __nonnull__, __pure__))
-double bmm_dem_est_cor(struct bmm_dem const* const dem) {
+double bmm_dem_est_cor(struct bmm_dem const *const dem) {
   double e = 0.0;
 
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
@@ -903,8 +903,8 @@ double bmm_dem_est_cor(struct bmm_dem const* const dem) {
 
 // TODO These procedures semisuck.
 
-static double wkde_eval(double const* restrict const xarr,
-    double const* restrict const warr,
+static double wkde_eval(double const *restrict const xarr,
+    double const *restrict const warr,
     size_t const nsample, double const x, double const bandwidth) {
   double y = 0.0;
 
@@ -914,10 +914,10 @@ static double wkde_eval(double const* restrict const xarr,
   return y;
 }
 
-static void wkde_sample(double* restrict const yarr,
-    double* restrict const yyarr,
-    double const* restrict const xarr,
-    double const* restrict const warr, size_t const nsample,
+static void wkde_sample(double *restrict const yarr,
+    double *restrict const yyarr,
+    double const *restrict const xarr,
+    double const *restrict const warr, size_t const nsample,
     double const bandwidth,
     size_t const narr, double const min, double const max) {
   double const step = (max - min) / (double) (narr - 1);
@@ -930,8 +930,8 @@ static void wkde_sample(double* restrict const yarr,
   }
 }
 
-static double wkde_eval_sorted(double const* restrict const xarr,
-    double const* restrict const warr,
+static double wkde_eval_sorted(double const *restrict const xarr,
+    double const *restrict const warr,
     size_t const nsample, double const x, double const bandwidth,
     size_t const iwin, size_t const jwin) {
   double y = 0.0;
@@ -942,10 +942,10 @@ static double wkde_eval_sorted(double const* restrict const xarr,
   return y;
 }
 
-static void wkde_sample_sorted(double* restrict const yarr,
-    double* restrict const yyarr,
-    double const* restrict const xarr,
-    double const* restrict const warr, size_t const nsample,
+static void wkde_sample_sorted(double *restrict const yarr,
+    double *restrict const yyarr,
+    double const *restrict const xarr,
+    double const *restrict const warr, size_t const nsample,
     double const bandwidth,
     size_t const narr, double const min, double const max) {
   double const step = (max - min) / (double) (narr - 1);
@@ -975,32 +975,20 @@ static void wkde_sample_sorted(double* restrict const yarr,
   }
 }
 
-typedef struct {double _0; double _1;} _2;
+static int compar(size_t const i, size_t const j, void *const cls) {
+  double const *const *const rw = cls;
 
-static void swap(size_t const i, size_t const j, void* const closure) {
-  _2* const rw = closure;
-
-  _2 tmp;
-  tmp._0 = rw[i]._0;
-  tmp._1 = rw[i]._1;
-  rw[i]._0 = rw[j]._0;
-  rw[i]._1 = rw[j]._1;
-  rw[j]._0 = tmp._0;
-  rw[j]._1 = tmp._1;
+  return bmm_fp_cmp(rw[0][i], rw[0][j]);
 }
 
-static int compar(size_t const i, size_t const j, void* const closure) {
-  _2* const rw = closure;
+static void swap(size_t const i, size_t const j, void *const cls) {
+  double *const *const rw = cls;
 
-  return bmm_fp_cmp(rw[i]._0, rw[j]._0);
-}
-
-static int qcompar(void const* const x0, void const* const x1,
-    void* const closure) {
-  _2* const rw0 = x0;
-  _2* const rw1 = x1;
-
-  return bmm_fp_cmp(rw0->_0, rw1->_0);
+  for (size_t k = 0; k < 2; ++k) {
+    double const tmp = rw[k][i];
+    rw[k][i] = rw[k][j];
+    rw[k][j] = tmp;
+  }
 }
 
 /// The call `bmm_dem_est_raddist(pr, pg, dem, nr)`
@@ -1009,17 +997,17 @@ static int qcompar(void const* const x0, void const* const x1,
 /// in the simulation `dem`.
 /// The simulation cell must be full for this to produce an accurate result.
 __attribute__ ((__nonnull__))
-bool bmm_dem_est_raddist(double* const pr, double* const pg,
+bool bmm_dem_est_raddist(double *const pr, double *const pg,
     size_t const nbin, double const rmax,
-    struct bmm_dem const* const dem) {
+    struct bmm_dem const *const dem) {
   // TODO This is bad and stupid.
 
   // double g[BMM_TRI(BMM_MPART)];
   size_t nmemb = bmm_size_tri(dem->part.n);
-  double* const w = malloc(nmemb * sizeof *w);
+  double *const w = malloc(nmemb * sizeof *w);
   if (w == NULL)
     return false;
-  double* const r = malloc(nmemb * sizeof *r);
+  double *const r = malloc(nmemb * sizeof *r);
   if (r == NULL) {
     free(w);
     return false;
@@ -1059,28 +1047,8 @@ bool bmm_dem_est_raddist(double* const pr, double* const pg,
 
   double const bw = bmm_ival_midpoint(dem->opts.part.rnew) / 8.0;
 
-  // TODO Should use another `qsort`-like function.
-  _2* const rw = malloc(nmemb * sizeof *rw);
-  if (rw == NULL) {
-    free(r);
-    free(w);
-    return false;
-  }
-  for (size_t i = 0; i < nmemb; ++i) {
-    rw[i]._0 = r[i];
-    rw[i]._1 = w[i];
-  }
+  double *rw[] = {r, w};
   hsort(nmemb, compar, swap, rw);
-  for (size_t i = 0; i < nmemb; ++i) {
-    r[i] = rw[i]._0;
-    w[i] = rw[i]._1;
-  }
-  qsort(rw, nmemb, sizeof *rw, qcompar);
-  for (size_t i = 0; i < nmemb; ++i)
-    if (r[i] != rw[i]._0 || w[i] != rw[i]._1)
-      fprintf(stderr, "Choked at %zu!\n", i);
-  free(rw);
-
   wkde_sample_sorted(pr, pg, r, w, nmemb, bw, nbin, 0.0, rmax);
   // wkde_sample(pr, pg, r, w, nmemb, bw, nbin, 0.0, rmax);
 
@@ -1105,7 +1073,7 @@ bool bmm_dem_est_raddist(double* const pr, double* const pg,
   return true;
 }
 
-void bmm_dem_opts_def(struct bmm_dem_opts* const opts) {
+void bmm_dem_opts_def(struct bmm_dem_opts *const opts) {
   // This is here just to help Valgrind and cover up my mistakes.
   (void) memset(opts, 0, sizeof *opts);
 
@@ -1177,8 +1145,8 @@ void bmm_dem_opts_def(struct bmm_dem_opts* const opts) {
   }
 }
 
-void bmm_dem_def(struct bmm_dem* const dem,
-    struct bmm_dem_opts const* const opts) {
+void bmm_dem_def(struct bmm_dem *const dem,
+    struct bmm_dem_opts const *const opts) {
   // This is here just to help Valgrind and cover up my mistakes.
   (void) memset(dem, 0, sizeof *dem);
 
@@ -1227,12 +1195,12 @@ void bmm_dem_def(struct bmm_dem* const dem,
 
 // TODO Relocate these.
 
-static bool msg_write(void const* buf, size_t const n,
-    __attribute__ ((__unused__)) void* const ptr) {
+static bool msg_write(void const *buf, size_t const n,
+    __attribute__ ((__unused__)) void *const ptr) {
   return bmm_io_writeout(buf, n);
 }
 
-size_t bmm_dem_sniff_size(struct bmm_dem const* const dem,
+size_t bmm_dem_sniff_size(struct bmm_dem const *const dem,
     enum bmm_msg_num const num) {
   switch (num) {
     case BMM_MSG_NUM_ISTEP:
@@ -1248,7 +1216,7 @@ size_t bmm_dem_sniff_size(struct bmm_dem const* const dem,
   dynamic_assert(false, "Unsupported message number");
 }
 
-bool bmm_dem_puts_stuff(struct bmm_dem const* const dem,
+bool bmm_dem_puts_stuff(struct bmm_dem const *const dem,
     enum bmm_msg_num const num) {
   switch (num) {
     case BMM_MSG_NUM_ISTEP:
@@ -1266,7 +1234,7 @@ bool bmm_dem_puts_stuff(struct bmm_dem const* const dem,
   dynamic_assert(false, "Unsupported message number");
 }
 
-bool bmm_dem_puts(struct bmm_dem const* const dem,
+bool bmm_dem_puts(struct bmm_dem const *const dem,
     enum bmm_msg_num const num) {
   struct bmm_msg_spec spec;
   bmm_msg_spec_def(&spec);
@@ -1277,7 +1245,7 @@ bool bmm_dem_puts(struct bmm_dem const* const dem,
     bmm_dem_puts_stuff(dem, num);
 }
 
-bool bmm_dem_cache_expired(struct bmm_dem const* const dem) {
+bool bmm_dem_cache_expired(struct bmm_dem const *const dem) {
   // TODO Use `dem->opts.part.rnew[1]` instead of `dem->part.r[ipart]`.
   double const r = dem->opts.cache.rcutoff / 2.0;
 
@@ -1291,7 +1259,7 @@ bool bmm_dem_cache_expired(struct bmm_dem const* const dem) {
 }
 
 __attribute__ ((__nonnull__))
-static void bmm_dem_script_balance(struct bmm_dem* const dem) {
+static void bmm_dem_script_balance(struct bmm_dem *const dem) {
   double xcenter[BMM_NDIM];
   bmm_dem_est_center(xcenter, dem);
 
@@ -1309,7 +1277,7 @@ static void bmm_dem_script_balance(struct bmm_dem* const dem) {
 }
 
 __attribute__ ((__nonnull__))
-static bool bmm_dem_script_create_hc(struct bmm_dem* const dem) {
+static bool bmm_dem_script_create_hc(struct bmm_dem *const dem) {
   double const etahc = bmm_geom_ballvol(0.5, BMM_NDIM);
   double const vhc = bmm_fp_prod(dem->opts.box.x, BMM_NDIM);
   double const eta = dem->opts.script.params[dem->script.i].create.eta;
@@ -1358,7 +1326,7 @@ static bool bmm_dem_script_create_hc(struct bmm_dem* const dem) {
 }
 
 __attribute__ ((__nonnull__))
-static bool bmm_dem_script_create_hex(struct bmm_dem* const dem) {
+static bool bmm_dem_script_create_hex(struct bmm_dem *const dem) {
   double const etahc = bmm_geom_ballvol(0.5, BMM_NDIM);
   double const vhc = bmm_fp_prod(dem->opts.box.x, BMM_NDIM);
   double const eta = dem->opts.script.params[dem->script.i].create.eta;
@@ -1410,7 +1378,7 @@ static bool bmm_dem_script_create_hex(struct bmm_dem* const dem) {
 
 // TODO Bad!
 __attribute__ ((__nonnull__))
-static void bmm_dem_script_perturb(struct bmm_dem* const dem) {
+static void bmm_dem_script_perturb(struct bmm_dem *const dem) {
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     for (size_t idim = 0; idim < BMM_NDIM; ++idim)
       dem->part.x[ipart][idim] += bmm_random_get(dem->rng,
@@ -1418,7 +1386,7 @@ static void bmm_dem_script_perturb(struct bmm_dem* const dem) {
 }
 
 __attribute__ ((__nonnull__))
-static bool bmm_dem_script_create_gas(struct bmm_dem* const dem) {
+static bool bmm_dem_script_create_gas(struct bmm_dem *const dem) {
   for (size_t ipart = 0; ipart < 64; ++ipart) {
     size_t const jpart = bmm_dem_addpart(dem);
 
@@ -1433,7 +1401,7 @@ static bool bmm_dem_script_create_gas(struct bmm_dem* const dem) {
 }
 
 __attribute__ ((__nonnull__))
-static bool bmm_dem_script_create_couple(struct bmm_dem* const dem) {
+static bool bmm_dem_script_create_couple(struct bmm_dem *const dem) {
   size_t jpart;
   jpart = bmm_dem_addpart(dem);
   dem->part.r[jpart] = 0.03;
@@ -1457,7 +1425,7 @@ static bool bmm_dem_script_create_couple(struct bmm_dem* const dem) {
 /// advances the simulation `dem` by one step.
 /// Make sure the simulation has not ended prior to the call
 /// by calling `bmm_dem_script_ongoing` or `bmm_dem_script_trans`.
-bool bmm_dem_step(struct bmm_dem* const dem) {
+bool bmm_dem_step(struct bmm_dem *const dem) {
   switch (dem->opts.script.mode[dem->script.i]) {
     case BMM_DEM_MODE_CREATE:
       if (!bmm_dem_script_create_hc(dem))
@@ -1545,7 +1513,7 @@ bool bmm_dem_step(struct bmm_dem* const dem) {
 }
 
 // TODO This looks just like `bmm_dem_script_trans`.
-bool bmm_dem_comm(struct bmm_dem* const dem) {
+bool bmm_dem_comm(struct bmm_dem *const dem) {
   // TODO Make a mechanism to automate retransmission of differences only.
 
   double const toff = dem->time.t - dem->comm.tprev - dem->opts.comm.dt;
@@ -1566,9 +1534,9 @@ bool bmm_dem_comm(struct bmm_dem* const dem) {
   return true;
 }
 
-static FILE* stream;
+static FILE *stream;
 
-static bool pregarbage(struct bmm_dem const* const dem) {
+static bool pregarbage(struct bmm_dem const *const dem) {
   stream = fopen("garbage.data", "w");
   if (stream == NULL) {
     BMM_TLE_STDS();
@@ -1579,7 +1547,7 @@ static bool pregarbage(struct bmm_dem const* const dem) {
   return true;
 }
 
-static bool garbage(struct bmm_dem const* const dem) {
+static bool garbage(struct bmm_dem const *const dem) {
   for (size_t ipart = 0; ipart < 1; ++ipart)
     if (fprintf(stream, "%g %g %g %g\n",
           dem->time.t,
@@ -1602,7 +1570,7 @@ static bool garbage(struct bmm_dem const* const dem) {
   return true;
 }
 
-static bool postgarbage(struct bmm_dem const* const dem) {
+static bool postgarbage(struct bmm_dem const *const dem) {
   if (fclose(stream) != 0) {
     BMM_TLE_STDS();
 
@@ -1612,8 +1580,8 @@ static bool postgarbage(struct bmm_dem const* const dem) {
   return true;
 }
 
-static bool rubbish(struct bmm_dem const* const dem) {
-  FILE* const stream = fopen("rubbish.data", "w");
+static bool rubbish(struct bmm_dem const *const dem) {
+  FILE *const stream = fopen("rubbish.data", "w");
   if (stream == NULL) {
     BMM_TLE_STDS();
 
@@ -1621,8 +1589,8 @@ static bool rubbish(struct bmm_dem const* const dem) {
   }
 
   size_t nbin = 512;
-  double* const r = malloc(nbin * sizeof *r);
-  double* const g = malloc(nbin * sizeof *g);
+  double *const r = malloc(nbin * sizeof *r);
+  double *const g = malloc(nbin * sizeof *g);
   dynamic_assert(r != NULL && g != NULL, "Allocated");
 
   double const rmax = bmm_fp_min(dem->opts.box.x, BMM_NDIM) / 2.0;
@@ -1672,11 +1640,11 @@ static bool rubbish(struct bmm_dem const* const dem) {
 }
 
 static double abserr(double const x, double const z,
-    __attribute__ ((__unused__)) void* const ptr) {
+    __attribute__ ((__unused__)) void *const ptr) {
   return fabs(x) + z;
 }
 
-bool bmm_dem_report(struct bmm_dem const* const dem) {
+bool bmm_dem_report(struct bmm_dem const *const dem) {
   if (dem->opts.verbose) {
     if (fprintf(stderr, "Time Error: %g\n",
           bmm_fp_lfold(abserr,
@@ -1687,7 +1655,7 @@ bool bmm_dem_report(struct bmm_dem const* const dem) {
   return true;
 }
 
-static bool bmm_dem_run_(struct bmm_dem* const dem) {
+static bool bmm_dem_run_(struct bmm_dem *const dem) {
   int const sigs[] = {SIGINT, SIGQUIT, SIGTERM, SIGPIPE};
   if (bmm_sig_register(sigs, nmembof(sigs)) != SIZE_MAX) {
     BMM_TLE_STDS();
@@ -1730,7 +1698,7 @@ static bool bmm_dem_run_(struct bmm_dem* const dem) {
   return true;
 }
 
-bool bmm_dem_trap_on(struct bmm_dem* const dem) {
+bool bmm_dem_trap_on(struct bmm_dem *const dem) {
   if (dem->opts.trap.enabled) {
 #ifdef _GNU_SOURCE
     dem->trap.remask = feenableexcept(dem->opts.trap.mask);
@@ -1749,7 +1717,7 @@ bool bmm_dem_trap_on(struct bmm_dem* const dem) {
   return true;
 }
 
-bool bmm_dem_trap_off(struct bmm_dem* const dem) {
+bool bmm_dem_trap_off(struct bmm_dem *const dem) {
   if (dem->opts.trap.enabled) {
 #ifdef _GNU_SOURCE
     if (feenableexcept(dem->trap.remask) == -1) {
@@ -1767,7 +1735,7 @@ bool bmm_dem_trap_off(struct bmm_dem* const dem) {
   return true;
 }
 
-bool bmm_dem_run(struct bmm_dem* const dem) {
+bool bmm_dem_run(struct bmm_dem *const dem) {
   bmm_dem_trap_on(dem);
 
   bool const run = bmm_dem_run_(dem);
@@ -1784,8 +1752,8 @@ bool bmm_dem_run(struct bmm_dem* const dem) {
   return run && report;
 }
 
-static bool bmm_dem_run_with_(struct bmm_dem* const dem) {
-  gsl_rng_type const* const t = gsl_rng_env_setup();
+static bool bmm_dem_run_with_(struct bmm_dem *const dem) {
+  gsl_rng_type const *const t = gsl_rng_env_setup();
   if (t == NULL) {
     BMM_TLE_STDS();
 
@@ -1806,8 +1774,8 @@ static bool bmm_dem_run_with_(struct bmm_dem* const dem) {
   return result;
 }
 
-bool bmm_dem_run_with(struct bmm_dem_opts const* const opts) {
-  struct bmm_dem* const dem = malloc(sizeof *dem);
+bool bmm_dem_run_with(struct bmm_dem_opts const *const opts) {
+  struct bmm_dem *const dem = malloc(sizeof *dem);
   if (dem == NULL) {
     BMM_TLE_STDS();
 

@@ -39,7 +39,7 @@ void bmm_sig_handler(int const signum) {
 // This is also possible to accomplish with `signal`
 // if it provides BSD semantics instead of System V semantics,
 // but why bother when `sigaction` exists?
-size_t bmm_sig_register(int const* const sigs, size_t const n) {
+size_t bmm_sig_register(int const *const sigs, size_t const n) {
   struct sigaction act;
   act.sa_handler = bmm_sig_handler;
   sigfillset(&act.sa_mask);
@@ -52,7 +52,7 @@ size_t bmm_sig_register(int const* const sigs, size_t const n) {
   return SIZE_MAX;
 }
 
-size_t bmm_sig_unregister(int const* const sigs, size_t const n) {
+size_t bmm_sig_unregister(int const *const sigs, size_t const n) {
   struct sigaction act;
   act.sa_handler = SIG_DFL;
   sigfillset(&act.sa_mask);
@@ -77,7 +77,7 @@ bool bmm_sig_under(void) {
   return sig == BMM_SIG_MIN;
 }
 
-bool bmm_sig_normal(int* const ptr) {
+bool bmm_sig_normal(int *const ptr) {
   sig_atomic_t const n = sig;
 
   bool const p = n >= BMM_SIG_MIN && n <= BMM_SIG_MAX;
@@ -100,7 +100,7 @@ void bmm_sig_forget(void) {
   sig = BMM_SIG_UNSET;
 }
 
-bool bmm_sig_use(int* const ptr) {
+bool bmm_sig_use(int *const ptr) {
   sigset_t set;
   sigfillset(&set);
 

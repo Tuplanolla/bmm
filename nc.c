@@ -17,7 +17,7 @@
 #include "sig.h"
 #include "tle.h"
 
-void bmm_nc_opts_def(struct bmm_nc_opts* const opts) {
+void bmm_nc_opts_def(struct bmm_nc_opts *const opts) {
   opts->conv = BMM_NC_CONV_AMBER;
   opts->path = "bmm.nc";
   opts->i = false;
@@ -30,8 +30,8 @@ void bmm_nc_opts_def(struct bmm_nc_opts* const opts) {
 // Must have `NDIM == 3` for OVITO.
 #define NDIM 3
 
-void bmm_nc_def(struct bmm_nc* const nc,
-    struct bmm_nc_opts const* const opts) {
+void bmm_nc_def(struct bmm_nc *const nc,
+    struct bmm_nc_opts const *const opts) {
   nc->opts = *opts;
   // TODO This.
   // nc->npart = 0;
@@ -39,12 +39,12 @@ void bmm_nc_def(struct bmm_nc* const nc,
   nc->iframe = 0;
 }
 
-static enum bmm_io_read msg_read(void* buf, size_t const n,
-    __attribute__ ((__unused__)) void* const ptr) {
+static enum bmm_io_read msg_read(void *buf, size_t const n,
+    __attribute__ ((__unused__)) void *const ptr) {
   return bmm_io_readin(buf, n);
 }
 
-static bool bmm_nc_open(struct bmm_nc* const nc) {
+static bool bmm_nc_open(struct bmm_nc *const nc) {
   int nerr;
 
   nerr = nc_create(nc->opts.path, NC_CLOBBER | NC_64BIT_OFFSET, &nc->ncid);
@@ -243,7 +243,7 @@ static bool bmm_nc_open(struct bmm_nc* const nc) {
   return true;
 }
 
-static bool bmm_nc_close(struct bmm_nc* const nc) {
+static bool bmm_nc_close(struct bmm_nc *const nc) {
   int nerr;
 
   nerr = nc_close(nc->ncid);
@@ -256,7 +256,7 @@ static bool bmm_nc_close(struct bmm_nc* const nc) {
   return true;
 }
 
-enum bmm_io_read bmm_nc_step(struct bmm_nc* const nc) {
+enum bmm_io_read bmm_nc_step(struct bmm_nc *const nc) {
   struct bmm_msg_spec spec;
   switch (bmm_msg_spec_read(&spec, msg_read, NULL)) {
     case BMM_IO_READ_ERROR:
@@ -356,7 +356,7 @@ enum bmm_io_read bmm_nc_step(struct bmm_nc* const nc) {
   return BMM_IO_READ_SUCCESS;
 }
 
-static bool bmm_nc_run_(struct bmm_nc* const nc) {
+static bool bmm_nc_run_(struct bmm_nc *const nc) {
   for ever {
     int signum;
     if (bmm_sig_use(&signum))
@@ -379,7 +379,7 @@ static bool bmm_nc_run_(struct bmm_nc* const nc) {
   }
 }
 
-bool bmm_nc_run(struct bmm_nc* const nc) {
+bool bmm_nc_run(struct bmm_nc *const nc) {
   int const sigs[] = {SIGINT, SIGQUIT, SIGTERM, SIGPIPE};
   if (bmm_sig_register(sigs, nmembof(sigs)) != SIZE_MAX) {
     BMM_TLE_STDS();
@@ -398,7 +398,7 @@ bool bmm_nc_run(struct bmm_nc* const nc) {
   return run;
 }
 
-bool bmm_nc_run_with(struct bmm_nc_opts const* const opts) {
+bool bmm_nc_run_with(struct bmm_nc_opts const *const opts) {
   struct bmm_nc nc;
   bmm_nc_def(&nc, opts);
 

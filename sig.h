@@ -19,14 +19,14 @@ void bmm_sig_handler(int);
 /// If the operation is successful, `SIZE_MAX` is returned.
 /// Otherwise the registering is stopped at the first failure and
 /// the index of the first signal that failed to be registered is returned.
-size_t bmm_sig_register(int const*, size_t);
+size_t bmm_sig_register(int const *, size_t);
 
 /// The call `bmm_sig_unregister(sigs, n)` tries to restore the default
 /// signal handler for each signal in the array `sigs` of length `n`.
 /// If the operation is successful, `SIZE_MAX` is returned.
 /// Otherwise the registering is stopped at the first failure and
 /// the index of the first signal that failed to be unregistered is returned.
-size_t bmm_sig_unregister(int const*, size_t);
+size_t bmm_sig_unregister(int const *, size_t);
 
 /// The call `bmm_sig_unset()` returns `true` if a signal has not been caught.
 /// Otherwise `false` is returned.
@@ -45,7 +45,7 @@ bool bmm_sig_under(void);
 /// if a normal signal (with a small enough magnitude) has been caught and
 /// copies its value into `ptr` if `ptr` is not `NULL`.
 /// Otherwise `false` is returned and no copying is done.
-bool bmm_sig_normal(int*);
+bool bmm_sig_normal(int *);
 
 /// The call `bmm_sig_null()` returns `true`
 /// if a null signal (zero) has been caught.
@@ -64,6 +64,6 @@ void bmm_sig_forget(void);
 
 /// The call `bmm_sig_use(ptr)` is equivalent
 /// to performing `bmm_sig_normal(ptr)` and `bmm_sig_forget()` atomically.
-bool bmm_sig_use(int*);
+bool bmm_sig_use(int *);
 
 #endif

@@ -17,7 +17,7 @@ enum bmm_nc_conv {
 /// This structure contains export options.
 struct bmm_nc_opts {
   enum bmm_nc_conv conv;
-  char const* path;
+  char const *path;
   bool i;
   bool r;
   bool q;
@@ -50,28 +50,28 @@ struct bmm_nc {
 /// writes the default export options into `opts`.
 /// All messages are stopped by default.
 __attribute__ ((__nonnull__))
-void bmm_nc_opts_def(struct bmm_nc_opts*);
+void bmm_nc_opts_def(struct bmm_nc_opts *);
 
 /// The call `bmm_nc_def(nc)`
 /// writes the default export state into `nc`.
 __attribute__ ((__nonnull__))
-void bmm_nc_def(struct bmm_nc*, struct bmm_nc_opts const*);
+void bmm_nc_def(struct bmm_nc *, struct bmm_nc_opts const *);
 
 /// The call `bmm_nc_step(nc)`
 /// processes one incoming message with the export state `nc`.
 __attribute__ ((__nonnull__))
-enum bmm_io_read bmm_nc_step(struct bmm_nc*);
+enum bmm_io_read bmm_nc_step(struct bmm_nc *);
 
 /// The call `bmm_nc_run(nc)`
 /// processes all incoming messages and
 /// handles signals with the export state `nc`.
 __attribute__ ((__nonnull__))
-bool bmm_nc_run(struct bmm_nc*);
+bool bmm_nc_run(struct bmm_nc *);
 
 /// The call `bmm_nc_run_with(opts)`
 /// processes all incoming messages and
 /// handles signals with the export options `opts`.
 __attribute__ ((__nonnull__))
-bool bmm_nc_run_with(struct bmm_nc_opts const*);
+bool bmm_nc_run_with(struct bmm_nc_opts const *);
 
 #endif

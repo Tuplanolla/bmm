@@ -353,7 +353,7 @@ inline size_t bmm_size_tri(size_t const n) {
 /// returns the sum of the array `n` of length `k`.
 /// Overflows are not handled appropriately.
 __attribute__ ((__pure__))
-inline size_t bmm_size_sum(size_t const* const n, size_t const k) {
+inline size_t bmm_size_sum(size_t const *const n, size_t const k) {
   size_t m = 0;
 
   for (size_t i = 0; i < k; ++i)
@@ -366,7 +366,7 @@ inline size_t bmm_size_sum(size_t const* const n, size_t const k) {
 /// returns the product of the array `n` of length `k`.
 /// Overflows are not handled appropriately.
 __attribute__ ((__pure__))
-inline size_t bmm_size_prod(size_t const* const n, size_t const k) {
+inline size_t bmm_size_prod(size_t const *const n, size_t const k) {
   size_t m = 1;
 
   for (size_t i = 0; i < k; ++i)
@@ -379,9 +379,9 @@ inline size_t bmm_size_prod(size_t const* const n, size_t const k) {
 /// folds the procedure `f` over the array `x` of length `n`.
 /// by starting from the left with `z`.
 __attribute__ ((__nonnull__ (1, 2)))
-inline size_t bmm_size_lfold(size_t (* const f)(size_t, size_t, void*),
-    size_t const* restrict const x, size_t const n,
-    size_t z, void* restrict const ptr) {
+inline size_t bmm_size_lfold(size_t (* const f)(size_t, size_t, void *),
+    size_t const *restrict const x, size_t const n,
+    size_t z, void *restrict const ptr) {
   for (size_t i = 0; i < n; ++i)
     z = f(x[i], z, ptr);
 
@@ -392,9 +392,9 @@ inline size_t bmm_size_lfold(size_t (* const f)(size_t, size_t, void*),
 /// folds the procedure `f` over the array `x` of length `n`.
 /// by starting from the right with `z`.
 __attribute__ ((__nonnull__ (1, 2)))
-inline size_t bmm_size_rfold(size_t (* const f)(size_t, size_t, void*),
-    size_t const* restrict const x, size_t const n,
-    size_t z, void* restrict const ptr) {
+inline size_t bmm_size_rfold(size_t (* const f)(size_t, size_t, void *),
+    size_t const *restrict const x, size_t const n,
+    size_t z, void *restrict const ptr) {
   for (size_t i = 0; i < n; ++i)
     z = f(x[n - 1 - i], z, ptr);
 
@@ -406,7 +406,7 @@ inline size_t bmm_size_rfold(size_t (* const f)(size_t, size_t, void*),
 /// in a hypercube with dimension `ndim` and side length `nper`.
 /// Overflows are handled appropriately.
 __attribute__ ((__nonnull__))
-inline void bmm_size_hc(size_t* const pij,
+inline void bmm_size_hc(size_t *const pij,
     size_t const i, size_t const ndim, size_t const nper) {
   bmm_size_div_t qr = {.quot = i, .rem = 0};
   for (size_t idim = 0; idim < ndim; ++idim) {
@@ -421,7 +421,7 @@ inline void bmm_size_hc(size_t* const pij,
 /// in a hypercube with dimension `ndim` and side length `nper`.
 /// Overflows are not handled appropriately.
 __attribute__ ((__nonnull__, __pure__))
-inline size_t bmm_size_unhc(size_t const* const ij,
+inline size_t bmm_size_unhc(size_t const *const ij,
     size_t const ndim, size_t const nper) {
   size_t i = 0;
 
@@ -438,8 +438,8 @@ inline size_t bmm_size_unhc(size_t const* const ij,
 /// in a hypercuboid with dimension `ndim` and side lengths `nper`.
 /// Overflows are handled appropriately.
 __attribute__ ((__nonnull__))
-inline void bmm_size_hcd(size_t* restrict const pij,
-    size_t const i, size_t const ndim, size_t const* restrict const nper) {
+inline void bmm_size_hcd(size_t *restrict const pij,
+    size_t const i, size_t const ndim, size_t const *restrict const nper) {
   bmm_size_div_t qr = {.quot = i, .rem = 0};
   for (size_t idim = 0; idim < ndim; ++idim) {
     qr = bmm_size_div(qr.quot, nper[ndim - 1 - idim]);
@@ -449,7 +449,7 @@ inline void bmm_size_hcd(size_t* restrict const pij,
 
   // The following implementation is less reliable,
   // but suitable for loop fusion.
-  // size_t* const buf = alloca(ndim * sizeof *buf);
+  // size_t *const buf = alloca(ndim * sizeof *buf);
   //
   // bmm_size_div_t qr = {.quot = i, .rem = 0};
   // for (size_t idim = 0; idim < ndim; ++idim) {
@@ -476,8 +476,8 @@ inline void bmm_size_hcd(size_t* restrict const pij,
 /// in a hypercuboid with dimension `ndim` and side lengths `nper`.
 /// Overflows are not handled appropriately.
 __attribute__ ((__nonnull__, __pure__))
-inline size_t bmm_size_unhcd(size_t const* restrict const ij,
-    size_t const ndim, size_t const* restrict const nper) {
+inline size_t bmm_size_unhcd(size_t const *restrict const ij,
+    size_t const ndim, size_t const *restrict const nper) {
   size_t i = 0;
 
   for (size_t idim = 0; idim < ndim; ++idim) {

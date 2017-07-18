@@ -7,7 +7,7 @@
 #include "hist.h"
 #include "size.h"
 
-void bmm_hist_free(struct bmm_hist* const hist) {
+void bmm_hist_free(struct bmm_hist *const hist) {
   if (hist != NULL) {
     free(hist->tmp);
 
@@ -18,7 +18,7 @@ void bmm_hist_free(struct bmm_hist* const hist) {
   free(hist);
 }
 
-void bmm_hist_forget(struct bmm_hist* const hist) {
+void bmm_hist_forget(struct bmm_hist *const hist) {
   for (size_t i = 0; i < hist->ncub; ++i)
     hist->m[i] = 0;
 
@@ -30,11 +30,11 @@ void bmm_hist_forget(struct bmm_hist* const hist) {
   hist->wnsum = 0.0;
 }
 
-struct bmm_hist* bmm_hist_alloc(size_t const ndim, size_t const nlin,
+struct bmm_hist *bmm_hist_alloc(size_t const ndim, size_t const nlin,
     double const a, double const b) {
   bool p = true;
 
-  struct bmm_hist* const hist = malloc(sizeof *hist);
+  struct bmm_hist *const hist = malloc(sizeof *hist);
   if (hist == NULL)
     p = false;
   else {
@@ -69,7 +69,7 @@ struct bmm_hist* bmm_hist_alloc(size_t const ndim, size_t const nlin,
   }
 }
 
-size_t bmm_hist_bin(struct bmm_hist const* const hist, double const* const x) {
+size_t bmm_hist_bin(struct bmm_hist const *const hist, double const *const x) {
   for (size_t i = 0; i < hist->ndim; ++i)
     if (x[i] >= hist->a && x[i] < hist->b)
       // TODO Very bad!
@@ -82,7 +82,7 @@ size_t bmm_hist_bin(struct bmm_hist const* const hist, double const* const x) {
 }
 
 __attribute__ ((__nonnull__))
-static void unbin(struct bmm_hist const* const hist, double* const x,
+static void unbin(struct bmm_hist const *const hist, double *const x,
     size_t const j, double const h) {
   bmm_size_hc(hist->tmp, j, hist->ndim, hist->nlin);
 
@@ -91,22 +91,22 @@ static void unbin(struct bmm_hist const* const hist, double* const x,
         0.0, (double) hist->nlin, hist->a, hist->b);
 }
 
-void bmm_hist_unbin(struct bmm_hist const* const hist, double* const x,
+void bmm_hist_unbin(struct bmm_hist const *const hist, double *const x,
     size_t const j) {
   unbin(hist, x, j, 0.5);
 }
 
-void bmm_hist_funbin(struct bmm_hist const* const hist, double* const x,
+void bmm_hist_funbin(struct bmm_hist const *const hist, double *const x,
     size_t const j) {
   unbin(hist, x, j, 0.0);
 }
 
-void bmm_hist_cunbin(struct bmm_hist const* const hist, double* const x,
+void bmm_hist_cunbin(struct bmm_hist const *const hist, double *const x,
     size_t const j) {
   unbin(hist, x, j, 1.0);
 }
 
-bool bmm_hist_accum(struct bmm_hist* const hist, double const* const x) {
+bool bmm_hist_accum(struct bmm_hist *const hist, double const *const x) {
   size_t const i = bmm_hist_bin(hist, x);
 
   if (i == SIZE_MAX)
@@ -120,7 +120,7 @@ bool bmm_hist_accum(struct bmm_hist* const hist, double const* const x) {
   }
 }
 
-bool bmm_whist_accum(struct bmm_hist* const hist, double const* const x,
+bool bmm_whist_accum(struct bmm_hist *const hist, double const *const x,
     double const w) {
   size_t const i = bmm_hist_bin(hist, x);
 
@@ -135,51 +135,51 @@ bool bmm_whist_accum(struct bmm_hist* const hist, double const* const x,
   }
 }
 
-size_t bmm_hist_ndim(struct bmm_hist const* const hist) {
+size_t bmm_hist_ndim(struct bmm_hist const *const hist) {
   return hist->ndim;
 }
 
-size_t bmm_hist_nsubdiv(struct bmm_hist const* const hist) {
+size_t bmm_hist_nsubdiv(struct bmm_hist const *const hist) {
   return hist->nlin;
 }
 
-size_t bmm_hist_nbin(struct bmm_hist const* const hist) {
+size_t bmm_hist_nbin(struct bmm_hist const *const hist) {
   return hist->ncub;
 }
 
-double bmm_hist_min(struct bmm_hist const* const hist) {
+double bmm_hist_min(struct bmm_hist const *const hist) {
   return hist->a;
 }
 
-double bmm_hist_max(struct bmm_hist const* const hist) {
+double bmm_hist_max(struct bmm_hist const *const hist) {
   return hist->b;
 }
 
-double bmm_hist_length(struct bmm_hist const* const hist) {
+double bmm_hist_length(struct bmm_hist const *const hist) {
   return hist->b - hist->a;
 }
 
-double bmm_hist_volume(struct bmm_hist const* const hist) {
+double bmm_hist_volume(struct bmm_hist const *const hist) {
   return bmm_fp_pow(hist->b - hist->a, hist->ndim);
 }
 
-size_t bmm_hist_hits(struct bmm_hist const* const hist, size_t const i) {
+size_t bmm_hist_hits(struct bmm_hist const *const hist, size_t const i) {
   return hist->m[i];
 }
 
-double bmm_whist_hits(struct bmm_hist const* const hist, size_t const i) {
+double bmm_whist_hits(struct bmm_hist const *const hist, size_t const i) {
   return hist->wm[i];
 }
 
-size_t bmm_hist_sumhits(struct bmm_hist const* const hist) {
+size_t bmm_hist_sumhits(struct bmm_hist const *const hist) {
   return hist->nsum;
 }
 
-double bmm_whist_sumhits(struct bmm_hist const* const hist) {
+double bmm_whist_sumhits(struct bmm_hist const *const hist) {
   return hist->wnsum;
 }
 
-double bmm_hist_normhits(struct bmm_hist const* const hist, size_t const i) {
+double bmm_hist_normhits(struct bmm_hist const *const hist, size_t const i) {
   return hist->nsum == 0 ? 0.0 : (double) hist->m[i] /
     (bmm_hist_volume(hist) * ((double) hist->nsum / (double) hist->ncub));
 }

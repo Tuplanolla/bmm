@@ -28,15 +28,15 @@
 #include "tle.h"
 
 /// This is necessary since GLUT does not support passing in closures.
-static struct bmm_glut* bmm_glut;
+static struct bmm_glut *bmm_glut;
 
-void bmm_glut_opts_def(struct bmm_glut_opts* const opts) {
+void bmm_glut_opts_def(struct bmm_glut_opts *const opts) {
   opts->vpath = "bmm-glut.vs.glsl";
   opts->fpath = "bmm-glut.fs.glsl";
 }
 
-void bmm_glut_def(struct bmm_glut* const glut,
-    struct bmm_glut_opts const* const opts) {
+void bmm_glut_def(struct bmm_glut *const glut,
+    struct bmm_glut_opts const *const opts) {
   glut->opts = *opts;
   glut->prog = NULL;
   glut->vshader = 0;
@@ -44,22 +44,22 @@ void bmm_glut_def(struct bmm_glut* const glut,
   glut->program = 0;
 }
 
-static enum bmm_io_read msg_read(void* buf, size_t const n,
-    __attribute__ ((__unused__)) void* const ptr) {
+static enum bmm_io_read msg_read(void *buf, size_t const n,
+    __attribute__ ((__unused__)) void *const ptr) {
   return bmm_io_readin(buf, n);
 }
 
-static bool bmm_glut_open(struct bmm_glut* const glut) {
+static bool bmm_glut_open(struct bmm_glut *const glut) {
 
   return true;
 }
 
-static bool bmm_glut_close(struct bmm_glut* const glut) {
+static bool bmm_glut_close(struct bmm_glut *const glut) {
 
   return true;
 }
 
-enum bmm_io_read bmm_glut_step(struct bmm_glut* const glut) {
+enum bmm_io_read bmm_glut_step(struct bmm_glut *const glut) {
   struct bmm_msg_spec spec;
   switch (bmm_msg_spec_read(&spec, msg_read, NULL)) {
     case BMM_IO_READ_ERROR:
@@ -118,7 +118,7 @@ enum bmm_io_read bmm_glut_step(struct bmm_glut* const glut) {
   return BMM_IO_READ_SUCCESS;
 }
 
-static bool bmm_glut_run_(struct bmm_glut* const glut) {
+static bool bmm_glut_run_(struct bmm_glut *const glut) {
   for ever {
     int signum;
     if (bmm_sig_use(&signum))
@@ -191,7 +191,7 @@ static void mwfunc(int const wheel, int const dir, int const x, int const y) {
 }
 #endif
 
-bool bmm_glut_run(struct bmm_glut* const glut) {
+bool bmm_glut_run(struct bmm_glut *const glut) {
   int const sigs[] = {SIGINT, SIGQUIT, SIGTERM, SIGPIPE};
   if (bmm_sig_register(sigs, nmembof(sigs)) != SIZE_MAX) {
     BMM_TLE_STDS();
@@ -201,7 +201,7 @@ bool bmm_glut_run(struct bmm_glut* const glut) {
 
   bmm_glut = glut;
 
-  char const* const prog = bmm_tle_prog();
+  char const *const prog = bmm_tle_prog();
   size_t const size = strlen(prog) + 1;
 
   bmm_glut->prog = malloc(size);
@@ -214,7 +214,7 @@ bool bmm_glut_run(struct bmm_glut* const glut) {
   (void) memcpy(bmm_glut->prog, prog, size);
 
   int argc = 1;
-  char* argv[] = {bmm_glut->prog, NULL};
+  char *argv[] = {bmm_glut->prog, NULL};
   glutInit(&argc, argv);
 
 #ifdef FREE
@@ -254,7 +254,7 @@ bool bmm_glut_run(struct bmm_glut* const glut) {
   return true;
 }
 
-bool bmm_glut_run_with(struct bmm_glut_opts const* const opts) {
+bool bmm_glut_run_with(struct bmm_glut_opts const *const opts) {
   struct bmm_glut glut;
   bmm_glut_def(&glut, opts);
 

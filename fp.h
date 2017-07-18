@@ -65,8 +65,8 @@ inline int bmm_fp_cmp(double const x, double const y) {
 /// performs `bmm_fp_cmp` on the arrays `x` and `y` of length `n`
 /// in lexicographic order.
 __attribute__ ((__pure__))
-inline int bmm_fp_lexcmp(double const* restrict const x,
-    double const* restrict const y, size_t const n) {
+inline int bmm_fp_lexcmp(double const *restrict const x,
+    double const *restrict const y, size_t const n) {
   for (size_t i = 0; i < n; ++i)
     switch (bmm_fp_cmp(x[i], y[i])) {
       case -1:
@@ -207,7 +207,7 @@ inline double bmm_fp_uwrap(double const x, double const b) {
 /// The call `bmm_fp_sum(x, n)`
 /// returns the sum of the array `x` of length `n`.
 __attribute__ ((__pure__))
-inline double bmm_fp_sum(double const* const x, size_t const n) {
+inline double bmm_fp_sum(double const *const x, size_t const n) {
   double y = 0.0;
 
   for (size_t i = 0; i < n; ++i)
@@ -219,7 +219,7 @@ inline double bmm_fp_sum(double const* const x, size_t const n) {
 /// The call `bmm_fp_prod(x, n)`
 /// returns the product of the array `x` of length `n`.
 __attribute__ ((__pure__))
-inline double bmm_fp_prod(double const* const x, size_t const n) {
+inline double bmm_fp_prod(double const *const x, size_t const n) {
   double y = 1.0;
 
   for (size_t i = 0; i < n; ++i)
@@ -231,7 +231,7 @@ inline double bmm_fp_prod(double const* const x, size_t const n) {
 /// The call `bmm_fp_min(x, n)`
 /// returns the minimum of the array `x` of length `n`.
 __attribute__ ((__pure__))
-inline double bmm_fp_min(double const* const x, size_t const n) {
+inline double bmm_fp_min(double const *const x, size_t const n) {
   double y = (double) INFINITY;
 
   for (size_t i = 0; i < n; ++i)
@@ -243,7 +243,7 @@ inline double bmm_fp_min(double const* const x, size_t const n) {
 /// The call `bmm_fp_max(x, n)`
 /// returns the maximum of the array `x` of length `n`.
 __attribute__ ((__pure__))
-inline double bmm_fp_max(double const* const x, size_t const n) {
+inline double bmm_fp_max(double const *const x, size_t const n) {
   double y = -(double) INFINITY;
 
   for (size_t i = 0; i < n; ++i)
@@ -256,9 +256,9 @@ inline double bmm_fp_max(double const* const x, size_t const n) {
 /// folds the procedure `f` over the array `x` of length `n`.
 /// by starting from the left with `z`.
 __attribute__ ((__nonnull__ (1, 2)))
-inline double bmm_fp_lfold(double (* const f)(double, double, void*),
-    double const* restrict const x, size_t const n,
-    double z, void* restrict const ptr) {
+inline double bmm_fp_lfold(double (* const f)(double, double, void *),
+    double const *restrict const x, size_t const n,
+    double z, void *restrict const ptr) {
   for (size_t i = 0; i < n; ++i)
     z = f(x[i], z, ptr);
 
@@ -269,9 +269,9 @@ inline double bmm_fp_lfold(double (* const f)(double, double, void*),
 /// folds the procedure `f` over the array `x` of length `n`.
 /// by starting from the right with `z`.
 __attribute__ ((__nonnull__ (1, 2)))
-inline double bmm_fp_rfold(double (* const f)(double, double, void*),
-    double const* restrict const x, size_t const n,
-    double z, void* restrict const ptr) {
+inline double bmm_fp_rfold(double (* const f)(double, double, void *),
+    double const *restrict const x, size_t const n,
+    double z, void *restrict const ptr) {
   for (size_t i = 0; i < n; ++i)
     z = f(x[n - 1 - i], z, ptr);
 

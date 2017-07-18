@@ -5,9 +5,9 @@
 #include "fp.h"
 #include "gl.h"
 
-extern inline void glClearColor4fv(GLfloat const*);
+extern inline void glClearColor4fv(GLfloat const *);
 
-extern inline void glClearColor3fv(GLfloat const*);
+extern inline void glClearColor3fv(GLfloat const *);
 
 void glSkewedAnnulus(GLfloat const x, GLfloat const y,
     GLfloat const r, GLfloat const rhole, GLfloat const rskew,

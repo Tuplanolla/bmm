@@ -7,13 +7,13 @@
 #include "str.h"
 #include "tle.h"
 
-bool bmm_str_strtou(unsigned int* const ptr, char const* const str) {
-  char* endptr;
+bool bmm_str_strtou(unsigned int *const ptr, char const *const str) {
+  char *endptr;
   errno = 0;
   long long int const x = strtoll(str, &endptr, 10);
   if (errno != 0 || endptr[0] != '\0' || x < 0) {
-    BMM_TLE_EXTS(BMM_TLE_NUM_PARSE, "Cannot parse '%s' as an unsigned integer",
-        str);
+    BMM_TLE_EXTS(BMM_TLE_NUM_PARSE,
+        "Cannot parse '%s' as an unsigned integer", str);
 
     return false;
   } else {
@@ -24,8 +24,8 @@ bool bmm_str_strtou(unsigned int* const ptr, char const* const str) {
   }
 }
 
-bool bmm_str_strtoz(size_t* const ptr, char const* const str) {
-  char* endptr;
+bool bmm_str_strtoz(size_t *const ptr, char const *const str) {
+  char *endptr;
   errno = 0;
   long long int const x = strtoll(str, &endptr, 10);
   if (errno != 0 || endptr[0] != '\0' || x < 0) {
@@ -40,13 +40,13 @@ bool bmm_str_strtoz(size_t* const ptr, char const* const str) {
   }
 }
 
-bool bmm_str_strtod(double* const ptr, char const* const str) {
-  char* endptr;
+bool bmm_str_strtod(double *const ptr, char const *const str) {
+  char *endptr;
   errno = 0;
   double const x = strtod(str, &endptr);
   if (errno != 0 || endptr[0] != '\0') {
-    BMM_TLE_EXTS(BMM_TLE_NUM_PARSE, "Cannot parse '%s' as a floating-point number",
-        str);
+    BMM_TLE_EXTS(BMM_TLE_NUM_PARSE,
+        "Cannot parse '%s' as a floating-point number", str);
 
     return false;
   } else {
@@ -57,7 +57,7 @@ bool bmm_str_strtod(double* const ptr, char const* const str) {
   }
 }
 
-bool bmm_str_strtob(bool* const ptr, char const* const str) {
+bool bmm_str_strtob(bool *const ptr, char const *const str) {
   bool x;
   if (strcmp(str, "0") == 0 ||
       strcmp(str, "false") == 0 ||

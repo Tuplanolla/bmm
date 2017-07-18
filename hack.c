@@ -5,7 +5,7 @@
 
 #include <string.h>
 
-static int (* const bmm_pstrerror_r)(int, char*, size_t) = &strerror_r;
+static int (* const bmm_pstrerror_r)(int, char *, size_t) = &strerror_r;
 
 #pragma pop_macro("_GNU_SOURCE")
 #ifndef _GNU_SOURCE
@@ -16,7 +16,7 @@ static int (* const bmm_pstrerror_r)(int, char*, size_t) = &strerror_r;
 
 #include <string.h>
 
-static int (* const bmm_pstrerror_r)(int, char*, size_t) = &strerror_r;
+static int (* const bmm_pstrerror_r)(int, char *, size_t) = &strerror_r;
 
 #endif
 
@@ -26,7 +26,7 @@ static int (* const bmm_pstrerror_r)(int, char*, size_t) = &strerror_r;
 
 #include "hack.h"
 
-bool bmm_hack_strerror_r(int const num, char* const buf, size_t const n) {
+bool bmm_hack_strerror_r(int const num, char *const buf, size_t const n) {
   int const i = (*bmm_pstrerror_r)(num, buf, n);
   if (i != 0) {
     if (i > 0)

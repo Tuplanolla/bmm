@@ -1,5 +1,5 @@
 #ifndef BMM_GEOM_H
-/// Geometry.
+/// High-dimensional geometry.
 #define BMM_GEOM_H
 
 #include <math.h>
@@ -18,12 +18,12 @@ __attribute__ ((__const__, __pure__))
 inline double bmm_geom_ballvol(double const r, size_t d) {
   // This would not be guaranteed to be tail-call optimized.
   // return d == 0 ? 1.0 : d == 1 ? 2.0 * r :
-  //   (M_2PI * BMM_POW(r, 2) / (double) d) * bmm_geom_ballvol(r, d - 2);
+  //   (M_2PI * bmm_fp_pow(r, 2) / (double) d) * bmm_geom_ballvol(r, d - 2);
 
   double v = bmm_size_even(d) ? 1.0 : 2.0 * r;
 
   while (d > 1) {
-    v *= M_2PI * BMM_POW(r, 2) / (double) d;
+    v *= M_2PI * bmm_fp_pow(r, 2) / (double) d;
     d -= 2;
   }
 
@@ -39,13 +39,13 @@ __attribute__ ((__const__, __pure__))
 inline double bmm_geom_ballsurf(double const r, size_t d) {
   // This would not be guaranteed to be tail-call optimized.
   // return d == 0 ? 0.0 : d == 1 ? 2.0 : d == 2 ? M_2PI * r :
-  //   (M_2PI * BMM_POW(r, 2) / (double) (d - 2)) * bmm_geom_ballsurf(r, d - 2);
+  //   (M_2PI * bmm_fp_pow(r, 2) / (double) (d - 2)) * bmm_geom_ballsurf(r, d - 2);
 
   double a = d == 0 ? 0.0 : bmm_size_odd(d) ? 2.0 : M_2PI * r;
 
   while (d > 2) {
     d -= 2;
-    a *= M_2PI * BMM_POW(r, 2) / (double) d;
+    a *= M_2PI * bmm_fp_pow(r, 2) / (double) d;
   }
 
   return a;
@@ -75,7 +75,7 @@ inline double bmm_geom_ballrmoi(size_t const d) {
 __attribute__ ((__const__, __pure__))
 inline double bmm_geom_ballmoi(double const m, double const r,
     size_t const d) {
-  return bmm_geom_ballrmoi(d) * m * BMM_POW(r, 2);
+  return bmm_geom_ballrmoi(d) * m * bmm_fp_pow(r, 2);
 }
 
 /// The call `bmm_geom_ballprmoi(d)`
@@ -101,7 +101,7 @@ inline double bmm_geom_ballprmoi(size_t const d) {
 __attribute__ ((__const__, __pure__))
 inline double bmm_geom_ballpmoi(double const m, double const r,
     size_t const d) {
-  return bmm_geom_ballprmoi(d) * m * BMM_POW(r, 2);
+  return bmm_geom_ballprmoi(d) * m * bmm_fp_pow(r, 2);
 }
 
 /// The call `bmm_geom_ballmpcd(d)`

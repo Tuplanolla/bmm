@@ -28,7 +28,7 @@ static bool dirs(size_t const n) {
   return true;
 }
 
-int main(int const argc, char** const argv) {
+int main(int const argc, char **const argv) {
   if (argc != 2)
     return EXIT_FAILURE;
 

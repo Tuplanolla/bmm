@@ -13,7 +13,7 @@
 /// the call `f("key", "value", ptr)` is made.
 /// This allows parsing ordered dictionaries.
 __attribute__ ((__nonnull__ (1, 3)))
-bool bmm_opt_parse(char const* const*, size_t,
-    bool (*)(char const*, char const*, void*), void*);
+bool bmm_opt_parse(char const *const *, size_t,
+    bool (*)(char const *, char const *, void *), void *);
 
 #endif

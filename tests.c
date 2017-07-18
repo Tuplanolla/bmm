@@ -359,10 +359,10 @@ CHEAT_DECLARE(
     unsigned char buf[BMM_MSG_HEADSIZE];
   };
 
-  static enum bmm_io_read msg_read(void* const pbuf, size_t const n,
-      void* const ptr) {
-    unsigned char* const buf = pbuf;
-    struct msg* const msg = ptr;
+  static enum bmm_io_read msg_read(void *const pbuf, size_t const n,
+      void *const ptr) {
+    unsigned char *const buf = pbuf;
+    struct msg *const msg = ptr;
 
     for (size_t i = 0; i < n; ++i) {
       buf[i] = msg->buf[msg->i];
@@ -372,9 +372,9 @@ CHEAT_DECLARE(
     return BMM_IO_READ_SUCCESS;
   }
 
-  static bool msg_write(void const* pbuf, size_t const n, void* const ptr) {
-    unsigned char const* const buf = pbuf;
-    struct msg* const msg = ptr;
+  static bool msg_write(void const *pbuf, size_t const n, void *const ptr) {
+    unsigned char const *const buf = pbuf;
+    struct msg *const msg = ptr;
 
     for (size_t i = 0; i < n; ++i) {
       msg->buf[msg->i] = buf[i];

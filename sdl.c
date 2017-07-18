@@ -18,29 +18,29 @@
 #include "size.h"
 #include "tle.h"
 
-static SDL_Window* window;
+static SDL_Window *window;
 static SDL_GLContext glcontext;
 
-extern inline void bmm_sdl_t_to_timeval(struct timeval*, Uint32);
+extern inline void bmm_sdl_t_to_timeval(struct timeval *, Uint32);
 
-extern inline Uint32 bmm_sdl_t_from_timeval(struct timeval const*);
+extern inline Uint32 bmm_sdl_t_from_timeval(struct timeval const *);
 
 extern inline Uint32 bmm_sdl_trem(Uint32, Uint32);
 
-void glString(char const* str, int const x, int const y,
-    float const* const color, void* font) {
+void glString(char const *str, int const x, int const y,
+    float const *const color, void *font) {
   glColor3fv(color);
   glRasterPos2i(x, y);
   while (*str != '\0')
     glutBitmapCharacter(font, *str++);
 }
 
-static enum bmm_io_read msg_read(void* buf, size_t const n,
-    __attribute__ ((__unused__)) void* const ptr) {
+static enum bmm_io_read msg_read(void *buf, size_t const n,
+    __attribute__ ((__unused__)) void *const ptr) {
   return bmm_io_readin(buf, n);
 }
 
-enum bmm_io_read bmm_dem_gets_stuff(struct bmm_dem* const dem,
+enum bmm_io_read bmm_dem_gets_stuff(struct bmm_dem *const dem,
     enum bmm_msg_num const num) {
   switch (num) {
     case BMM_MSG_NUM_ISTEP:
@@ -70,8 +70,8 @@ enum bmm_io_read bmm_dem_gets_stuff(struct bmm_dem* const dem,
   dynamic_assert(false, "Unsupported message number");
 }
 
-enum bmm_io_read bmm_dem_gets(struct bmm_dem* const dem,
-    enum bmm_msg_num* const num) {
+enum bmm_io_read bmm_dem_gets(struct bmm_dem *const dem,
+    enum bmm_msg_num *const num) {
   struct bmm_msg_spec spec;
   switch (bmm_msg_spec_read(&spec, msg_read, NULL)) {
     case BMM_IO_READ_ERROR:
@@ -108,7 +108,7 @@ enum bmm_io_read bmm_dem_gets(struct bmm_dem* const dem,
   return bmm_dem_gets_stuff(dem, *num);
 }
 
-void bmm_sdl_opts_def(struct bmm_sdl_opts* const opts) {
+void bmm_sdl_opts_def(struct bmm_sdl_opts *const opts) {
   opts->width = 640;
   opts->height = 480;
   opts->fps = 16;
@@ -116,8 +116,8 @@ void bmm_sdl_opts_def(struct bmm_sdl_opts* const opts) {
   opts->zoomfac = 1.5;
 }
 
-void bmm_sdl_def(struct bmm_sdl* const sdl,
-    struct bmm_sdl_opts const* const opts) {
+void bmm_sdl_def(struct bmm_sdl *const sdl,
+    struct bmm_sdl_opts const *const opts) {
   sdl->opts = *opts;
   sdl->width = (int) opts->width;
   sdl->height = (int) opts->height;
@@ -135,16 +135,16 @@ void bmm_sdl_def(struct bmm_sdl* const sdl,
   bmm_dem_def(&sdl->dem, &defopts);
 }
 
-static Uint32 bmm_sdl_tstep(struct bmm_sdl const* const sdl) {
+static Uint32 bmm_sdl_tstep(struct bmm_sdl const *const sdl) {
   return sdl->fps > 1000 ? 1 : (Uint32) (1000 / sdl->fps);
 }
 
 // TODO Express this mess in terms of linear algebra.
 // The viewport mapping is essentially a homogeneous coordinate transformation.
 
-static void bmm_sdl_proj(struct bmm_sdl const* const sdl,
-    double* const xproj, double* const yproj,
-    double* const wproj, double* const hproj) {
+static void bmm_sdl_proj(struct bmm_sdl const *const sdl,
+    double *const xproj, double *const yproj,
+    double *const wproj, double *const hproj) {
   double const w = sdl->dem.opts.box.x[0];
   double const h = sdl->dem.opts.box.x[1];
   double const q = sdl->qaspect;
@@ -165,7 +165,7 @@ static void bmm_sdl_proj(struct bmm_sdl const* const sdl,
   *yproj = yorigin - (heither - hzoom) * 0.5;
 }
 
-static void bmm_sdl_zoom(struct bmm_sdl* const sdl,
+static void bmm_sdl_zoom(struct bmm_sdl *const sdl,
     double const xscreen, double const yscreen, double const q) {
   double xproj;
   double yproj;
@@ -194,13 +194,13 @@ static void bmm_sdl_zoom(struct bmm_sdl* const sdl,
   sdl->rorigin[1] -= y2 - y;
 }
 
-static void bmm_sdl_reset(struct bmm_sdl* const sdl) {
+static void bmm_sdl_reset(struct bmm_sdl *const sdl) {
   sdl->qzoom = 1.0;
   sdl->rorigin[0] = 0.0;
   sdl->rorigin[1] = 0.0;
 }
 
-static void bmm_sdl_move(struct bmm_sdl* const sdl,
+static void bmm_sdl_move(struct bmm_sdl *const sdl,
     double const xscreen, double const yscreen) {
   double xproj;
   double yproj;
@@ -216,8 +216,8 @@ static void bmm_sdl_move(struct bmm_sdl* const sdl,
   sdl->rorigin[0] += x2 - xproj - wproj * 0.5;
   sdl->rorigin[1] += y2 - yproj - hproj * 0.5;
 }
-void bmm_dem_ijcellx(size_t* const pijcell,
-    struct bmm_dem const* const dem, double* y) {
+void bmm_dem_ijcellx(size_t *const pijcell,
+    struct bmm_dem const *const dem, double *y) {
   for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
     size_t const n = dem->opts.cache.ncell[idim];
 
@@ -241,7 +241,7 @@ void bmm_dem_ijcellx(size_t* const pijcell,
   }
 }
 
-static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
+static void bmm_sdl_draw(struct bmm_sdl const *const sdl) {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
   double xproj;
@@ -433,7 +433,7 @@ static void bmm_sdl_draw(struct bmm_sdl const* const sdl) {
   SDL_GL_SwapWindow(window);
 }
 
-static bool bmm_sdl_video(struct bmm_sdl* const sdl,
+static bool bmm_sdl_video(struct bmm_sdl *const sdl,
     int const width, int const height) {
   if (window == NULL) {
     Uint32 const flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
@@ -468,8 +468,8 @@ static bool bmm_sdl_video(struct bmm_sdl* const sdl,
 
 // TODO Move heresy.
 
-static bool heresy(struct bmm_sdl const* const sdl) {
-  FILE* const stream = fopen("heresy.data", "w");
+static bool heresy(struct bmm_sdl const *const sdl) {
+  FILE *const stream = fopen("heresy.data", "w");
   if (stream == NULL) {
     BMM_TLE_STDS();
 
@@ -496,8 +496,8 @@ static bool heresy(struct bmm_sdl const* const sdl) {
   return true;
 }
 
-static bool more_heresy(struct bmm_sdl const* const sdl) {
-  FILE* const stream = fopen("more-heresy.data", "w");
+static bool more_heresy(struct bmm_sdl const *const sdl) {
+  FILE *const stream = fopen("more-heresy.data", "w");
   if (stream == NULL) {
     BMM_TLE_STDS();
 
@@ -638,8 +638,8 @@ static struct {
   {.r = 2.35, .name = "Cs"},
 };
 
-static bool serious_heresy(struct bmm_sdl const* const sdl) {
-  FILE* const stream = fopen("heresy.xyz", "w");
+static bool serious_heresy(struct bmm_sdl const *const sdl) {
+  FILE *const stream = fopen("heresy.xyz", "w");
   if (stream == NULL) {
     BMM_TLE_STDS();
 
@@ -671,7 +671,7 @@ static bool serious_heresy(struct bmm_sdl const* const sdl) {
   return true;
 }
 
-static bool bmm_sdl_work(struct bmm_sdl* const sdl) {
+static bool bmm_sdl_work(struct bmm_sdl *const sdl) {
   if (!bmm_sdl_video(sdl, sdl->width, sdl->height))
     return false;
 
@@ -829,7 +829,7 @@ again:
   }
 }
 
-bool bmm_sdl_run(struct bmm_sdl* const sdl) {
+bool bmm_sdl_run(struct bmm_sdl *const sdl) {
   if (SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8) == -1 ||
       SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8) == -1 ||
       SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8) == -1 ||
@@ -853,7 +853,7 @@ bool bmm_sdl_run(struct bmm_sdl* const sdl) {
   // TODO This is a bad idea and should not even work.
   int argc = 1;
   char arg[] = "";
-  char* argv[] = {arg};
+  char *argv[] = {arg};
   glutInit(&argc, argv);
 
   if (!bmm_sdl_work(sdl))
@@ -862,8 +862,8 @@ bool bmm_sdl_run(struct bmm_sdl* const sdl) {
   return true;
 }
 
-static bool bmm_sdl_run_sdl(struct bmm_sdl_opts const* const opts) {
-  struct bmm_sdl* const sdl = malloc(sizeof *sdl);
+static bool bmm_sdl_run_sdl(struct bmm_sdl_opts const *const opts) {
+  struct bmm_sdl *const sdl = malloc(sizeof *sdl);
   if (sdl == NULL) {
     BMM_TLE_STDS();
 
@@ -878,7 +878,7 @@ static bool bmm_sdl_run_sdl(struct bmm_sdl_opts const* const opts) {
   return result;
 }
 
-bool bmm_sdl_run_with(struct bmm_sdl_opts const* const opts) {
+bool bmm_sdl_run_with(struct bmm_sdl_opts const *const opts) {
   if (SDL_Init(SDL_INIT_VIDEO) == -1) {
     BMM_TLE_EXTS(BMM_TLE_NUM_SDL, "SDL error: %s", SDL_GetError());
 

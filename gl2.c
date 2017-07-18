@@ -19,34 +19,34 @@ void bmm_gl2_tle(GLuint const object,
 
   size_t const size = (size_t) length;
 
-  char* const buf = malloc(size);
+  char *const buf = malloc(size);
   if (buf == NULL) {
     BMM_TLE_STDS();
 
     return;
   }
 
-  infoLog(object, (GLsizei) size, NULL, (GLchar*) buf);
+  infoLog(object, (GLsizei) size, NULL, (GLchar *) buf);
   BMM_TLE_EXTS(BMM_TLE_NUM_GL, "%s", buf);
 
   free(buf);
 }
 
-bool bmm_gl2_compile(GLuint* const pshader,
-    GLenum const type, char const* const path) {
+bool bmm_gl2_compile(GLuint *const pshader,
+    GLenum const type, char const *const path) {
   GLuint const shader = glCreateShader(type);
   if (shader == 0)
     return false;
 
   size_t size;
-  void* const buf = bmm_io_conts(&size, path);
+  void *const buf = bmm_io_conts(&size, path);
   if (buf == NULL) {
     glDeleteShader(shader);
 
     return false;
   }
 
-  GLchar const* str = buf;
+  GLchar const *str = buf;
   GLint const length = (GLint) size;
   glShaderSource(shader, 1, &str, &length);
 
@@ -69,7 +69,7 @@ bool bmm_gl2_compile(GLuint* const pshader,
   return true;
 }
 
-bool bmm_gl2_link(GLuint* const pprogram,
+bool bmm_gl2_link(GLuint *const pprogram,
     GLuint const vshader, GLuint const fshader) {
   GLuint const program = glCreateProgram();
   if (program == 0)
@@ -95,8 +95,8 @@ bool bmm_gl2_link(GLuint* const pprogram,
   return true;
 }
 
-bool bmm_gl2_build(GLuint* const pvshader, GLuint* const pfshader,
-    GLuint* const pprogram, char const* const vpath, char const* const fpath) {
+bool bmm_gl2_build(GLuint *const pvshader, GLuint *const pfshader,
+    GLuint *const pprogram, char const *const vpath, char const *const fpath) {
   GLuint vshader;
   if (!bmm_gl2_compile(&vshader, GL_VERTEX_SHADER, vpath))
     return false;
@@ -123,9 +123,9 @@ bool bmm_gl2_build(GLuint* const pvshader, GLuint* const pfshader,
   return true;
 }
 
-bool bmm_gl2_buffer(GLuint* const pbuffer,
+bool bmm_gl2_buffer(GLuint *const pbuffer,
     GLenum const target, GLenum const usage,
-    GLvoid const* const data, GLsizei const size) {
+    GLvoid const *const data, GLsizei const size) {
   GLuint buffer;
   glGenBuffers(1, &buffer);
 

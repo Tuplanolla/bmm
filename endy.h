@@ -36,7 +36,7 @@ inline enum bmm_endy bmm_endy_get(void) {
   bool big = true;
 
   static uint64_t const word = 0xbadfeed4fadedace;
-  uint8_t const* const buf = (uint8_t const*) &word;
+  uint8_t const *const buf = (uint8_t const *) &word;
 
   for (size_t i = 0; i < 8; ++i) {
     uint8_t const octet = word >> i * 8 & 0xff;

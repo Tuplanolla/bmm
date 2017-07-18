@@ -6,8 +6,8 @@ extern inline bmm_fp_div_t bmm_fp_div(double, double);
 
 extern inline int bmm_fp_cmp(double, double);
 
-extern inline int bmm_fp_lexcmp(double const* restrict,
-    double const* restrict, size_t);
+extern inline int bmm_fp_lexcmp(double const *restrict,
+    double const *restrict, size_t);
 
 extern inline double bmm_fp_identity(double);
 
@@ -39,19 +39,19 @@ extern inline double bmm_fp_swrap(double, double);
 
 extern inline double bmm_fp_uwrap(double, double);
 
-extern inline double bmm_fp_sum(double const*, size_t);
+extern inline double bmm_fp_sum(double const *, size_t);
 
-extern inline double bmm_fp_prod(double const*, size_t);
+extern inline double bmm_fp_prod(double const *, size_t);
 
-extern inline double bmm_fp_min(double const*, size_t);
+extern inline double bmm_fp_min(double const *, size_t);
 
-extern inline double bmm_fp_max(double const*, size_t);
+extern inline double bmm_fp_max(double const *, size_t);
 
-extern inline double bmm_fp_lfold(double (*)(double, double, void*),
-    double const* restrict, size_t, double, void* restrict);
+extern inline double bmm_fp_lfold(double (*)(double, double, void *),
+    double const *restrict, size_t, double, void *restrict);
 
-extern inline double bmm_fp_rfold(double (*)(double, double, void*),
-    double const* restrict, size_t, double, void* restrict);
+extern inline double bmm_fp_rfold(double (*)(double, double, void *),
+    double const *restrict, size_t, double, void *restrict);
 
 extern inline double bmm_fp_lerp(double, double, double, double, double);
 

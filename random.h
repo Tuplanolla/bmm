@@ -7,7 +7,7 @@
 #include "ext.h"
 
 __attribute__ ((__nonnull__))
-inline double bmm_random_get(gsl_rng* const rng, double const* const x) {
+inline double bmm_random_get(gsl_rng *const rng, double const *const x) {
   return gsl_rng_uniform(rng) * (x[1] - x[0]) + x[0];
 }
 

@@ -64,10 +64,10 @@
 /// `ndim`-dimensional lattice and
 /// sets `pijoff` to the corresponding offset.
 __attribute__ ((__nonnull__))
-inline bool bmm_neigh_qijcpij(size_t* restrict const pijoff,
-    size_t const* restrict const ijcell,
+inline bool bmm_neigh_qijcpij(size_t *restrict const pijoff,
+    size_t const *restrict const ijcell,
     size_t const iquery, size_t const ndim,
-    size_t const* restrict const nper, bool const* const per) {
+    size_t const *restrict const nper, bool const *const per) {
   bmm_size_hc(pijoff, iquery, ndim, 3);
 
   for (size_t idim = 0; idim < ndim; ++idim) {
@@ -92,10 +92,10 @@ inline bool bmm_neigh_qijcpij(size_t* restrict const pijoff,
 /// `ndim`-dimensional lattice and
 /// sets `pijoff` to the corresponding offset.
 __attribute__ ((__nonnull__))
-inline bool bmm_neigh_qijcpi(size_t* restrict const pijoff,
+inline bool bmm_neigh_qijcpi(size_t *restrict const pijoff,
     size_t const icell, size_t const iquery, size_t const ndim,
-    size_t const* restrict const nper, bool const* const per) {
-  size_t* const ijcell = alloca(ndim * sizeof *ijcell);
+    size_t const *restrict const nper, bool const *const per) {
+  size_t *const ijcell = alloca(ndim * sizeof *ijcell);
 
   bmm_size_hcd(ijcell, icell, ndim, nper);
 
@@ -110,10 +110,10 @@ inline bool bmm_neigh_qijcpi(size_t* restrict const pijoff,
 /// the corresponding offset is returned.
 /// Otherwise `SIZE_MAX` is returned.
 __attribute__ ((__nonnull__, __pure__))
-inline size_t bmm_neigh_qicpij(size_t const* restrict const ijcell,
+inline size_t bmm_neigh_qicpij(size_t const *restrict const ijcell,
     size_t const iquery, size_t const ndim,
-    size_t const* restrict const nper, bool const* const per) {
-  size_t* const pijoff = alloca(ndim * sizeof *pijoff);
+    size_t const *restrict const nper, bool const *const per) {
+  size_t *const pijoff = alloca(ndim * sizeof *pijoff);
 
   if (!bmm_neigh_qijcpij(pijoff, ijcell, iquery, ndim, nper, per))
     return SIZE_MAX;
@@ -131,11 +131,11 @@ inline size_t bmm_neigh_qicpij(size_t const* restrict const ijcell,
 __attribute__ ((__nonnull__, __pure__))
 inline size_t bmm_neigh_qicpi(size_t const icell,
     size_t const iquery, size_t const ndim,
-    size_t const* const nper, bool const* const per) {
+    size_t const *const nper, bool const *const per) {
   // These temporary variables could be elided with loop fusion,
   // but the result would be quadratic in `ndim`.
-  size_t* const pijoff = alloca(ndim * sizeof *pijoff);
-  size_t* const ijcell = alloca(ndim * sizeof *ijcell);
+  size_t *const pijoff = alloca(ndim * sizeof *pijoff);
+  size_t *const ijcell = alloca(ndim * sizeof *ijcell);
 
   bmm_size_hcd(ijcell, icell, ndim, nper);
 
@@ -150,9 +150,9 @@ inline size_t bmm_neigh_qicpi(size_t const icell,
 /// of the cell `ijcell` in a `per`-conditionally periodic `nper`-wide
 /// `ndim`-dimensional lattice.
 __attribute__ ((__nonnull__))
-inline size_t bmm_neigh_ncpij(size_t const* restrict const ijcell,
-    size_t const ndim, size_t const* restrict const nper,
-    bool const* const per, int const mask) {
+inline size_t bmm_neigh_ncpij(size_t const *restrict const ijcell,
+    size_t const ndim, size_t const *restrict const nper,
+    bool const *const per, int const mask) {
   if (ndim == 0)
     return SIZE_MAX;
 
@@ -185,8 +185,8 @@ inline size_t bmm_neigh_ncpij(size_t const* restrict const ijcell,
 /// `ndim`-dimensional lattice.
 __attribute__ ((__nonnull__))
 inline size_t bmm_neigh_ncpi(size_t const icell,
-    size_t const ndim, size_t const* const nper,
-    bool const* const per, int const mask) {
+    size_t const ndim, size_t const *const nper,
+    bool const *const per, int const mask) {
   if (ndim == 0)
     return SIZE_MAX;
 
@@ -219,10 +219,10 @@ inline size_t bmm_neigh_ncpi(size_t const icell,
 /// `ndim`-dimensional lattice.
 /// Use `bmm_neigh_ncpij` to find the upper bound of `ineigh`.
 __attribute__ ((__nonnull__))
-inline void bmm_neigh_ijcpij(size_t* restrict const pijcell,
-    size_t const* restrict const ijcell, size_t const ineigh,
-    size_t const ndim, size_t const* restrict const nper,
-    bool const* const per, int const mask) {
+inline void bmm_neigh_ijcpij(size_t *restrict const pijcell,
+    size_t const *restrict const ijcell, size_t const ineigh,
+    size_t const ndim, size_t const *restrict const nper,
+    bool const *const per, int const mask) {
   size_t const nquery = bmm_size_pow(3, ndim);
   size_t const kquery = nquery / 2;
 
@@ -272,11 +272,11 @@ br:
 /// `ndim`-dimensional lattice.
 /// Use `bmm_neigh_ncpij` to find the upper bound of `ineigh`.
 __attribute__ ((__nonnull__))
-inline void bmm_neigh_ijcpi(size_t* restrict const pijcell,
+inline void bmm_neigh_ijcpi(size_t *restrict const pijcell,
     size_t const icell, size_t const ineigh,
-    size_t const ndim, size_t const* restrict const nper,
-    bool const* const per, int const mask) {
-  size_t* const ijcell = alloca(ndim * sizeof *ijcell);
+    size_t const ndim, size_t const *restrict const nper,
+    bool const *const per, int const mask) {
+  size_t *const ijcell = alloca(ndim * sizeof *ijcell);
 
   bmm_size_hcd(ijcell, icell, ndim, nper);
 
@@ -289,11 +289,11 @@ inline void bmm_neigh_ijcpi(size_t* restrict const pijcell,
 /// `ndim`-dimensional lattice.
 /// Use `bmm_neigh_ncpij` to find the upper bound of `ineigh`.
 __attribute__ ((__nonnull__, __pure__))
-inline size_t bmm_neigh_icpij(size_t const* restrict const ijcell,
+inline size_t bmm_neigh_icpij(size_t const *restrict const ijcell,
     size_t const ineigh, size_t const ndim,
-    size_t const* restrict const nper, bool const* const per,
+    size_t const *restrict const nper, bool const *const per,
     int const mask) {
-  size_t* const pijcell = alloca(ndim * sizeof *pijcell);
+  size_t *const pijcell = alloca(ndim * sizeof *pijcell);
 
   bmm_neigh_ijcpij(pijcell, ijcell, ineigh, ndim, nper, per, mask);
 
@@ -308,10 +308,10 @@ inline size_t bmm_neigh_icpij(size_t const* restrict const ijcell,
 __attribute__ ((__nonnull__, __pure__))
 inline size_t bmm_neigh_icpi(size_t const icell,
     size_t const ineigh, size_t const ndim,
-    size_t const* restrict const nper, bool const* const per,
+    size_t const *restrict const nper, bool const *const per,
     int const mask) {
-  size_t* const pijcell = alloca(ndim * sizeof *pijcell);
-  size_t* const ijcell = alloca(ndim * sizeof *ijcell);
+  size_t *const pijcell = alloca(ndim * sizeof *pijcell);
+  size_t *const ijcell = alloca(ndim * sizeof *ijcell);
 
   bmm_size_hcd(ijcell, icell, ndim, nper);
 

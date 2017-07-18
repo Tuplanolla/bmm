@@ -20,14 +20,14 @@ static GLfloat const glWhite[] = {0.6666667f, 0.6666667f, 0.6666667f};
 /// The call `glClearColor4fv(v)` is equivalent
 /// to `glClearColor(v[0], v[1], v[2], v[3])`.
 __attribute__ ((__nonnull__))
-inline void glClearColor4fv(GLfloat const* const v) {
+inline void glClearColor4fv(GLfloat const *const v) {
   glClearColor(v[0], v[1], v[2], v[3]);
 }
 
 /// The call `glClearColor3fv(v)` is equivalent
 /// to `glClearColor(v[0], v[1], v[2], 1.0f)`.
 __attribute__ ((__nonnull__))
-inline void glClearColor3fv(GLfloat const* const v) {
+inline void glClearColor3fv(GLfloat const *const v) {
   glClearColor(v[0], v[1], v[2], 1.0f);
 }
 

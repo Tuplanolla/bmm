@@ -12,9 +12,9 @@
 #include "tle.h"
 
 __attribute__ ((__nonnull__ (1, 2)))
-static bool f(char const* const key, char const* const value,
-    void* const ptr) {
-  struct bmm_dem_opts* const opts = ptr;
+static bool f(char const *const key, char const *const value,
+    void *const ptr) {
+  struct bmm_dem_opts *const opts = ptr;
 
   // TODO Refactor these at some point.
   double const dtstuff = 1.0e-4;
@@ -104,13 +104,13 @@ static bool f(char const* const key, char const* const value,
 }
 
 __attribute__ ((__nonnull__))
-int main(int const argc, char** const argv) {
+int main(int const argc, char **const argv) {
   bmm_tle_reset(argv[0]);
 
   struct bmm_dem_opts opts;
   bmm_dem_opts_def(&opts);
 
-  if (!bmm_opt_parse((char const* const*) &argv[1], (size_t) (argc - 1),
+  if (!bmm_opt_parse((char const *const *) &argv[1], (size_t) (argc - 1),
         f, &opts)) {
     bmm_tle_put();
 

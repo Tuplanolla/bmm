@@ -2,4 +2,4 @@
 
 #include "random.h"
 
-extern inline double bmm_random_get(gsl_rng*, double const*);
+extern inline double bmm_random_get(gsl_rng *, double const *);

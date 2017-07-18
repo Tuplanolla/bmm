@@ -11,36 +11,36 @@
 #include "sig.h"
 #include "tle.h"
 
-void bmm_filter_opts_def(struct bmm_filter_opts* const opts) {
+void bmm_filter_opts_def(struct bmm_filter_opts *const opts) {
   opts->verbose = false;
 
   for (size_t imsg = 0; imsg < BMM_MMSG; ++imsg)
     opts->mask[imsg] = false;
 }
 
-void bmm_filter_def(struct bmm_filter* const filter,
-    struct bmm_filter_opts const* const opts) {
+void bmm_filter_def(struct bmm_filter *const filter,
+    struct bmm_filter_opts const *const opts) {
   filter->opts = *opts;
   filter->passed = 0;
   filter->stopped = 0;
 }
 
-static bool pass(struct bmm_filter const* const filter,
+static bool pass(struct bmm_filter const *const filter,
     enum bmm_msg_num const num) {
   return filter->opts.mask[(size_t) num];
 }
 
-static enum bmm_io_read msg_read(void* buf, size_t const n,
-    __attribute__ ((__unused__)) void* const ptr) {
+static enum bmm_io_read msg_read(void *buf, size_t const n,
+    __attribute__ ((__unused__)) void *const ptr) {
   return bmm_io_readin(buf, n);
 }
 
-static bool msg_write(void const* buf, size_t const n,
-    __attribute__ ((__unused__)) void* const ptr) {
+static bool msg_write(void const *buf, size_t const n,
+    __attribute__ ((__unused__)) void *const ptr) {
   return bmm_io_writeout(buf, n);
 }
 
-enum bmm_io_read bmm_filter_step(struct bmm_filter* const filter) {
+enum bmm_io_read bmm_filter_step(struct bmm_filter *const filter) {
   struct bmm_msg_spec spec;
   switch (bmm_msg_spec_read(&spec, msg_read, NULL)) {
     case BMM_IO_READ_ERROR:
@@ -98,7 +98,7 @@ enum bmm_io_read bmm_filter_step(struct bmm_filter* const filter) {
   return BMM_IO_READ_SUCCESS;
 }
 
-bool bmm_filter_report(struct bmm_filter const* const filter) {
+bool bmm_filter_report(struct bmm_filter const *const filter) {
   if (filter->opts.verbose) {
     double const passed = filter->passed;
     double const stopped = filter->stopped;
@@ -112,7 +112,7 @@ bool bmm_filter_report(struct bmm_filter const* const filter) {
   return true;
 }
 
-static bool bmm_filter_run_(struct bmm_filter* const filter) {
+static bool bmm_filter_run_(struct bmm_filter *const filter) {
   int const sigs[] = {SIGINT, SIGQUIT, SIGTERM, SIGPIPE};
   if (bmm_sig_register(sigs, nmembof(sigs)) != SIZE_MAX) {
     BMM_TLE_STDS();
@@ -144,14 +144,14 @@ static bool bmm_filter_run_(struct bmm_filter* const filter) {
   return true;
 }
 
-bool bmm_filter_run(struct bmm_filter* const filter) {
+bool bmm_filter_run(struct bmm_filter *const filter) {
   bool const run = bmm_filter_run_(filter);
   bool const report = bmm_filter_report(filter);
 
   return run && report;
 }
 
-bool bmm_filter_run_with(struct bmm_filter_opts const* const opts) {
+bool bmm_filter_run_with(struct bmm_filter_opts const *const opts) {
   struct bmm_filter filter;
   bmm_filter_def(&filter, opts);
 
