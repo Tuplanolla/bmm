@@ -67,12 +67,12 @@ void bmm_msg_spec_def(struct bmm_msg_spec *);
 /// Assuming `bmm_msg_reader f`, the call `f(buf, n, ptr)`
 /// reads `n` bytes into the buffer `buf`.
 /// The additional `ptr` can be used for passing in a closure.
-typedef enum bmm_io_read (* bmm_msg_reader)(void *, size_t, void *);
+typedef enum bmm_io_read (*bmm_msg_reader)(void *, size_t, void *);
 
 /// Assuming `bmm_msg_writer f`, the call `f(buf, n, ptr)`
 /// writes `n` bytes from the buffer `buf`.
 /// The additional `ptr` can be used for passing in a closure.
-typedef bool (* bmm_msg_writer)(void const *, size_t, void *);
+typedef bool (*bmm_msg_writer)(void const *, size_t, void *);
 
 /// The call `bmm_msg_spec_read(spec, f, ptr)`
 /// extracts the message specification `spec`

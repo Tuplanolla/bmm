@@ -7,7 +7,7 @@
 #include "tle.h"
 
 bool bmm_opt_parse(char const *const *const args, size_t const narg,
-    bool (* const f)(char const *, char const *, void *), void *const ptr) {
+    bool (*const f)(char const *, char const *, void *), void *const ptr) {
   char const *key = NULL;
   enum {KEY, VALUE} state = KEY;
 

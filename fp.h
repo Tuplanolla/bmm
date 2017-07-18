@@ -256,7 +256,7 @@ inline double bmm_fp_max(double const *const x, size_t const n) {
 /// folds the procedure `f` over the array `x` of length `n`.
 /// by starting from the left with `z`.
 __attribute__ ((__nonnull__ (1, 2)))
-inline double bmm_fp_lfold(double (* const f)(double, double, void *),
+inline double bmm_fp_lfold(double (*const f)(double, double, void *),
     double const *restrict const x, size_t const n,
     double z, void *restrict const ptr) {
   for (size_t i = 0; i < n; ++i)
@@ -269,7 +269,7 @@ inline double bmm_fp_lfold(double (* const f)(double, double, void *),
 /// folds the procedure `f` over the array `x` of length `n`.
 /// by starting from the right with `z`.
 __attribute__ ((__nonnull__ (1, 2)))
-inline double bmm_fp_rfold(double (* const f)(double, double, void *),
+inline double bmm_fp_rfold(double (*const f)(double, double, void *),
     double const *restrict const x, size_t const n,
     double z, void *restrict const ptr) {
   for (size_t i = 0; i < n; ++i)
