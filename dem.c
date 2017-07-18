@@ -26,6 +26,7 @@
 #include "random.h"
 #include "sig.h"
 #include "size.h"
+#include "sort.h"
 #include "tle.h"
 
 size_t bmm_dem_script_addstage(struct bmm_dem_opts* const opts) {
@@ -974,11 +975,32 @@ static void wkde_sample_sorted(double* restrict const yarr,
   }
 }
 
-static int compar(void const* const x0, void const* const x1) {
-  double const* const rw0 = x0;
-  double const* const rw1 = x1;
+typedef struct {double _0; double _1;} _2;
 
-  return bmm_fp_cmp(rw0[0], rw1[0]);
+static void swap(size_t const i, size_t const j, void* const closure) {
+  _2* const rw = closure;
+
+  _2 tmp;
+  tmp._0 = rw[i]._0;
+  tmp._1 = rw[i]._1;
+  rw[i]._0 = rw[j]._0;
+  rw[i]._1 = rw[j]._1;
+  rw[j]._0 = tmp._0;
+  rw[j]._1 = tmp._1;
+}
+
+static int compar(size_t const i, size_t const j, void* const closure) {
+  _2* const rw = closure;
+
+  return bmm_fp_cmp(rw[i]._0, rw[j]._0);
+}
+
+static int qcompar(void const* const x0, void const* const x1,
+    void* const closure) {
+  _2* const rw0 = x0;
+  _2* const rw1 = x1;
+
+  return bmm_fp_cmp(rw0->_0, rw1->_0);
 }
 
 /// The call `bmm_dem_est_raddist(pr, pg, dem, nr)`
@@ -1038,21 +1060,25 @@ bool bmm_dem_est_raddist(double* const pr, double* const pg,
   double const bw = bmm_ival_midpoint(dem->opts.part.rnew) / 8.0;
 
   // TODO Should use another `qsort`-like function.
-  double (* const rw)[2] = malloc(nmemb * sizeof *rw);
+  _2* const rw = malloc(nmemb * sizeof *rw);
   if (rw == NULL) {
     free(r);
     free(w);
     return false;
   }
   for (size_t i = 0; i < nmemb; ++i) {
-    rw[i][0] = r[i];
-    rw[i][1] = w[i];
+    rw[i]._0 = r[i];
+    rw[i]._1 = w[i];
   }
-  qsort(rw, nmemb, sizeof *rw, compar);
+  hsort(nmemb, compar, swap, rw);
   for (size_t i = 0; i < nmemb; ++i) {
-    r[i] = rw[i][0];
-    w[i] = rw[i][1];
+    r[i] = rw[i]._0;
+    w[i] = rw[i]._1;
   }
+  qsort(rw, nmemb, sizeof *rw, qcompar);
+  for (size_t i = 0; i < nmemb; ++i)
+    if (r[i] != rw[i]._0 || w[i] != rw[i]._1)
+      fprintf(stderr, "Choked at %zu!\n", i);
   free(rw);
 
   wkde_sample_sorted(pr, pg, r, w, nmemb, bw, nbin, 0.0, rmax);
