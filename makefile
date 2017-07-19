@@ -125,4 +125,4 @@ tests: CFLAGS+=$$(pkg-config --cflags cheat gsl)
 tests: LDLIBS+=$$(pkg-config --libs cheat gsl)
 tests: tests.o \
 	endy.o fp.o geom.o geom2d.o hack.o hist.o kernel.o io.o ival.o msg.o \
-	neigh.o opt.o random.o sec.o sig.o size.o sort.o str.o tle.o
+	neigh.o opt.o random.o sec.o sig.o size.o sort.o str.o swap.o tle.o

@@ -538,6 +538,43 @@ Wikipedia says the following.
 > that allow calculating them all as long as two are known:
 > $Y = 2 G (1 + \\nu) = 3 K (1 - 2 \\nu)$.
 
+#### Types
+
+Ignoring `const` and other qualifiers, the following basic types exist in C11.
+
+| Category                        | Sign-Agnostic    | Signed                | Unsigned
+|:--------------------------------|:-----------------|:----------------------|:---------
+| Characters and Bytes            | `char`           | `signed char`         | `unsigned char`
+| Pointers                        | `void *`         |                       |  
+| Function Pointers               | `void (*)(void)` |                       |  
+| Integers                        |                  | `short int`           | `unsigned short int`
+| Integers                        |                  | `int`                 | `unsigned int`
+| Integers                        |                  | `long int`            | `unsigned long int`
+| Integers                        |                  | `long long int`       | `unsigned long long int`
+| Special-Purpose Integers        |                  |                       | `size_t`
+| Special-Purpose Integers        |                  | `ptrdiff_t`           |  
+| Floating-Point Numbers          |                  | `float`               |  
+| Floating-Point Numbers          |                  | `double`              |  
+| Floating-Point Numbers          |                  | `long double`         |  
+| Enumerations                    | `bool`           |                       |  
+| Extended Integers               |                  | `int8_t`              | `uint8_t`
+| Extended Integers               |                  | `int_least8_t`        | `uint_least8_t`
+| Extended Integers               |                  | `int_fast8_t`         | `uint_fast8_t`
+| Extended Integers               |                  | `int16_t`             | `uint16_t`
+| Extended Integers               |                  | `int_least16_t`       | `uint_least16_t`
+| Extended Integers               |                  | `int_fast16_t`        | `uint_fast16_t`
+| Extended Integers               |                  | `int32_t`             | `uint32_t`
+| Extended Integers               |                  | `int_least32_t`       | `uint_least32_t`
+| Extended Integers               |                  | `int_fast32_t`        | `uint_fast32_t`
+| Extended Integers               |                  | `int64_t`             | `uint64_t`
+| Extended Integers               |                  | `int_least64_t`       | `uint_least64_t`
+| Extended Integers               |                  | `int_fast64_t`        | `uint_fast64_t`
+| Extended Integers               |                  | `intptr_t`            | `uintptr_t`
+| Extended Integers               |                  | `intmax_t`            | `uintmax_t`
+| Extended Floating-Point Numbers |                  | `complex float`       |  
+| Extended Floating-Point Numbers |                  | `complex double`      |  
+| Extended Floating-Point Numbers |                  | `complex long double` |  
+
 ### Do These Things
 
 See if better sedimentation algorithms exist.

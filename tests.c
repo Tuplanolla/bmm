@@ -13,6 +13,7 @@
 #include "msg.h"
 #include "size.h"
 #include "sort.h"
+#include "swap.h"
 
 CHEAT_DECLARE(
   static size_t const ndim = 2;
@@ -27,6 +28,7 @@ CHEAT_TEST(size_fact,
   cheat_assert_size(bmm_size_fact(3, 1), 6);
   cheat_assert_size(bmm_size_fact(4, 1), 24);
   cheat_assert_size(bmm_size_fact(5, 1), 120);
+  cheat_assert_size(bmm_size_fact(6, 1), 720);
 )
 
 CHEAT_TEST(size_fact2,
@@ -36,6 +38,7 @@ CHEAT_TEST(size_fact2,
   cheat_assert_size(bmm_size_fact(3, 2), 3);
   cheat_assert_size(bmm_size_fact(4, 2), 8);
   cheat_assert_size(bmm_size_fact(5, 2), 15);
+  cheat_assert_size(bmm_size_fact(6, 2), 48);
 )
 
 CHEAT_TEST(size_flog,
@@ -57,11 +60,11 @@ CHEAT_TEST(size_clog,
 )
 
 CHEAT_DECLARE(
-  __attribute__ ((__const__, __nonnull__, __pure__))
+  __attribute__ ((__nonnull__, __pure__))
   static int compar(size_t const i, size_t const j, void *const cls) {
     int const *const x = cls;
 
-    // return bmm_cmp<int>(x[i], x[j]);
+    // return inst(bmm_cmp, int)(x[i], x[j]);
     return x[i] < x[j] ? -1 : x[i] > x[j] ? 1 : 0;
   }
 
@@ -69,10 +72,7 @@ CHEAT_DECLARE(
   static void swap(size_t const i, size_t const j, void *const cls) {
     int *const x = cls;
 
-    // bmm_swap<int>(&x[i], &x[j]);
-    int const tmp = x[i];
-    x[i] = x[j];
-    x[j] = tmp;
+    inst(bmm_swap, int)(&x[i], &x[j]);
   }
 )
 

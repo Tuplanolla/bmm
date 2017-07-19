@@ -13,7 +13,7 @@
 #if !defined __GNUC__ || __GNUC__ < 4
 
 #ifndef __attribute__
-#define __attribute__(_)
+#define __attribute__(x)
 #endif
 
 #endif
@@ -46,23 +46,32 @@
 /// expands to the number of members in the array `x`.
 #define nmembof(x) (sizeof (x) / msizeof(x))
 
-/// The preprocessor directive `static_assert(p, s)`
-/// imitates the standard library function with the same name
-/// if it is not available.
-/// Due to technical limitations each `static_assert` must be on its own line
-/// to avoid naming conflicts.
+#define inst__(x, t) x##_##t
+#define inst_(x, t) inst__(x, t)
+/// The preprocessor directive `inst(x, t)`
+/// expands to the template instantiation of the value `x` with the type `t`.
+/// Due to the limitations of the language
+/// the type `t` has to be a single token.
+/// This can always be satisfied by using `typedef`.
+#define inst(x, t) inst_(x, t)
+
 #ifndef static_assert
 #define static_assert_line_(p, n) __attribute__ ((__unused__)) \
   static int const _static_assert_##n[(p) ? 1 : -1]
 #define static_assert_(p, n) static_assert_line_((p), n)
-#define static_assert(p, _) static_assert_((p), __LINE__)
+/// The preprocessor directive `static_assert(p, s)`
+/// imitates the standard library function with the same name
+/// if it is not available.
+/// Due to the limitations of the language
+/// each `static_assert` must be on its own line to avoid naming conflicts.
+#define static_assert(p, s) static_assert_((p), __LINE__)
 #endif
 
+#ifndef dynamic_assert
 /// The preprocessor directive `dynamic_assert(p, s)`
 /// is equivalent to `assert(p)` with the comment `s`.
 /// It exists for the sake of consistency with `static_assert`.
-#ifndef dynamic_assert
-#define dynamic_assert(p, _) assert(p)
+#define dynamic_assert(p, s) assert(p)
 #endif
 
 /// These preprocessor directives ensure
@@ -71,7 +80,6 @@
 
 #ifdef NDEBUG
 static_assert(false, "Contradictory debug directives");
-#else
 #endif
 
 #else

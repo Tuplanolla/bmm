@@ -975,12 +975,14 @@ static void wkde_sample_sorted(double *restrict const yarr,
   }
 }
 
+__attribute__ ((__nonnull__, __pure__))
 static int compar(size_t const i, size_t const j, void *const cls) {
   double const *const *const rw = cls;
 
   return bmm_fp_cmp(rw[0][i], rw[0][j]);
 }
 
+__attribute__ ((__nonnull__))
 static void swap(size_t const i, size_t const j, void *const cls) {
   double *const *const rw = cls;
 
