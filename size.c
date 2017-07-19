@@ -7,6 +7,8 @@ extern inline bmm_size_div_t bmm_size_div(size_t, size_t);
 
 extern inline int bmm_size_cmp(size_t, size_t);
 
+extern inline void bmm_size_swap(size_t *restrict, size_t *restrict);
+
 extern inline bool bmm_size_even(size_t);
 
 extern inline bool bmm_size_odd(size_t);

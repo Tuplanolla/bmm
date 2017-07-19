@@ -44,6 +44,15 @@ inline int bmm_size_cmp(size_t const n, size_t const k) {
   return n < k ? -1 : n > k ? 1 : 0;
 }
 
+/// The call `bmm_size_swap(x, y)`
+/// exchanges `x` with `y`.
+__attribute__ ((__nonnull__))
+inline void bmm_size_swap(size_t *restrict const x, size_t *restrict const y) {
+  size_t const tmp = *x;
+  *x = *y;
+  *y = tmp;
+}
+
 /// The call `bmm_size_even(n)`
 /// checks whether `n` is even.
 __attribute__ ((__const__, __pure__))

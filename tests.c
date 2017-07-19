@@ -12,6 +12,7 @@
 #include "neigh.h"
 #include "msg.h"
 #include "size.h"
+#include "sort.h"
 
 CHEAT_DECLARE(
   static size_t const ndim = 2;
@@ -53,6 +54,52 @@ CHEAT_TEST(size_clog,
   cheat_assert_size(bmm_size_clog(4, 2), 2);
   cheat_assert_size(bmm_size_clog(5, 2), 3);
   cheat_assert_size(bmm_size_clog(6, 2), 3);
+)
+
+CHEAT_DECLARE(
+  __attribute__ ((__const__, __nonnull__, __pure__))
+  static int compar(size_t const i, size_t const j, void *const cls) {
+    int const *const x = cls;
+
+    // return bmm_cmp<int>(x[i], x[j]);
+    return x[i] < x[j] ? -1 : x[i] > x[j] ? 1 : 0;
+  }
+
+  __attribute__ ((__nonnull__))
+  static void swap(size_t const i, size_t const j, void *const cls) {
+    int *const x = cls;
+
+    // bmm_swap<int>(&x[i], &x[j]);
+    int const tmp = x[i];
+    x[i] = x[j];
+    x[j] = tmp;
+  }
+)
+
+CHEAT_TEST(sort_heapsort,
+  int x[255];
+
+  static size_t const perm[][3] = {
+    {0, 1, 2},
+    {5, 4, 3}
+  };
+
+  for (size_t i = 0; i < nmembof(x); ++i) {
+    size_t n = i % (1 << nmembof(perm) * 2);
+    size_t k = 0;
+
+    for (size_t j = 0; j < nmembof(*perm); ++j) {
+      k |= (n >> perm[0][j] & 1) << perm[1][j];
+      k |= (n >> perm[1][j] & 1) << perm[0][j];
+    }
+
+    x[i] = (int) k;
+  }
+
+  bmm_sort_heapsort(nmembof(x), compar, swap, x);
+
+  for (size_t i = 1; i < nmembof(x); ++i)
+    cheat_assert(x[i - 1] <= x[i]);
 )
 
 CHEAT_TEST(geom2d_shell_inside,
