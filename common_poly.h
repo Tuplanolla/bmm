@@ -1,3 +1,5 @@
+/// Common operations for completely polymorphic types.
+
 #include <stddef.h>
 
 #include "ext.h"

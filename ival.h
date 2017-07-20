@@ -1,5 +1,6 @@
-#ifndef BMM_IVAL_H
 /// Half-open intervals.
+
+#ifndef BMM_IVAL_H
 #define BMM_IVAL_H
 
 #include <stdbool.h>

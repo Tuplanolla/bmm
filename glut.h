@@ -1,5 +1,6 @@
-#ifndef BMM_GLUT_H
 /// Interactive viewer based on OpenGL and FreeGLUT.
+
+#ifndef BMM_GLUT_H
 #define BMM_GLUT_H
 
 #include <GL/glew.h>

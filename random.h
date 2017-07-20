@@ -1,5 +1,6 @@
-#ifndef BMM_RANDOM_H
 /// Random number generation.
+
+#ifndef BMM_RANDOM_H
 #define BMM_RANDOM_H
 
 #include <gsl/gsl_rng.h>

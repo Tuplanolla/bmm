@@ -1,5 +1,6 @@
-#ifndef BMM_IO_H
 /// Input and output operations.
+
+#ifndef BMM_IO_H
 #define BMM_IO_H
 
 #include <stdbool.h>

@@ -1,5 +1,6 @@
-#ifndef BMM_FILTER_H
 /// Message filter.
+
+#ifndef BMM_FILTER_H
 #define BMM_FILTER_H
 
 #include <stdbool.h>

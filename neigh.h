@@ -1,5 +1,6 @@
-#ifndef BMM_NEIGH_H
 /// Moore neighborhoods that do not overlap themselves.
+
+#ifndef BMM_NEIGH_H
 ///
 /// The naming convention for the procedures in this translation unit
 /// obey the following ANTLR 4 grammar.
@@ -68,7 +69,7 @@ inline bool bmm_neigh_qijcpij(size_t *restrict const pijoff,
     size_t const *restrict const ijcell,
     size_t const iquery, size_t const ndim,
     size_t const *restrict const nper, bool const *const per) {
-  bmm_size_hc(pijoff, iquery, ndim, 3);
+  inst(bmm_hc, size_t)(pijoff, iquery, ndim, 3);
 
   for (size_t idim = 0; idim < ndim; ++idim) {
     if (per[idim])
@@ -97,7 +98,7 @@ inline bool bmm_neigh_qijcpi(size_t *restrict const pijoff,
     size_t const *restrict const nper, bool const *const per) {
   size_t *const ijcell = alloca(ndim * sizeof *ijcell);
 
-  bmm_size_hcd(ijcell, icell, ndim, nper);
+  inst(bmm_hcd, size_t)(ijcell, icell, ndim, nper);
 
   return bmm_neigh_qijcpij(pijoff, ijcell, iquery, ndim, nper, per);
 }
@@ -118,7 +119,7 @@ inline size_t bmm_neigh_qicpij(size_t const *restrict const ijcell,
   if (!bmm_neigh_qijcpij(pijoff, ijcell, iquery, ndim, nper, per))
     return SIZE_MAX;
 
-  return bmm_size_unhcd(pijoff, ndim, nper);
+  return inst(bmm_unhcd, size_t)(pijoff, ndim, nper);
 }
 
 /// The call `bmm_neigh_qicpi(icell, iquery, ndim, nper, per)`
@@ -137,12 +138,12 @@ inline size_t bmm_neigh_qicpi(size_t const icell,
   size_t *const pijoff = alloca(ndim * sizeof *pijoff);
   size_t *const ijcell = alloca(ndim * sizeof *ijcell);
 
-  bmm_size_hcd(ijcell, icell, ndim, nper);
+  inst(bmm_hcd, size_t)(ijcell, icell, ndim, nper);
 
   if (!bmm_neigh_qijcpij(pijoff, ijcell, iquery, ndim, nper, per))
     return SIZE_MAX;
 
-  return bmm_size_unhcd(pijoff, ndim, nper);
+  return inst(bmm_unhcd, size_t)(pijoff, ndim, nper);
 }
 
 /// The call `bmm_neigh_ncpij(ijcell, ndim, nper, per, mask)`
@@ -278,7 +279,7 @@ inline void bmm_neigh_ijcpi(size_t *restrict const pijcell,
     bool const *const per, int const mask) {
   size_t *const ijcell = alloca(ndim * sizeof *ijcell);
 
-  bmm_size_hcd(ijcell, icell, ndim, nper);
+  inst(bmm_hcd, size_t)(ijcell, icell, ndim, nper);
 
   bmm_neigh_ijcpij(pijcell, ijcell, ineigh, ndim, nper, per, mask);
 }
@@ -297,7 +298,7 @@ inline size_t bmm_neigh_icpij(size_t const *restrict const ijcell,
 
   bmm_neigh_ijcpij(pijcell, ijcell, ineigh, ndim, nper, per, mask);
 
-  return bmm_size_unhcd(pijcell, ndim, nper);
+  return inst(bmm_unhcd, size_t)(pijcell, ndim, nper);
 }
 
 /// The call `bmm_neigh_icpi(icell, ineigh, ndim, nper, per, mask)`
@@ -313,11 +314,11 @@ inline size_t bmm_neigh_icpi(size_t const icell,
   size_t *const pijcell = alloca(ndim * sizeof *pijcell);
   size_t *const ijcell = alloca(ndim * sizeof *ijcell);
 
-  bmm_size_hcd(ijcell, icell, ndim, nper);
+  inst(bmm_hcd, size_t)(ijcell, icell, ndim, nper);
 
   bmm_neigh_ijcpij(pijcell, ijcell, ineigh, ndim, nper, per, mask);
 
-  return bmm_size_unhcd(pijcell, ndim, nper);
+  return inst(bmm_unhcd, size_t)(pijcell, ndim, nper);
 }
 
 #endif

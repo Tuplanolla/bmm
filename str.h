@@ -1,5 +1,6 @@
-#ifndef BMM_STR_H
 /// String operations.
+
+#ifndef BMM_STR_H
 #define BMM_STR_H
 
 #include <stdbool.h>

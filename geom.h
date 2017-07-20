@@ -1,5 +1,6 @@
-#ifndef BMM_GEOM_H
 /// High-dimensional geometry.
+
+#ifndef BMM_GEOM_H
 #define BMM_GEOM_H
 
 #include <math.h>

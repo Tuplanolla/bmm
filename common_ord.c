@@ -3,9 +3,7 @@
 
 #include "ext.h"
 
-extern inline bmm_size_div_t bmm_size_div(size_t, size_t);
-
-extern inline int bmm_size_cmp(size_t, size_t);
+extern inline int inst(bmm_cmp, size_t)(size_t, size_t);
 
 extern inline void bmm_size_swap(size_t *restrict, size_t *restrict);
 
@@ -43,7 +41,7 @@ extern inline size_t bmm_size_cirt(size_t, size_t);
 
 extern inline size_t bmm_size_uclamp(size_t, size_t);
 
-extern inline size_t bmm_size_wrap(size_t, size_t, size_t);
+extern inline A inst(bmm_wrap, A)(A, A, A);
 
 extern inline size_t bmm_size_uwrap(size_t, size_t);
 
@@ -68,13 +66,3 @@ extern inline size_t bmm_size_lfold(size_t (*)(size_t, size_t, void *),
 
 extern inline size_t bmm_size_rfold(size_t (*)(size_t, size_t, void *),
     size_t const *restrict, size_t, size_t, void *restrict);
-
-extern inline void bmm_size_hc(size_t *, size_t, size_t, size_t);
-
-extern inline size_t bmm_size_unhc(size_t const *, size_t, size_t);
-
-extern inline void bmm_size_hcd(size_t *restrict,
-    size_t, size_t, size_t const *restrict);
-
-extern inline size_t bmm_size_unhcd(size_t const *restrict,
-    size_t, size_t const *restrict);

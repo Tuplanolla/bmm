@@ -1,5 +1,6 @@
-#ifndef BMM_GL2_H
 /// Utilities for OpenGL 2.0 and later.
+
+#ifndef BMM_GL2_H
 #define BMM_GL2_H
 
 #include <GL/glew.h>

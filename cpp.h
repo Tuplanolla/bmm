@@ -1,5 +1,6 @@
-#ifndef BMM_CPP_H
 /// Preprocessor directives.
+
+#ifndef BMM_CPP_H
 #define BMM_CPP_H
 
 #define BMM_VA_N_(x, n) x##_##n

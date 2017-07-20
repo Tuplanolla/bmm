@@ -1,5 +1,6 @@
-#ifndef BMM_ENDY_H
 /// Integer endianness.
+
+#ifndef BMM_ENDY_H
 #define BMM_ENDY_H
 
 #include <stdbool.h>

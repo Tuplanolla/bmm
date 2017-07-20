@@ -1,5 +1,6 @@
-#ifndef BMM_SIG_H
 /// Synchronous signal handling.
+
+#ifndef BMM_SIG_H
 #define BMM_SIG_H
 
 #include <stdbool.h>

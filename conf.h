@@ -1,5 +1,6 @@
-#ifndef BMM_CONF_H
 /// Configuration constants.
+
+#ifndef BMM_CONF_H
 #define BMM_CONF_H
 
 #include "cpp.h"

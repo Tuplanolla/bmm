@@ -1,5 +1,6 @@
-#ifndef BMM_NC_H
 /// Trajectory exporting in NetCDF format.
+
+#ifndef BMM_NC_H
 #define BMM_NC_H
 
 #include <stdbool.h>

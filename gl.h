@@ -1,5 +1,6 @@
-#ifndef BMM_GL_H
 /// Additional operations for OpenGL.
+
+#ifndef BMM_GL_H
 #define BMM_GL_H
 
 #include <GL/gl.h>

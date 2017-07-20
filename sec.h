@@ -1,5 +1,6 @@
-#ifndef BMM_SEC_H
 /// Approximate time conversions using seconds.
+
+#ifndef BMM_SEC_H
 #define BMM_SEC_H
 
 #include <math.h>

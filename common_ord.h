@@ -1,54 +1,24 @@
+/// Common operations for ordered types.
+
 #include <stdbool.h>
 #include <stddef.h>
 
 #include "cpp.h"
 #include "ext.h"
 
-// TODO Ha ha! Everything!
-
-/// This structure holds the quotient and remainder of a division
-/// in unspecified order.
-typedef struct {
-  size_t quot;
-  size_t rem;
-} bmm_size_div_t;
-
-/// The call `m = bmm_size_div(n, k)`
-/// solves the division equation `m.quot * k + m.rem == n` for `m`,
-/// where `m.quot` is the quotient and `m.rem` is the remainder
-/// of the expression `n / k`.
-/// This is analogous to `div` or `bmm_fp_div`.
-/// Overflows are impossible both internally and externally.
-__attribute__ ((__const__, __pure__))
-inline bmm_size_div_t bmm_size_div(size_t const n, size_t const k) {
-  bmm_size_div_t const qr = {
-    .quot = n / k,
-    .rem = n % k
-  };
-
-  return qr;
-}
-
-/// The call `bmm_size_cmp(n, k)` returns
+/// The call `bmm_cmp(x, y)` returns
 ///
-/// * `-1` if `n < k`,
-/// * `1` if `n > k` and
+/// * `-1` if `x < y`,
+/// * `1` if `x > y` and
 /// * `0` otherwise.
 ///
-/// This is analogous to `bmm_fp_cmp`.
+/// This is useful with `bmm_hsort` for example.
 __attribute__ ((__const__, __pure__))
-inline int bmm_size_cmp(size_t const n, size_t const k) {
-  return n < k ? -1 : n > k ? 1 : 0;
+inline int inst(bmm_cmp, A)(A const x, A const y) {
+  return x < y ? -1 : x > y ? 1 : 0;
 }
 
-/// The call `bmm_size_swap(x, y)`
-/// exchanges `x` with `y`.
-__attribute__ ((__nonnull__))
-inline void bmm_size_swap(size_t *restrict const x, size_t *restrict const y) {
-  size_t const tmp = *x;
-  *x = *y;
-  *y = tmp;
-}
+// TODO Ha ha! Almost everything!
 
 /// The call `bmm_size_even(n)`
 /// checks whether `n` is even.
@@ -132,7 +102,7 @@ inline size_t bmm_size_midpoint(size_t const n, size_t const k) {
 
 /// The call `bmm_size_sq(n)` returns `n` squared.
 /// This is analogous to `bmm_fp_sq`.
-/// Overflows are impossible internally, but possible externally.
+/// Overflows are impossible internally but possible externally.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_sq(size_t const n) {
   return n * n;
@@ -140,7 +110,7 @@ inline size_t bmm_size_sq(size_t const n) {
 
 /// The call `bmm_size_cb(n)` returns `n` cubed.
 /// This is analogous to `bmm_fp_cb`.
-/// Overflows are impossible internally, but possible externally.
+/// Overflows are impossible internally but possible externally.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_cb(size_t const n) {
   return n * n * n;
@@ -190,7 +160,7 @@ inline size_t bmm_size_clog(size_t const n, size_t const k) {
 /// The call `bmm_size_pow(x, e)`
 /// returns `x` to the power of `e`.
 /// This is analogous to `bmm_fp_pow`.
-/// Overflows are impossible internally, but possible externally.
+/// Overflows are impossible internally but possible externally.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_pow(size_t const x, size_t const e) {
   size_t y = 1;
@@ -262,46 +232,54 @@ inline size_t bmm_size_uclamp(size_t const n, size_t const b) {
   return n >= b ? b - 1 : n;
 }
 
-/// The call `m = bmm_size_wrap(n, a, b)`
-/// solves the periodic equation `m == n - a + k * a` for `m`,
-/// where `a <= m < b` and `k` is some integer.
+/// The call `bmm_wrap(x, a, b)`
+/// finds such `y` that `a <= y < b`
+/// by shifting `x` by the appropriate number of multiples of `b - a`.
 /// If `b <= a`, the behavior is undefined.
-/// This is analogous to `bmm_fp_wrap`.
 /// Overflows are impossible both internally and externally.
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
-inline size_t bmm_size_wrap(size_t const n, size_t const a, size_t const b) {
+inline A inst(bmm_wrap, A)(A const x, A const a, A const b) {
 #ifndef DEBUG
   dynamic_assert(b > a, "Invalid argument");
 #endif
 
-  size_t const c = b - a;
+  A const c = b - a;
 
-  return (n % c + c - a % c) % c + a;
+  if (x >= a)
+    return (x - a) % c + a;
+
+  A const xc = x % c;
+  A const ac = a % c;
+
+  if (xc >= ac)
+    return (xc - ac) % c + a;
+
+  return (c - (ac - xc)) % c + a;
 
   // The following implementation is easier to understand,
   // but susceptible to overflowing.
-  // size_t const c = b - a;
+  // A const c = b - a;
   //
-  // return (n - a) % c + a;
+  // return (x - a) % c + a;
 
   // The following implementation is easier to understand,
   // but slower (linear instead of constant).
-  // size_t const c = b - a;
+  // A const c = b - a;
   //
-  // size_t k = n;
+  // A y = x;
   //
-  // if (k < a)
+  // if (y < a)
   //   do
-  //     k += c;
-  //   while (k < a);
-  // else if (k >= b)
+  //     y += c;
+  //   while (y < a);
+  // else if (y >= b)
   //   do
-  //     k -= c;
-  //   while (k >= b);
+  //     y -= c;
+  //   while (y >= b);
   //
-  // return k;
+  // return y;
 }
 
 /// The call `m = bmm_size_uwrap(n, b)`
@@ -325,7 +303,7 @@ inline size_t bmm_size_uwrap(size_t const n, size_t const b) {
 /// The call `bmm_size_uinc(n, b)`
 /// is equivalent to `bmm_size_inc(n, 0, b)`.
 /// If `b <= 0`, the behavior is undefined.
-/// Overflows are impossible both internally and externally.
+/// Overflows are possible both internally and externally.
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
@@ -338,9 +316,9 @@ inline size_t bmm_size_uinc(size_t const n, size_t const b) {
 }
 
 /// The call `bmm_size_inc(n, a, b)`
-/// is equivalent to `bmm_size_wrap(n + 1, a, b)` without wrapping.
+/// is equivalent to `inst(bmm_wrap, size_t)(n + 1, a, b)` without wrapping.
 /// If `b <= a`, the behavior is undefined.
-/// Overflows are impossible both internally and externally.
+/// Overflows are possible both internally and externally.
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
@@ -357,7 +335,7 @@ inline size_t bmm_size_inc(size_t const n, size_t const a, size_t const b) {
 /// The call `bmm_size_udec(n, b)`
 /// is equivalent to `bmm_size_dec(n, 0, b)`.
 /// If `b <= 0`, the behavior is undefined.
-/// Overflows are impossible both internally and externally.
+/// Overflows are possible both internally and externally.
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
@@ -370,9 +348,9 @@ inline size_t bmm_size_udec(size_t const n, size_t const b) {
 }
 
 /// The call `bmm_size_dec(n, a, b)`
-/// is equivalent to `bmm_size_wrap(n - 1, a, b)` without wrapping.
+/// is equivalent to `inst(bmm_wrap, size_t)(n - 1, a, b)` without wrapping.
 /// If `b <= a`, the behavior is undefined.
-/// Overflows are impossible both internally and externally.
+/// Overflows are possible both internally and externally.
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
@@ -388,7 +366,7 @@ inline size_t bmm_size_dec(size_t const n, size_t const a, size_t const b) {
 
 /// The call `bmm_size_fact(n, k)`
 /// returns the `k`-factorial of `n`.
-/// Overflows are impossible both internally and externally.
+/// Overflows are impossible internally but possible externally.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_fact(size_t const n, size_t const k) {
   size_t m = 1;
@@ -401,7 +379,7 @@ inline size_t bmm_size_fact(size_t const n, size_t const k) {
 
 /// The call `bmm_size_tri(n)`
 /// returns the `n`th triangular number.
-/// Overflows are impossible both internally and externally.
+/// Overflows are impossible internally but possible externally.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_tri(size_t const n) {
   // return bmm_size_choose(n + 1, 2);
@@ -410,7 +388,7 @@ inline size_t bmm_size_tri(size_t const n) {
 
 /// The call `bmm_size_sum(n, k)`
 /// returns the sum of the array `n` of length `k`.
-/// Overflows are impossible internally, but possible externally.
+/// Overflows are impossible internally but possible externally.
 __attribute__ ((__pure__))
 inline size_t bmm_size_sum(size_t const *const n, size_t const k) {
   size_t m = 0;
@@ -423,7 +401,7 @@ inline size_t bmm_size_sum(size_t const *const n, size_t const k) {
 
 /// The call `bmm_size_prod(n, k)`
 /// returns the product of the array `n` of length `k`.
-/// Overflows are impossible internally, but possible externally.
+/// Overflows are impossible internally but possible externally.
 __attribute__ ((__pure__))
 inline size_t bmm_size_prod(size_t const *const n, size_t const k) {
   size_t m = 1;
@@ -458,92 +436,4 @@ inline size_t bmm_size_rfold(size_t (*const f)(size_t, size_t, void *),
     z = f(x[n - 1 - i], z, ptr);
 
   return z;
-}
-
-/// The call `bmm_size_hc(pij, i, ndim, nper)`
-/// sets the index vector `pij` to the index `i`
-/// in a hypercube with dimension `ndim` and side length `nper`.
-/// Overflows are impossible both internally and externally.
-__attribute__ ((__nonnull__))
-inline void bmm_size_hc(size_t *const pij,
-    size_t const i, size_t const ndim, size_t const nper) {
-  bmm_size_div_t qr = {.quot = i, .rem = 0};
-  for (size_t idim = 0; idim < ndim; ++idim) {
-    qr = bmm_size_div(qr.quot, nper);
-
-    pij[ndim - 1 - idim] = qr.rem;
-  }
-}
-
-/// The call `bmm_size_unhc(ij, ndim, nper)`
-/// returns the index of the index vector `ij`
-/// in a hypercube with dimension `ndim` and side length `nper`.
-/// Overflows are impossible internally, but possible externally.
-__attribute__ ((__nonnull__, __pure__))
-inline size_t bmm_size_unhc(size_t const *const ij,
-    size_t const ndim, size_t const nper) {
-  size_t i = 0;
-
-  for (size_t idim = 0; idim < ndim; ++idim) {
-    i *= nper;
-    i += ij[idim];
-  }
-
-  return i;
-}
-
-/// The call `bmm_size_hc(pij, i, ndim, nper)`
-/// sets the index vector `pij` to the index `i`
-/// in a hypercuboid with dimension `ndim` and side lengths `nper`.
-/// Overflows are impossible both internally and externally.
-__attribute__ ((__nonnull__))
-inline void bmm_size_hcd(size_t *restrict const pij,
-    size_t const i, size_t const ndim, size_t const *restrict const nper) {
-  bmm_size_div_t qr = {.quot = i, .rem = 0};
-  for (size_t idim = 0; idim < ndim; ++idim) {
-    qr = bmm_size_div(qr.quot, nper[ndim - 1 - idim]);
-
-    pij[ndim - 1 - idim] = qr.rem;
-  }
-
-  // The following implementation is suitable for loop fusion,
-  // but less reliable.
-  // size_t *const buf = alloca(ndim * sizeof *buf);
-  //
-  // bmm_size_div_t qr = {.quot = i, .rem = 0};
-  // for (size_t idim = 0; idim < ndim; ++idim) {
-  //   qr = bmm_size_div(qr.quot, nper[ndim - 1 - idim]);
-  //
-  //   buf[ndim - 1 - idim] = qr.rem;
-  // }
-  //
-  // for (size_t idim = 0; idim < ndim; ++idim)
-  //   pij[idim] = buf[idim];
-
-  // The following implementation is suitable for loop fusion,
-  // but slower (quadratic instead of linear).
-  // for (size_t idim = 0; idim < ndim; ++idim) {
-  //   bmm_size_div_t qr = {.quot = i, .rem = 0};
-  //   for (size_t jdim = 0; jdim < ndim - idim; ++jdim)
-  //     qr = bmm_size_div(qr.quot, nper[ndim - 1 - jdim]);
-  //
-  //   pij[idim] = qr.rem;
-  // }
-}
-
-/// The call `bmm_size_unhc(ij, ndim, nper)`
-/// returns the index of the index vector `ij`
-/// in a hypercuboid with dimension `ndim` and side lengths `nper`.
-/// Overflows are impossible internally, but possible externally.
-__attribute__ ((__nonnull__, __pure__))
-inline size_t bmm_size_unhcd(size_t const *restrict const ij,
-    size_t const ndim, size_t const *restrict const nper) {
-  size_t i = 0;
-
-  for (size_t idim = 0; idim < ndim; ++idim) {
-    i *= nper[idim];
-    i += ij[idim];
-  }
-
-  return i;
 }

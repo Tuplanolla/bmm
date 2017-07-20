@@ -1,5 +1,6 @@
-#ifndef BMM_OPT_H
 /// Restricted command line option parsing.
+
+#ifndef BMM_OPT_H
 #define BMM_OPT_H
 
 #include <stdbool.h>

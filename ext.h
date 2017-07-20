@@ -1,5 +1,6 @@
-#ifndef BMM_EXT_H
 /// Language extensions.
+
+#ifndef BMM_EXT_H
 ///
 /// Note that this header defines symbols beyond its own namespace,
 /// so it should not be included before standard library headers.
