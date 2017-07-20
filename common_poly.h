@@ -26,8 +26,8 @@ inline void inst(bmm_map, A)(size_t const nmemb, void (*const proc)(size_t)) {
 /// The closure `cls` is passed through to `proc`.
 /// Overflows are handled appropriately.
 __attribute__ ((__nonnull__ (2)))
-inline void inst(bmm_map_cls, A, B)(B const nmemb,
-    void (*const proc)(B, void *), void *const cls) {
+inline void inst(bmm_map_cls, A)(size_t const nmemb,
+    void (*const proc)(size_t, void *), void *const cls) {
   for (size_t i = 0; i < nmemb; ++i)
     proc(i, cls);
 }

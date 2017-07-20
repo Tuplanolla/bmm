@@ -5,7 +5,6 @@
 
 #include "common_mono.c"
 
-#define B size_t
 #define A int
 #include "common_poly.c"
 #undef A

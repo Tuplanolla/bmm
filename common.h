@@ -8,7 +8,6 @@
 
 #include "common_mono.h"
 
-#define B size_t
 #define A int
 #include "common_poly.h"
 #undef A
