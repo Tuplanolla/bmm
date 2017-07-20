@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "common.h"
 #include "cpp.h"
 #include "endy.h"
 #include "ext.h"
@@ -11,14 +12,23 @@
 #include "geom2d.h"
 #include "neigh.h"
 #include "msg.h"
-#include "size.h"
-#include "sort.h"
-#include "swap.h"
 
 CHEAT_DECLARE(
   static size_t const ndim = 2;
   static size_t const nper[] = {6, 5};
   static bool const per[] = {true, false};
+)
+
+CHEAT_TEST(size_pow,
+  for (size_t i = 0; i < 256; ++i) {
+    cheat_assert_size(bmm_size_pow(i, 0), BMM_POW(i, 0));
+    cheat_assert_size(bmm_size_pow(i, 1), BMM_POW(i, 1));
+    cheat_assert_size(bmm_size_pow(i, 2), BMM_POW(i, 2));
+    cheat_assert_size(bmm_size_pow(i, 3), BMM_POW(i, 3));
+    cheat_assert_size(bmm_size_pow(i, 4), BMM_POW(i, 4));
+    cheat_assert_size(bmm_size_pow(i, 5), BMM_POW(i, 5));
+    cheat_assert_size(bmm_size_pow(i, 6), BMM_POW(i, 6));
+  }
 )
 
 CHEAT_TEST(size_fact,
@@ -76,7 +86,7 @@ CHEAT_DECLARE(
   }
 )
 
-CHEAT_TEST(sort_heapsort,
+CHEAT_TEST(hsort,
   int x[255];
 
   static size_t const perm[][3] = {
@@ -96,7 +106,7 @@ CHEAT_TEST(sort_heapsort,
     x[i] = (int) k;
   }
 
-  bmm_sort_heapsort(nmembof(x), compar, swap, x);
+  bmm_hsort(nmembof(x), compar, swap, x);
 
   for (size_t i = 1; i < nmembof(x); ++i)
     cheat_assert(x[i - 1] <= x[i]);

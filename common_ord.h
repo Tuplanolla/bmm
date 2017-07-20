@@ -1,12 +1,10 @@
-#ifndef BMM_SIZE_H
-/// Index space operations.
-#define BMM_SIZE_H
-
 #include <stdbool.h>
 #include <stddef.h>
 
 #include "cpp.h"
 #include "ext.h"
+
+// TODO Ha ha! Everything!
 
 /// This structure holds the quotient and remainder of a division
 /// in unspecified order.
@@ -493,5 +491,3 @@ inline size_t bmm_size_unhcd(size_t const *restrict const ij,
 
   return i;
 }
-
-#endif

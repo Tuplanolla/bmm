@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <sys/time.h>
 
+#include "common.h"
 #include "dem.h"
 #include "endy.h"
 #include "ext.h"
@@ -15,7 +16,6 @@
 #include "io.h"
 #include "msg.h"
 #include "sdl.h"
-#include "size.h"
 #include "tle.h"
 
 static SDL_Window *window;

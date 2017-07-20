@@ -2,10 +2,10 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "common.h"
 #include "ext.h"
 #include "fp.h"
 #include "hist.h"
-#include "size.h"
 
 void bmm_hist_free(struct bmm_hist *const hist) {
   if (hist != NULL) {

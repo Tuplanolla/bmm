@@ -5,10 +5,10 @@
 #include <math.h>
 #include <stddef.h>
 
+#include "common.h"
 #include "cpp.h"
 #include "ext.h"
 #include "fp.h"
-#include "size.h"
 
 /// The call `bmm_geom_ballvol(r, d)`
 /// returns the volume of the `d`-dimensional ball of radius `r`.

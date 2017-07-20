@@ -5,13 +5,13 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "common.h"
 #include "conf.h"
 #include "cpp.h"
 #include "endy.h"
 #include "ext.h"
 #include "io.h"
 #include "msg.h"
-#include "size.h"
 #include "tle.h"
 
 static struct {

@@ -18,22 +18,20 @@ static bool params(size_t const n) {
 }
 
 static bool terms(size_t const n) {
-  if (printf("(0") < 0)
-    return false;
-
-  for (size_t i = 0; i < n; ++i)
-    if (printf(" | (1 << (x%zu))", i) < 0)
+  for (size_t i = 0; i < n; ++i) {
+    if (i > 0)
+      if (printf("##") < 0)
+        return false;
+    if (printf("x%zu", i) < 0)
       return false;
-
-  if (printf(")") < 0)
-    return false;
+  }
 
   return true;
 }
 
 static bool dirs(size_t const n) {
   for (size_t i = 0; i <= n; ++i)
-    if (printf("#define BMM_MASKBITS_%zu(", i) < 0 ||
+    if (printf("#define BMM_CONCAT_%zu(", i) < 0 ||
         !params(i) ||
         printf(") ") < 0 ||
         !terms(i) ||

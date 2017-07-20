@@ -28,9 +28,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "common.h"
 #include "cpp.h"
 #include "ext.h"
-#include "size.h"
 
 /// No neighborhood.
 /// This is meant to be used alone and

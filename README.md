@@ -544,18 +544,18 @@ Ignoring `const` and other qualifiers, the following basic types exist in C11.
 
 | Category                        | Sign-Agnostic    | Signed                | Unsigned
 |:--------------------------------|:-----------------|:----------------------|:---------
-| Characters and Bytes            | `char`           | `signed char`         | `unsigned char`
+| Bytes and Characters            | `char`           | `signed char`         | `unsigned char`
 | Pointers                        | `void *`         |                       |  
 | Function Pointers               | `void (*)(void)` |                       |  
 | Integers                        |                  | `short int`           | `unsigned short int`
 | Integers                        |                  | `int`                 | `unsigned int`
 | Integers                        |                  | `long int`            | `unsigned long int`
 | Integers                        |                  | `long long int`       | `unsigned long long int`
-| Special-Purpose Integers        |                  |                       | `size_t`
-| Special-Purpose Integers        |                  | `ptrdiff_t`           |  
 | Floating-Point Numbers          |                  | `float`               |  
 | Floating-Point Numbers          |                  | `double`              |  
 | Floating-Point Numbers          |                  | `long double`         |  
+| Special-Purpose Integers        |                  |                       | `size_t`
+| Special-Purpose Integers        |                  | `ptrdiff_t`           |  
 | Enumerations                    | `bool`           |                       |  
 | Extended Integers               |                  | `int8_t`              | `uint8_t`
 | Extended Integers               |                  | `int_least8_t`        | `uint_least8_t`

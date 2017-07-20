@@ -1,18 +1,14 @@
-#ifndef BMM_SORT_H
-/// Higher-order sorting procedures.
-#define BMM_SORT_H
-
 #include <stddef.h>
 
 #include "ext.h"
 
-/// The call `bmm_sort_heapsort(nmemb, compar, swap, cls)`
+/// The call `bmm_hsort(nmemb, compar, swap, cls)`
 /// uses unstable heap sort to rearrange `nmemb` items
 /// with the comparison function `compar` and the swap procedure `swap`.
 /// The closure `cls` is passed through to `compar` and `swap`.
 /// Overflows are handled appropriately.
 __attribute__ ((__nonnull__ (2, 3)))
-inline void bmm_sort_heapsort(size_t const nmemb,
+inline void bmm_hsort(size_t const nmemb,
     int (*const compar)(size_t, size_t, void *),
     void (*const swap)(size_t, size_t, void *), void *cls) {
   for (size_t i = 1; i < nmemb / 2 + 1; ++i) {
@@ -59,5 +55,3 @@ inline void bmm_sort_heapsort(size_t const nmemb,
     }
   }
 }
-
-#endif

@@ -11,22 +11,20 @@
 #include <fenv.h>
 #endif
 
+#include "common.h"
 #include "conf.h"
 #include "cpp.h"
 #include "dem.h"
 #include "fp.h"
 #include "geom.h"
 #include "geom2d.h"
-#include "hist.h"
 #include "io.h"
 #include "ival.h"
 #include "kernel.h"
-#include "neigh.h"
 #include "msg.h"
+#include "neigh.h"
 #include "random.h"
 #include "sig.h"
-#include "size.h"
-#include "sort.h"
 #include "tle.h"
 
 size_t bmm_dem_script_addstage(struct bmm_dem_opts *const opts) {
@@ -1050,7 +1048,7 @@ bool bmm_dem_est_raddist(double *const pr, double *const pg,
   double const bw = bmm_ival_midpoint(dem->opts.part.rnew) / 8.0;
 
   double *rw[] = {r, w};
-  bmm_sort_heapsort(nmemb, compar, swap, rw);
+  bmm_hsort(nmemb, compar, swap, rw);
   wkde_sample_sorted(pr, pg, r, w, nmemb, bw, nbin, 0.0, rmax);
   // wkde_sample(pr, pg, r, w, nmemb, bw, nbin, 0.0, rmax);
 

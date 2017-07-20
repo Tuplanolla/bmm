@@ -2,6 +2,19 @@
 /// Preprocessor directives.
 #define BMM_CPP_H
 
+#define BMM_VA_GET_64_(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30, x31, x32, x33, x34, x35, x36, x37, x38, x39, x40, x41, x42, x43, x44, x45, x46, x47, x48, x49, x50, x51, x52, x53, x54, x55, x56, x57, x58, x59, x60, x61, x62, x63, ...) x63
+#define BMM_VA_GET_64(...) BMM_VA_GET_64_(__VA_ARGS__)
+#define BMM_VA_SEQ_64() 63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0
+#define BMM_VA_NARGS(...) BMM_VA_GET_64(__VA_ARGS__, BMM_VA_SEQ_64())
+#define BMM_VA_N_(x, n) x##_##n
+/// The preprocessor directive `BMM_VA_N(x, n)`
+/// expands to `x_n` after expanding `n`.
+#define BMM_VA_N(x, n) BMM_VA_N_(x, n)
+/// The preprocessor directive `BMM_VA_DECL(x, __VA_ARGS__)`
+/// expands to the declaration of `x`,
+/// which expands to `x_n` when used with `n` arguments.
+#define BMM_VA_DECL(x, ...) BMM_VA_N(x, BMM_VA_NARGS(__VA_ARGS__))(__VA_ARGS__)
+
 /// The preprocessor directive `BMM_VERSION(x, y, z)`
 /// expands to the version number string `"x.y.z"`.
 #define BMM_VERSION(x, y, z) #x "." #y "." #z
@@ -17,6 +30,75 @@
 /// The preprocessor directive `BMM_MAX(x, y)`
 /// expands to the greater of `x` and `y`.
 #define BMM_MAX(x, y) ((x) > (y) ? (x) : (y))
+
+// TODO Generalize generators?
+
+// These were generated with `./concat 64`.
+#define BMM_CONCAT_0 ()
+#define BMM_CONCAT_1(x0) x0
+#define BMM_CONCAT_2(x0, x1) x0##x1
+#define BMM_CONCAT_3(x0, x1, x2) x0##x1##x2
+#define BMM_CONCAT_4(x0, x1, x2, x3) x0##x1##x2##x3
+#define BMM_CONCAT_5(x0, x1, x2, x3, x4) x0##x1##x2##x3##x4
+#define BMM_CONCAT_6(x0, x1, x2, x3, x4, x5) x0##x1##x2##x3##x4##x5
+#define BMM_CONCAT_7(x0, x1, x2, x3, x4, x5, x6) x0##x1##x2##x3##x4##x5##x6
+#define BMM_CONCAT_8(x0, x1, x2, x3, x4, x5, x6, x7) x0##x1##x2##x3##x4##x5##x6##x7
+#define BMM_CONCAT_9(x0, x1, x2, x3, x4, x5, x6, x7, x8) x0##x1##x2##x3##x4##x5##x6##x7##x8
+#define BMM_CONCAT_10(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9
+#define BMM_CONCAT_11(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10
+#define BMM_CONCAT_12(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11
+#define BMM_CONCAT_13(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12
+#define BMM_CONCAT_14(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13
+#define BMM_CONCAT_15(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14
+#define BMM_CONCAT_16(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15
+#define BMM_CONCAT_17(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16
+#define BMM_CONCAT_18(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17
+#define BMM_CONCAT_19(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18
+#define BMM_CONCAT_20(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19
+#define BMM_CONCAT_21(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20
+#define BMM_CONCAT_22(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21
+#define BMM_CONCAT_23(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22
+#define BMM_CONCAT_24(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23
+#define BMM_CONCAT_25(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24
+#define BMM_CONCAT_26(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24##x25
+#define BMM_CONCAT_27(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24##x25##x26
+#define BMM_CONCAT_28(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24##x25##x26##x27
+#define BMM_CONCAT_29(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24##x25##x26##x27##x28
+#define BMM_CONCAT_30(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24##x25##x26##x27##x28##x29
+#define BMM_CONCAT_31(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24##x25##x26##x27##x28##x29##x30
+#define BMM_CONCAT_32(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30, x31) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24##x25##x26##x27##x28##x29##x30##x31
+#define BMM_CONCAT_33(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30, x31, x32) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24##x25##x26##x27##x28##x29##x30##x31##x32
+#define BMM_CONCAT_34(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30, x31, x32, x33) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24##x25##x26##x27##x28##x29##x30##x31##x32##x33
+#define BMM_CONCAT_35(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30, x31, x32, x33, x34) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24##x25##x26##x27##x28##x29##x30##x31##x32##x33##x34
+#define BMM_CONCAT_36(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30, x31, x32, x33, x34, x35) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24##x25##x26##x27##x28##x29##x30##x31##x32##x33##x34##x35
+#define BMM_CONCAT_37(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30, x31, x32, x33, x34, x35, x36) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24##x25##x26##x27##x28##x29##x30##x31##x32##x33##x34##x35##x36
+#define BMM_CONCAT_38(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30, x31, x32, x33, x34, x35, x36, x37) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24##x25##x26##x27##x28##x29##x30##x31##x32##x33##x34##x35##x36##x37
+#define BMM_CONCAT_39(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30, x31, x32, x33, x34, x35, x36, x37, x38) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24##x25##x26##x27##x28##x29##x30##x31##x32##x33##x34##x35##x36##x37##x38
+#define BMM_CONCAT_40(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30, x31, x32, x33, x34, x35, x36, x37, x38, x39) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24##x25##x26##x27##x28##x29##x30##x31##x32##x33##x34##x35##x36##x37##x38##x39
+#define BMM_CONCAT_41(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30, x31, x32, x33, x34, x35, x36, x37, x38, x39, x40) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24##x25##x26##x27##x28##x29##x30##x31##x32##x33##x34##x35##x36##x37##x38##x39##x40
+#define BMM_CONCAT_42(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30, x31, x32, x33, x34, x35, x36, x37, x38, x39, x40, x41) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24##x25##x26##x27##x28##x29##x30##x31##x32##x33##x34##x35##x36##x37##x38##x39##x40##x41
+#define BMM_CONCAT_43(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30, x31, x32, x33, x34, x35, x36, x37, x38, x39, x40, x41, x42) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24##x25##x26##x27##x28##x29##x30##x31##x32##x33##x34##x35##x36##x37##x38##x39##x40##x41##x42
+#define BMM_CONCAT_44(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30, x31, x32, x33, x34, x35, x36, x37, x38, x39, x40, x41, x42, x43) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24##x25##x26##x27##x28##x29##x30##x31##x32##x33##x34##x35##x36##x37##x38##x39##x40##x41##x42##x43
+#define BMM_CONCAT_45(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30, x31, x32, x33, x34, x35, x36, x37, x38, x39, x40, x41, x42, x43, x44) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24##x25##x26##x27##x28##x29##x30##x31##x32##x33##x34##x35##x36##x37##x38##x39##x40##x41##x42##x43##x44
+#define BMM_CONCAT_46(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30, x31, x32, x33, x34, x35, x36, x37, x38, x39, x40, x41, x42, x43, x44, x45) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24##x25##x26##x27##x28##x29##x30##x31##x32##x33##x34##x35##x36##x37##x38##x39##x40##x41##x42##x43##x44##x45
+#define BMM_CONCAT_47(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30, x31, x32, x33, x34, x35, x36, x37, x38, x39, x40, x41, x42, x43, x44, x45, x46) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24##x25##x26##x27##x28##x29##x30##x31##x32##x33##x34##x35##x36##x37##x38##x39##x40##x41##x42##x43##x44##x45##x46
+#define BMM_CONCAT_48(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30, x31, x32, x33, x34, x35, x36, x37, x38, x39, x40, x41, x42, x43, x44, x45, x46, x47) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24##x25##x26##x27##x28##x29##x30##x31##x32##x33##x34##x35##x36##x37##x38##x39##x40##x41##x42##x43##x44##x45##x46##x47
+#define BMM_CONCAT_49(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30, x31, x32, x33, x34, x35, x36, x37, x38, x39, x40, x41, x42, x43, x44, x45, x46, x47, x48) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24##x25##x26##x27##x28##x29##x30##x31##x32##x33##x34##x35##x36##x37##x38##x39##x40##x41##x42##x43##x44##x45##x46##x47##x48
+#define BMM_CONCAT_50(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30, x31, x32, x33, x34, x35, x36, x37, x38, x39, x40, x41, x42, x43, x44, x45, x46, x47, x48, x49) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24##x25##x26##x27##x28##x29##x30##x31##x32##x33##x34##x35##x36##x37##x38##x39##x40##x41##x42##x43##x44##x45##x46##x47##x48##x49
+#define BMM_CONCAT_51(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30, x31, x32, x33, x34, x35, x36, x37, x38, x39, x40, x41, x42, x43, x44, x45, x46, x47, x48, x49, x50) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24##x25##x26##x27##x28##x29##x30##x31##x32##x33##x34##x35##x36##x37##x38##x39##x40##x41##x42##x43##x44##x45##x46##x47##x48##x49##x50
+#define BMM_CONCAT_52(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30, x31, x32, x33, x34, x35, x36, x37, x38, x39, x40, x41, x42, x43, x44, x45, x46, x47, x48, x49, x50, x51) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24##x25##x26##x27##x28##x29##x30##x31##x32##x33##x34##x35##x36##x37##x38##x39##x40##x41##x42##x43##x44##x45##x46##x47##x48##x49##x50##x51
+#define BMM_CONCAT_53(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30, x31, x32, x33, x34, x35, x36, x37, x38, x39, x40, x41, x42, x43, x44, x45, x46, x47, x48, x49, x50, x51, x52) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24##x25##x26##x27##x28##x29##x30##x31##x32##x33##x34##x35##x36##x37##x38##x39##x40##x41##x42##x43##x44##x45##x46##x47##x48##x49##x50##x51##x52
+#define BMM_CONCAT_54(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30, x31, x32, x33, x34, x35, x36, x37, x38, x39, x40, x41, x42, x43, x44, x45, x46, x47, x48, x49, x50, x51, x52, x53) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24##x25##x26##x27##x28##x29##x30##x31##x32##x33##x34##x35##x36##x37##x38##x39##x40##x41##x42##x43##x44##x45##x46##x47##x48##x49##x50##x51##x52##x53
+#define BMM_CONCAT_55(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30, x31, x32, x33, x34, x35, x36, x37, x38, x39, x40, x41, x42, x43, x44, x45, x46, x47, x48, x49, x50, x51, x52, x53, x54) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24##x25##x26##x27##x28##x29##x30##x31##x32##x33##x34##x35##x36##x37##x38##x39##x40##x41##x42##x43##x44##x45##x46##x47##x48##x49##x50##x51##x52##x53##x54
+#define BMM_CONCAT_56(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30, x31, x32, x33, x34, x35, x36, x37, x38, x39, x40, x41, x42, x43, x44, x45, x46, x47, x48, x49, x50, x51, x52, x53, x54, x55) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24##x25##x26##x27##x28##x29##x30##x31##x32##x33##x34##x35##x36##x37##x38##x39##x40##x41##x42##x43##x44##x45##x46##x47##x48##x49##x50##x51##x52##x53##x54##x55
+#define BMM_CONCAT_57(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30, x31, x32, x33, x34, x35, x36, x37, x38, x39, x40, x41, x42, x43, x44, x45, x46, x47, x48, x49, x50, x51, x52, x53, x54, x55, x56) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24##x25##x26##x27##x28##x29##x30##x31##x32##x33##x34##x35##x36##x37##x38##x39##x40##x41##x42##x43##x44##x45##x46##x47##x48##x49##x50##x51##x52##x53##x54##x55##x56
+#define BMM_CONCAT_58(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30, x31, x32, x33, x34, x35, x36, x37, x38, x39, x40, x41, x42, x43, x44, x45, x46, x47, x48, x49, x50, x51, x52, x53, x54, x55, x56, x57) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24##x25##x26##x27##x28##x29##x30##x31##x32##x33##x34##x35##x36##x37##x38##x39##x40##x41##x42##x43##x44##x45##x46##x47##x48##x49##x50##x51##x52##x53##x54##x55##x56##x57
+#define BMM_CONCAT_59(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30, x31, x32, x33, x34, x35, x36, x37, x38, x39, x40, x41, x42, x43, x44, x45, x46, x47, x48, x49, x50, x51, x52, x53, x54, x55, x56, x57, x58) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24##x25##x26##x27##x28##x29##x30##x31##x32##x33##x34##x35##x36##x37##x38##x39##x40##x41##x42##x43##x44##x45##x46##x47##x48##x49##x50##x51##x52##x53##x54##x55##x56##x57##x58
+#define BMM_CONCAT_60(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30, x31, x32, x33, x34, x35, x36, x37, x38, x39, x40, x41, x42, x43, x44, x45, x46, x47, x48, x49, x50, x51, x52, x53, x54, x55, x56, x57, x58, x59) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24##x25##x26##x27##x28##x29##x30##x31##x32##x33##x34##x35##x36##x37##x38##x39##x40##x41##x42##x43##x44##x45##x46##x47##x48##x49##x50##x51##x52##x53##x54##x55##x56##x57##x58##x59
+#define BMM_CONCAT_61(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30, x31, x32, x33, x34, x35, x36, x37, x38, x39, x40, x41, x42, x43, x44, x45, x46, x47, x48, x49, x50, x51, x52, x53, x54, x55, x56, x57, x58, x59, x60) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24##x25##x26##x27##x28##x29##x30##x31##x32##x33##x34##x35##x36##x37##x38##x39##x40##x41##x42##x43##x44##x45##x46##x47##x48##x49##x50##x51##x52##x53##x54##x55##x56##x57##x58##x59##x60
+#define BMM_CONCAT_62(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30, x31, x32, x33, x34, x35, x36, x37, x38, x39, x40, x41, x42, x43, x44, x45, x46, x47, x48, x49, x50, x51, x52, x53, x54, x55, x56, x57, x58, x59, x60, x61) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24##x25##x26##x27##x28##x29##x30##x31##x32##x33##x34##x35##x36##x37##x38##x39##x40##x41##x42##x43##x44##x45##x46##x47##x48##x49##x50##x51##x52##x53##x54##x55##x56##x57##x58##x59##x60##x61
+#define BMM_CONCAT_63(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30, x31, x32, x33, x34, x35, x36, x37, x38, x39, x40, x41, x42, x43, x44, x45, x46, x47, x48, x49, x50, x51, x52, x53, x54, x55, x56, x57, x58, x59, x60, x61, x62) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24##x25##x26##x27##x28##x29##x30##x31##x32##x33##x34##x35##x36##x37##x38##x39##x40##x41##x42##x43##x44##x45##x46##x47##x48##x49##x50##x51##x52##x53##x54##x55##x56##x57##x58##x59##x60##x61##x62
+#define BMM_CONCAT_64(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30, x31, x32, x33, x34, x35, x36, x37, x38, x39, x40, x41, x42, x43, x44, x45, x46, x47, x48, x49, x50, x51, x52, x53, x54, x55, x56, x57, x58, x59, x60, x61, x62, x63) x0##x1##x2##x3##x4##x5##x6##x7##x8##x9##x10##x11##x12##x13##x14##x15##x16##x17##x18##x19##x20##x21##x22##x23##x24##x25##x26##x27##x28##x29##x30##x31##x32##x33##x34##x35##x36##x37##x38##x39##x40##x41##x42##x43##x44##x45##x46##x47##x48##x49##x50##x51##x52##x53##x54##x55##x56##x57##x58##x59##x60##x61##x62##x63
 
 // These were generated with `./pow 64`.
 #define BMM_POW_0(x) (1)
@@ -85,16 +167,11 @@
 #define BMM_POW_63(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
 #define BMM_POW_64(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
 
-/// The preprocessor directive `BMM_POW_n(x)`
-/// expands to `x` raised to the power `n`.
-#define BMM_POW_(x, n) BMM_POW_##n(x)
-
 /// The preprocessor directive `BMM_POW(x, n)`
-/// expands to `x` raised to the power `n`.
+/// expands to `x` to the power of `n`.
 /// If the value is not known at compile time,
 /// use `bmm_fp_pow` instead.
-/// See `BMM_POW_0`.
-#define BMM_POW(x, n) BMM_POW_(x, n)
+#define BMM_POW(x, n) BMM_VA_N(BMM_POW, n)(x)
 
 // These were generated with `./fact 64`.
 #define BMM_FACT_0() (1)
@@ -163,16 +240,11 @@
 #define BMM_FACT_63() (1 * 1 * 2 * 3 * 4 * 5 * 6 * 7 * 8 * 9 * 10 * 11 * 12 * 13 * 14 * 15 * 16 * 17 * 18 * 19 * 20 * 21 * 22 * 23 * 24 * 25 * 26 * 27 * 28 * 29 * 30 * 31 * 32 * 33 * 34 * 35 * 36 * 37 * 38 * 39 * 40 * 41 * 42 * 43 * 44 * 45 * 46 * 47 * 48 * 49 * 50 * 51 * 52 * 53 * 54 * 55 * 56 * 57 * 58 * 59 * 60 * 61 * 62 * 63)
 #define BMM_FACT_64() (1 * 1 * 2 * 3 * 4 * 5 * 6 * 7 * 8 * 9 * 10 * 11 * 12 * 13 * 14 * 15 * 16 * 17 * 18 * 19 * 20 * 21 * 22 * 23 * 24 * 25 * 26 * 27 * 28 * 29 * 30 * 31 * 32 * 33 * 34 * 35 * 36 * 37 * 38 * 39 * 40 * 41 * 42 * 43 * 44 * 45 * 46 * 47 * 48 * 49 * 50 * 51 * 52 * 53 * 54 * 55 * 56 * 57 * 58 * 59 * 60 * 61 * 62 * 63 * 64)
 
-/// The preprocessor directive `BMM_FACT_n(n)`
-/// expands to the factorial of `n`.
-#define BMM_FACT_(n) BMM_FACT_##n()
-
-/// The preprocessor directive `BMM_FACT(x, n)`
+/// The preprocessor directive `BMM_FACT(n)`
 /// expands to the factorial of `n`.
 /// If the value is not known at compile time,
 /// use `bmm_fp_fact` instead.
-/// See `BMM_FACT_0`.
-#define BMM_FACT(n) BMM_FACT_(n)
+#define BMM_FACT(n) BMM_VA_N(BMM_FACT, n)()
 
 /// The preprocessor directive `BMM_MASKALL(x, m)`
 /// checks whether all bits in `x` match the bit mask `m`.
