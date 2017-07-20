@@ -6,7 +6,7 @@
 /// uses unstable heap sort to rearrange `nmemb` items
 /// with the comparison function `compar` and the swap procedure `swap`.
 /// The closure `cls` is passed through to `compar` and `swap`.
-/// Overflows are handled appropriately.
+/// Overflows are impossible both internally and externally.
 __attribute__ ((__nonnull__ (2, 3)))
 inline void bmm_hsort(size_t const nmemb,
     int (*const compar)(size_t, size_t, void *),

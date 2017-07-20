@@ -339,8 +339,8 @@ inline double bmm_geom2d_cpangle(double const *restrict const x0,
 }
 
 #define BMM_GEOM2D_MASK_NOAXES 0
-#define BMM_GEOM2D_MASK_XAXIS (BMM_MASKBITS(1, 0))
-#define BMM_GEOM2D_MASK_YAXIS (BMM_MASKBITS(1, 1))
+#define BMM_GEOM2D_MASK_XAXIS (BMM_MASKBITS(0))
+#define BMM_GEOM2D_MASK_YAXIS (BMM_MASKBITS(1))
 #define BMM_GEOM2D_MASK_ALLAXES (BMM_GEOM2D_MASK_XAXIS | BMM_GEOM2D_MASK_YAXIS)
 
 __attribute__ ((__nonnull__))
@@ -348,7 +348,7 @@ inline void bmm_geom2d_refl(double *restrict const px,
     double const *restrict const x, double const *restrict const xper,
     int const mask) {
   for (size_t idim = 0; idim < 2; ++idim)
-    px[idim] = BMM_MASKANY(BMM_MASKBITS(1, idim), mask) ?
+    px[idim] = BMM_MASKANY(BMM_MASKBITS(idim), mask) ?
       xper[idim] - x[idim] : x[idim];
 }
 
@@ -356,7 +356,7 @@ __attribute__ ((__nonnull__))
 inline void bmm_geom2d_reflto(double *restrict const x,
     double const *restrict const xper, int const mask) {
   for (size_t idim = 0; idim < 2; ++idim)
-    x[idim] = BMM_MASKANY(BMM_MASKBITS(1, idim), mask) ?
+    x[idim] = BMM_MASKANY(BMM_MASKBITS(idim), mask) ?
       xper[idim] - x[idim] : x[idim];
 }
 

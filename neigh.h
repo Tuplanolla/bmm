@@ -38,13 +38,13 @@
 #define BMM_NEIGH_MASK_EMPTY 0
 
 /// The single cell in the center of the neighborhood.
-#define BMM_NEIGH_MASK_SINGLE (BMM_MASKBITS(1, 0))
+#define BMM_NEIGH_MASK_SINGLE (BMM_MASKBITS(0))
 
 /// The lower half of the neighborhood without the center.
-#define BMM_NEIGH_MASK_RLOWERH (BMM_MASKBITS(1, 1))
+#define BMM_NEIGH_MASK_RLOWERH (BMM_MASKBITS(1))
 
 /// The upper half of the neighborhood without the center.
-#define BMM_NEIGH_MASK_RUPPERH (BMM_MASKBITS(1, 2))
+#define BMM_NEIGH_MASK_RUPPERH (BMM_MASKBITS(2))
 
 /// The lower half of the neighborhood.
 #define BMM_NEIGH_MASK_LOWERH (BMM_NEIGH_MASK_SINGLE | BMM_NEIGH_MASK_RLOWERH)

@@ -46,18 +46,12 @@ struct bmm_msg_spec {
 };
 
 /// These preprocessor directives help work with bits in message headers.
-#define BMM_MSG_BITS_PRIO 1
-#define BMM_MSG_MASK_PRIO (BMM_MASKBITS(BMM_MSG_BITS_PRIO, 7))
-#define BMM_MSG_BITS_ENDY 3
-#define BMM_MSG_MASK_ENDY (BMM_MASKBITS(BMM_MSG_BITS_ENDY, 6, 5, 4))
-#define BMM_MSG_BITS_VAR 1
-#define BMM_MSG_MASK_VAR (BMM_MASKBITS(BMM_MSG_BITS_VAR, 3))
-#define BMM_MSG_BITS_TAG 1
-#define BMM_MSG_MASK_TAG (BMM_MASKBITS(BMM_MSG_BITS_TAG, 2))
-#define BMM_MSG_BITS_FIXSIZE 3
-#define BMM_MSG_MASK_FIXSIZE (BMM_MASKBITS(BMM_MSG_BITS_FIXSIZE, 2, 1, 0))
-#define BMM_MSG_BITS_VARSIZE 2
-#define BMM_MSG_MASK_VARSIZE (BMM_MASKBITS(BMM_MSG_BITS_VARSIZE, 1, 0))
+#define BMM_MSG_MASK_PRIO (BMM_MASKBITS(7))
+#define BMM_MSG_MASK_ENDY (BMM_MASKBITS(6, 5, 4))
+#define BMM_MSG_MASK_VAR (BMM_MASKBITS(3))
+#define BMM_MSG_MASK_TAG (BMM_MASKBITS(2))
+#define BMM_MSG_MASK_FIXSIZE (BMM_MASKBITS(2, 1, 0))
+#define BMM_MSG_MASK_VARSIZE (BMM_MASKBITS(1, 0))
 
 /// The call `bmm_msg_spec_def(spec)`
 /// writes the default message specification into `spec`.

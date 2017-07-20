@@ -94,11 +94,11 @@ enum bmm_io_read bmm_msg_spec_read(struct bmm_msg_spec *const spec,
     spec->prio = BMM_MSG_PRIO_LOW;
 
   switch (flags & BMM_MSG_MASK_ENDY) {
-    case BMM_MASKBITS_0():
+    case 0:
       spec->endy = BMM_ENDY_LITTLE;
 
       break;
-    case ~BMM_MASKBITS_0() & BMM_MSG_MASK_ENDY:
+    case BMM_MSG_MASK_ENDY:
       spec->endy = BMM_ENDY_BIG;
 
       break;
@@ -157,7 +157,7 @@ enum bmm_io_read bmm_msg_spec_read(struct bmm_msg_spec *const spec,
 
 bool bmm_msg_spec_write(struct bmm_msg_spec const *const spec,
     bmm_msg_writer const f, void *const ptr) {
-  unsigned char flags = BMM_MASKBITS_0();
+  unsigned char flags = 0;
 
   switch (spec->prio) {
     case BMM_MSG_PRIO_LOW:
@@ -176,7 +176,7 @@ bool bmm_msg_spec_write(struct bmm_msg_spec const *const spec,
 
       return false;
     case BMM_ENDY_BIG:
-      flags |= ~BMM_MASKBITS_0() & BMM_MSG_MASK_ENDY;
+      flags |= BMM_MSG_MASK_ENDY;
 
       break;
   }
@@ -188,6 +188,8 @@ bool bmm_msg_spec_write(struct bmm_msg_spec const *const spec,
       {
         size_t const size = spec->msg.size;
 
+        // TODO Use `popcnt` instead.
+#define BMM_MSG_BITS_FIXSIZE 3
         if (size < bmm_size_pow(2, BMM_MSG_BITS_FIXSIZE)) {
           flags |= (unsigned char) size & BMM_MSG_MASK_FIXSIZE;
 

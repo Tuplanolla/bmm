@@ -31,6 +31,152 @@ CHEAT_TEST(size_pow,
   }
 )
 
+CHEAT_TEST(size_wrap_id,
+  size_t a;
+  size_t b;
+
+  a = 0;
+  b = 1;
+  cheat_assert_size(bmm_size_wrap(a, a, b), a);
+  cheat_assert_size(bmm_size_wrap(b, a, b), a);
+
+  a = SIZE_MAX / 2;
+  b = SIZE_MAX / 2 + 1;
+  cheat_assert_size(bmm_size_wrap(a, a, b), a);
+  cheat_assert_size(bmm_size_wrap(b, a, b), a);
+
+  a = SIZE_MAX - 1;
+  b = SIZE_MAX;
+  cheat_assert_size(bmm_size_wrap(a, a, b), a);
+  cheat_assert_size(bmm_size_wrap(b, a, b), a);
+
+  a = 0;
+  b = SIZE_MAX / 4;
+  cheat_assert_size(bmm_size_wrap(a, a, b), a);
+  cheat_assert_size(bmm_size_wrap(b, a, b), a);
+  cheat_assert_size(bmm_size_wrap(a + 1, a, b), a + 1);
+  cheat_assert_size(bmm_size_wrap(b - 1, a, b), b - 1);
+
+  a = SIZE_MAX / 4;
+  b = SIZE_MAX / 4 * 3;
+  cheat_assert_size(bmm_size_wrap(a, a, b), a);
+  cheat_assert_size(bmm_size_wrap(b, a, b), a);
+  cheat_assert_size(bmm_size_wrap(a + 1, a, b), a + 1);
+  cheat_assert_size(bmm_size_wrap(b - 1, a, b), b - 1);
+
+  a = SIZE_MAX / 4 * 3;
+  b = SIZE_MAX;
+  cheat_assert_size(bmm_size_wrap(a, a, b), a);
+  cheat_assert_size(bmm_size_wrap(b, a, b), a);
+  cheat_assert_size(bmm_size_wrap(a + 1, a, b), a + 1);
+  cheat_assert_size(bmm_size_wrap(b - 1, a, b), b - 1);
+
+  a = 0;
+  b = SIZE_MAX;
+  cheat_assert_size(bmm_size_wrap(a, a, b), a);
+  cheat_assert_size(bmm_size_wrap(b, a, b), a);
+  cheat_assert_size(bmm_size_wrap(a + 1, a, b), a + 1);
+  cheat_assert_size(bmm_size_wrap(b - 1, a, b), b - 1);
+)
+
+// TODO Finish and unskip these tests.
+
+CHEAT_SKIP(size_wrap_neg,
+  size_t a;
+  size_t b;
+
+  a = 0;
+  b = 1;
+  cheat_assert_size(bmm_size_wrap(0, a, b), 0);
+  cheat_assert_size(bmm_size_wrap(0, a, b), 0);
+
+  a = SIZE_MAX / 2;
+  b = SIZE_MAX / 2 + 1;
+  cheat_assert_size(bmm_size_wrap(0, a, b), 0);
+  cheat_assert_size(bmm_size_wrap(0, a, b), 0);
+
+  a = SIZE_MAX - 1;
+  b = SIZE_MAX;
+  cheat_assert_size(bmm_size_wrap(0, a, b), 0);
+  cheat_assert_size(bmm_size_wrap(0, a, b), 0);
+
+  a = 0;
+  b = SIZE_MAX / 4;
+  cheat_assert_size(bmm_size_wrap(0, a, b), 0);
+  cheat_assert_size(bmm_size_wrap(0, a, b), 0);
+  cheat_assert_size(bmm_size_wrap(0 + 1, a, b), 0 + 1);
+  cheat_assert_size(bmm_size_wrap(0 - 1, a, b), 0 - 1);
+
+  a = SIZE_MAX / 4;
+  b = SIZE_MAX / 4 * 3;
+  cheat_assert_size(bmm_size_wrap(0, a, b), 0);
+  cheat_assert_size(bmm_size_wrap(0, a, b), 0);
+  cheat_assert_size(bmm_size_wrap(0 + 1, a, b), 0 + 1);
+  cheat_assert_size(bmm_size_wrap(0 - 1, a, b), 0 - 1);
+
+  a = SIZE_MAX / 4 * 3;
+  b = SIZE_MAX;
+  cheat_assert_size(bmm_size_wrap(0, a, b), 0);
+  cheat_assert_size(bmm_size_wrap(0, a, b), 0);
+  cheat_assert_size(bmm_size_wrap(0 + 1, a, b), 0 + 1);
+  cheat_assert_size(bmm_size_wrap(0 - 1, a, b), 0 - 1);
+
+  a = 0;
+  b = SIZE_MAX;
+  cheat_assert_size(bmm_size_wrap(0, a, b), 0);
+  cheat_assert_size(bmm_size_wrap(0, a, b), 0);
+  cheat_assert_size(bmm_size_wrap(0 + 1, a, b), 0 + 1);
+  cheat_assert_size(bmm_size_wrap(0 - 1, a, b), 0 - 1);
+)
+
+CHEAT_SKIP(size_wrap_pos,
+  size_t a;
+  size_t b;
+
+  a = 0;
+  b = 1;
+  cheat_assert_size(bmm_size_wrap(1, a, b), 1);
+  cheat_assert_size(bmm_size_wrap(1, a, b), 1);
+
+  a = SIZE_MAX / 2;
+  b = SIZE_MAX / 2 + 1;
+  cheat_assert_size(bmm_size_wrap(1, a, b), 1);
+  cheat_assert_size(bmm_size_wrap(1, a, b), 1);
+
+  a = SIZE_MAX - 1;
+  b = SIZE_MAX;
+  cheat_assert_size(bmm_size_wrap(1, a, b), 1);
+  cheat_assert_size(bmm_size_wrap(1, a, b), 1);
+
+  a = 0;
+  b = SIZE_MAX / 4;
+  cheat_assert_size(bmm_size_wrap(1, a, b), 1);
+  cheat_assert_size(bmm_size_wrap(1, a, b), 1);
+  cheat_assert_size(bmm_size_wrap(1 + 1, a, b), 1 + 1);
+  cheat_assert_size(bmm_size_wrap(1 - 1, a, b), 1 - 1);
+
+  a = SIZE_MAX / 4;
+  b = SIZE_MAX / 4 * 3;
+  cheat_assert_size(bmm_size_wrap(1, a, b), 1);
+  cheat_assert_size(bmm_size_wrap(1, a, b), 1);
+  cheat_assert_size(bmm_size_wrap(1 + 1, a, b), 1 + 1);
+  cheat_assert_size(bmm_size_wrap(1 - 1, a, b), 1 - 1);
+
+  a = SIZE_MAX / 4 * 3;
+  b = SIZE_MAX;
+  cheat_assert_size(bmm_size_wrap(1, a, b), 1);
+  cheat_assert_size(bmm_size_wrap(1, a, b), 1);
+  cheat_assert_size(bmm_size_wrap(1 + 1, a, b), 1 + 1);
+  cheat_assert_size(bmm_size_wrap(1 - 1, a, b), 1 - 1);
+
+  a = 0;
+  b = SIZE_MAX;
+  cheat_assert_size(bmm_size_wrap(1, a, b), 1);
+  cheat_assert_size(bmm_size_wrap(1, a, b), 1);
+  cheat_assert_size(bmm_size_wrap(1 + 1, a, b), 1 + 1);
+  cheat_assert_size(bmm_size_wrap(1 - 1, a, b), 1 - 1);
+)
+
 CHEAT_TEST(size_fact,
   cheat_assert_size(bmm_size_fact(0, 1), 1);
   cheat_assert_size(bmm_size_fact(1, 1), 1);
