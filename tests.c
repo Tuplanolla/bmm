@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "alias.h"
 #include "common.h"
 #include "cpp.h"
 #include "endy.h"
@@ -17,6 +18,66 @@ CHEAT_DECLARE(
   static size_t const ndim = 2;
   static size_t const nper[] = {6, 5};
   static bool const per[] = {true, false};
+)
+
+CHEAT_TEST(quot_sint,
+  for (int i = -128; i < 128; ++i)
+    for (int j = -128; j < 128; ++j)
+      if (j != 0) {
+        signed char x = (signed char) i;
+        signed char y = (signed char) j;
+
+        type(bmm_quot_t, signed_char) qr = type(bmm_quot, signed_char)(x, y);
+
+        cheat_assert_signed_char(y * qr.quot + qr.rem, x);
+        cheat_assert_not_int(type(bmm_sgn, signed_char)(qr.rem) *
+            type(bmm_sgn, signed_char)(x), -1);
+      }
+)
+
+CHEAT_TEST(quot_uint,
+  for (int i = 0; i < 256; ++i)
+    for (int j = 0; j < 256; ++j)
+      if (j != 0) {
+        unsigned char x = (unsigned char) i;
+        unsigned char y = (unsigned char) j;
+
+        type(bmm_quot_t, unsigned_char) qr = type(bmm_quot, unsigned_char)(x, y);
+
+        cheat_assert_unsigned_char(y * qr.quot + qr.rem, x);
+        cheat_assert_not_int(type(bmm_sgn, unsigned_char)(qr.rem) *
+            type(bmm_sgn, unsigned_char)(x), -1);
+      }
+)
+
+CHEAT_TEST(div_sint,
+  for (int i = -128; i < 128; ++i)
+    for (int j = -128; j < 128; ++j)
+      if (j != 0) {
+        signed char x = (signed char) i;
+        signed char y = (signed char) j;
+
+        type(bmm_div_t, signed_char) dm = type(bmm_div, signed_char)(x, y);
+
+        cheat_assert_signed_char(y * dm.div + dm.mod, x);
+        cheat_assert_not_int(type(bmm_sgn, signed_char)(dm.mod) *
+            type(bmm_sgn, signed_char)(y), -1);
+    }
+)
+
+CHEAT_TEST(div_uint,
+  for (int i = 0; i < 256; ++i)
+    for (int j = 0; j < 256; ++j)
+      if (j != 0) {
+        unsigned char x = (unsigned char) i;
+        unsigned char y = (unsigned char) j;
+
+        type(bmm_div_t, unsigned_char) dm = type(bmm_div, unsigned_char)(x, y);
+
+        cheat_assert_unsigned_char(y * dm.div + dm.mod, x);
+        cheat_assert_not_int(type(bmm_sgn, unsigned_char)(dm.mod) *
+            type(bmm_sgn, unsigned_char)(y), -1);
+      }
 )
 
 CHEAT_TEST(size_pow,
@@ -37,46 +98,46 @@ CHEAT_TEST(size_wrap_id,
 
   a = 0;
   b = 1;
-  cheat_assert_size(inst(bmm_wrap, size_t)(a, a, b), a);
-  cheat_assert_size(inst(bmm_wrap, size_t)(b, a, b), a);
+  cheat_assert_size(type(bmm_wrap, size_t)(a, a, b), a);
+  cheat_assert_size(type(bmm_wrap, size_t)(b, a, b), a);
 
   a = SIZE_MAX / 2;
   b = SIZE_MAX / 2 + 1;
-  cheat_assert_size(inst(bmm_wrap, size_t)(a, a, b), a);
-  cheat_assert_size(inst(bmm_wrap, size_t)(b, a, b), a);
+  cheat_assert_size(type(bmm_wrap, size_t)(a, a, b), a);
+  cheat_assert_size(type(bmm_wrap, size_t)(b, a, b), a);
 
   a = SIZE_MAX - 1;
   b = SIZE_MAX;
-  cheat_assert_size(inst(bmm_wrap, size_t)(a, a, b), a);
-  cheat_assert_size(inst(bmm_wrap, size_t)(b, a, b), a);
+  cheat_assert_size(type(bmm_wrap, size_t)(a, a, b), a);
+  cheat_assert_size(type(bmm_wrap, size_t)(b, a, b), a);
 
   a = 0;
   b = SIZE_MAX / 3;
-  cheat_assert_size(inst(bmm_wrap, size_t)(a, a, b), a);
-  cheat_assert_size(inst(bmm_wrap, size_t)(b, a, b), a);
-  cheat_assert_size(inst(bmm_wrap, size_t)(a + 1, a, b), a + 1);
-  cheat_assert_size(inst(bmm_wrap, size_t)(b - 1, a, b), b - 1);
+  cheat_assert_size(type(bmm_wrap, size_t)(a, a, b), a);
+  cheat_assert_size(type(bmm_wrap, size_t)(b, a, b), a);
+  cheat_assert_size(type(bmm_wrap, size_t)(a + 1, a, b), a + 1);
+  cheat_assert_size(type(bmm_wrap, size_t)(b - 1, a, b), b - 1);
 
   a = SIZE_MAX / 3;
   b = SIZE_MAX / 3 * 2;
-  cheat_assert_size(inst(bmm_wrap, size_t)(a, a, b), a);
-  cheat_assert_size(inst(bmm_wrap, size_t)(b, a, b), a);
-  cheat_assert_size(inst(bmm_wrap, size_t)(a + 1, a, b), a + 1);
-  cheat_assert_size(inst(bmm_wrap, size_t)(b - 1, a, b), b - 1);
+  cheat_assert_size(type(bmm_wrap, size_t)(a, a, b), a);
+  cheat_assert_size(type(bmm_wrap, size_t)(b, a, b), a);
+  cheat_assert_size(type(bmm_wrap, size_t)(a + 1, a, b), a + 1);
+  cheat_assert_size(type(bmm_wrap, size_t)(b - 1, a, b), b - 1);
 
   a = SIZE_MAX / 3 * 2;
   b = SIZE_MAX;
-  cheat_assert_size(inst(bmm_wrap, size_t)(a, a, b), a);
-  cheat_assert_size(inst(bmm_wrap, size_t)(b, a, b), a);
-  cheat_assert_size(inst(bmm_wrap, size_t)(a + 1, a, b), a + 1);
-  cheat_assert_size(inst(bmm_wrap, size_t)(b - 1, a, b), b - 1);
+  cheat_assert_size(type(bmm_wrap, size_t)(a, a, b), a);
+  cheat_assert_size(type(bmm_wrap, size_t)(b, a, b), a);
+  cheat_assert_size(type(bmm_wrap, size_t)(a + 1, a, b), a + 1);
+  cheat_assert_size(type(bmm_wrap, size_t)(b - 1, a, b), b - 1);
 
   a = 0;
   b = SIZE_MAX;
-  cheat_assert_size(inst(bmm_wrap, size_t)(a, a, b), a);
-  cheat_assert_size(inst(bmm_wrap, size_t)(b, a, b), a);
-  cheat_assert_size(inst(bmm_wrap, size_t)(a + 1, a, b), a + 1);
-  cheat_assert_size(inst(bmm_wrap, size_t)(b - 1, a, b), b - 1);
+  cheat_assert_size(type(bmm_wrap, size_t)(a, a, b), a);
+  cheat_assert_size(type(bmm_wrap, size_t)(b, a, b), a);
+  cheat_assert_size(type(bmm_wrap, size_t)(a + 1, a, b), a + 1);
+  cheat_assert_size(type(bmm_wrap, size_t)(b - 1, a, b), b - 1);
 )
 
 CHEAT_TEST(size_wrap_neg,
@@ -85,23 +146,23 @@ CHEAT_TEST(size_wrap_neg,
 
   a = SIZE_MAX / 2;
   b = SIZE_MAX / 2 + 1;
-  cheat_assert_size(inst(bmm_wrap, size_t)(a - 1, a, b), a);
-  cheat_assert_size(inst(bmm_wrap, size_t)(a - 2, a, b), a);
+  cheat_assert_size(type(bmm_wrap, size_t)(a - 1, a, b), a);
+  cheat_assert_size(type(bmm_wrap, size_t)(a - 2, a, b), a);
 
   a = SIZE_MAX - 1;
   b = SIZE_MAX;
-  cheat_assert_size(inst(bmm_wrap, size_t)(a - 1, a, b), a);
-  cheat_assert_size(inst(bmm_wrap, size_t)(a - 2, a, b), a);
+  cheat_assert_size(type(bmm_wrap, size_t)(a - 1, a, b), a);
+  cheat_assert_size(type(bmm_wrap, size_t)(a - 2, a, b), a);
 
   a = SIZE_MAX / 3;
   b = SIZE_MAX / 3 * 2;
-  cheat_assert_size(inst(bmm_wrap, size_t)(a - 1, a, b), b - 1);
-  cheat_assert_size(inst(bmm_wrap, size_t)(a - 2, a, b), b - 2);
+  cheat_assert_size(type(bmm_wrap, size_t)(a - 1, a, b), b - 1);
+  cheat_assert_size(type(bmm_wrap, size_t)(a - 2, a, b), b - 2);
 
   a = SIZE_MAX / 3 * 2;
   b = SIZE_MAX;
-  cheat_assert_size(inst(bmm_wrap, size_t)(a - 1, a, b), b - 1);
-  cheat_assert_size(inst(bmm_wrap, size_t)(a - 2, a, b), b - 2);
+  cheat_assert_size(type(bmm_wrap, size_t)(a - 1, a, b), b - 1);
+  cheat_assert_size(type(bmm_wrap, size_t)(a - 2, a, b), b - 2);
 )
 
 CHEAT_TEST(size_wrap_pos,
@@ -110,23 +171,23 @@ CHEAT_TEST(size_wrap_pos,
 
   a = 0;
   b = 1;
-  cheat_assert_size(inst(bmm_wrap, size_t)(b + 1, a, b), a);
-  cheat_assert_size(inst(bmm_wrap, size_t)(b + 2, a, b), a);
+  cheat_assert_size(type(bmm_wrap, size_t)(b + 1, a, b), a);
+  cheat_assert_size(type(bmm_wrap, size_t)(b + 2, a, b), a);
 
   a = SIZE_MAX / 2;
   b = SIZE_MAX / 2 + 1;
-  cheat_assert_size(inst(bmm_wrap, size_t)(b + 1, a, b), a);
-  cheat_assert_size(inst(bmm_wrap, size_t)(b + 2, a, b), a);
+  cheat_assert_size(type(bmm_wrap, size_t)(b + 1, a, b), a);
+  cheat_assert_size(type(bmm_wrap, size_t)(b + 2, a, b), a);
 
   a = 0;
   b = SIZE_MAX / 3;
-  cheat_assert_size(inst(bmm_wrap, size_t)(b + 1, a, b), a + 1);
-  cheat_assert_size(inst(bmm_wrap, size_t)(b + 2, a, b), a + 2);
+  cheat_assert_size(type(bmm_wrap, size_t)(b + 1, a, b), a + 1);
+  cheat_assert_size(type(bmm_wrap, size_t)(b + 2, a, b), a + 2);
 
   a = SIZE_MAX / 3;
   b = SIZE_MAX / 3 * 2;
-  cheat_assert_size(inst(bmm_wrap, size_t)(b + 1, a, b), a + 1);
-  cheat_assert_size(inst(bmm_wrap, size_t)(b + 2, a, b), a + 2);
+  cheat_assert_size(type(bmm_wrap, size_t)(b + 1, a, b), a + 1);
+  cheat_assert_size(type(bmm_wrap, size_t)(b + 2, a, b), a + 2);
 )
 
 CHEAT_TEST(size_fact,
@@ -172,7 +233,7 @@ CHEAT_DECLARE(
   static int compar(size_t const i, size_t const j, void *const cls) {
     int const *const x = cls;
 
-    // return inst(bmm_cmp, int)(x[i], x[j]);
+    // return type(bmm_cmp, int)(x[i], x[j]);
     return x[i] < x[j] ? -1 : x[i] > x[j] ? 1 : 0;
   }
 
@@ -180,7 +241,7 @@ CHEAT_DECLARE(
   static void swap(size_t const i, size_t const j, void *const cls) {
     int *const x = cls;
 
-    inst(bmm_swap, int)(&x[i], &x[j]);
+    type(bmm_swap, int)(&x[i], &x[j]);
   }
 )
 
@@ -233,15 +294,15 @@ CHEAT_TEST(geom2d_shell_outside,
 CHEAT_TEST(size_hc_ord,
   size_t ij[2];
 
-  inst(bmm_hc, size_t)(ij, 0, ndim, nper[1]);
+  type(bmm_hc, size_t)(ij, 0, ndim, nper[1]);
   cheat_assert_size(ij[0], 0);
   cheat_assert_size(ij[1], 0);
 
-  inst(bmm_hc, size_t)(ij, 1, ndim, nper[1]);
+  type(bmm_hc, size_t)(ij, 1, ndim, nper[1]);
   cheat_assert_size(ij[0], 0);
   cheat_assert_size(ij[1], 1);
 
-  inst(bmm_hc, size_t)(ij, 2, ndim, nper[1]);
+  type(bmm_hc, size_t)(ij, 2, ndim, nper[1]);
   cheat_assert_size(ij[0], 0);
   cheat_assert_size(ij[1], 2);
 )
@@ -250,8 +311,8 @@ CHEAT_TEST(size_hc_iso,
   size_t ij[2];
 
   for (size_t i = 0; i < bmm_size_pow(nper[1], ndim); ++i) {
-    inst(bmm_hc, size_t)(ij, i, ndim, nper[1]);
-    size_t const j = inst(bmm_unhc, size_t)(ij, ndim, nper[1]);
+    type(bmm_hc, size_t)(ij, i, ndim, nper[1]);
+    size_t const j = type(bmm_unhc, size_t)(ij, ndim, nper[1]);
 
     cheat_assert_size(j, i);
   }
@@ -260,15 +321,15 @@ CHEAT_TEST(size_hc_iso,
 CHEAT_TEST(size_hcd_ord,
   size_t ij[2];
 
-  inst(bmm_hcd, size_t)(ij, 0, ndim, nper);
+  type(bmm_hcd, size_t)(ij, 0, ndim, nper);
   cheat_assert_size(ij[0], 0);
   cheat_assert_size(ij[1], 0);
 
-  inst(bmm_hcd, size_t)(ij, 1, ndim, nper);
+  type(bmm_hcd, size_t)(ij, 1, ndim, nper);
   cheat_assert_size(ij[0], 0);
   cheat_assert_size(ij[1], 1);
 
-  inst(bmm_hcd, size_t)(ij, 2, ndim, nper);
+  type(bmm_hcd, size_t)(ij, 2, ndim, nper);
   cheat_assert_size(ij[0], 0);
   cheat_assert_size(ij[1], 2);
 )
@@ -277,8 +338,8 @@ CHEAT_TEST(size_hcd_iso,
   size_t ij[2];
 
   for (size_t i = 0; i < bmm_size_prod(nper, ndim); ++i) {
-    inst(bmm_hcd, size_t)(ij, i, ndim, nper);
-    size_t const j = inst(bmm_unhcd, size_t)(ij, ndim, nper);
+    type(bmm_hcd, size_t)(ij, i, ndim, nper);
+    size_t const j = type(bmm_unhcd, size_t)(ij, ndim, nper);
 
     cheat_assert_size(j, i);
   }

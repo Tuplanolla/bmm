@@ -103,7 +103,7 @@ static void bmm_dem_cache_ijcell(struct bmm_dem *const dem,
 __attribute__ ((__nonnull__))
 static void bmm_dem_cache_icell(struct bmm_dem *const dem,
     size_t const ipart) {
-  dem->cache.icell[ipart] = inst(bmm_unhcd, size_t)(dem->cache.ijcell[ipart],
+  dem->cache.icell[ipart] = type(bmm_unhcd, size_t)(dem->cache.ijcell[ipart],
       BMM_NDIM, dem->opts.cache.ncell);
 }
 

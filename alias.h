@@ -1,6 +1,9 @@
-#ifndef BMM_ALIAS_H
 /// Single-token aliases for types.
+
+#ifndef BMM_ALIAS_H
 #define BMM_ALIAS_H
+
+#include <complex.h>
 
 typedef signed char signed_char;
 typedef unsigned char unsigned_char;

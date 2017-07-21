@@ -3,7 +3,7 @@
 
 #include "ext.h"
 
-extern inline int inst(bmm_cmp, size_t)(size_t, size_t);
+extern inline int type(bmm_cmp, A)(A, A);
 
 extern inline void bmm_size_swap(size_t *restrict, size_t *restrict);
 
@@ -40,8 +40,6 @@ extern inline size_t bmm_size_firt(size_t, size_t);
 extern inline size_t bmm_size_cirt(size_t, size_t);
 
 extern inline size_t bmm_size_uclamp(size_t, size_t);
-
-extern inline A inst(bmm_wrap, A)(A, A, A);
 
 extern inline size_t bmm_size_uwrap(size_t, size_t);
 

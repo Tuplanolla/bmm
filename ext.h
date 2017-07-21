@@ -7,7 +7,6 @@
 #define BMM_EXT_H
 
 #include <assert.h>
-#include <stdbool.h>
 
 #include "cpp.h"
 
@@ -39,7 +38,7 @@
 /// with local scope and no redundant semicolons.
 /// They must always appear together.
 #define begin do {
-#define end } while (false)
+#define end } while (0 == 1)
 
 /// The preprocessor directive `msizeof(x)`
 /// expands to the member size of the array `x`.
@@ -49,13 +48,12 @@
 /// expands to the number of members in the array `x`.
 #define nmembof(x) (sizeof (x) / msizeof(x))
 
-/// The preprocessor directive `inst(x, ...)`
-/// expands to the template instantiation of the value `x`
-/// with the types `...`.
+/// The preprocessor directive `type(x, ...)`
+/// expands to the template instantiation of the value `x` with the type `...`.
 /// Due to the limitations of the language
 /// the types have to be single tokens.
 /// Luckily this can always be satisfied by using `typedef`.
-#define inst(...) BMM_VA_DECL(BMM_CONCAT, __VA_ARGS__)
+#define type(...) BMM_VA_DECL(BMM_SPLICE, __VA_ARGS__)
 
 #ifndef static_assert
 #define static_assert_line_(p, n) __attribute__ ((__unused__)) \

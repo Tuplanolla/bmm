@@ -39,7 +39,7 @@ typedef struct {
 /// solves the division equation `z.quot * y + z.rem == x` for `z`,
 /// where `z.quot` is the quotient and `z.rem` is the remainder
 /// of the expression `x / y`.
-/// This is analogous to `div` or `inst(bmm_div, size_t)`.
+/// This is analogous to `div` or `type(bmm_div, size_t)`.
 __attribute__ ((__const__, __pure__))
 inline bmm_fp_div_t bmm_fp_div(double const x, double const y) {
   bmm_fp_div_t const qr = {
@@ -56,7 +56,7 @@ inline bmm_fp_div_t bmm_fp_div(double const x, double const y) {
 /// * `1` if `x > y` and
 /// * `0` otherwise.
 ///
-/// This is analogous to `inst(bmm_cmp, size_t)`.
+/// This is analogous to `type(bmm_cmp, size_t)`.
 __attribute__ ((__const__, __pure__))
 inline int bmm_fp_cmp(double const x, double const y) {
   return x < y ? -1 : x > y ? 1 : 0;

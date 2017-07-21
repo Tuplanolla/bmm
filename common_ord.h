@@ -6,7 +6,8 @@
 #include "cpp.h"
 #include "ext.h"
 
-/// The call `bmm_cmp(x, y)` returns
+/// The call `bmm_cmp(x, y)`
+/// returns the comparison of `x` and `y`, which is
 ///
 /// * `-1` if `x < y`,
 /// * `1` if `x > y` and
@@ -14,11 +15,14 @@
 ///
 /// This is useful with `bmm_hsort` for example.
 __attribute__ ((__const__, __pure__))
-inline int inst(bmm_cmp, A)(A const x, A const y) {
+inline int type(bmm_cmp, A)(A const x, A const y) {
   return x < y ? -1 : x > y ? 1 : 0;
 }
 
 // TODO Ha ha! Almost everything!
+
+#ifndef EVERYTHING
+#define EVERYTHING
 
 /// The call `bmm_size_even(n)`
 /// checks whether `n` is even.
@@ -31,7 +35,7 @@ inline bool bmm_size_even(size_t const n) {
 /// checks whether `n` is odd.
 __attribute__ ((__const__, __pure__))
 inline bool bmm_size_odd(size_t const n) {
-  return n % 2 == 1;
+  return n % 2 != 0;
 }
 
 /// The call `bmm_size_min(n, k)` returns the lesser of `n` and `k`.
@@ -232,56 +236,6 @@ inline size_t bmm_size_uclamp(size_t const n, size_t const b) {
   return n >= b ? b - 1 : n;
 }
 
-/// The call `bmm_wrap(x, a, b)`
-/// finds such `y` that `a <= y < b`
-/// by shifting `x` by the appropriate number of multiples of `b - a`.
-/// If `b <= a`, the behavior is undefined.
-/// Overflows are impossible both internally and externally.
-#ifndef DEBUG
-__attribute__ ((__const__, __pure__))
-#endif
-inline A inst(bmm_wrap, A)(A const x, A const a, A const b) {
-#ifndef DEBUG
-  dynamic_assert(b > a, "Invalid argument");
-#endif
-
-  A const c = b - a;
-
-  if (x >= a)
-    return (x - a) % c + a;
-
-  A const xc = x % c;
-  A const ac = a % c;
-
-  if (xc >= ac)
-    return (xc - ac) % c + a;
-
-  return (c - (ac - xc)) % c + a;
-
-  // The following implementation is easier to understand,
-  // but susceptible to overflowing.
-  // A const c = b - a;
-  //
-  // return (x - a) % c + a;
-
-  // The following implementation is easier to understand,
-  // but slower (linear instead of constant).
-  // A const c = b - a;
-  //
-  // A y = x;
-  //
-  // if (y < a)
-  //   do
-  //     y += c;
-  //   while (y < a);
-  // else if (y >= b)
-  //   do
-  //     y -= c;
-  //   while (y >= b);
-  //
-  // return y;
-}
-
 /// The call `m = bmm_size_uwrap(n, b)`
 /// solves the periodic equation `m == n + k * b` for `m`,
 /// where `0 <= m < b` and `k` is some integer.
@@ -316,7 +270,7 @@ inline size_t bmm_size_uinc(size_t const n, size_t const b) {
 }
 
 /// The call `bmm_size_inc(n, a, b)`
-/// is equivalent to `inst(bmm_wrap, size_t)(n + 1, a, b)` without wrapping.
+/// is equivalent to `type(bmm_wrap, size_t)(n + 1, a, b)` without wrapping.
 /// If `b <= a`, the behavior is undefined.
 /// Overflows are possible both internally and externally.
 #ifndef DEBUG
@@ -348,7 +302,7 @@ inline size_t bmm_size_udec(size_t const n, size_t const b) {
 }
 
 /// The call `bmm_size_dec(n, a, b)`
-/// is equivalent to `inst(bmm_wrap, size_t)(n - 1, a, b)` without wrapping.
+/// is equivalent to `type(bmm_wrap, size_t)(n - 1, a, b)` without wrapping.
 /// If `b <= a`, the behavior is undefined.
 /// Overflows are possible both internally and externally.
 #ifndef DEBUG
@@ -437,3 +391,5 @@ inline size_t bmm_size_rfold(size_t (*const f)(size_t, size_t, void *),
 
   return z;
 }
+
+#endif

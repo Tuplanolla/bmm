@@ -78,13 +78,13 @@ size_t bmm_hist_bin(struct bmm_hist const *const hist, double const *const x) {
     else
       return SIZE_MAX;
 
-  return inst(bmm_unhc, size_t)(hist->tmp, hist->ndim, hist->nlin);
+  return type(bmm_unhc, size_t)(hist->tmp, hist->ndim, hist->nlin);
 }
 
 __attribute__ ((__nonnull__))
 static void unbin(struct bmm_hist const *const hist, double *const x,
     size_t const j, double const h) {
-  inst(bmm_hc, size_t)(hist->tmp, j, hist->ndim, hist->nlin);
+  type(bmm_hc, size_t)(hist->tmp, j, hist->ndim, hist->nlin);
 
   for (size_t i = 0; i < hist->ndim; ++i)
     x[i] = bmm_fp_lerp((double) hist->tmp[i] + h,
