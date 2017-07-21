@@ -4,7 +4,8 @@
 
 #include "ext.h"
 
-// TODO Six different division modes seem to exist, because people are morons.
+// TODO Five different sensible division modes seem to exist.
+// Let us implement them all.
 
 /// The call `bmm_sgn(x)`
 /// returns the sign of `x`.
@@ -22,7 +23,7 @@ typedef struct {
 
 /// The call `bmm_quot(x, y)`
 /// returns the quotient and remainder of `x` divided by `y`
-/// in `qr` such that `y * qr.quot + qr.rem == x` and
+/// in `qr` such that `qr.quot * y + qr.rem == x` and
 /// `bmm_sgn(qr.rem) * bmm_sgn(x) != -1`.
 /// Overflows are impossible both internally and externally.
 __attribute__ ((__const__, __pure__))
@@ -41,7 +42,7 @@ typedef struct {
 
 /// The call `bmm_div(x, y)`
 /// returns the division and modulo of `x` divided by `y`
-/// in `dm` such that `y * dm.div + dm.mod == x` and
+/// in `dm` such that `dm.div * y + dm.mod == x` and
 /// `bmm_sgn(dm.rem) * bmm_sgn(y) != -1`.
 /// Overflows are impossible both internally and externally.
 __attribute__ ((__const__, __pure__))

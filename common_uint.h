@@ -54,11 +54,11 @@ inline A type(bmm_wrap, A)(A const x, A const a, A const b) {
 __attribute__ ((__nonnull__))
 inline void type(bmm_hc, A)(A *const pij, A const i,
     size_t const ndim, A const nper) {
-  type(bmm_div_t, A) dm = {.div = i};
+  type(bmm_quot_t, A) dm = {.quot = i};
   for (size_t idim = 0; idim < ndim; ++idim) {
-    dm = type(bmm_div, A)(dm.div, nper);
+    dm = type(bmm_quot, A)(dm.quot, nper);
 
-    pij[ndim - 1 - idim] = dm.mod;
+    pij[ndim - 1 - idim] = dm.rem;
   }
 }
 
@@ -86,22 +86,22 @@ inline A type(bmm_unhc, A)(A const *const ij,
 __attribute__ ((__nonnull__))
 inline void type(bmm_hcd, A)(A *restrict const pij, A const i,
     size_t const ndim, A const *restrict const nper) {
-  type(bmm_div_t, A) dm = {.div = i};
+  type(bmm_quot_t, A) dm = {.quot = i};
   for (size_t idim = 0; idim < ndim; ++idim) {
-    dm = type(bmm_div, A)(dm.div, nper[ndim - 1 - idim]);
+    dm = type(bmm_quot, A)(dm.quot, nper[ndim - 1 - idim]);
 
-    pij[ndim - 1 - idim] = dm.mod;
+    pij[ndim - 1 - idim] = dm.rem;
   }
 
   // The following implementation is suitable for loop fusion,
   // but less reliable.
   // size_t *const buf = alloca(ndim * sizeof *buf);
   //
-  // type(bmm_div_t, A) dm = {.div = i};
+  // type(bmm_quot_t, A) dm = {.quot = i};
   // for (size_t idim = 0; idim < ndim; ++idim) {
-  //   dm = type(bmm_div, A)(dm.div, nper[ndim - 1 - idim]);
+  //   dm = type(bmm_quot, A)(dm.quot, nper[ndim - 1 - idim]);
   //
-  //   buf[ndim - 1 - idim] = dm.mod;
+  //   buf[ndim - 1 - idim] = dm.rem;
   // }
   //
   // for (size_t idim = 0; idim < ndim; ++idim)
@@ -110,11 +110,11 @@ inline void type(bmm_hcd, A)(A *restrict const pij, A const i,
   // The following implementation is suitable for loop fusion,
   // but slower (quadratic instead of linear).
   // for (size_t idim = 0; idim < ndim; ++idim) {
-  //   type(bmm_div_t, A) dm = {.div = i};
+  //   type(bmm_quot_t, A) dm = {.quot = i};
   //   for (size_t jdim = 0; jdim < ndim - idim; ++jdim)
-  //     dm = type(bmm_div, A)(dm.div, nper[ndim - 1 - jdim]);
+  //     dm = type(bmm_quot, A)(dm.quot, nper[ndim - 1 - jdim]);
   //
-  //   pij[idim] = dm.mod;
+  //   pij[idim] = dm.rem;
   // }
 }
 
