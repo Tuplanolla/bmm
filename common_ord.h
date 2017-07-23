@@ -43,7 +43,7 @@ inline bool bmm_size_odd(size_t const n) {
 /// Overflows are impossible both internally and externally.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_min(size_t const n, size_t const k) {
-  return n < k ? n : k;
+  return BMM_MIN(n, k);
 }
 
 /// The call `bmm_size_max(n, k)` returns the greater of `n` and `k`.
@@ -51,7 +51,7 @@ inline size_t bmm_size_min(size_t const n, size_t const k) {
 /// Overflows are impossible both internally and externally.
 __attribute__ ((__const__, __pure__))
 inline size_t bmm_size_max(size_t const n, size_t const k) {
-  return n > k ? n : k;
+  return BMM_MAX(n, k);
 }
 
 /// The call `bmm_size_identity(n)` returns `n`.

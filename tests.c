@@ -20,6 +20,7 @@ CHEAT_DECLARE(
   static bool const per[] = {true, false};
 )
 
+/*
 CHEAT_TEST(quot_sint,
   for (int i = -128; i < 128; ++i)
     for (int j = -128; j < 128; ++j)
@@ -79,6 +80,7 @@ CHEAT_TEST(div_uint,
             type(bmm_sgn, unsigned_char)(y), -1);
       }
 )
+*/
 
 CHEAT_TEST(size_pow,
   for (size_t i = 0; i < 256; ++i) {

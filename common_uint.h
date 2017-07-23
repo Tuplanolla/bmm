@@ -4,6 +4,22 @@
 
 #include "ext.h"
 
+// TODO Division can be extended for signed `A`
+// for which several different modes exist.
+
+/// The call `bmm_quot(x, y)`
+/// returns the quotient and remainder of `x` divided by `y`
+/// in `qr` such that `qr.quot * y + qr.rem == x`.
+/// Overflows are impossible both internally and externally.
+__attribute__ ((__const__, __pure__))
+inline type(bmm_quot_t, A) type(bmm_quot, A)(A const x, A const y) {
+  type(bmm_quot_t, A) const qr = {.quot = x / y, .rem = x % y};
+
+  return qr;
+}
+
+// TODO Wrapping can be extended for signed `A`.
+
 /// The call `bmm_wrap(x, a, b)`
 /// finds such `y` that `a <= y < b`
 /// by shifting `x` by the appropriate number of multiples of `b - a`.

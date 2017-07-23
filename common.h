@@ -43,6 +43,22 @@
 #undef A
 
 #define A signed_char
+#include "common_num.h"
+#undef A
+#define A unsigned_char
+#include "common_num.h"
+#undef A
+#define A int
+#include "common_num.h"
+#undef A
+#define A double
+#include "common_num.h"
+#undef A
+#define A size_t
+#include "common_num.h"
+#undef A
+
+#define A signed_char
 #include "common_int.h"
 #undef A
 #define A unsigned_char
@@ -55,11 +71,22 @@
 #include "common_int.h"
 #undef A
 
+#define A signed_char
+#include "common_sint.h"
+#undef A
+#define A int
+#include "common_sint.h"
+#undef A
+
 #define A unsigned_char
 #include "common_uint.h"
 #undef A
 #define A size_t
 #include "common_uint.h"
+#undef A
+
+#define A double
+#include "common_fp.h"
 #undef A
 
 #endif
