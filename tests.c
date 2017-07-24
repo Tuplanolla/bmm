@@ -14,25 +14,17 @@
 #include "neigh.h"
 #include "msg.h"
 
-CHEAT_DECLARE(
-  static size_t const ndim = 2;
-  static size_t const nper[] = {6, 5};
-  static bool const per[] = {true, false};
-)
-
-/*
 CHEAT_TEST(quot_sint,
   for (int i = -128; i < 128; ++i)
     for (int j = -128; j < 128; ++j)
       if (j != 0) {
-        signed char x = (signed char) i;
-        signed char y = (signed char) j;
+        signed char const x = (signed char) i;
+        signed char const y = (signed char) j;
 
-        type(bmm_quot_t, signed_char) qr = type(bmm_quot, signed_char)(x, y);
-
-        cheat_assert_signed_char(y * qr.quot + qr.rem, x);
-        cheat_assert_not_int(type(bmm_sgn, signed_char)(qr.rem) *
-            type(bmm_sgn, signed_char)(x), -1);
+        type(bmm_quot_t, signed_char) const qr =
+          type(bmm_quot, signed_char)(x, y);
+        cheat_assert_signed_char(qr.quot * y + qr.rem, x);
+        cheat_assert_not_int(type(bmm_sgn, signed_char)(qr.rem), -1);
       }
 )
 
@@ -40,47 +32,96 @@ CHEAT_TEST(quot_uint,
   for (int i = 0; i < 256; ++i)
     for (int j = 0; j < 256; ++j)
       if (j != 0) {
-        unsigned char x = (unsigned char) i;
-        unsigned char y = (unsigned char) j;
+        unsigned char const x = (unsigned char) i;
+        unsigned char const y = (unsigned char) j;
 
-        type(bmm_quot_t, unsigned_char) qr = type(bmm_quot, unsigned_char)(x, y);
-
-        cheat_assert_unsigned_char(y * qr.quot + qr.rem, x);
-        cheat_assert_not_int(type(bmm_sgn, unsigned_char)(qr.rem) *
-            type(bmm_sgn, unsigned_char)(x), -1);
+        type(bmm_quot_t, unsigned_char) const qr =
+          type(bmm_quot, unsigned_char)(x, y);
+        cheat_assert_unsigned_char(qr.quot * y + qr.rem, x);
+        cheat_assert_not_int(type(bmm_sgn, unsigned_char)(qr.rem), -1);
       }
 )
 
-CHEAT_TEST(div_sint,
+CHEAT_TEST(quot_fp,
   for (int i = -128; i < 128; ++i)
     for (int j = -128; j < 128; ++j)
       if (j != 0) {
-        signed char x = (signed char) i;
-        signed char y = (signed char) j;
+        double const x = (double) i;
+        double const y = (double) j;
 
-        type(bmm_div_t, signed_char) dm = type(bmm_div, signed_char)(x, y);
-
-        cheat_assert_signed_char(y * dm.div + dm.mod, x);
-        cheat_assert_not_int(type(bmm_sgn, signed_char)(dm.mod) *
-            type(bmm_sgn, signed_char)(y), -1);
-    }
-)
-
-CHEAT_TEST(div_uint,
-  for (int i = 0; i < 256; ++i)
-    for (int j = 0; j < 256; ++j)
-      if (j != 0) {
-        unsigned char x = (unsigned char) i;
-        unsigned char y = (unsigned char) j;
-
-        type(bmm_div_t, unsigned_char) dm = type(bmm_div, unsigned_char)(x, y);
-
-        cheat_assert_unsigned_char(y * dm.div + dm.mod, x);
-        cheat_assert_not_int(type(bmm_sgn, unsigned_char)(dm.mod) *
-            type(bmm_sgn, unsigned_char)(y), -1);
+        type(bmm_quot_t, double) const qr =
+          type(bmm_quot, double)(x, y);
+        cheat_assert_double(qr.quot * y + qr.rem, x, 1.0e-6);
+        cheat_assert_not_int(type(bmm_sgn, double)(qr.rem), -1);
       }
 )
-*/
+
+CHEAT_DECLARE(
+  __attribute__ ((__const__, __pure__))
+  static int wrap(int const x, int const a, int const b) {
+    int const c = b - a;
+
+    int y = x;
+
+    if (y < a)
+      do
+        y += c;
+      while (y < a);
+    else if (y >= b)
+      do
+        y -= c;
+      while (y >= b);
+
+    return y;
+  }
+)
+
+CHEAT_TEST(wrap_sint,
+  for (int i = -128; i < 128; ++i)
+    for (int j = -128; j < 128; ++j)
+      for (int k = j + 1; k < 128; ++k) {
+        signed char const x = (signed char) i;
+        signed char const a = (signed char) j;
+        signed char const b = (signed char) k;
+
+        cheat_assert_signed_char(type(bmm_wrap, signed_char)(x, a, b),
+            (signed char) wrap(i, j, k));
+      }
+)
+
+CHEAT_TEST(wrap_uint,
+  for (int i = 0; i < 256; ++i)
+    for (int j = 0; j < 256; ++j)
+      for (int k = j + 1; k < 128; ++k) {
+        unsigned char const x = (unsigned char) i;
+        unsigned char const a = (unsigned char) j;
+        unsigned char const b = (unsigned char) k;
+
+        cheat_assert_unsigned_char(type(bmm_wrap, unsigned_char)(x, a, b),
+            (unsigned char) wrap(i, j, k));
+      }
+)
+
+// TODO Smack some sense into these tests.
+
+CHEAT_TEST(wrap_fp,
+  for (int i = -128; i < 128; ++i)
+    for (int j = -128; j < 128; ++j)
+      for (int k = j + 1; k < 128; ++k) {
+        double const x = (double) i;
+        double const a = (double) j;
+        double const b = (double) k;
+
+        cheat_assert_double(type(bmm_wrap, double)(x, a, b),
+            (double) wrap(i, j, k), 1.0e-6);
+      }
+)
+
+CHEAT_DECLARE(
+  static size_t const ndim = 2;
+  static size_t const nper[] = {6, 5};
+  static bool const per[] = {true, false};
+)
 
 CHEAT_TEST(size_pow,
   for (size_t i = 0; i < 256; ++i) {
