@@ -71,4 +71,33 @@ inline double bmm_kernel_logistic(double const x) {
   return (1.0 / 4.0) / bmm_fp_pow(cosh((1.0 / 2.0) * x), 2);
 }
 
+// TODO Metaprogram harder.
+
+enum bmm_kernel {
+  BMM_KERNEL_RECT,
+  BMM_KERNEL_TRI,
+  BMM_KERNEL_EPAN,
+  BMM_KERNEL_BIWEIGHT,
+  BMM_KERNEL_COS,
+  BMM_KERNEL_GAUSSIAN,
+  BMM_KERNEL_LOGISTIC
+};
+
+/// The call `bmm_kernel(k)`
+/// returns the function for the kernel `k`.
+__attribute__ ((__const__, __pure__))
+inline double (*bmm_kernel(enum bmm_kernel const k))(double) {
+  static double (*const bmm_kernels[])(double) = {
+    bmm_kernel_rect,
+    bmm_kernel_tri,
+    bmm_kernel_epan,
+    bmm_kernel_biweight,
+    bmm_kernel_cos,
+    bmm_kernel_gaussian,
+    bmm_kernel_logistic
+  };
+
+  return bmm_kernels[k];
+}
+
 #endif

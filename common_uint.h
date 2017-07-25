@@ -36,10 +36,10 @@ inline A type(bmm_wrap, A)(A const x, A const a, A const b) {
 #endif
 
   A const c = b - a;
-  A const xmc = x % c;
-  A const amc = a % c;
+  A const r = x % c;
+  A const s = a % c;
 
-  return (xmc >= amc ? xmc - amc : c - (amc - xmc)) + a;
+  return (r >= s ? r - s : c - (s - r)) + a;
 
   // The following implementation is easier to understand,
   // but susceptible to overflowing.

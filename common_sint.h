@@ -1,5 +1,6 @@
 /// Common operations for signed integer types.
 
+#include "stdio.h"
 #include "ext.h"
 
 /// The call `bmm_quot(x, y)`
@@ -23,8 +24,6 @@ inline type(bmm_quot_t, A) type(bmm_quot, A)(A const x, A const y) {
   return qr;
 }
 
-// TODO Wrapping can be extended for signed and floating-point `A`.
-
 /// The call `bmm_wrap(x, a, b)`
 /// finds such `y` that `a <= y < b`
 /// by shifting `x` by the appropriate number of multiples of `b - a`.
@@ -38,26 +37,30 @@ inline A type(bmm_wrap, A)(A const x, A const a, A const b) {
   dynamic_assert(b > a, "Invalid argument");
 #endif
 
-  if (type(bmm_sgn, A)(a) == type(bmm_sgn, A)(b)) {
-    A const c = b - a;
-    A const xmc = type(bmm_quot, A)(x, c).rem;
-    A const amc = type(bmm_quot, A)(a, c).rem;
+  // The condition below guarantees
+  // that the body of the loop at the end is executed at most twice.
 
-    return (xmc >= amc ? xmc - amc : c - (amc - xmc)) + a;
+  A const m = type(bmm_abs, A)(x / 2);
+  if (a >= 0 || b <= 0 || (a > -m && b < m)) {
+    A const c = b - a;
+    A const r = type(bmm_quot, A)(x, c).rem;
+    A const s = type(bmm_quot, A)(a, c).rem;
+
+    return (r >= s ? r - s : c - (s - r)) + a;
   }
 
-  long long int const c = b - a;
-
-  long long int y = x;
+  A y = x;
 
   if (y < a)
-    do
-      y += c;
-    while (y < a);
+    do {
+      y += b;
+      y -= a;
+    } while (y < a);
   else if (y >= b)
-    do
-      y -= c;
-    while (y >= b);
+    do {
+      y -= b;
+      y += a;
+    } while (y >= b);
 
   return y;
 }

@@ -46,8 +46,8 @@ CHEAT_TEST(quot_fp,
   for (int i = -128; i < 128; ++i)
     for (int j = -128; j < 128; ++j)
       if (j != 0) {
-        double const x = (double) i;
-        double const y = (double) j;
+        double const x = (double) i / 64.0;
+        double const y = (double) j / 64.0;
 
         type(bmm_quot_t, double) const qr =
           type(bmm_quot, double)(x, y);
@@ -102,18 +102,16 @@ CHEAT_TEST(wrap_uint,
       }
 )
 
-// TODO Smack some sense into these tests.
-
 CHEAT_TEST(wrap_fp,
   for (int i = -128; i < 128; ++i)
     for (int j = -128; j < 128; ++j)
       for (int k = j + 1; k < 128; ++k) {
-        double const x = (double) i;
-        double const a = (double) j;
-        double const b = (double) k;
+        double const x = (double) i / 64.0;
+        double const a = (double) j / 64.0;
+        double const b = (double) k / 64.0;
 
-        cheat_assert_double(type(bmm_wrap, double)(x, a, b),
-            (double) wrap(i, j, k), 1.0e-6);
+        cheat_assert(type(bmm_wrap, double)(x, a, b) >= a);
+        cheat_assert(type(bmm_wrap, double)(x, a, b) < b);
       }
 )
 

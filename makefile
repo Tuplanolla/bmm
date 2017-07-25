@@ -3,7 +3,7 @@ LDLIBS+=-lm -lrt
 
 ifeq ($(CC), clang)
 ifeq ($(CONFIG), debug)
-CFLAGS+=-D_GNU_SOURCE -DDEBUG -O0 -g \
+CFLAGS+=-D_GNU_SOURCE -DDEBUG -O0 -ftrapv -g \
 	-Weverything \
 	-Wno-aggregate-return -Wno-bad-function-cast -Wno-disabled-macro-expansion \
 	-Wno-missing-prototypes -Wno-padded \
@@ -20,7 +20,7 @@ endif
 
 ifeq ($(CC), gcc)
 ifeq ($(CONFIG), debug)
-CFLAGS+=-D_GNU_SOURCE -DDEBUG -Og -g \
+CFLAGS+=-D_GNU_SOURCE -DDEBUG -Og -ftrapv -g \
 	$$(cat gcc-$$(./gcc-version | tr . _)-release) \
 	-Wno-error -Wno-fatal-errors -Wno-system-headers \
 	-Wno-c++-compat \
