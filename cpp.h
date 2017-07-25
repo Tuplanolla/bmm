@@ -237,7 +237,7 @@
 #define BMM_POW_64(x) (1 * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x) * (x))
 
 /// The preprocessor directive `BMM_POW(x, n)`
-/// expands to `x` to the power of `n`.
+/// expands to `x` raised to the power of `n`.
 /// If the value is not known at compile time,
 /// use `bmm_fp_pow` instead.
 #define BMM_POW(x, n) BMM_VA_N(BMM_POW, n)(x)

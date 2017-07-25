@@ -110,7 +110,7 @@ enum bmm_io_read bmm_msg_spec_read(struct bmm_msg_spec *const spec,
 
   if (BMM_MASKALL(flags, BMM_MSG_MASK_VAR)) {
     size_t const flagsize = (size_t) (flags & BMM_MSG_MASK_VARSIZE);
-    size_t const presize = bmm_size_pow(2, flagsize);
+    size_t const presize = type(bmm_pow, size_t)(2, flagsize);
 
     unsigned char buf[BMM_MSG_PRESIZE];
     switch (f(buf, presize, ptr)) {
@@ -190,7 +190,7 @@ bool bmm_msg_spec_write(struct bmm_msg_spec const *const spec,
 
         // TODO Use `popcnt` instead.
 #define BMM_MSG_BITS_FIXSIZE 3
-        if (size < bmm_size_pow(2, BMM_MSG_BITS_FIXSIZE)) {
+        if (size < type(bmm_pow, size_t)(2, BMM_MSG_BITS_FIXSIZE)) {
           flags |= (unsigned char) size & BMM_MSG_MASK_FIXSIZE;
 
           presize = 0;
@@ -201,7 +201,7 @@ bool bmm_msg_spec_write(struct bmm_msg_spec const *const spec,
           flags |= BMM_MSG_MASK_VAR;
           flags |= (unsigned char) flagsize & BMM_MSG_MASK_VARSIZE;
 
-          presize = bmm_size_pow(2, flagsize);
+          presize = type(bmm_pow, size_t)(2, flagsize);
 
           switch (spec->endy) {
             case BMM_ENDY_LITTLE:
@@ -228,7 +228,7 @@ bool bmm_msg_spec_write(struct bmm_msg_spec const *const spec,
         flags |= BMM_MSG_MASK_VAR;
         flags |= (unsigned char) flagsize & BMM_MSG_MASK_VARSIZE;
 
-        presize = bmm_size_pow(2, flagsize);
+        presize = type(bmm_pow, size_t)(2, flagsize);
 
         dynamic_assert(presize <= BMM_MSG_PRESIZE, "Buffer would overflow");
 

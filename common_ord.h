@@ -24,6 +24,31 @@ inline int type(bmm_cmp, A)(A const x, A const y) {
 #ifndef EVERYTHING
 #define EVERYTHING
 
+/// The call `bmm_size_pow(x, e)`
+/// returns `x` to the power of `e`.
+/// This is analogous to `bmm_fp_pow`.
+/// Overflows are impossible internally but possible externally.
+__attribute__ ((__const__, __deprecated__, __pure__))
+inline size_t bmm_size_pow(size_t const x, size_t const e) {
+  size_t y = 1;
+
+  size_t m = x;
+  for (size_t p = e; p > 0; m *= m, p >>= 1)
+    if ((p & 1) != 0)
+      y *= m;
+
+  return y;
+
+  // The following implementation is less complicated,
+  // but slower for large powers.
+  // size_t y = 1;
+  //
+  // for (size_t i = 0; i < e; ++i)
+  //   y *= x;
+  //
+  // return y;
+}
+
 /// The call `bmm_size_even(n)`
 /// checks whether `n` is even.
 __attribute__ ((__const__, __pure__))
@@ -159,31 +184,6 @@ inline size_t bmm_size_clog(size_t const n, size_t const k) {
 #endif
 
   return n <= 1 ? 0 : bmm_size_flog(n - 1, k) + 1;
-}
-
-/// The call `bmm_size_pow(x, e)`
-/// returns `x` to the power of `e`.
-/// This is analogous to `bmm_fp_pow`.
-/// Overflows are impossible internally but possible externally.
-__attribute__ ((__const__, __pure__))
-inline size_t bmm_size_pow(size_t const x, size_t const e) {
-  size_t y = 1;
-
-  size_t m = x;
-  for (size_t p = e; p > 0; m *= m, p >>= 1)
-    if ((p & 1) != 0)
-      y *= m;
-
-  return y;
-
-  // The following implementation is less complicated,
-  // but slower for large powers.
-  // size_t m = 1;
-  //
-  // for (size_t i = 0; i < k; ++i)
-  //   m *= n;
-  //
-  // return m;
 }
 
 /// The call `bmm_size_firt(n, k)`

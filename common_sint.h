@@ -1,6 +1,5 @@
 /// Common operations for signed integer types.
 
-#include "stdio.h"
 #include "ext.h"
 
 /// The call `bmm_quot(x, y)`

@@ -38,7 +38,7 @@ CHEAT_TEST(quot_uint,
         type(bmm_quot_t, unsigned_char) const qr =
           type(bmm_quot, unsigned_char)(x, y);
         cheat_assert_unsigned_char(qr.quot * y + qr.rem, x);
-        cheat_assert_not_int(type(bmm_sgn, unsigned_char)(qr.rem), -1);
+        cheat_assert(qr.rem >= 0);
       }
 )
 
@@ -52,13 +52,13 @@ CHEAT_TEST(quot_fp,
         type(bmm_quot_t, double) const qr =
           type(bmm_quot, double)(x, y);
         cheat_assert_double(qr.quot * y + qr.rem, x, 1.0e-6);
-        cheat_assert_not_int(type(bmm_sgn, double)(qr.rem), -1);
+        cheat_assert(qr.rem >= 0);
       }
 )
 
 CHEAT_DECLARE(
   __attribute__ ((__const__, __pure__))
-  static int wrap(int const x, int const a, int const b) {
+  static int wrap_ref(int const x, int const a, int const b) {
     int const c = b - a;
 
     int y = x;
@@ -85,7 +85,7 @@ CHEAT_TEST(wrap_sint,
         signed char const b = (signed char) k;
 
         cheat_assert_signed_char(type(bmm_wrap, signed_char)(x, a, b),
-            (signed char) wrap(i, j, k));
+            (signed char) wrap_ref(i, j, k));
       }
 )
 
@@ -98,7 +98,7 @@ CHEAT_TEST(wrap_uint,
         unsigned char const b = (unsigned char) k;
 
         cheat_assert_unsigned_char(type(bmm_wrap, unsigned_char)(x, a, b),
-            (unsigned char) wrap(i, j, k));
+            (unsigned char) wrap_ref(i, j, k));
       }
 )
 
@@ -116,119 +116,21 @@ CHEAT_TEST(wrap_fp,
 )
 
 CHEAT_DECLARE(
-  static size_t const ndim = 2;
-  static size_t const nper[] = {6, 5};
-  static bool const per[] = {true, false};
-)
+  __attribute__ ((__const__, __pure__))
+  static int pow_ref(int const x, size_t const e) {
+    int y = 1;
 
-CHEAT_TEST(size_pow,
-  for (size_t i = 0; i < 256; ++i) {
-    cheat_assert_size(bmm_size_pow(i, 0), BMM_POW(i, 0));
-    cheat_assert_size(bmm_size_pow(i, 1), BMM_POW(i, 1));
-    cheat_assert_size(bmm_size_pow(i, 2), BMM_POW(i, 2));
-    cheat_assert_size(bmm_size_pow(i, 3), BMM_POW(i, 3));
-    cheat_assert_size(bmm_size_pow(i, 4), BMM_POW(i, 4));
-    cheat_assert_size(bmm_size_pow(i, 5), BMM_POW(i, 5));
-    cheat_assert_size(bmm_size_pow(i, 6), BMM_POW(i, 6));
+    for (size_t i = 0; i < e; ++i)
+      y *= x;
+
+    return y;
   }
 )
 
-CHEAT_TEST(size_wrap_id,
-  size_t a;
-  size_t b;
-
-  a = 0;
-  b = 1;
-  cheat_assert_size(type(bmm_wrap, size_t)(a, a, b), a);
-  cheat_assert_size(type(bmm_wrap, size_t)(b, a, b), a);
-
-  a = SIZE_MAX / 2;
-  b = SIZE_MAX / 2 + 1;
-  cheat_assert_size(type(bmm_wrap, size_t)(a, a, b), a);
-  cheat_assert_size(type(bmm_wrap, size_t)(b, a, b), a);
-
-  a = SIZE_MAX - 1;
-  b = SIZE_MAX;
-  cheat_assert_size(type(bmm_wrap, size_t)(a, a, b), a);
-  cheat_assert_size(type(bmm_wrap, size_t)(b, a, b), a);
-
-  a = 0;
-  b = SIZE_MAX / 3;
-  cheat_assert_size(type(bmm_wrap, size_t)(a, a, b), a);
-  cheat_assert_size(type(bmm_wrap, size_t)(b, a, b), a);
-  cheat_assert_size(type(bmm_wrap, size_t)(a + 1, a, b), a + 1);
-  cheat_assert_size(type(bmm_wrap, size_t)(b - 1, a, b), b - 1);
-
-  a = SIZE_MAX / 3;
-  b = SIZE_MAX / 3 * 2;
-  cheat_assert_size(type(bmm_wrap, size_t)(a, a, b), a);
-  cheat_assert_size(type(bmm_wrap, size_t)(b, a, b), a);
-  cheat_assert_size(type(bmm_wrap, size_t)(a + 1, a, b), a + 1);
-  cheat_assert_size(type(bmm_wrap, size_t)(b - 1, a, b), b - 1);
-
-  a = SIZE_MAX / 3 * 2;
-  b = SIZE_MAX;
-  cheat_assert_size(type(bmm_wrap, size_t)(a, a, b), a);
-  cheat_assert_size(type(bmm_wrap, size_t)(b, a, b), a);
-  cheat_assert_size(type(bmm_wrap, size_t)(a + 1, a, b), a + 1);
-  cheat_assert_size(type(bmm_wrap, size_t)(b - 1, a, b), b - 1);
-
-  a = 0;
-  b = SIZE_MAX;
-  cheat_assert_size(type(bmm_wrap, size_t)(a, a, b), a);
-  cheat_assert_size(type(bmm_wrap, size_t)(b, a, b), a);
-  cheat_assert_size(type(bmm_wrap, size_t)(a + 1, a, b), a + 1);
-  cheat_assert_size(type(bmm_wrap, size_t)(b - 1, a, b), b - 1);
-)
-
-CHEAT_TEST(size_wrap_neg,
-  size_t a;
-  size_t b;
-
-  a = SIZE_MAX / 2;
-  b = SIZE_MAX / 2 + 1;
-  cheat_assert_size(type(bmm_wrap, size_t)(a - 1, a, b), a);
-  cheat_assert_size(type(bmm_wrap, size_t)(a - 2, a, b), a);
-
-  a = SIZE_MAX - 1;
-  b = SIZE_MAX;
-  cheat_assert_size(type(bmm_wrap, size_t)(a - 1, a, b), a);
-  cheat_assert_size(type(bmm_wrap, size_t)(a - 2, a, b), a);
-
-  a = SIZE_MAX / 3;
-  b = SIZE_MAX / 3 * 2;
-  cheat_assert_size(type(bmm_wrap, size_t)(a - 1, a, b), b - 1);
-  cheat_assert_size(type(bmm_wrap, size_t)(a - 2, a, b), b - 2);
-
-  a = SIZE_MAX / 3 * 2;
-  b = SIZE_MAX;
-  cheat_assert_size(type(bmm_wrap, size_t)(a - 1, a, b), b - 1);
-  cheat_assert_size(type(bmm_wrap, size_t)(a - 2, a, b), b - 2);
-)
-
-CHEAT_TEST(size_wrap_pos,
-  size_t a;
-  size_t b;
-
-  a = 0;
-  b = 1;
-  cheat_assert_size(type(bmm_wrap, size_t)(b + 1, a, b), a);
-  cheat_assert_size(type(bmm_wrap, size_t)(b + 2, a, b), a);
-
-  a = SIZE_MAX / 2;
-  b = SIZE_MAX / 2 + 1;
-  cheat_assert_size(type(bmm_wrap, size_t)(b + 1, a, b), a);
-  cheat_assert_size(type(bmm_wrap, size_t)(b + 2, a, b), a);
-
-  a = 0;
-  b = SIZE_MAX / 3;
-  cheat_assert_size(type(bmm_wrap, size_t)(b + 1, a, b), a + 1);
-  cheat_assert_size(type(bmm_wrap, size_t)(b + 2, a, b), a + 2);
-
-  a = SIZE_MAX / 3;
-  b = SIZE_MAX / 3 * 2;
-  cheat_assert_size(type(bmm_wrap, size_t)(b + 1, a, b), a + 1);
-  cheat_assert_size(type(bmm_wrap, size_t)(b + 2, a, b), a + 2);
+CHEAT_TEST(pow,
+  for (int i = -5; i < 6; ++i)
+    for (size_t j = 0; j < 6; ++j)
+      cheat_assert_size(type(bmm_pow, int)(i, j), pow_ref(i, j));
 )
 
 CHEAT_TEST(size_fact,
@@ -312,6 +214,12 @@ CHEAT_TEST(hsort,
     cheat_assert(x[i - 1] <= x[i]);
 )
 
+CHEAT_DECLARE(
+  static size_t const ndim = 2;
+  static size_t const nper[] = {6, 5};
+  static bool const per[] = {true, false};
+)
+
 CHEAT_TEST(geom2d_shell_inside,
   double const x[] = {0.5, 0.5};
   double const r = 1.0 / sqrt(3.0);
@@ -351,7 +259,7 @@ CHEAT_TEST(size_hc_ord,
 CHEAT_TEST(size_hc_iso,
   size_t ij[2];
 
-  for (size_t i = 0; i < bmm_size_pow(nper[1], ndim); ++i) {
+  for (size_t i = 0; i < type(bmm_pow, size_t)(nper[1], ndim); ++i) {
     type(bmm_hc, size_t)(ij, i, ndim, nper[1]);
     size_t const j = type(bmm_unhc, size_t)(ij, ndim, nper[1]);
 
@@ -682,7 +590,7 @@ CHEAT_TEST(msg_spec_lt_iso,
         out.tag = BMM_MSG_TAG_LT;
         out.msg.term.e = e;
 
-        for (size_t i = 0; i < bmm_size_pow(2, e); ++i)
+        for (size_t i = 0; i < type(bmm_pow, size_t)(2, e); ++i)
           out.msg.term.buf[i] = i << i * 8 & 0xff;
 
         struct msg msg;

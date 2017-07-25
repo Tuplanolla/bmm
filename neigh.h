@@ -159,7 +159,7 @@ inline size_t bmm_neigh_ncpij(size_t const *restrict const ijcell,
 
   size_t nneigh = 0;
 
-  size_t const nquery = bmm_size_pow(3, ndim);
+  size_t const nquery = type(bmm_pow, size_t)(3, ndim);
   size_t const kquery = nquery / 2;
 
   if (BMM_MASKANY(mask, BMM_NEIGH_MASK_RLOWERH))
@@ -193,7 +193,7 @@ inline size_t bmm_neigh_ncpi(size_t const icell,
 
   size_t nneigh = 0;
 
-  size_t const nquery = bmm_size_pow(3, ndim);
+  size_t const nquery = type(bmm_pow, size_t)(3, ndim);
   size_t const kquery = nquery / 2;
 
   if (BMM_MASKANY(mask, BMM_NEIGH_MASK_RLOWERH))
@@ -224,7 +224,7 @@ inline void bmm_neigh_ijcpij(size_t *restrict const pijcell,
     size_t const *restrict const ijcell, size_t const ineigh,
     size_t const ndim, size_t const *restrict const nper,
     bool const *const per, int const mask) {
-  size_t const nquery = bmm_size_pow(3, ndim);
+  size_t const nquery = type(bmm_pow, size_t)(3, ndim);
   size_t const kquery = nquery / 2;
 
   size_t jneigh = 0;
