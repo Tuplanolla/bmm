@@ -236,24 +236,6 @@ inline size_t bmm_size_uclamp(size_t const n, size_t const b) {
   return n >= b ? b - 1 : n;
 }
 
-/// The call `m = bmm_size_uwrap(n, b)`
-/// solves the periodic equation `m == n + k * b` for `m`,
-/// where `0 <= m < b` and `k` is some integer.
-/// If `b <= 0`, the behavior is undefined.
-/// This is analogous to `bmm_fp_uwrap`.
-/// The `u` prefix means unsigned or unsymmetric (asymmetric).
-/// Overflows are impossible both internally and externally.
-#ifndef DEBUG
-__attribute__ ((__const__, __pure__))
-#endif
-inline size_t bmm_size_uwrap(size_t const n, size_t const b) {
-#ifndef DEBUG
-  dynamic_assert(b > 0, "Invalid argument");
-#endif
-
-  return n % b;
-}
-
 /// The call `bmm_size_uinc(n, b)`
 /// is equivalent to `bmm_size_inc(n, 0, b)`.
 /// If `b <= 0`, the behavior is undefined.

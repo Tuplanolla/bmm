@@ -10,6 +10,7 @@
 #include <stddef.h>
 
 #include "ext.h"
+#include "io.h"
 
 /// This structure contains graphics options.
 struct bmm_glut_opts {

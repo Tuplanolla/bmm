@@ -9,8 +9,8 @@
 /// the behavior is undefined.
 __attribute__ ((__const__, __pure__))
 inline type(bmm_quot_t, A) type(bmm_quot, A)(A const x, A const y) {
-  A const q = trunc(x / y);
-  A const r = fmod(x, y);
+  A const q = TRUNCA(x / y);
+  A const r = FMODA(x, y);
   A const s = r >= 0 ? 0 : y < 0 ? -1 : 1;
   type(bmm_quot_t, A) const qr = {.quot = q - s, .rem = r + s * y};
 
@@ -31,4 +31,19 @@ inline A type(bmm_wrap, A)(A const x, A const a, A const b) {
 #endif
 
   return type(bmm_quot, A)(x - a, b - a).rem + a;
+}
+
+/// The call `bmm_uwrap(x, b)`
+/// is equivalent to `bmm_wrap(x, 0, b)`.
+/// If `b <= 0`, the behavior is undefined.
+/// Overflows are impossible both internally and externally.
+#ifndef DEBUG
+__attribute__ ((__const__, __pure__))
+#endif
+inline A type(bmm_uwrap, A)(A const x, A const b) {
+#ifndef DEBUG
+  dynamic_assert(b > 0, "Invalid argument");
+#endif
+
+  return type(bmm_quot, A)(x, b).rem;
 }

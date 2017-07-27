@@ -198,7 +198,7 @@ inline double bmm_fp_swrap(double const x, double const b) {
 /// The call `z = bmm_fp_uwrap(x, b)`
 /// solves the periodic equation `z == x + k * b` for `z`,
 /// where `0 <= z < b` and `k` is some integer.
-/// This is analogous to `bmm_size_uwrap`.
+/// This is analogous to `type(bmm_uwrap, size_t)`.
 /// The `u` prefix means unsigned or unsymmetric (asymmetric).
 __attribute__ ((__const__, __pure__))
 inline double bmm_fp_uwrap(double const x, double const b) {

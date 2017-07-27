@@ -285,7 +285,8 @@ static void bmm_sdl_draw(struct bmm_sdl const *const sdl) {
       double const xoff = x + off * sdl->dem.opts.box.x[0];
 
       GLfloat blent[4];
-      memcpy(blent, true ? glYellow : glWhite, sizeof glBlack);
+      memcpy(blent, sdl->dem.part.role[ipart] == BMM_DEM_ROLE_FREE ?
+          glYellow : glWhite, sizeof glBlack);
       blent[3] = 1.0f;
       GLfloat nope[4];
       memcpy(nope, blent, sizeof glBlack);
@@ -544,99 +545,6 @@ static bool more_heresy(struct bmm_sdl const *const sdl) {
 }
 
 // TODO This is a shit file format.
-
-static struct {
-  double r;
-  char name[4];
-} const bmm_msg_covr[] = {
-  {.r = 0.32, .name = "H"},
-  {.r = 0.71, .name = "Ne"},
-  {.r = 0.72, .name = "F"},
-  {.r = 0.73, .name = "O"},
-  {.r = 0.75, .name = "N"},
-  {.r = 0.77, .name = "C"},
-  {.r = 0.82, .name = "B"},
-  {.r = 0.90, .name = "Be"},
-  {.r = 0.93, .name = "He"},
-  {.r = 0.98, .name = "Ar"},
-  {.r = 0.99, .name = "Cl"},
-  {.r = 1.02, .name = "S"},
-  {.r = 1.06, .name = "P"},
-  {.r = 1.11, .name = "Si"},
-  {.r = 1.12, .name = "Kr"},
-  {.r = 1.14, .name = "Br"},
-  {.r = 1.15, .name = "Ni"},
-  {.r = 1.16, .name = "Se"},
-  {.r = 1.16, .name = "Co"},
-  {.r = 1.17, .name = "Cu"},
-  {.r = 1.17, .name = "Fe"},
-  {.r = 1.17, .name = "Mn"},
-  {.r = 1.18, .name = "Al"},
-  {.r = 1.18, .name = "Cr"},
-  {.r = 1.20, .name = "As"},
-  {.r = 1.22, .name = "Ge"},
-  {.r = 1.22, .name = "V"},
-  {.r = 1.23, .name = "Li"},
-  {.r = 1.25, .name = "Rh"},
-  {.r = 1.25, .name = "Ru"},
-  {.r = 1.25, .name = "Zn"},
-  {.r = 1.26, .name = "Ga"},
-  {.r = 1.26, .name = "Os"},
-  {.r = 1.27, .name = "Ir"},
-  {.r = 1.27, .name = "Tc"},
-  {.r = 1.28, .name = "Re"},
-  {.r = 1.28, .name = "Pd"},
-  {.r = 1.30, .name = "W"},
-  {.r = 1.30, .name = "Pt"},
-  {.r = 1.30, .name = "Mo"},
-  {.r = 1.31, .name = "Xe"},
-  {.r = 1.32, .name = "Ti"},
-  {.r = 1.33, .name = "I"},
-  {.r = 1.34, .name = "Ta"},
-  {.r = 1.34, .name = "Nb"},
-  {.r = 1.34, .name = "Ag"},
-  {.r = 1.34, .name = "Au"},
-  {.r = 1.36, .name = "Te"},
-  {.r = 1.36, .name = "Mg"},
-  {.r = 1.41, .name = "Sn"},
-  {.r = 1.41, .name = "Sb"},
-  {.r = 1.42, .name = "U"},
-  {.r = 1.44, .name = "In"},
-  {.r = 1.44, .name = "Sc"},
-  {.r = 1.44, .name = "Hf"},
-  {.r = 1.45, .name = "Zr"},
-  {.r = 1.45, .name = "At"},
-  {.r = 1.46, .name = "Bi"},
-  {.r = 1.46, .name = "Po"},
-  {.r = 1.47, .name = "Pb"},
-  {.r = 1.48, .name = "Cd"},
-  {.r = 1.48, .name = "Tl"},
-  {.r = 1.49, .name = "Hg"},
-  {.r = 1.54, .name = "Na"},
-  {.r = 1.56, .name = "Tm"},
-  {.r = 1.56, .name = "Lu"},
-  {.r = 1.57, .name = "Er"},
-  {.r = 1.58, .name = "Ho"},
-  {.r = 1.59, .name = "Dy"},
-  {.r = 1.59, .name = "Tb"},
-  {.r = 1.61, .name = "Gd"},
-  {.r = 1.62, .name = "Y"},
-  {.r = 1.62, .name = "Sm"},
-  {.r = 1.63, .name = "Pm"},
-  {.r = 1.64, .name = "Nd"},
-  {.r = 1.65, .name = "Th"},
-  {.r = 1.65, .name = "Ce"},
-  {.r = 1.65, .name = "Pr"},
-  {.r = 1.69, .name = "La"},
-  {.r = 1.74, .name = "Yb"},
-  {.r = 1.74, .name = "Ca"},
-  {.r = 1.85, .name = "Eu"},
-  {.r = 1.91, .name = "Sr"},
-  {.r = 1.98, .name = "Ba"},
-  {.r = 2.03, .name = "K"},
-  {.r = 2.16, .name = "Rb"},
-  {.r = 2.35, .name = "Cs"},
-};
 
 static bool serious_heresy(struct bmm_sdl const *const sdl) {
   FILE *const stream = fopen("heresy.xyz", "w");

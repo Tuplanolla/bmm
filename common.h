@@ -3,6 +3,7 @@
 #ifndef BMM_COMMON_H
 #define BMM_COMMON_H
 
+#include <math.h>
 #include <stddef.h>
 
 #include "alias.h"
@@ -86,7 +87,11 @@
 #undef A
 
 #define A double
+#define TRUNCA trunc
+#define FMODA fmod
 #include "common_fp.h"
+#undef FMODA
+#undef TRUNCA
 #undef A
 
 #endif

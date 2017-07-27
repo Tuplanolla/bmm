@@ -425,7 +425,7 @@ void bmm_dem_force_pair(struct bmm_dem *const dem,
   double fn = 0.0;
   switch (dem->norm.tag) {
     case BMM_DEM_FNORM_DASHPOT:
-      fn = fmax(0.0, dem->opts.part.y * xi +
+      fn = type(bmm_max, double)(0.0, dem->opts.part.y * xi +
           dem->norm.params.dashpot.gamma * dotxi);
 
       break;
@@ -1389,6 +1389,8 @@ __attribute__ ((__nonnull__))
 static bool bmm_dem_script_create_gas(struct bmm_dem *const dem) {
   for (size_t ipart = 0; ipart < 64; ++ipart) {
     size_t const jpart = bmm_dem_addpart(dem);
+    if (jpart == SIZE_MAX)
+      return false;
 
     dem->part.r[jpart] = 0.03;
     dem->part.m[jpart] = 1.0;
@@ -1398,19 +1400,29 @@ static bool bmm_dem_script_create_gas(struct bmm_dem *const dem) {
 
       dem->part.omega[jpart] += (double) (rand() % 512 - 256);
   }
+
+  return true;
 }
 
 __attribute__ ((__nonnull__))
 static bool bmm_dem_script_create_couple(struct bmm_dem *const dem) {
   size_t jpart;
+
   jpart = bmm_dem_addpart(dem);
+  if (jpart == SIZE_MAX)
+    return false;
+
   dem->part.r[jpart] = 0.03;
   dem->part.m[jpart] = 1.0;
   dem->part.x[jpart][0] += 0.45;
   dem->part.x[jpart][1] += 0.25;
   dem->part.v[jpart][0] += 1.0;
   dem->part.omega[jpart] += 400.0;
+
   jpart = bmm_dem_addpart(dem);
+  if (jpart == SIZE_MAX)
+    return false;
+
   dem->part.r[jpart] = 0.03;
   dem->part.m[jpart] = 1.0;
   dem->part.x[jpart][0] += 0.55;

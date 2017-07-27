@@ -65,6 +65,21 @@ inline A type(bmm_wrap, A)(A const x, A const a, A const b) {
   // return y;
 }
 
+/// The call `bmm_uwrap(x, b)`
+/// is equivalent to `bmm_wrap(x, 0, b)`.
+/// If `b <= 0`, the behavior is undefined.
+/// Overflows are impossible both internally and externally.
+#ifndef DEBUG
+__attribute__ ((__const__, __pure__))
+#endif
+inline A type(bmm_uwrap, A)(A const x, A const b) {
+#ifndef DEBUG
+  dynamic_assert(b > 0, "Invalid argument");
+#endif
+
+  return x % b;
+}
+
 /// The call `bmm_hc(pij, i, ndim, nper)`
 /// sets the index vector `pij` to the index `i`
 /// in a hypercube with dimension `ndim` and side length `nper`.

@@ -115,6 +115,39 @@ CHEAT_TEST(wrap_fp,
       }
 )
 
+CHEAT_TEST(uwrap_sint,
+  for (int i = -128; i < 128; ++i)
+    for (int j = 1; j < 128; ++j) {
+      signed char const x = (signed char) i;
+      signed char const b = (signed char) j;
+
+      cheat_assert_signed_char(type(bmm_uwrap, signed_char)(x, b),
+          type(bmm_wrap, signed_char)(x, 0, b));
+    }
+)
+
+CHEAT_TEST(uwrap_uint,
+  for (int i = 0; i < 256; ++i)
+    for (int j = 1; j < 128; ++j) {
+      unsigned char const x = (unsigned char) i;
+      unsigned char const b = (unsigned char) j;
+
+      cheat_assert_unsigned_char(type(bmm_uwrap, unsigned_char)(x, b),
+          type(bmm_wrap, unsigned_char)(x, 0, b));
+    }
+)
+
+CHEAT_TEST(uwrap_fp,
+  for (int i = -128; i < 128; ++i)
+    for (int j = 1; j < 128; ++j) {
+      double const x = (double) i / 64.0;
+      double const b = (double) j / 64.0;
+
+      cheat_assert(type(bmm_uwrap, double)(x, b) >= 0);
+      cheat_assert(type(bmm_uwrap, double)(x, b) < b);
+    }
+)
+
 CHEAT_DECLARE(
   __attribute__ ((__const__, __pure__))
   static int pow_ref(int const x, size_t const e) {
