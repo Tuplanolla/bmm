@@ -304,9 +304,7 @@ inline double bmm_fp_percent(double const x, double const y) {
   return y != 0.0 ? (x / y) * 100.0 : 100.0;
 }
 
-/// The call `bmm_fp_pow(x, n)` returns the `n`th power of `x`.
-/// This is analogous to `pow`.
-__attribute__ ((__const__, __pure__))
+__attribute__ ((__const__, __deprecated__, __pure__))
 inline double bmm_fp_pow(double const x, size_t const n) {
   return pow(x, (double) n);
 }

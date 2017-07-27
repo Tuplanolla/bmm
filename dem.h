@@ -54,6 +54,13 @@ enum bmm_dem_ftang {
   BMM_DEM_FTANG_CS
 };
 
+enum bmm_dem_tau {
+  BMM_DEM_TAU_SOFT,
+  BMM_DEM_TAU_HARD,
+  BMM_DEM_TAU_AVERAGE,
+  BMM_DEM_TAU_HALFWAY
+};
+
 enum bmm_dem_flink {
   BMM_DEM_FLINK_NONE,
   BMM_DEM_FLINK_SPRING,
@@ -120,6 +127,8 @@ struct bmm_dem_opts {
     double rho;
     /// Young's modulus.
     double y;
+    /// Poisson ratio.
+    double nu;
     /// Particle sizes expressed as the width of the uniform distribution.
     double rnew[2];
   } part;
@@ -270,6 +279,11 @@ struct bmm_dem {
         /// Dashpot elasticity.
         double gamma;
       } dashpot;
+      /// For `BMM_DEM_FNORM_VISCOEL`.
+      struct {
+        /// Dissipative constant.
+        double a;
+      } viscoel;
     } params;
   } norm;
   /// Tangential forces.
@@ -287,6 +301,11 @@ struct bmm_dem {
       } hw;
     } params;
   } tang;
+  /// Torques.
+  struct {
+    /// Torque scheme.
+    enum bmm_dem_tau tag;
+  } tau;
   /// Timekeeping.
   struct {
     /// Time.
@@ -446,7 +465,8 @@ bool bmm_dem_cache_build(struct bmm_dem *);
 
 /// The call `bmm_dem_addpart(dem)`
 /// tries to place a new particle with unit radius and unit mass
-/// at rest at the origin.
+/// at rest at the origin
+/// in the simulation `dem`.
 /// If there is enough capacity and the operation is successful,
 /// the index of the new particle is returned.
 /// Otherwise `SIZE_MAX` is returned.
@@ -456,12 +476,19 @@ __attribute__ ((__nonnull__))
 size_t bmm_dem_addpart(struct bmm_dem *);
 
 /// The call `bmm_dem_rempart(dem, ipart)`
-/// removes the particle with the index `ipart`.
+/// removes the particle with the index `ipart`
+/// in the simulation `dem`.
 /// Indices may be reassigned in the process.
 /// Note that removing particles triggers rebuilding all caches
 /// by calling `bmm_dem_cache_build`.
 __attribute__ ((__nonnull__))
 void bmm_dem_rempart(struct bmm_dem *, size_t);
+
+/// The call `bmm_dem_force_pair(dem, ipart, jpart)`
+/// calculates the forces between the particles `ipart` and `jpart`
+/// in the simulation `dem`.
+__attribute__ ((__nonnull__))
+void bmm_dem_force_pair(struct bmm_dem *, size_t, size_t);
 
 /// The call `bmm_dem_opts_def(opts)`
 /// writes the default simulation options into `opts`.

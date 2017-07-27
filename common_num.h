@@ -38,6 +38,16 @@ inline A type(bmm_max, A)(A const x, A const y) {
   return x > y ? x : y;
 }
 
+/// The call `bmm_abs(x)`
+/// returns the absolute value of `x`.
+/// If `-x` is not representable or `x` is not a number,
+/// the behavior is undefined.
+/// Overflows are impossible internally but possible externally.
+__attribute__ ((__const__, __pure__))
+inline A type(bmm_abs, A)(A const x) {
+  return x < 0 ? -x : x;
+}
+
 /// The call `bmm_pow(x, e)`
 /// returns `x` raised to the power of `e`.
 /// If `x == 0` and `e == 0`, the result is one.

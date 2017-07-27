@@ -35,8 +35,8 @@ inline A type(bmm_wrap, A)(A const x, A const a, A const b) {
 
 /// The call `bmm_uwrap(x, b)`
 /// is equivalent to `bmm_wrap(x, 0, b)`.
-/// If `b <= 0`, the behavior is undefined.
-/// Overflows are impossible both internally and externally.
+/// If `b <= 0` or `x` is infinite or `x` or `b` are not numbers,
+/// the behavior is undefined.
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
@@ -46,4 +46,29 @@ inline A type(bmm_uwrap, A)(A const x, A const b) {
 #endif
 
   return type(bmm_quot, A)(x, b).rem;
+}
+
+/// The call `bmm_hmean(x, y)`
+/// returns the harmonic mean of `x` and `y`.
+/// If `x == 0` or `y == 0`, `x` or `y` are infinite or
+/// `x` or `y` are not numbers, the behavior is undefined.
+#ifndef DEBUG
+__attribute__ ((__const__, __pure__))
+#endif
+inline A type(bmm_hmean, A)(A const x, A const y) {
+#ifndef DEBUG
+  dynamic_assert(x != 0, "Invalid argument");
+  dynamic_assert(y != 0, "Invalid argument");
+#endif
+
+  return 2 * ((x * y) / (x + y));
+
+  // The following implementation is closer to the original definition,
+  // but slower and less stable.
+  // return 2 / (1 / x + 1 / y);
+
+  // The following implementation has not been analyzed yet.
+  // A const z = x + y;
+  //
+  // return 2 * ((x / z) * (y / z));
 }

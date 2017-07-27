@@ -59,7 +59,7 @@ extern inline double bmm_fp_lorp(double, double, double, double, double);
 
 extern inline double bmm_fp_percent(double, double);
 
-extern inline double bmm_fp_pow(double, size_t);
+extern inline double type(bmm_pow, double)(double, size_t);
 
 extern inline double bmm_fp_fact(size_t, size_t);
 

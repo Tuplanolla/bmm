@@ -2,16 +2,6 @@
 
 #include "ext.h"
 
-/// The call `bmm_abs(x)`
-/// returns the absolute value of `x`.
-/// If `-x` is not representable or `x` is not a number,
-/// the behavior is undefined.
-/// Overflows are impossible internally but possible externally.
-__attribute__ ((__const__, __pure__))
-inline A type(bmm_abs, A)(A const x) {
-  return x < 0 ? -x : x;
-}
-
 /// The call `bmm_quot(x, y)`
 /// returns the quotient and remainder of `x` divided by `y`
 /// in `qr` such that `qr.quot * y + qr.rem == x` and `qr.rem >= 0`.
