@@ -32,6 +32,12 @@ static bool f(char const *const key, char const *const value,
 
   opts->part.rho = 1.0;
   opts->part.y = 1.0e+3;
+  opts->part.nu = 0.2;
+  /*
+  opts->part.rho = 2.7e+3;
+  opts->part.y = 52.0e+9;
+  opts->part.nu = 0.2;
+  */
 
   opts->comm.dt = 1.0e-3;
 

@@ -166,6 +166,21 @@ CHEAT_TEST(pow,
       cheat_assert_size(type(bmm_pow, int)(i, j), pow_ref(i, j));
 )
 
+CHEAT_TEST(mean2,
+  for (int i = 1; i < 128; ++i)
+    for (int j = 1; j < 128; ++j) {
+      double const x = (double) i / 64.0;
+      double const y = (double) j / 64.0;
+
+      double const a = type(bmm_amean2, double)(x, y);
+      double const g = type(bmm_gmean2, double)(x, y);
+      double const h = type(bmm_hmean2, double)(x, y);
+
+      cheat_assert(a >= g);
+      cheat_assert(g >= h);
+    }
+)
+
 CHEAT_TEST(size_fact,
   cheat_assert_size(bmm_size_fact(0, 1), 1);
   cheat_assert_size(bmm_size_fact(1, 1), 1);

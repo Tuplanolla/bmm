@@ -48,27 +48,68 @@ inline A type(bmm_uwrap, A)(A const x, A const b) {
   return type(bmm_quot, A)(x, b).rem;
 }
 
-/// The call `bmm_hmean(x, y)`
-/// returns the harmonic mean of `x` and `y`.
-/// If `x == 0` or `y == 0`, `x` or `y` are infinite or
+/// The call `bmm_resum2(x, y)`
+/// returns the reciprocal sum of `x` and `y`.
+/// If `x <= 0` or `y <= 0`, `x` or `y` are infinite or
 /// `x` or `y` are not numbers, the behavior is undefined.
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
-inline A type(bmm_hmean, A)(A const x, A const y) {
+inline A type(bmm_resum2, A)(A const x, A const y) {
 #ifndef DEBUG
-  dynamic_assert(x != 0, "Invalid argument");
-  dynamic_assert(y != 0, "Invalid argument");
+  dynamic_assert(x > 0, "Invalid argument");
+  dynamic_assert(y > 0, "Invalid argument");
 #endif
 
-  return 2 * ((x * y) / (x + y));
+  return (x * y) / (x + y);
 
   // The following implementation is closer to the original definition,
   // but slower and less stable.
-  // return 2 / (1 / x + 1 / y);
+  // return 1 / (1 / x + 1 / y);
+}
 
-  // The following implementation has not been analyzed yet.
-  // A const z = x + y;
-  //
-  // return 2 * ((x / z) * (y / z));
+/// The call `bmm_pmean2(x, y, e)`
+/// returns the power mean of `x` and `y` with the exponent `e`.
+/// If `x` or `y` are infinite or
+/// `x` or `y` are not numbers, the behavior is undefined.
+__attribute__ ((__const__, __pure__))
+inline A type(bmm_pmean2, A)(A const x, A const y, A const e) {
+  return POWA((POWA(x, e) + POWA(y, e)) / 2, 1 / e);
+}
+
+/// The call `bmm_amean2(x, y)`
+/// returns the arithmetic mean of `x` and `y`.
+/// It is equivalent to `bmm_pmean2(x, y, 1)`.
+/// If `x` or `y` are infinite or
+/// `x` or `y` are not numbers, the behavior is undefined.
+__attribute__ ((__const__, __pure__))
+inline A type(bmm_amean2, A)(A const x, A const y) {
+  return (x + y) / 2;
+}
+
+/// The call `bmm_gmean2(x, y)`
+/// returns the geometric mean of `x` and `y`.
+/// It is equivalent to `bmm_pmean2(x, y, 0)` at the limit.
+/// If `x < 0` or `y < 0`, `x` or `y` are infinite or
+/// `x` or `y` are not numbers, the behavior is undefined.
+#ifndef DEBUG
+__attribute__ ((__const__, __pure__))
+#endif
+inline A type(bmm_gmean2, A)(A const x, A const y) {
+#ifndef DEBUG
+  dynamic_assert(x >= 0, "Invalid argument");
+  dynamic_assert(y >= 0, "Invalid argument");
+#endif
+
+  return sqrt(x * y);
+}
+
+/// The call `bmm_hmean2(x, y)`
+/// returns the harmonic mean of `x` and `y`.
+/// It is equivalent to `bmm_pmean2(x, y, -1)`.
+/// If `x <= 0` or `y <= 0`, `x` or `y` are infinite or
+/// `x` or `y` are not numbers, the behavior is undefined.
+__attribute__ ((__const__, __pure__))
+inline A type(bmm_hmean2, A)(A const x, A const y) {
+  return 2 * type(bmm_resum2, A)(x, y);
 }

@@ -420,8 +420,7 @@ void bmm_dem_force_pair(struct bmm_dem *const dem,
   {
     double const xi = r - d;
     double const vnormji = -bmm_geom2d_dot(vdiffij, xnormij);
-    // TODO Normalized harmonic mean?
-    double const reff = type(bmm_hmean, double)(ri, rj) / 2.0;
+    double const reff = type(bmm_resum2, double)(ri, rj);
 
     switch (dem->norm.tag) {
       case BMM_DEM_FNORM_DASHPOT:
@@ -430,9 +429,9 @@ void bmm_dem_force_pair(struct bmm_dem *const dem,
 
         break;
       case BMM_DEM_FNORM_VISCOEL:
-        fnorm = -(2.0 / 3.0) * ((dem->opts.part.y * sqrt(reff)) /
+        fnorm = -(2.0 / 3.0) * (dem->opts.part.y /
             (1.0 - type(bmm_pow, double)(dem->opts.part.nu, 2))) *
-          (xi + dem->norm.params.viscoel.a * vnormji) * sqrt(xi);
+          (xi + dem->norm.params.viscoel.a * vnormji) * sqrt(reff * xi);
 
         break;
     }
@@ -1157,7 +1156,7 @@ void bmm_dem_opts_def(struct bmm_dem_opts *const opts) {
   opts->time.istab = 1000;
 
   opts->part.y = 1.0;
-  opts->part.nu = 0.90;
+  opts->part.nu = 0.5;
   opts->part.rnew[0] = 1.0;
   opts->part.rnew[1] = 1.0;
 
@@ -1224,16 +1223,16 @@ void bmm_dem_def(struct bmm_dem *const dem,
   dem->cache.tag = BMM_DEM_CACHING_NEIGH;
   dem->ext.tag = BMM_DEM_FEXT_NONE;
   dem->amb.tag = BMM_DEM_FAMB_CREEPING;
-  dem->norm.tag = BMM_DEM_FNORM_VISCOEL;
   dem->norm.tag = BMM_DEM_FNORM_DASHPOT;
+  dem->norm.tag = BMM_DEM_FNORM_VISCOEL;
   dem->tang.tag = BMM_DEM_FTANG_HW;
   dem->tau.tag = BMM_DEM_TAU_SOFT;
   dem->tau.tag = BMM_DEM_TAU_HARD;
   dem->link.tag = BMM_DEM_FLINK_BEAM;
 
   dem->amb.params.creeping.mu = 1.0;
-  dem->norm.params.viscoel.a = 0.1;
   dem->norm.params.dashpot.gamma = 1.0e+1;
+  dem->norm.params.viscoel.a = 0.1;
   dem->tang.params.hw.gamma = 1.0;
   dem->tang.params.hw.mu = 1.0;
 

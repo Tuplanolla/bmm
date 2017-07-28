@@ -127,7 +127,7 @@ struct bmm_dem_opts {
     double rho;
     /// Young's modulus.
     double y;
-    /// Poisson ratio.
+    /// Poisson's ratio.
     double nu;
     /// Particle sizes expressed as the width of the uniform distribution.
     double rnew[2];
