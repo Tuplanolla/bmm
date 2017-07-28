@@ -446,10 +446,10 @@ void bmm_dem_force_pair(struct bmm_dem *const dem,
     }
   }
 
-  double fnormij[2];
+  double fnormij[BMM_NDIM];
   bmm_geom2d_scale(fnormij, xnormij, fnorm);
 
-  double fnormji[2];
+  double fnormji[BMM_NDIM];
   bmm_geom2d_scale(fnormji, fnormij, -1.0);
 
   bmm_geom2d_addto(dem->part.f[ipart], fnormij);
@@ -460,7 +460,8 @@ void bmm_dem_force_pair(struct bmm_dem *const dem,
   double ftang = 0.0;
 
   {
-    double const vtangij = bmm_geom2d_dot(vdiffij, xtangij) +
+    // TODO By these signs, I think my n--t coordinate system is fucked.
+    double const vtangij = -bmm_geom2d_dot(vdiffij, xtangij) +
       ri * dem->part.omega[ipart] + rj * dem->part.omega[jpart];
     double const dt = dem->opts.script.dt[dem->script.i];
 
@@ -474,24 +475,20 @@ void bmm_dem_force_pair(struct bmm_dem *const dem,
       // TODO No!
       case BMM_DEM_FTANG_CS:
         dem->tang.params.cs.zeta[ipart][jpart] += vtangij * dt;
-        dem->tang.params.cs.zeta[jpart][ipart] -= vtangij * dt;
+        dem->tang.params.cs.zeta[jpart][ipart] += vtangij * dt;
 
         ftang = -copysign(type(bmm_min, double)(
               dem->tang.params.cs.kappa * type(bmm_abs, double)(dem->tang.params.cs.zeta[ipart][jpart]),
               dem->tang.params.cs.mu * type(bmm_abs, double)(fnorm)), vtangij);
 
-        ftang = -copysign(
-              dem->tang.params.cs.kappa * type(bmm_abs, double)(dem->tang.params.cs.zeta[ipart][jpart]),
-              vtangij);
-
         break;
     }
   }
 
-  double ftangij[2];
+  double ftangij[BMM_NDIM];
   bmm_geom2d_scale(ftangij, xtangij, ftang);
 
-  double ftangji[2];
+  double ftangji[BMM_NDIM];
   bmm_geom2d_scale(ftangji, ftangij, -1.0);
 
   bmm_geom2d_addto(dem->part.f[ipart], ftangij);
@@ -1280,7 +1277,7 @@ void bmm_dem_def(struct bmm_dem *const dem,
         for (size_t jpart = 0; jpart < nmembof(dem->tang.params.cs.zeta[ipart]); ++jpart)
           dem->tang.params.cs.zeta[ipart][jpart] = 0.0;
 
-      dem->tang.params.cs.kappa = 1.0e+4;
+      dem->tang.params.cs.kappa = 1.0e+7;
       dem->tang.params.cs.mu = 0.5;
 
       break;
@@ -1496,7 +1493,7 @@ static bool bmm_dem_script_create_hex(struct bmm_dem *const dem) {
 
 // TODO Remove or polish this test diamond.
 __attribute__ ((__nonnull__))
-static bool bmm_dem_script_create_testdiam(struct bmm_dem *const dem) {
+static bool bmm_dem_script_create_testpile(struct bmm_dem *const dem) {
   double const etahc = bmm_geom_ballvol(0.5, BMM_NDIM);
   double const vhc = bmm_fp_prod(dem->opts.box.x, BMM_NDIM);
   double const eta = dem->opts.script.params[dem->script.i].create.eta;
@@ -1621,9 +1618,9 @@ static bool bmm_dem_script_create_couple(struct bmm_dem *const dem) {
 bool bmm_dem_step(struct bmm_dem *const dem) {
   switch (dem->opts.script.mode[dem->script.i]) {
     case BMM_DEM_MODE_CREATE:
-      // if (!bmm_dem_script_create_hc(dem))
+      if (!bmm_dem_script_create_hc(dem))
       // if (!bmm_dem_script_create_hex(dem))
-      if (!bmm_dem_script_create_testdiam(dem))
+      // if (!bmm_dem_script_create_testpile(dem))
         return false;
 
       bmm_dem_script_perturb(dem);

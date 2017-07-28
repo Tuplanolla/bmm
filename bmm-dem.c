@@ -17,9 +17,6 @@ static bool f(char const *const key, char const *const value,
   struct bmm_dem_opts *const opts = ptr;
 
   // TODO Refactor these at some point.
-  double const dtstuff = 1.0e-6;
-  size_t istage;
-
   opts->box.x[0] = 0.1;
   opts->box.x[1] = 0.1;
   opts->box.per[0] = true;
@@ -33,15 +30,6 @@ static bool f(char const *const key, char const *const value,
     opts->cache.rcutoff = fmin(opts->cache.rcutoff,
         opts->box.x[idim] / (double) (opts->cache.ncell[idim] - 2));
 
-  double const mu = 2.0e-3;
-
-  opts->part.rnew[0] = 2.0 * mu / (1.0 + sqrt(2.0));
-  opts->part.rnew[1] = 4.0 * mu / (2.0 + sqrt(2.0));
-
-  // Static pile of sand test.
-  opts->part.rnew[0] = 2.078e-3;
-  opts->part.rnew[1] = opts->part.rnew[0] + 1.0e-9;
-
   // Now in SI base units!
   opts->part.rho = 2.7e+3;
   // TODO For granite this should be closer to `e+9`,
@@ -51,8 +39,16 @@ static bool f(char const *const key, char const *const value,
 
   opts->comm.dt = 2.0e-5;
 
+  double const dtstuff = 1.0e-6;
+  size_t istage;
+
   if (strcmp(key, "script") == 0) {
     if (strcmp(value, "mix") == 0) {
+      double const mu = 2.0e-3;
+
+      opts->part.rnew[0] = 2.0 * mu / (1.0 + sqrt(2.0));
+      opts->part.rnew[1] = 4.0 * mu / (2.0 + sqrt(2.0));
+
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
       opts->script.tspan[istage] = 0.03e-3;
@@ -78,19 +74,35 @@ static bool f(char const *const key, char const *const value,
       opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
       opts->script.tspan[istage] = 3.0e-3;
       opts->script.dt[istage] = dtstuff;
-    } else if (strcmp(value, "test") == 0) {
+    } else if (strcmp(value, "pile") == 0) {
+      opts->part.rnew[0] = 2.078e-3;
+      opts->part.rnew[1] = opts->part.rnew[0] + 1.0e-9;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
+      opts->script.tspan[istage] = 0.03e-3;
+      opts->script.dt[istage] = dtstuff;
+
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CREATE;
       opts->script.params[istage].create.eta = bmm_geom_ballmpd(BMM_NDIM);
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_SEDIMENT;
-      opts->script.tspan[istage] = 2.0e-3;
+      opts->script.tspan[istage] = 30.0e-3;
       opts->script.dt[istage] = dtstuff;
       opts->script.params[istage].sediment.kcohes = 3.0e+4;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CLIP;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_LINK;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
+      opts->script.tspan[istage] = 3.0e-3;
+      opts->script.dt[istage] = dtstuff;
     } else if (strcmp(value, "couple") == 0) {
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
