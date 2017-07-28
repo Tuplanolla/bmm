@@ -399,8 +399,16 @@ void bmm_dem_force_pair(struct bmm_dem *const dem,
   double const rj = dem->part.r[jpart];
   double const r = ri + rj;
   double const r2 = type(bmm_pow, double)(r, 2);
-  if (d2 > r2)
+  if (d2 > r2) {
+    // TODO No!
+    switch (dem->tang.tag) {
+      case BMM_DEM_FTANG_CS:
+        dem->tang.params.cs.zeta[ipart][jpart] = 0.0;
+        dem->tang.params.cs.zeta[jpart][ipart] = 0.0;
+    }
+
     return;
+  }
 
   double const d = sqrt(d2);
 
@@ -454,12 +462,27 @@ void bmm_dem_force_pair(struct bmm_dem *const dem,
   {
     double const vtangij = bmm_geom2d_dot(vdiffij, xtangij) +
       ri * dem->part.omega[ipart] + rj * dem->part.omega[jpart];
+    double const dt = dem->opts.script.dt[dem->script.i];
 
     switch (dem->tang.tag) {
       case BMM_DEM_FTANG_HW:
         ftang = -copysign(type(bmm_min, double)(
               dem->tang.params.hw.gamma * type(bmm_abs, double)(vtangij),
               dem->tang.params.hw.mu * type(bmm_abs, double)(fnorm)), vtangij);
+
+        break;
+      // TODO No!
+      case BMM_DEM_FTANG_CS:
+        dem->tang.params.cs.zeta[ipart][jpart] += vtangij * dt;
+        dem->tang.params.cs.zeta[jpart][ipart] -= vtangij * dt;
+
+        ftang = -copysign(type(bmm_min, double)(
+              dem->tang.params.cs.kappa * type(bmm_abs, double)(dem->tang.params.cs.zeta[ipart][jpart]),
+              dem->tang.params.cs.mu * type(bmm_abs, double)(fnorm)), vtangij);
+
+        ftang = -copysign(
+              dem->tang.params.cs.kappa * type(bmm_abs, double)(dem->tang.params.cs.zeta[ipart][jpart]),
+              vtangij);
 
         break;
     }
@@ -638,23 +661,24 @@ void bmm_dem_integ_euler(struct bmm_dem *const dem) {
   if (dt == 0.0)
     return;
 
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
-    for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
-      dem->part.x[ipart][idim] +=
-        (1.0 / (double) BMM_FACT(1)) * dem->part.v[ipart][idim] * dt;
-      dem->part.v[ipart][idim] +=
-        (1.0 / (double) BMM_FACT(1)) * dem->part.a[ipart][idim] * dt;
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    if (dem->part.role[ipart] == BMM_DEM_ROLE_FREE) {
+      for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
+        dem->part.x[ipart][idim] +=
+          (1.0 / (double) BMM_FACT(1)) * dem->part.v[ipart][idim] * dt;
+        dem->part.v[ipart][idim] +=
+          (1.0 / (double) BMM_FACT(1)) * dem->part.a[ipart][idim] * dt;
 
-      if (dem->opts.box.per[idim])
-        dem->part.x[ipart][idim] = bmm_fp_uwrap(dem->part.x[ipart][idim],
-            dem->opts.box.x[idim]);
+        if (dem->opts.box.per[idim])
+          dem->part.x[ipart][idim] = bmm_fp_uwrap(dem->part.x[ipart][idim],
+              dem->opts.box.x[idim]);
+      }
+
+      dem->part.phi[ipart] +=
+        (1.0 / (double) BMM_FACT(1)) * dem->part.omega[ipart] * dt;
+      dem->part.omega[ipart] +=
+        (1.0 / (double) BMM_FACT(1)) * dem->part.alpha[ipart] * dt;
     }
-
-    dem->part.phi[ipart] +=
-      (1.0 / (double) BMM_FACT(1)) * dem->part.omega[ipart] * dt;
-    dem->part.omega[ipart] +=
-      (1.0 / (double) BMM_FACT(1)) * dem->part.alpha[ipart] * dt;
-  }
 }
 
 void bmm_dem_integ_taylor(struct bmm_dem *const dem) {
@@ -665,25 +689,26 @@ void bmm_dem_integ_taylor(struct bmm_dem *const dem) {
 
   double const dt2 = type(bmm_pow, double)(dt, 2);
 
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
-    for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
-      dem->part.x[ipart][idim] +=
-        (1.0 / (double) BMM_FACT(1)) * dem->part.v[ipart][idim] * dt +
-        (1.0 / (double) BMM_FACT(2)) * dem->part.a[ipart][idim] * dt2;
-      dem->part.v[ipart][idim] +=
-        (1.0 / (double) BMM_FACT(1)) * dem->part.a[ipart][idim] * dt;
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    if (dem->part.role[ipart] == BMM_DEM_ROLE_FREE) {
+      for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
+        dem->part.x[ipart][idim] +=
+          (1.0 / (double) BMM_FACT(1)) * dem->part.v[ipart][idim] * dt +
+          (1.0 / (double) BMM_FACT(2)) * dem->part.a[ipart][idim] * dt2;
+        dem->part.v[ipart][idim] +=
+          (1.0 / (double) BMM_FACT(1)) * dem->part.a[ipart][idim] * dt;
 
-      if (dem->opts.box.per[idim])
-        dem->part.x[ipart][idim] = bmm_fp_uwrap(dem->part.x[ipart][idim],
-            dem->opts.box.x[idim]);
+        if (dem->opts.box.per[idim])
+          dem->part.x[ipart][idim] = bmm_fp_uwrap(dem->part.x[ipart][idim],
+              dem->opts.box.x[idim]);
+      }
+
+      dem->part.phi[ipart] +=
+        (1.0 / (double) BMM_FACT(1)) * dem->part.omega[ipart] * dt +
+        (1.0 / (double) BMM_FACT(2)) * dem->part.alpha[ipart] * dt2;
+      dem->part.omega[ipart] +=
+        (1.0 / (double) BMM_FACT(1)) * dem->part.alpha[ipart] * dt;
     }
-
-    dem->part.phi[ipart] +=
-      (1.0 / (double) BMM_FACT(1)) * dem->part.omega[ipart] * dt +
-      (1.0 / (double) BMM_FACT(2)) * dem->part.alpha[ipart] * dt2;
-    dem->part.omega[ipart] +=
-      (1.0 / (double) BMM_FACT(1)) * dem->part.alpha[ipart] * dt;
-  }
 }
 
 void bmm_dem_integ_vel(struct bmm_dem *const dem) {
@@ -694,25 +719,26 @@ void bmm_dem_integ_vel(struct bmm_dem *const dem) {
 
   double const dt2 = type(bmm_pow, double)(dt, 2);
 
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
-    for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
-      dem->part.x[ipart][idim] +=
-        (1.0 / (double) BMM_FACT(1)) * dem->part.v[ipart][idim] * dt +
-        (1.0 / (double) BMM_FACT(2)) * dem->part.a[ipart][idim] * dt2;
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    if (dem->part.role[ipart] == BMM_DEM_ROLE_FREE) {
+      for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
+        dem->part.x[ipart][idim] +=
+          (1.0 / (double) BMM_FACT(1)) * dem->part.v[ipart][idim] * dt +
+          (1.0 / (double) BMM_FACT(2)) * dem->part.a[ipart][idim] * dt2;
 
-      if (dem->opts.box.per[idim])
-        dem->part.x[ipart][idim] = bmm_fp_uwrap(dem->part.x[ipart][idim],
-            dem->opts.box.x[idim]);
+        if (dem->opts.box.per[idim])
+          dem->part.x[ipart][idim] = bmm_fp_uwrap(dem->part.x[ipart][idim],
+              dem->opts.box.x[idim]);
 
-      dem->integ.params.velvet.a[ipart][idim] = dem->part.a[ipart][idim];
+        dem->integ.params.velvet.a[ipart][idim] = dem->part.a[ipart][idim];
+      }
+
+      dem->part.phi[ipart] +=
+        (1.0 / (double) BMM_FACT(1)) * dem->part.omega[ipart] * dt +
+        (1.0 / (double) BMM_FACT(2)) * dem->part.alpha[ipart] * dt2;
+
+      dem->integ.params.velvet.alpha[ipart] = dem->part.alpha[ipart];
     }
-
-    dem->part.phi[ipart] +=
-      (1.0 / (double) BMM_FACT(1)) * dem->part.omega[ipart] * dt +
-      (1.0 / (double) BMM_FACT(2)) * dem->part.alpha[ipart] * dt2;
-
-    dem->integ.params.velvet.alpha[ipart] = dem->part.alpha[ipart];
-  }
 }
 
 void bmm_dem_integ_vet(struct bmm_dem *const dem) {
@@ -721,14 +747,15 @@ void bmm_dem_integ_vet(struct bmm_dem *const dem) {
   if (dt == 0.0)
     return;
 
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
-    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-      dem->part.v[ipart][idim] += (1.0 / (double) BMM_FACT(2)) *
-        (dem->integ.params.velvet.a[ipart][idim] + dem->part.a[ipart][idim]) * dt;
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    if (dem->part.role[ipart] == BMM_DEM_ROLE_FREE) {
+      for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+        dem->part.v[ipart][idim] += (1.0 / (double) BMM_FACT(2)) *
+          (dem->integ.params.velvet.a[ipart][idim] + dem->part.a[ipart][idim]) * dt;
 
-    dem->part.omega[ipart] += (1.0 / (double) BMM_FACT(2)) *
-      (dem->integ.params.velvet.alpha[ipart] + dem->part.alpha[ipart]) * dt;
-  }
+      dem->part.omega[ipart] += (1.0 / (double) BMM_FACT(2)) *
+        (dem->integ.params.velvet.alpha[ipart] + dem->part.alpha[ipart]) * dt;
+    }
 }
 
 void bmm_dem_stab(struct bmm_dem *const dem) {
@@ -1222,16 +1249,42 @@ void bmm_dem_def(struct bmm_dem *const dem,
   dem->norm.tag = BMM_DEM_FNORM_DASHPOT;
   dem->norm.tag = BMM_DEM_FNORM_VISCOEL;
   dem->tang.tag = BMM_DEM_FTANG_HW;
+  dem->tang.tag = BMM_DEM_FTANG_CS;
   dem->tau.tag = BMM_DEM_TAU_SOFT;
   dem->tau.tag = BMM_DEM_TAU_HARD;
   dem->link.tag = BMM_DEM_FLINK_BEAM;
 
-  dem->amb.params.creeping.mu = 1.0e-3;
   // TODO Stop fucking around with the `union` of these parameters.
-  dem->norm.params.dashpot.gamma = 1.0e+3;
-  dem->norm.params.viscoel.a = 2.0e-2;
-  dem->tang.params.hw.gamma = 1.0;
-  dem->tang.params.hw.mu = 1.0;
+  dem->amb.params.creeping.mu = 1.0e-3;
+
+  switch (dem->norm.tag) {
+    case BMM_DEM_FNORM_DASHPOT:
+      dem->norm.params.dashpot.gamma = 1.0e+3;
+
+      break;
+    case BMM_DEM_FNORM_VISCOEL:
+      dem->norm.params.viscoel.a = 2.0e-2;
+
+      break;
+  }
+
+  switch (dem->tang.tag) {
+    case BMM_DEM_FTANG_HW:
+      dem->tang.params.hw.gamma = 1.0e+2;
+      dem->tang.params.hw.mu = 0.5;
+
+      break;
+    // TODO No!
+    case BMM_DEM_FTANG_CS:
+      for (size_t ipart = 0; ipart < nmembof(dem->tang.params.cs.zeta); ++ipart)
+        for (size_t jpart = 0; jpart < nmembof(dem->tang.params.cs.zeta[ipart]); ++jpart)
+          dem->tang.params.cs.zeta[ipart][jpart] = 0.0;
+
+      dem->tang.params.cs.kappa = 1.0e+4;
+      dem->tang.params.cs.mu = 0.5;
+
+      break;
+  }
 
   dem->time.t = 0.0;
   dem->time.istep = 0;
@@ -1397,7 +1450,8 @@ static bool bmm_dem_script_create_hex(struct bmm_dem *const dem) {
   double const v = vhc * (etahc / eta);
 
   double const vlim = vhc * eta;
-  double const rspace = bmm_ival_midpoint(dem->opts.part.rnew);
+  // double const rspace = bmm_ival_midpoint(dem->opts.part.rnew);
+  double const rspace = dem->opts.part.rnew[1];
   double const dspace = (sqrt(3.0) / 2.0) * rspace;
 
   double x[BMM_NDIM];
@@ -1431,6 +1485,67 @@ static bool bmm_dem_script_create_hex(struct bmm_dem *const dem) {
         x[1] += 2.0 * dspace;
         parity = !parity;
       }
+
+      vnow = vnext;
+    } else
+      break;
+  }
+
+  return true;
+}
+
+// TODO Remove or polish this test diamond.
+__attribute__ ((__nonnull__))
+static bool bmm_dem_script_create_testdiam(struct bmm_dem *const dem) {
+  double const etahc = bmm_geom_ballvol(0.5, BMM_NDIM);
+  double const vhc = bmm_fp_prod(dem->opts.box.x, BMM_NDIM);
+  double const eta = dem->opts.script.params[dem->script.i].create.eta;
+  double const v = vhc * (etahc / eta);
+
+  double const vlim = vhc * eta;
+  double const rspace = bmm_ival_midpoint(dem->opts.part.rnew);
+  // double const rspace = dem->opts.part.rnew[1];
+  double const dspace = (sqrt(3.0) / 2.0) * rspace;
+
+  double x[BMM_NDIM];
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+    x[idim] = 0.0;
+
+  double vnow = 0.0;
+  bool parity = false;
+
+  for ever {
+    double const r = bmm_random_get(dem->rng, dem->opts.part.rnew);
+    double const v = bmm_geom_ballvol(r, BMM_NDIM);
+
+    double const vnext = vnow + v;
+
+    if (vnext <= vlim) {
+      size_t ipart = bmm_dem_addpart(dem);
+      if (ipart == SIZE_MAX)
+        return false;
+
+      dem->part.r[ipart] = r;
+      dem->part.m[ipart] = dem->opts.part.rho * v;
+
+      for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+        dem->part.x[ipart][idim] = x[idim] + rspace;
+
+      x[0] += 2.0 * rspace;
+
+      if (x[0] + 2.0 * rspace >= dem->opts.box.x[0] + 2.0 * rspace) {
+        x[0] = parity ? 0.0 : rspace;
+        x[1] += 2.0 * dspace;
+        parity = !parity;
+      }
+
+      if (fabs(dem->part.x[ipart][0] - dem->opts.box.x[0] / 2.0) +
+          fabs(dem->part.x[ipart][1] - dem->opts.box.x[1] / 2.0) >
+          dem->opts.box.x[0] / 1.9)
+        bmm_dem_rempart(dem, ipart);
+
+      if (fabs(dem->part.x[ipart][1] - dem->opts.box.x[1] / 2.0) < rspace)
+        dem->part.role[ipart] = BMM_DEM_ROLE_FIXED;
 
       vnow = vnext;
     } else
@@ -1482,8 +1597,8 @@ static bool bmm_dem_script_create_couple(struct bmm_dem *const dem) {
   dem->part.m[jpart] = dem->opts.part.rho * bmm_geom_ballvol(dem->part.r[jpart], BMM_NDIM);
   dem->part.x[jpart][0] += 0.45 * scale;
   dem->part.x[jpart][1] += 0.25 * scale;
-  dem->part.v[jpart][0] += 100.0 * scale;
-  dem->part.omega[jpart] += 4000.0;
+  dem->part.v[jpart][0] += 3.0e+1 * scale;
+  dem->part.omega[jpart] += 3.0e+4;
 
   jpart = bmm_dem_addpart(dem);
   if (jpart == SIZE_MAX)
@@ -1493,8 +1608,8 @@ static bool bmm_dem_script_create_couple(struct bmm_dem *const dem) {
   dem->part.m[jpart] = dem->opts.part.rho * bmm_geom_ballvol(dem->part.r[jpart], BMM_NDIM);
   dem->part.x[jpart][0] += 0.55 * scale;
   dem->part.x[jpart][1] += 0.25 * scale;
-  dem->part.v[jpart][0] -= 100.0 * scale;
-  dem->part.omega[jpart] += 4000.0;
+  dem->part.v[jpart][0] -= 3.0e+1 * scale;
+  dem->part.omega[jpart] += 3.0e+4;
 
   return true;
 }
@@ -1506,8 +1621,9 @@ static bool bmm_dem_script_create_couple(struct bmm_dem *const dem) {
 bool bmm_dem_step(struct bmm_dem *const dem) {
   switch (dem->opts.script.mode[dem->script.i]) {
     case BMM_DEM_MODE_CREATE:
-      if (!bmm_dem_script_create_hc(dem))
+      // if (!bmm_dem_script_create_hc(dem))
       // if (!bmm_dem_script_create_hex(dem))
+      if (!bmm_dem_script_create_testdiam(dem))
         return false;
 
       bmm_dem_script_perturb(dem);

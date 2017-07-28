@@ -38,6 +38,10 @@ static bool f(char const *const key, char const *const value,
   opts->part.rnew[0] = 2.0 * mu / (1.0 + sqrt(2.0));
   opts->part.rnew[1] = 4.0 * mu / (2.0 + sqrt(2.0));
 
+  // Static pile of sand test.
+  opts->part.rnew[0] = 2.078e-3;
+  opts->part.rnew[1] = opts->part.rnew[0] + 1.0e-9;
+
   // Now in SI base units!
   opts->part.rho = 2.7e+3;
   // TODO For granite this should be closer to `e+9`,
@@ -89,11 +93,16 @@ static bool f(char const *const key, char const *const value,
       opts->script.mode[istage] = BMM_DEM_MODE_CLIP;
     } else if (strcmp(value, "couple") == 0) {
       istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
+      opts->script.tspan[istage] = 0.06e-3;
+      opts->script.dt[istage] = dtstuff;
+
+      istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_TEST_COUPLE;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
-      opts->script.tspan[istage] = 2.0e-3;
+      opts->script.tspan[istage] = 3.0e-3;
       opts->script.dt[istage] = dtstuff;
     } else
       return false;

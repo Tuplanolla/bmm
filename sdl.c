@@ -388,9 +388,9 @@ static void bmm_sdl_draw(struct bmm_sdl const *const sdl) {
 
   // Staleness indicator.
   glColor3fv(sdl->stale ? glRed : glGreen);
-  glDisk(0.05f * sdl->dem.opts.box.x[0],
-      0.05f * sdl->dem.opts.box.x[1],
-      0.025f * sdl->dem.opts.box.x[0], ncorner);
+  glDisk((float) (0.05 * sdl->dem.opts.box.x[0]),
+      (float) (0.05 * sdl->dem.opts.box.x[1]),
+      (float) (0.025 * sdl->dem.opts.box.x[0]), ncorner);
 
   // Cell boxes.
   glColor3fv(glCyan);

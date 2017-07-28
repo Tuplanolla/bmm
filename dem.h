@@ -299,6 +299,16 @@ struct bmm_dem {
         /// Coulomb friction parameter.
         double mu;
       } hw;
+      /// For `BMM_DEM_FTANG_CS`.
+      struct {
+        /// Cundall--Strack elasticity.
+        double kappa;
+        /// Coulomb friction parameter.
+        double mu;
+        // TODO Pick a better data structure.
+        /// Elongations.
+        double zeta[BMM_MPART][BMM_MPART];
+      } cs;
     } params;
   } tang;
   /// Torques.
