@@ -429,9 +429,10 @@ void bmm_dem_force_pair(struct bmm_dem *const dem,
 
         break;
       case BMM_DEM_FNORM_VISCOEL:
-        fnorm = -(2.0 / 3.0) * (dem->opts.part.y /
-            (1.0 - type(bmm_pow, double)(dem->opts.part.nu, 2))) *
-          (xi + dem->norm.params.viscoel.a * vnormji) * sqrt(reff * xi);
+        fnorm = -type(bmm_max, double)(0.0,
+            (2.0 / 3.0) * (dem->opts.part.y /
+              (1.0 - type(bmm_pow, double)(dem->opts.part.nu, 2))) *
+            (xi + dem->norm.params.viscoel.a * vnormji) * sqrt(reff * xi));
 
         break;
     }
@@ -1188,12 +1189,7 @@ void bmm_dem_opts_def(struct bmm_dem_opts *const opts) {
     */
   }
 
-  // TODO No!
-  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-    opts->cache.ncell[idim] = 12;
-
   opts->cache.rcutoff = (double) INFINITY;
-
   for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
     opts->cache.rcutoff = fmin(opts->cache.rcutoff,
         opts->box.x[idim] / (double) (opts->cache.ncell[idim] - 2));
@@ -1230,9 +1226,10 @@ void bmm_dem_def(struct bmm_dem *const dem,
   dem->tau.tag = BMM_DEM_TAU_HARD;
   dem->link.tag = BMM_DEM_FLINK_BEAM;
 
-  dem->amb.params.creeping.mu = 1.0;
-  dem->norm.params.dashpot.gamma = 1.0e+1;
-  dem->norm.params.viscoel.a = 0.1;
+  dem->amb.params.creeping.mu = 1.0e-3;
+  // TODO Stop fucking around with the `union` of these parameters.
+  dem->norm.params.dashpot.gamma = 1.0e+3;
+  dem->norm.params.viscoel.a = 2.0e-2;
   dem->tang.params.hw.gamma = 1.0;
   dem->tang.params.hw.mu = 1.0;
 
@@ -1351,7 +1348,8 @@ static bool bmm_dem_script_create_hc(struct bmm_dem *const dem) {
 
   double const vlim = vhc * eta;
   // TODO Overlap factor.
-  double const rspace = bmm_ival_midpoint(dem->opts.part.rnew);
+  // double const rspace = bmm_ival_midpoint(dem->opts.part.rnew);
+  double const rspace = dem->opts.part.rnew[1];
 
   double x[BMM_NDIM];
   for (size_t idim = 0; idim < BMM_NDIM; ++idim)
@@ -1478,23 +1476,25 @@ static bool bmm_dem_script_create_couple(struct bmm_dem *const dem) {
   if (jpart == SIZE_MAX)
     return false;
 
-  dem->part.r[jpart] = 0.03;
-  dem->part.m[jpart] = 1.0;
-  dem->part.x[jpart][0] += 0.45;
-  dem->part.x[jpart][1] += 0.25;
-  dem->part.v[jpart][0] += 1.0;
-  dem->part.omega[jpart] += 400.0;
+  double const scale = dem->opts.box.x[0];
+
+  dem->part.r[jpart] = 0.03 * scale;
+  dem->part.m[jpart] = dem->opts.part.rho * bmm_geom_ballvol(dem->part.r[jpart], BMM_NDIM);
+  dem->part.x[jpart][0] += 0.45 * scale;
+  dem->part.x[jpart][1] += 0.25 * scale;
+  dem->part.v[jpart][0] += 100.0 * scale;
+  dem->part.omega[jpart] += 4000.0;
 
   jpart = bmm_dem_addpart(dem);
   if (jpart == SIZE_MAX)
     return false;
 
-  dem->part.r[jpart] = 0.03;
-  dem->part.m[jpart] = 1.0;
-  dem->part.x[jpart][0] += 0.55;
-  dem->part.x[jpart][1] += 0.25;
-  dem->part.v[jpart][0] -= 1.0;
-  dem->part.omega[jpart] += 400.0;
+  dem->part.r[jpart] = 0.03 * scale;
+  dem->part.m[jpart] = dem->opts.part.rho * bmm_geom_ballvol(dem->part.r[jpart], BMM_NDIM);
+  dem->part.x[jpart][0] += 0.55 * scale;
+  dem->part.x[jpart][1] += 0.25 * scale;
+  dem->part.v[jpart][0] -= 100.0 * scale;
+  dem->part.omega[jpart] += 4000.0;
 
   return true;
 }
@@ -1598,6 +1598,15 @@ bool bmm_dem_comm(struct bmm_dem *const dem) {
 
   if (toff >= 0.0) {
     dem->comm.tprev = dem->time.t;
+
+    // TODO Nope.
+    static bool first = true;
+    if (first) {
+      if (!bmm_dem_puts(dem, BMM_MSG_NUM_OPTS))
+        return false;
+
+      first = false;
+    }
 
     if (!bmm_dem_puts(dem, BMM_MSG_NUM_ISTEP))
       return false;

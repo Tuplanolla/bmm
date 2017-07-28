@@ -17,35 +17,41 @@ static bool f(char const *const key, char const *const value,
   struct bmm_dem_opts *const opts = ptr;
 
   // TODO Refactor these at some point.
-  double const dtstuff = 1.0e-4;
+  double const dtstuff = 1.0e-6;
   size_t istage;
 
+  opts->box.x[0] = 0.1;
+  opts->box.x[1] = 0.1;
   opts->box.per[0] = true;
   opts->box.per[1] = false;
 
-  // opts->cache.rcutoff /= 2.0;
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+    opts->cache.ncell[idim] = 12;
 
-  double const mu = 0.02;
+  opts->cache.rcutoff = (double) INFINITY;
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+    opts->cache.rcutoff = fmin(opts->cache.rcutoff,
+        opts->box.x[idim] / (double) (opts->cache.ncell[idim] - 2));
+
+  double const mu = 2.0e-3;
 
   opts->part.rnew[0] = 2.0 * mu / (1.0 + sqrt(2.0));
   opts->part.rnew[1] = 4.0 * mu / (2.0 + sqrt(2.0));
 
-  opts->part.rho = 1.0;
-  opts->part.y = 1.0e+3;
-  opts->part.nu = 0.2;
-  /*
+  // Now in SI base units!
   opts->part.rho = 2.7e+3;
-  opts->part.y = 52.0e+9;
+  // TODO For granite this should be closer to `e+9`,
+  // but that explodes with this large `dt`.
+  opts->part.y = 52.0e+8;
   opts->part.nu = 0.2;
-  */
 
-  opts->comm.dt = 1.0e-3;
+  opts->comm.dt = 2.0e-5;
 
   if (strcmp(key, "script") == 0) {
     if (strcmp(value, "mix") == 0) {
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
-      opts->script.tspan[istage] = 0.005;
+      opts->script.tspan[istage] = 0.03e-3;
       opts->script.dt[istage] = dtstuff;
 
       istage = bmm_dem_script_addstage(opts);
@@ -54,9 +60,9 @@ static bool f(char const *const key, char const *const value,
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_SEDIMENT;
-      opts->script.tspan[istage] = 0.2;
+      opts->script.tspan[istage] = 3.0e-3;
       opts->script.dt[istage] = dtstuff;
-      opts->script.params[istage].sediment.kcohes = 2.0;
+      opts->script.params[istage].sediment.kcohes = 3.0e+4;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CLIP;
@@ -66,7 +72,7 @@ static bool f(char const *const key, char const *const value,
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
-      opts->script.tspan[istage] = 0.2;
+      opts->script.tspan[istage] = 3.0e-3;
       opts->script.dt[istage] = dtstuff;
     } else if (strcmp(value, "test") == 0) {
       istage = bmm_dem_script_addstage(opts);
@@ -75,9 +81,9 @@ static bool f(char const *const key, char const *const value,
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_SEDIMENT;
-      opts->script.tspan[istage] = 0.1;
+      opts->script.tspan[istage] = 2.0e-3;
       opts->script.dt[istage] = dtstuff;
-      opts->script.params[istage].sediment.kcohes = 2.0;
+      opts->script.params[istage].sediment.kcohes = 3.0e+4;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CLIP;
@@ -87,7 +93,7 @@ static bool f(char const *const key, char const *const value,
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
-      opts->script.tspan[istage] = 0.2;
+      opts->script.tspan[istage] = 2.0e-3;
       opts->script.dt[istage] = dtstuff;
     } else
       return false;
