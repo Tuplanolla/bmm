@@ -19,6 +19,22 @@ inline int type(bmm_cmp, A)(A const x, A const y) {
   return x < y ? -1 : x > y ? 1 : 0;
 }
 
+/// The call `bmm_min(x, y)`
+/// returns the lesser of `x` and `y`.
+/// If `x` or `y` are not numbers, the behavior is undefined.
+__attribute__ ((__const__, __pure__))
+inline A type(bmm_min, A)(A const x, A const y) {
+  return x < y ? x : y;
+}
+
+/// The call `bmm_max(x, y)`
+/// returns the lesser of `x` and `y`.
+/// If `x` or `y` are not numbers, the behavior is undefined.
+__attribute__ ((__const__, __pure__))
+inline A type(bmm_max, A)(A const x, A const y) {
+  return x > y ? x : y;
+}
+
 // TODO Ha ha! Almost everything!
 
 #ifndef EVERYTHING
@@ -49,24 +65,10 @@ inline size_t bmm_size_pow(size_t const x, size_t const e) {
   // return y;
 }
 
-/// The call `bmm_size_even(n)`
-/// checks whether `n` is even.
-__attribute__ ((__const__, __pure__))
-inline bool bmm_size_even(size_t const n) {
-  return n % 2 == 0;
-}
-
-/// The call `bmm_size_odd(n)`
-/// checks whether `n` is odd.
-__attribute__ ((__const__, __pure__))
-inline bool bmm_size_odd(size_t const n) {
-  return n % 2 != 0;
-}
-
 /// The call `bmm_size_min(n, k)` returns the lesser of `n` and `k`.
 /// This is analogous to `fmin`.
 /// Overflows are impossible both internally and externally.
-__attribute__ ((__const__, __pure__))
+__attribute__ ((__const__, __deprecated__, __pure__))
 inline size_t bmm_size_min(size_t const n, size_t const k) {
   return BMM_MIN(n, k);
 }
@@ -74,7 +76,7 @@ inline size_t bmm_size_min(size_t const n, size_t const k) {
 /// The call `bmm_size_max(n, k)` returns the greater of `n` and `k`.
 /// This is analogous to `fmax`.
 /// Overflows are impossible both internally and externally.
-__attribute__ ((__const__, __pure__))
+__attribute__ ((__const__, __deprecated__, __pure__))
 inline size_t bmm_size_max(size_t const n, size_t const k) {
   return BMM_MAX(n, k);
 }
@@ -82,7 +84,7 @@ inline size_t bmm_size_max(size_t const n, size_t const k) {
 /// The call `bmm_size_identity(n)` returns `n`.
 /// This is analogous to `bmm_fp_identity`.
 /// Overflows are impossible both internally and externally.
-__attribute__ ((__const__, __pure__))
+__attribute__ ((__const__, __deprecated__, __pure__))
 inline size_t bmm_size_identity(size_t const n) {
   return n;
 }
@@ -90,7 +92,7 @@ inline size_t bmm_size_identity(size_t const n) {
 /// The call `bmm_size_constant(n, k)` returns `n`.
 /// This is analogous to `bmm_fp_constant`.
 /// Overflows are impossible both internally and externally.
-__attribute__ ((__const__, __pure__))
+__attribute__ ((__const__, __deprecated__, __pure__))
 inline size_t bmm_size_constant(size_t const n,
     __attribute__ ((__unused__)) size_t const k) {
   return n;
@@ -99,7 +101,7 @@ inline size_t bmm_size_constant(size_t const n,
 /// The call `bmm_size_zero(n)` returns `0`.
 /// This is analogous to `bmm_fp_zero`.
 /// Overflows are impossible both internally and externally.
-__attribute__ ((__const__, __pure__))
+__attribute__ ((__const__, __deprecated__, __pure__))
 inline size_t bmm_size_zero(__attribute__ ((__unused__)) size_t const n) {
   return 0;
 }
@@ -107,7 +109,7 @@ inline size_t bmm_size_zero(__attribute__ ((__unused__)) size_t const n) {
 /// The call `bmm_size_one(n)` returns `1`.
 /// This is analogous to `bmm_fp_one`.
 /// Overflows are impossible both internally and externally.
-__attribute__ ((__const__, __pure__))
+__attribute__ ((__const__, __deprecated__, __pure__))
 inline size_t bmm_size_one(__attribute__ ((__unused__)) size_t const n) {
   return 1;
 }
@@ -116,7 +118,7 @@ inline size_t bmm_size_one(__attribute__ ((__unused__)) size_t const n) {
 /// returns the arithmetic mean of `n` and `k`.
 /// This is analogous to `bmm_fp_midpoint`.
 /// Overflows are impossible both internally and externally.
-__attribute__ ((__const__, __pure__))
+__attribute__ ((__const__, __deprecated__, __pure__))
 inline size_t bmm_size_midpoint(size_t const n, size_t const k) {
   return n / 2 + k / 2 + (n % 2 + k % 2) / 2;
 
@@ -132,7 +134,7 @@ inline size_t bmm_size_midpoint(size_t const n, size_t const k) {
 /// The call `bmm_size_sq(n)` returns `n` squared.
 /// This is analogous to `bmm_fp_sq`.
 /// Overflows are impossible internally but possible externally.
-__attribute__ ((__const__, __pure__))
+__attribute__ ((__const__, __deprecated__, __pure__))
 inline size_t bmm_size_sq(size_t const n) {
   return n * n;
 }
@@ -140,7 +142,7 @@ inline size_t bmm_size_sq(size_t const n) {
 /// The call `bmm_size_cb(n)` returns `n` cubed.
 /// This is analogous to `bmm_fp_cb`.
 /// Overflows are impossible internally but possible externally.
-__attribute__ ((__const__, __pure__))
+__attribute__ ((__const__, __deprecated__, __pure__))
 inline size_t bmm_size_cb(size_t const n) {
   return n * n * n;
 }

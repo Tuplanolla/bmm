@@ -7,7 +7,6 @@
 #include <stddef.h>
 
 #include "common.h"
-#include "cpp.h"
 #include "ext.h"
 #include "fp.h"
 
@@ -21,7 +20,7 @@ inline double bmm_geom_ballvol(double const r, size_t d) {
   // return d == 0 ? 1.0 : d == 1 ? 2.0 * r :
   //   (M_2PI * type(bmm_pow, double)(r, 2) / (double) d) * bmm_geom_ballvol(r, d - 2);
 
-  double v = bmm_size_even(d) ? 1.0 : 2.0 * r;
+  double v = type(bmm_even, size_t)(d) ? 1.0 : 2.0 * r;
 
   while (d > 1) {
     v *= M_2PI * type(bmm_pow, double)(r, 2) / (double) d;
@@ -42,7 +41,7 @@ inline double bmm_geom_ballsurf(double const r, size_t d) {
   // return d == 0 ? 0.0 : d == 1 ? 2.0 : d == 2 ? M_2PI * r :
   //   (M_2PI * type(bmm_pow, double)(r, 2) / (double) (d - 2)) * bmm_geom_ballsurf(r, d - 2);
 
-  double a = d == 0 ? 0.0 : bmm_size_odd(d) ? 2.0 : M_2PI * r;
+  double a = d == 0 ? 0.0 : type(bmm_odd, size_t)(d) ? 2.0 : M_2PI * r;
 
   while (d > 2) {
     d -= 2;
@@ -159,7 +158,7 @@ __attribute__ ((__const__, __pure__))
 inline double bmm_geom_ballmpd(size_t const d) {
   double c;
 
-  if (bmm_size_even(d)) {
+  if (type(bmm_even, size_t)(d)) {
     size_t const n = d / 2;
 
     c = type(bmm_pow, double)(M_PI, n) / bmm_fp_fact(n, 1);

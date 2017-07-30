@@ -5,6 +5,10 @@
 
 extern inline int type(bmm_cmp, A)(A, A);
 
+extern inline A type(bmm_min, A)(A, A);
+
+extern inline A type(bmm_max, A)(A, A);
+
 extern inline void bmm_size_swap(size_t *restrict, size_t *restrict);
 
 extern inline bool bmm_size_even(size_t);

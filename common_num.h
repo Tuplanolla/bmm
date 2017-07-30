@@ -20,24 +20,6 @@ inline int type(bmm_sgn, A)(A const x) {
   return type(bmm_cmp, A)(x, 0);
 }
 
-/// The call `bmm_min(x, y)`
-/// returns the lesser of `x` and `y`.
-/// If `x` or `y` are not numbers, the behavior is undefined.
-/// Overflows are impossible both internally and externally.
-__attribute__ ((__const__, __pure__))
-inline A type(bmm_min, A)(A const x, A const y) {
-  return x < y ? x : y;
-}
-
-/// The call `bmm_max(x, y)`
-/// returns the lesser of `x` and `y`.
-/// If `x` or `y` are not numbers, the behavior is undefined.
-/// Overflows are impossible both internally and externally.
-__attribute__ ((__const__, __pure__))
-inline A type(bmm_max, A)(A const x, A const y) {
-  return x > y ? x : y;
-}
-
 /// The call `bmm_abs(x)`
 /// returns the absolute value of `x`.
 /// If `-x` is not representable or `x` is not a number,

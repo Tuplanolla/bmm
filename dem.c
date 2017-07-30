@@ -1134,7 +1134,7 @@ bool bmm_dem_est_raddist(double *const pr, double *const pg,
   double const bw = bmm_ival_midpoint(dem->opts.part.rnew) / 8.0;
 
   double *rw[] = {r, w};
-  bmm_hsort(nmemb, compar, swap, rw);
+  bmm_hsort_cls(nmemb, compar, swap, rw);
   wkde_sample_sorted(pr, pg, r, w, nmemb, bw, nbin, 0.0, rmax);
   // wkde_sample(pr, pg, r, w, nmemb, bw, nbin, 0.0, rmax);
 

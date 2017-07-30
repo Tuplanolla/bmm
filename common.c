@@ -55,30 +55,30 @@
 #undef A
 
 #define A signed_char
-#include "common_int.c"
-#undef A
-#define A unsigned_char
-#include "common_int.c"
+#include "common_sint.c"
 #undef A
 #define A int
-#include "common_int.c"
+#include "common_sint.c"
+#undef A
+
+#define A unsigned_char
+#include "common_uint.c"
 #undef A
 #define A size_t
-#include "common_int.c"
+#include "common_uint.c"
 #undef A
 
 #define A signed_char
-#include "common_sint.c"
+#include "common_int.c"
+#undef A
+#define A unsigned_char
+#include "common_int.c"
 #undef A
 #define A int
-#include "common_sint.c"
-#undef A
-
-#define A unsigned_char
-#include "common_uint.c"
+#include "common_int.c"
 #undef A
 #define A size_t
-#include "common_uint.c"
+#include "common_int.c"
 #undef A
 
 #define A double

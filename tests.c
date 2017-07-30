@@ -14,6 +14,43 @@
 #include "neigh.h"
 #include "msg.h"
 
+CHEAT_DECLARE(
+
+#define A signed_char
+
+/// The call `bmm_tamean2(x, y)`
+/// returns the truncated arithmetic mean of `x` and `y`.
+/// Overflows are impossible both internally and externally.
+__attribute__ ((__const__, __pure__))
+static /* inline */ A type(tamean2, A)(A const x, A const y) {
+  if (x >= 0 && y >= 0)
+    return (x / 2 + y / 2) + (x % 2) * (y % 2);
+
+  // TODO Not like this.
+  return (x / 2 + y / 2) - (x % 2) * (y % 2) + (x < 0) + (y < 0);
+
+  // The following implementation is less complicated,
+  // but susceptible to overflowing.
+  // return (x + y) / 2;
+}
+
+__attribute__ ((__const__, __pure__))
+static int ref(int const x, int const y) {
+  return (x + y) / 2;
+}
+)
+
+CHEAT_TEST(ref,
+  for (int i = -5; i < 5; ++i)
+    for (int j = -5; j < 5; ++j) {
+      signed char const x = (signed char) i;
+      signed char const y = (signed char) j;
+
+      cheat_assert_signed_char(type(tamean2, signed_char)(x, y),
+          (signed char) ref(i, j));
+    }
+)
+
 CHEAT_TEST(quot_sint,
   for (int i = -128; i < 128; ++i)
     for (int j = -128; j < 128; ++j)
@@ -181,6 +218,43 @@ CHEAT_TEST(mean2,
     }
 )
 
+CHEAT_DECLARE(
+  __attribute__ ((__const__, __pure__))
+  static int tamean2_ref(int const x, int const y) {
+    return (x + y) / 2;
+  }
+)
+
+// TODO Unskip.
+CHEAT_SKIP(tmean2,
+  for (int i = -128; i < 128; ++i)
+    for (int j = -128; j < 128; ++j) {
+      signed char const x = (signed char) i;
+      signed char const y = (signed char) j;
+
+      cheat_assert_signed_char(type(bmm_tamean2, signed_char)(x, y),
+          (signed char) tamean2_ref(i, j));
+    }
+)
+
+CHEAT_DECLARE(
+  __attribute__ ((__const__, __pure__))
+  static int famean2_ref(int const x, int const y) {
+    return type(bmm_quot, int)(x + y, 2).quot;
+  }
+)
+
+CHEAT_TEST(fmean2,
+  for (int i = -128; i < 128; ++i)
+    for (int j = -128; j < 128; ++j) {
+      signed char const x = (signed char) i;
+      signed char const y = (signed char) j;
+
+      cheat_assert_signed_char(type(bmm_famean2, signed_char)(x, y),
+          (signed char) famean2_ref(i, j));
+    }
+)
+
 CHEAT_TEST(size_fact,
   cheat_assert_size(bmm_size_fact(0, 1), 1);
   cheat_assert_size(bmm_size_fact(1, 1), 1);
@@ -256,7 +330,7 @@ CHEAT_TEST(hsort,
     x[i] = (int) k;
   }
 
-  bmm_hsort(nmembof(x), compar, swap, x);
+  bmm_hsort_cls(nmembof(x), compar, swap, x);
 
   for (size_t i = 1; i < nmembof(x); ++i)
     cheat_assert(x[i - 1] <= x[i]);
