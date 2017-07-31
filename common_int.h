@@ -24,7 +24,29 @@ inline bool type(bmm_odd, A)(A const x) {
 __attribute__ ((__const__, __pure__))
 inline A type(bmm_tamean2, A)(A const x, A const y) {
   // TODO Not like this.
-  return 0;
+
+  A const z = (x / 2 + y / 2);
+
+  if ((x % 2 == 0) && (y % 2 == 0))
+    return z;
+
+  if ((x % 2 == 1) && (y % 2 == 1))
+    return z + (z >= 0); // z + 1
+
+  if ((x % 2 == -1) && (y % 2 == -1))
+    return z - (z <= 0); // z - 1
+
+  if ((x % 2 == 0 && y % 2 == 1) ||
+      (x % 2 == 1 && y % 2 == 0))
+    return z + (z < 0);
+
+  if ((x % 2 == 1 && y % 2 == -1) ||
+      (x % 2 == -1 && y % 2 == 1))
+    return z;
+
+  if ((x % 2 == -1 && y % 2 == 0) ||
+      (x % 2 == 0 && y % 2 == -1))
+    return z - (z > 0);
 
   // The following implementation is less complicated,
   // but susceptible to overflowing.

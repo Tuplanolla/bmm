@@ -6,6 +6,7 @@
 
 #include "common.h"
 #include "ext.h"
+#include "fp.h"
 
 /// The call `bmm_kernel_rect(x)`
 /// returns the value of the uniform rectangular kernel at `x`.

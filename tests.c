@@ -23,11 +23,32 @@ CHEAT_DECLARE(
 /// Overflows are impossible both internally and externally.
 __attribute__ ((__const__, __pure__))
 static /* inline */ A type(tamean2, A)(A const x, A const y) {
-  if (x >= 0 && y >= 0)
-    return (x / 2 + y / 2) + (x % 2) * (y % 2);
-
   // TODO Not like this.
-  return (x / 2 + y / 2) - (x % 2) * (y % 2) + (x < 0) + (y < 0);
+
+  A const z = (x / 2 + y / 2);
+
+  if ((x % 2 == 0) && (y % 2 == 0))
+    return z;
+
+  if ((x % 2 == 1) && (y % 2 == 1))
+    return z + (z >= 0);
+
+  if ((x % 2 == -1) && (y % 2 == -1))
+    return z - (z <= 0);
+
+  if ((x % 2 == 1 && y % 2 == -1) ||
+      (x % 2 == -1 && y % 2 == 1))
+    return z;
+
+  if ((x % 2 == 0 && y % 2 == 1) ||
+      (x % 2 == 1 && y % 2 == 0))
+    return z + (z < 0);
+
+  if ((x % 2 == -1 && y % 2 == 0) ||
+      (x % 2 == 0 && y % 2 == -1))
+    return z - (z > 0);
+
+  return -128;
 
   // The following implementation is less complicated,
   // but susceptible to overflowing.
@@ -41,8 +62,8 @@ static int ref(int const x, int const y) {
 )
 
 CHEAT_TEST(ref,
-  for (int i = -5; i < 5; ++i)
-    for (int j = -5; j < 5; ++j) {
+  for (int i = -128; i < 128; ++i)
+    for (int j = -128; j < 128; ++j) {
       signed char const x = (signed char) i;
       signed char const y = (signed char) j;
 
