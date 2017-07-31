@@ -155,6 +155,7 @@ inline size_t bmm_size_cb(size_t const n) {
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
+__attribute__ ((__deprecated__))
 inline size_t bmm_size_flog(size_t n, size_t const k) {
 #ifdef DEBUG
   dynamic_assert(n > 0, "Invalid argument");
@@ -179,6 +180,7 @@ inline size_t bmm_size_flog(size_t n, size_t const k) {
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
+__attribute__ ((__deprecated__))
 inline size_t bmm_size_clog(size_t const n, size_t const k) {
 #ifdef DEBUG
   dynamic_assert(n > 0, "Invalid argument");
@@ -305,7 +307,7 @@ inline size_t bmm_size_dec(size_t const n, size_t const a, size_t const b) {
 /// The call `bmm_size_fact(n, k)`
 /// returns the `k`-factorial of `n`.
 /// Overflows are impossible internally but possible externally.
-__attribute__ ((__const__, __pure__))
+__attribute__ ((__const__, __deprecated__, __pure__))
 inline size_t bmm_size_fact(size_t const n, size_t const k) {
   size_t m = 1;
 

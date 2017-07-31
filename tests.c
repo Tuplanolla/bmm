@@ -14,124 +14,6 @@
 #include "neigh.h"
 #include "msg.h"
 
-#define A signed_char
-
-CHEAT_DECLARE(
-
-/// The call `bmm_tamean2(x, y)`
-/// returns the truncated arithmetic mean of `x` and `y`.
-/// Overflows are impossible both internally and externally.
-__attribute__ ((__const__, __pure__))
-static /* inline */ A type(tamean2, A)(A const x, A const y) {
-  // TODO Not like this.
-
-  A const z = (x / 2 + y / 2);
-  // < = >
-
-  //  x % 2
-  //     y % 2
-  //         z < 0
-  //            z == 0
-  //               z > 0
-  // +1 +1,  0 +1 +1
-  // -1  0,  0  0 -1
-  //  0 -1,  0  0 -1
-  //  0  0,  0  0  0
-  // +1 -1,  0  0  0
-  // -1 +1,  0  0  0
-  //  0 +1, +1  0  0
-  // +1  0, +1  0  0
-  // -1 -1, -1 -1  0
-
-  A const sx = x % 2 < 0;
-  A const mx = x % 2 != 0;
-  A const sy = y % 2 < 0;
-  A const my = y % 2 != 0;
-
-  // .i 4
-  // .o 6
-  // .ilb sx mx sy my
-  // .ob sl ml se me sg mg
-  // 0101 -00101
-  // 11-0 -0-011
-  // -011 -0-011
-  // -0-0 -0-0-0
-  // 0111 -0-0-0
-  // 1101 -0-0-0
-  // -001 01-0-0
-  // 01-0 01-0-0
-  // 1111 1111-0
-  // .e
-
-  A const sl = (sx & mx & sy & my);
-  A const ml = (!sx & mx & !my) | (!mx & !sy & my) | (sx & mx & sy & my);
-  A const se = (sx & mx & sy & my);
-  A const me = (!sx & mx & !sy & my) | (sx & mx & sy & my);
-  A const sg = (sx & mx & !my) | (!mx & sy & my);
-  A const mg = (!sx & mx & !sy & my) | (sx & mx & !my) | (!mx & sy & my);
-
-  return z +
-    (sl ? -1 : 1) * ml * (z < 0) +
-    (se ? -1 : 1) * me * (z == 0) +
-    (sg ? -1 : 1) * mg * (z > 0);
-
-  // x%2 * y%2 == 0
-  // x%2 + y%2 == 0
-  if ((x % 2 == 0) && (y % 2 == 0))
-    return z;
-
-  // x%2 * y%2 == 1
-  // x%2 + y%2 == 0
-  if ((x % 2 == 1 && y % 2 == -1) ||
-      (x % 2 == -1 && y % 2 == 1))
-    return z;
-
-  // x%2 * y%2 == 1
-  // x%2 + y%2 > 0 == 2
-  if ((x % 2 == 1) && (y % 2 == 1))
-    return z + (z > 0) + (z == 0);
-
-  // x%2 * y%2 == 0
-  // x%2 + y%2 < 0 == -1
-  if ((x % 2 == -1 && y % 2 == 0) ||
-      (x % 2 == 0 && y % 2 == -1))
-    return z - (z > 0);
-
-  // x%2 * y%2 == 1
-  // x%2 + y%2 < 0 == -2
-  if ((x % 2 == -1) && (y % 2 == -1))
-    return z - (z < 0) - (z == 0);
-
-  // x%2 * y%2 == 0
-  // x%2 + y%2 > 0 == 1
-  if ((x % 2 == 0 && y % 2 == 1) ||
-      (x % 2 == 1 && y % 2 == 0))
-    return z + (z < 0);
-
-  return -128;
-
-  // The following implementation is less complicated,
-  // but susceptible to overflowing.
-  // return (x + y) / 2;
-}
-
-__attribute__ ((__const__, __pure__))
-static int ref(int const x, int const y) {
-  return (x + y) / 2;
-}
-)
-
-CHEAT_TEST(ref,
-  for (int i = -128; i < 128; ++i)
-    for (int j = -128; j < 128; ++j) {
-      signed char const x = (signed char) i;
-      signed char const y = (signed char) j;
-
-      cheat_assert_signed_char(type(tamean2, signed_char)(x, y),
-          (signed char) ref(i, j));
-    }
-)
-
 CHEAT_TEST(quot_sint,
   for (int i = -128; i < 128; ++i)
     for (int j = -128; j < 128; ++j)
@@ -280,8 +162,61 @@ CHEAT_DECLARE(
 
 CHEAT_TEST(pow,
   for (int i = -5; i < 6; ++i)
-    for (size_t j = 0; j < 6; ++j)
+    for (size_t j = 0; j < 7; ++j)
       cheat_assert_size(type(bmm_pow, int)(i, j), pow_ref(i, j));
+)
+
+CHEAT_DECLARE(
+  __attribute__ ((__const__, __pure__))
+  static size_t fact_ref(size_t const x) {
+    static size_t const data[] = {
+      1, 1, 2, 6, 24, 120, 720, 5040, 40320,
+    };
+
+    return data[x];
+  }
+)
+
+CHEAT_TEST(fact,
+  for (size_t i = 0; i < 9; ++i)
+    cheat_assert_size(type(bmm_fact, size_t)(i), fact_ref(i));
+)
+
+CHEAT_DECLARE(
+  __attribute__ ((__const__, __pure__))
+  static size_t multfact_ref(size_t const x, size_t const s) {
+    // The data sources are
+    //
+    // * `A000142`,
+    // * `A006882`,
+    // * `A007661`,
+    // * `A007662`,
+    // * `A085157`,
+    // * `A085158`,
+    // * `A114799` and
+    // * `A114800`.
+    static size_t const data[][9] = {
+      {1, 1, 2, 6, 24, 120, 720, 5040, 40320},
+      {1, 1, 2, 3, 8, 15, 48, 105, 384},
+      {1, 1, 2, 3, 4, 10, 18, 28, 80},
+      {1, 1, 2, 3, 4, 5, 12, 21, 32},
+      {1, 1, 2, 3, 4, 5, 6, 14, 24},
+      {1, 1, 2, 3, 4, 5, 6, 7, 16},
+      {1, 1, 2, 3, 4, 5, 6, 7, 8},
+      {1, 1, 2, 3, 4, 5, 6, 7, 8}
+    };
+
+    return data[s - 1][x];
+  }
+)
+
+CHEAT_TEST(multfact,
+  for (size_t i = 0; i < 9; ++i)
+    cheat_assert_size(type(bmm_multfact, size_t)(i, 1), fact_ref(i));
+
+  for (size_t i = 0; i < 9; ++i)
+    for (size_t j = 1; j < 9; ++j)
+      cheat_assert_size(type(bmm_multfact, size_t)(i, j), multfact_ref(i, j));
 )
 
 CHEAT_TEST(mean2,
@@ -306,8 +241,7 @@ CHEAT_DECLARE(
   }
 )
 
-// TODO Unskip.
-CHEAT_SKIP(tmean2,
+CHEAT_TEST(tmean2_sint,
   for (int i = -128; i < 128; ++i)
     for (int j = -128; j < 128; ++j) {
       signed char const x = (signed char) i;
@@ -318,6 +252,17 @@ CHEAT_SKIP(tmean2,
     }
 )
 
+CHEAT_TEST(tmean2_uint,
+  for (int i = 0; i < 256; ++i)
+    for (int j = 0; j < 256; ++j) {
+      unsigned char const x = (unsigned char) i;
+      unsigned char const y = (unsigned char) j;
+
+      cheat_assert_unsigned_char(type(bmm_tamean2, unsigned_char)(x, y),
+          (unsigned char) tamean2_ref(i, j));
+    }
+)
+
 CHEAT_DECLARE(
   __attribute__ ((__const__, __pure__))
   static int famean2_ref(int const x, int const y) {
@@ -325,7 +270,7 @@ CHEAT_DECLARE(
   }
 )
 
-CHEAT_TEST(fmean2,
+CHEAT_TEST(fmean2_sint,
   for (int i = -128; i < 128; ++i)
     for (int j = -128; j < 128; ++j) {
       signed char const x = (signed char) i;
@@ -336,42 +281,77 @@ CHEAT_TEST(fmean2,
     }
 )
 
-CHEAT_TEST(size_fact,
-  cheat_assert_size(bmm_size_fact(0, 1), 1);
-  cheat_assert_size(bmm_size_fact(1, 1), 1);
-  cheat_assert_size(bmm_size_fact(2, 1), 2);
-  cheat_assert_size(bmm_size_fact(3, 1), 6);
-  cheat_assert_size(bmm_size_fact(4, 1), 24);
-  cheat_assert_size(bmm_size_fact(5, 1), 120);
-  cheat_assert_size(bmm_size_fact(6, 1), 720);
+CHEAT_TEST(fmean2_uint,
+  for (int i = 0; i < 256; ++i)
+    for (int j = 0; j < 256; ++j) {
+      unsigned char const x = (unsigned char) i;
+      unsigned char const y = (unsigned char) j;
+
+      cheat_assert_unsigned_char(type(bmm_famean2, unsigned_char)(x, y),
+          (unsigned char) famean2_ref(i, j));
+    }
 )
 
-CHEAT_TEST(size_fact2,
-  cheat_assert_size(bmm_size_fact(0, 2), 1);
-  cheat_assert_size(bmm_size_fact(1, 2), 1);
-  cheat_assert_size(bmm_size_fact(2, 2), 2);
-  cheat_assert_size(bmm_size_fact(3, 2), 3);
-  cheat_assert_size(bmm_size_fact(4, 2), 8);
-  cheat_assert_size(bmm_size_fact(5, 2), 15);
-  cheat_assert_size(bmm_size_fact(6, 2), 48);
+CHEAT_DECLARE(
+  __attribute__ ((__const__, __pure__))
+  static size_t flog_ref(size_t const x, size_t const b) {
+    static size_t const data[][16] = {
+      {0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4},
+      {0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2},
+      {0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2},
+      {0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+      {0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+      {0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+      {0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+      {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1},
+      {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1},
+      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1},
+      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1},
+      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1},
+      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1},
+      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1},
+      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}
+    };
+
+    return data[b - 2][x - 1];
+  }
 )
 
-CHEAT_TEST(size_flog,
-  cheat_assert_size(bmm_size_flog(1, 2), 0);
-  cheat_assert_size(bmm_size_flog(2, 2), 1);
-  cheat_assert_size(bmm_size_flog(3, 2), 1);
-  cheat_assert_size(bmm_size_flog(4, 2), 2);
-  cheat_assert_size(bmm_size_flog(5, 2), 2);
-  cheat_assert_size(bmm_size_flog(6, 2), 2);
+CHEAT_TEST(flog,
+  for (size_t i = 1; i < 17; ++i)
+    for (size_t j = 2; j < 17; ++j)
+      cheat_assert_size(type(bmm_flog, size_t)(i, j), flog_ref(i, j));
 )
 
-CHEAT_TEST(size_clog,
-  cheat_assert_size(bmm_size_clog(1, 2), 0);
-  cheat_assert_size(bmm_size_clog(2, 2), 1);
-  cheat_assert_size(bmm_size_clog(3, 2), 2);
-  cheat_assert_size(bmm_size_clog(4, 2), 2);
-  cheat_assert_size(bmm_size_clog(5, 2), 3);
-  cheat_assert_size(bmm_size_clog(6, 2), 3);
+CHEAT_DECLARE(
+  __attribute__ ((__const__, __pure__))
+  static size_t clog_ref(size_t const x, size_t const b) {
+    static size_t const data[][16] = {
+      {0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4},
+      {0, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3},
+      {0, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2},
+      {0, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2},
+      {0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2},
+      {0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2},
+      {0, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2},
+      {0, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2},
+      {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2},
+      {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2},
+      {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2},
+      {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2},
+      {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2},
+      {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2},
+      {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
+    };
+
+    return data[b - 2][x - 1];
+  }
+)
+
+CHEAT_TEST(clog,
+  for (size_t i = 1; i < 17; ++i)
+    for (size_t j = 2; j < 17; ++j)
+      cheat_assert_size(type(bmm_clog, size_t)(i, j), clog_ref(i, j));
 )
 
 CHEAT_DECLARE(
@@ -379,8 +359,7 @@ CHEAT_DECLARE(
   static int compar(size_t const i, size_t const j, void *const cls) {
     int const *const x = cls;
 
-    // return type(bmm_cmp, int)(x[i], x[j]);
-    return x[i] < x[j] ? -1 : x[i] > x[j] ? 1 : 0;
+    return type(bmm_cmp, int)(x[i], x[j]);
   }
 
   __attribute__ ((__nonnull__))

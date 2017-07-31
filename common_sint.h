@@ -23,6 +23,15 @@ inline type(bmm_quot_t, A) type(bmm_quot, A)(A const x, A const y) {
   return qr;
 }
 
+/// The call `bmm_abs(x)`
+/// returns the absolute value of `x`.
+/// If `-x` is not representable, the behavior is undefined.
+/// Overflows are impossible internally but possible externally.
+__attribute__ ((__const__, __pure__))
+inline A type(bmm_abs, A)(A const x) {
+  return x < 0 ? -x : x;
+}
+
 /// The call `bmm_wrap(x, a, b)`
 /// finds such `y` that `a <= y < b`
 /// by shifting `x` by the appropriate number of multiples of `b - a`.
@@ -77,4 +86,79 @@ inline A type(bmm_uwrap, A)(A const x, A const b) {
 #endif
 
   return type(bmm_quot, A)(x, b).rem;
+}
+
+/// The call `bmm_tamean2(x, y)`
+/// returns the truncated arithmetic mean of `x` and `y`.
+/// Overflows are impossible both internally and externally.
+__attribute__ ((__const__, __pure__))
+inline A type(bmm_tamean2, A)(A const x, A const y) {
+  A const z = x / 2 + y / 2;
+
+  // This function was derived with the help
+  // of the following Espresso specification.
+  //
+  //     .i 4
+  //     .o 6
+  //     .ilb sx mx sy my
+  //     .ob sl ml se me sg mg
+  //     01 01 -0 01 01
+  //     01 -0 01 -0 -0
+  //     01 11 -0 -0 -0
+  //     -0 01 01 -0 -0
+  //     -0 -0 -0 -0 -0
+  //     -0 11 -0 -0 11
+  //     11 01 -0 -0 -0
+  //     11 -0 -0 -0 11
+  //     11 11 11 11 -0
+  //     .e
+  //
+  // The input variables are defined as
+  //
+  // * `sx = x % 2 < 0`,
+  // * `mx = x % 2 != 0`,
+  // * `sy = y % 2 < 0` and
+  // * `my = y % 2 != 0`.
+  //
+  // The output variables are then used to define
+  //
+  // * `l = (sl ? -1 : 1) * (ml ? 1 : 0) * (z < 0 ? 1 : 0)`,
+  // * `e = (se ? -1 : 1) * (me ? 1 : 0) * (z == 0 ? 1 : 0)` and
+  // * `g = (sg ? -1 : 1) * (mg ? 1 : 0) * (z > 0 ? 1 : 0)`.
+  //
+  // They form the result `z + l + e + g`.
+
+  switch (x % 2 + y % 2) {
+    case -2:
+      return z - (z < 0 ? 1 : 0) - (z == 0 ? 1 : 0);
+    case -1:
+      return z - (z > 0 ? 1 : 0);
+    case 0:
+      return z;
+    case 1:
+      return z + (z < 0 ? 1 : 0);
+    case 2:
+      return z + (z > 0 ? 1 : 0) + (z == 0 ? 1 : 0);
+  }
+
+  return z;
+
+  // The following implementation is less complicated,
+  // but susceptible to overflowing.
+  // return (x + y) / 2;
+}
+
+/// The call `bmm_famean2(x, y)`
+/// returns the floored arithmetic mean of `x` and `y`.
+/// Overflows are impossible both internally and externally.
+__attribute__ ((__const__, __pure__))
+inline A type(bmm_famean2, A)(A const x, A const y) {
+  type(bmm_quot_t, A) const qrx = type(bmm_quot, A)(x, 2);
+  type(bmm_quot_t, A) const qry = type(bmm_quot, A)(y, 2);
+
+  return (qrx.quot + qry.quot) + qrx.rem * qry.rem;
+
+  // The following implementation is less complicated,
+  // but susceptible to overflowing.
+  // return type(bmm_quot, A)(x + y, 2).quot;
 }

@@ -17,6 +17,14 @@ inline type(bmm_quot_t, A) type(bmm_quot, A)(A const x, A const y) {
   return qr;
 }
 
+/// The call `bmm_abs(x)`
+/// returns the absolute value of `x`.
+/// If `x` is not a number, the behavior is undefined.
+__attribute__ ((__const__, __pure__))
+inline A type(bmm_abs, A)(A const x) {
+  return x < 0 ? -x : x;
+}
+
 /// The call `bmm_wrap(x, a, b)`
 /// finds such `y` that `a <= y < b`
 /// by shifting `x` by the appropriate number of multiples of `b - a`.

@@ -22,6 +22,14 @@ inline type(bmm_quot_t, A) type(bmm_quot, A)(A const x, A const y) {
   return qr;
 }
 
+/// The call `bmm_abs(x)`
+/// returns the absolute value of `x`.
+/// Overflows are impossible both internally and externally.
+__attribute__ ((__const__, __pure__))
+inline A type(bmm_abs, A)(A const x) {
+  return x;
+}
+
 /// The call `bmm_wrap(x, a, b)`
 /// finds such `y` that `a <= y < b`
 /// by shifting `x` by the appropriate number of multiples of `b - a`.
@@ -78,6 +86,107 @@ inline A type(bmm_uwrap, A)(A const x, A const b) {
 #endif
 
   return x % b;
+}
+
+/// The call `bmm_fact(x)`
+/// returns the factorial of `x`.
+/// Overflows are impossible internally but possible externally.
+__attribute__ ((__const__, __pure__))
+inline A type(bmm_fact, A)(A const x) {
+  if (x <= 1)
+    return 1;
+
+  A y = x;
+
+  A z = y;
+  while (z > 1) {
+    --z;
+    y *= z;
+  }
+
+  return y;
+}
+
+/// The call `bmm_multfact(x, m)`
+/// returns the multifactorial of `x` with the multiplicity `m`.
+/// If `m == 0`, the behavior is undefined.
+/// Overflows are impossible internally but possible externally.
+#ifndef DEBUG
+__attribute__ ((__const__, __pure__))
+#endif
+inline A type(bmm_multfact, A)(A const x, A const m) {
+#ifndef DEBUG
+  dynamic_assert(m == 0, "Invalid argument");
+#endif
+
+  if (x <= 1)
+    return 1;
+
+  A y = x;
+
+  A z = y;
+  while (z > m) {
+    z -= m;
+    y *= z;
+  }
+
+  return y;
+}
+
+/// The call `bmm_tamean2(x, y)`
+/// returns the truncated arithmetic mean of `x` and `y`.
+/// Overflows are impossible both internally and externally.
+__attribute__ ((__const__, __pure__))
+inline A type(bmm_tamean2, A)(A const x, A const y) {
+  return (x / 2 + y / 2) + (x % 2) * (y % 2);
+}
+
+/// The call `bmm_famean2(x, y)`
+/// returns the floored arithmetic mean of `x` and `y`.
+/// Overflows are impossible both internally and externally.
+__attribute__ ((__const__, __pure__))
+inline A type(bmm_famean2, A)(A const x, A const y) {
+  return (x / 2 + y / 2) + (x % 2) * (y % 2);
+}
+
+/// The call `bmm_flog(x, b)`
+/// returns the floor of the base `b` logarithm of `x`.
+/// If `x == 0` or `b <= 1`, the behavior is undefined.
+/// Overflows are impossible both internally and externally.
+#ifndef DEBUG
+__attribute__ ((__const__, __pure__))
+#endif
+inline A type(bmm_flog, A)(A const x, A const b) {
+#ifdef DEBUG
+  dynamic_assert(x > 0, "Invalid argument");
+  dynamic_assert(b > 1, "Invalid argument");
+#endif
+
+  A y = 0;
+
+  A z = x;
+  while (z >= b) {
+    z /= b;
+    ++y;
+  }
+
+  return y;
+}
+
+/// The call `bmm_clog(x, b)`
+/// returns the ceiling of the base `b` logarithm of `x`.
+/// If `x == 0` or `b <= 1`, the behavior is undefined.
+/// Overflows are impossible both internally and externally.
+#ifndef DEBUG
+__attribute__ ((__const__, __pure__))
+#endif
+inline A type(bmm_clog, A)(A const x, A const b) {
+#ifdef DEBUG
+  dynamic_assert(x > 0, "Invalid argument");
+  dynamic_assert(b > 1, "Invalid argument");
+#endif
+
+  return x == 1 ? 0 : type(bmm_flog, A)(x - 1, b) + 1;
 }
 
 /// The call `bmm_hc(pij, i, ndim, nper)`
