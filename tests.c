@@ -14,9 +14,9 @@
 #include "neigh.h"
 #include "msg.h"
 
-CHEAT_DECLARE(
-
 #define A signed_char
+
+CHEAT_DECLARE(
 
 /// The call `bmm_tamean2(x, y)`
 /// returns the truncated arithmetic mean of `x` and `y`.
@@ -26,27 +26,87 @@ static /* inline */ A type(tamean2, A)(A const x, A const y) {
   // TODO Not like this.
 
   A const z = (x / 2 + y / 2);
+  // < = >
 
+  //  x % 2
+  //     y % 2
+  //         z < 0
+  //            z == 0
+  //               z > 0
+  // +1 +1,  0 +1 +1
+  // -1  0,  0  0 -1
+  //  0 -1,  0  0 -1
+  //  0  0,  0  0  0
+  // +1 -1,  0  0  0
+  // -1 +1,  0  0  0
+  //  0 +1, +1  0  0
+  // +1  0, +1  0  0
+  // -1 -1, -1 -1  0
+
+  A const sx = x % 2 < 0;
+  A const mx = x % 2 != 0;
+  A const sy = y % 2 < 0;
+  A const my = y % 2 != 0;
+
+  // .i 4
+  // .o 6
+  // .ilb sx mx sy my
+  // .ob sl ml se me sg mg
+  // 0101 -00101
+  // 11-0 -0-011
+  // -011 -0-011
+  // -0-0 -0-0-0
+  // 0111 -0-0-0
+  // 1101 -0-0-0
+  // -001 01-0-0
+  // 01-0 01-0-0
+  // 1111 1111-0
+  // .e
+
+  A const sl = (sx & mx & sy & my);
+  A const ml = (!sx & mx & !my) | (!mx & !sy & my) | (sx & mx & sy & my);
+  A const se = (sx & mx & sy & my);
+  A const me = (!sx & mx & !sy & my) | (sx & mx & sy & my);
+  A const sg = (sx & mx & !my) | (!mx & sy & my);
+  A const mg = (!sx & mx & !sy & my) | (sx & mx & !my) | (!mx & sy & my);
+
+  return z +
+    (sl ? -1 : 1) * ml * (z < 0) +
+    (se ? -1 : 1) * me * (z == 0) +
+    (sg ? -1 : 1) * mg * (z > 0);
+
+  // x%2 * y%2 == 0
+  // x%2 + y%2 == 0
   if ((x % 2 == 0) && (y % 2 == 0))
     return z;
 
-  if ((x % 2 == 1) && (y % 2 == 1))
-    return z + (z >= 0);
-
-  if ((x % 2 == -1) && (y % 2 == -1))
-    return z - (z <= 0);
-
+  // x%2 * y%2 == 1
+  // x%2 + y%2 == 0
   if ((x % 2 == 1 && y % 2 == -1) ||
       (x % 2 == -1 && y % 2 == 1))
     return z;
 
-  if ((x % 2 == 0 && y % 2 == 1) ||
-      (x % 2 == 1 && y % 2 == 0))
-    return z + (z < 0);
+  // x%2 * y%2 == 1
+  // x%2 + y%2 > 0 == 2
+  if ((x % 2 == 1) && (y % 2 == 1))
+    return z + (z > 0) + (z == 0);
 
+  // x%2 * y%2 == 0
+  // x%2 + y%2 < 0 == -1
   if ((x % 2 == -1 && y % 2 == 0) ||
       (x % 2 == 0 && y % 2 == -1))
     return z - (z > 0);
+
+  // x%2 * y%2 == 1
+  // x%2 + y%2 < 0 == -2
+  if ((x % 2 == -1) && (y % 2 == -1))
+    return z - (z < 0) - (z == 0);
+
+  // x%2 * y%2 == 0
+  // x%2 + y%2 > 0 == 1
+  if ((x % 2 == 0 && y % 2 == 1) ||
+      (x % 2 == 1 && y % 2 == 0))
+    return z + (z < 0);
 
   return -128;
 
