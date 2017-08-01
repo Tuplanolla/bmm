@@ -384,7 +384,7 @@ inline double bmm_geom2d_shellvol(double const *restrict const x,
     double z[2];
     bmm_geom2d_diff(z, y, xper);
 
-    if (bmm_geom2d_norm2(z) > type(bmm_pow, double)(r, 2)) {
+    if (bmm_geom2d_norm2(z) > type(bmm_power, double)(r, 2)) {
       double a[2];
       a[0] = per[0] || z[0] >= r ? 0.0 : acos(z[0] / r);
       a[1] = per[1] || z[1] >= r ? M_PI_2 : asin(z[1] / r);

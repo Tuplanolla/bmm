@@ -239,7 +239,7 @@
 /// The preprocessor directive `BMM_POW(x, n)`
 /// expands to `x` raised to the power of `n`.
 /// If the value is not known at compile time,
-/// use `type(bmm_pow, double)` instead.
+/// use `type(bmm_power, double)` instead.
 #define BMM_POW(x, n) BMM_VA_N(BMM_POW, n)(x)
 
 // These were generated with `./fact 64`.

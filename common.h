@@ -87,13 +87,7 @@
 #undef A
 
 #define A double
-#define TRUNCA trunc
-#define FMODA fmod
-#define POWA pow
 #include "common_fp.h"
-#undef POWA
-#undef FMODA
-#undef TRUNCA
 #undef A
 
 #endif

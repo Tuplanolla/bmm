@@ -1,6 +1,7 @@
 /// Common operations for floating-point types.
 
 #include "ext.h"
+#include "wrap.h"
 
 /// The call `bmm_quot(x, y)`
 /// returns the quotient and remainder of `x` divided by `y`
@@ -9,8 +10,8 @@
 /// the behavior is undefined.
 __attribute__ ((__const__, __pure__))
 inline type(bmm_quot_t, A) type(bmm_quot, A)(A const x, A const y) {
-  A const q = TRUNCA(x / y);
-  A const r = FMODA(x, y);
+  A const q = type(bmm_trunc, A)(x / y);
+  A const r = type(bmm_fmod, A)(x, y);
   A const s = r >= 0 ? 0 : y < 0 ? -1 : 1;
   type(bmm_quot_t, A) const qr = {.quot = q - s, .rem = r + s * y};
 
@@ -82,7 +83,9 @@ inline A type(bmm_resum2, A)(A const x, A const y) {
 /// `x` or `y` are not numbers, the behavior is undefined.
 __attribute__ ((__const__, __pure__))
 inline A type(bmm_pmean2, A)(A const x, A const y, A const e) {
-  return POWA((POWA(x, e) + POWA(y, e)) / 2, 1 / e);
+  A const z = (type(bmm_pow, A)(x, e) + type(bmm_pow, A)(y, e)) / 2;
+
+  return type(bmm_pow, A)(z, 1 / e);
 }
 
 /// The call `bmm_amean2(x, y)`

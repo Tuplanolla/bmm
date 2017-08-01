@@ -20,13 +20,13 @@ inline int type(bmm_sgn, A)(A const x) {
   return type(bmm_cmp, A)(x, 0);
 }
 
-/// The call `bmm_pow(x, e)`
+/// The call `bmm_power(x, e)`
 /// returns `x` raised to the power of `e`.
 /// If `x == 0` and `e == 0`, the result is one.
 /// If `x` is not a number, the behavior is undefined.
 /// Overflows are impossible internally but possible externally.
 __attribute__ ((__const__, __pure__))
-inline A type(bmm_pow, A)(A const x, size_t const e) {
+inline A type(bmm_power, A)(A const x, size_t const e) {
   A y = 1;
 
   A m = x;

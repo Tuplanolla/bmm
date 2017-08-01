@@ -92,7 +92,7 @@ CHEAT_TEST(wrap_sint,
 CHEAT_TEST(wrap_uint,
   for (int i = 0; i < 256; ++i)
     for (int j = 0; j < 256; ++j)
-      for (int k = j + 1; k < 128; ++k) {
+      for (int k = j + 1; k < 256; ++k) {
         unsigned char const x = (unsigned char) i;
         unsigned char const a = (unsigned char) j;
         unsigned char const b = (unsigned char) k;
@@ -128,7 +128,7 @@ CHEAT_TEST(uwrap_sint,
 
 CHEAT_TEST(uwrap_uint,
   for (int i = 0; i < 256; ++i)
-    for (int j = 1; j < 128; ++j) {
+    for (int j = 1; j < 256; ++j) {
       unsigned char const x = (unsigned char) i;
       unsigned char const b = (unsigned char) j;
 
@@ -150,7 +150,7 @@ CHEAT_TEST(uwrap_fp,
 
 CHEAT_DECLARE(
   __attribute__ ((__const__, __pure__))
-  static int pow_ref(int const x, size_t const e) {
+  static int power_ref(int const x, size_t const e) {
     int y = 1;
 
     for (size_t i = 0; i < e; ++i)
@@ -160,10 +160,10 @@ CHEAT_DECLARE(
   }
 )
 
-CHEAT_TEST(pow,
+CHEAT_TEST(power,
   for (int i = -5; i < 6; ++i)
     for (size_t j = 0; j < 7; ++j)
-      cheat_assert_size(type(bmm_pow, int)(i, j), pow_ref(i, j));
+      cheat_assert_size(type(bmm_power, int)(i, j), power_ref(i, j));
 )
 
 CHEAT_DECLARE(
@@ -441,7 +441,7 @@ CHEAT_TEST(size_hc_ord,
 CHEAT_TEST(size_hc_iso,
   size_t ij[2];
 
-  for (size_t i = 0; i < type(bmm_pow, size_t)(nper[1], ndim); ++i) {
+  for (size_t i = 0; i < type(bmm_power, size_t)(nper[1], ndim); ++i) {
     type(bmm_hc, size_t)(ij, i, ndim, nper[1]);
     size_t const j = type(bmm_unhc, size_t)(ij, ndim, nper[1]);
 
@@ -772,7 +772,7 @@ CHEAT_TEST(msg_spec_lt_iso,
         out.tag = BMM_MSG_TAG_LT;
         out.msg.term.e = e;
 
-        for (size_t i = 0; i < type(bmm_pow, size_t)(2, e); ++i)
+        for (size_t i = 0; i < type(bmm_power, size_t)(2, e); ++i)
           out.msg.term.buf[i] = i << i * 8 & 0xff;
 
         struct msg msg;
