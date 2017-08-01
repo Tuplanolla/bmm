@@ -10,8 +10,8 @@
 /// the behavior is undefined.
 __attribute__ ((__const__, __pure__))
 inline type(bmm_quot_t, A) type(bmm_quot, A)(A const x, A const y) {
-  A const q = type(bmm_trunc, A)(x / y);
-  A const r = type(bmm_fmod, A)(x, y);
+  A const q = type(trunc, A)(x / y);
+  A const r = type(fmod, A)(x, y);
   A const s = r >= 0 ? 0 : y < 0 ? -1 : 1;
   type(bmm_quot_t, A) const qr = {.quot = q - s, .rem = r + s * y};
 
@@ -35,9 +35,7 @@ inline A type(bmm_abs, A)(A const x) {
 __attribute__ ((__const__, __pure__))
 #endif
 inline A type(bmm_wrap, A)(A const x, A const a, A const b) {
-#ifndef DEBUG
   dynamic_assert(b > a, "Invalid argument");
-#endif
 
   return type(bmm_quot, A)(x - a, b - a).rem + a;
 }
@@ -50,9 +48,7 @@ inline A type(bmm_wrap, A)(A const x, A const a, A const b) {
 __attribute__ ((__const__, __pure__))
 #endif
 inline A type(bmm_uwrap, A)(A const x, A const b) {
-#ifndef DEBUG
   dynamic_assert(b > 0, "Invalid argument");
-#endif
 
   return type(bmm_quot, A)(x, b).rem;
 }
@@ -65,10 +61,8 @@ inline A type(bmm_uwrap, A)(A const x, A const b) {
 __attribute__ ((__const__, __pure__))
 #endif
 inline A type(bmm_resum2, A)(A const x, A const y) {
-#ifndef DEBUG
   dynamic_assert(x > 0, "Invalid argument");
   dynamic_assert(y > 0, "Invalid argument");
-#endif
 
   return (x * y) / (x + y);
 
@@ -83,9 +77,9 @@ inline A type(bmm_resum2, A)(A const x, A const y) {
 /// `x` or `y` are not numbers, the behavior is undefined.
 __attribute__ ((__const__, __pure__))
 inline A type(bmm_pmean2, A)(A const x, A const y, A const e) {
-  A const z = (type(bmm_pow, A)(x, e) + type(bmm_pow, A)(y, e)) / 2;
+  A const z = (type(pow, A)(x, e) + type(pow, A)(y, e)) / 2;
 
-  return type(bmm_pow, A)(z, 1 / e);
+  return type(pow, A)(z, 1 / e);
 }
 
 /// The call `bmm_amean2(x, y)`
@@ -107,10 +101,8 @@ inline A type(bmm_amean2, A)(A const x, A const y) {
 __attribute__ ((__const__, __pure__))
 #endif
 inline A type(bmm_gmean2, A)(A const x, A const y) {
-#ifndef DEBUG
   dynamic_assert(x >= 0, "Invalid argument");
   dynamic_assert(y >= 0, "Invalid argument");
-#endif
 
   return sqrt(x * y);
 }

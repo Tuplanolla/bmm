@@ -157,10 +157,8 @@ __attribute__ ((__const__, __pure__))
 #endif
 __attribute__ ((__deprecated__))
 inline size_t bmm_size_flog(size_t n, size_t const k) {
-#ifdef DEBUG
   dynamic_assert(n > 0, "Invalid argument");
   dynamic_assert(k > 1, "Invalid base");
-#endif
 
   size_t m = 0;
 
@@ -182,10 +180,8 @@ __attribute__ ((__const__, __pure__))
 #endif
 __attribute__ ((__deprecated__))
 inline size_t bmm_size_clog(size_t const n, size_t const k) {
-#ifdef DEBUG
   dynamic_assert(n > 0, "Invalid argument");
   dynamic_assert(k > 1, "Invalid base");
-#endif
 
   return n <= 1 ? 0 : bmm_size_flog(n - 1, k) + 1;
 }
@@ -233,9 +229,7 @@ inline size_t bmm_size_cirt(size_t const n, size_t const k) {
 __attribute__ ((__const__, __pure__))
 #endif
 inline size_t bmm_size_uclamp(size_t const n, size_t const b) {
-#ifdef DEBUG
   dynamic_assert(b > 0, "Invalid argument");
-#endif
 
   return n >= b ? b - 1 : n;
 }
@@ -248,9 +242,7 @@ inline size_t bmm_size_uclamp(size_t const n, size_t const b) {
 __attribute__ ((__const__, __pure__))
 #endif
 inline size_t bmm_size_uinc(size_t const n, size_t const b) {
-#ifndef DEBUG
   dynamic_assert(b > 0, "Invalid argument");
-#endif
 
   return (n + 1) % b;
 }
@@ -263,9 +255,7 @@ inline size_t bmm_size_uinc(size_t const n, size_t const b) {
 __attribute__ ((__const__, __pure__))
 #endif
 inline size_t bmm_size_inc(size_t const n, size_t const a, size_t const b) {
-#ifndef DEBUG
   dynamic_assert(b > a, "Invalid argument");
-#endif
 
   size_t const c = b - a;
 
@@ -280,9 +270,7 @@ inline size_t bmm_size_inc(size_t const n, size_t const a, size_t const b) {
 __attribute__ ((__const__, __pure__))
 #endif
 inline size_t bmm_size_udec(size_t const n, size_t const b) {
-#ifndef DEBUG
   dynamic_assert(b > 0, "Invalid argument");
-#endif
 
   return (n + b - 1) % b;
 }
@@ -295,9 +283,7 @@ inline size_t bmm_size_udec(size_t const n, size_t const b) {
 __attribute__ ((__const__, __pure__))
 #endif
 inline size_t bmm_size_dec(size_t const n, size_t const a, size_t const b) {
-#ifndef DEBUG
   dynamic_assert(b > a, "Invalid argument");
-#endif
 
   size_t const c = b - a;
 

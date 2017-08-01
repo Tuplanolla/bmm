@@ -13,9 +13,7 @@
 __attribute__ ((__const__, __pure__))
 #endif
 inline type(bmm_quot_t, A) type(bmm_quot, A)(A const x, A const y) {
-#ifndef DEBUG
   dynamic_assert(y != 0, "Invalid argument");
-#endif
 
   type(bmm_quot_t, A) const qr = {.quot = x / y, .rem = x % y};
 
@@ -39,9 +37,7 @@ inline A type(bmm_abs, A)(A const x) {
 __attribute__ ((__const__, __pure__))
 #endif
 inline A type(bmm_wrap, A)(A const x, A const a, A const b) {
-#ifndef DEBUG
   dynamic_assert(b > a, "Invalid argument");
-#endif
 
   A const c = b - a;
   A const r = x % c;
@@ -81,9 +77,7 @@ inline A type(bmm_wrap, A)(A const x, A const a, A const b) {
 __attribute__ ((__const__, __pure__))
 #endif
 inline A type(bmm_uwrap, A)(A const x, A const b) {
-#ifndef DEBUG
   dynamic_assert(b > 0, "Invalid argument");
-#endif
 
   return x % b;
 }
@@ -115,9 +109,7 @@ inline A type(bmm_fact, A)(A const x) {
 __attribute__ ((__const__, __pure__))
 #endif
 inline A type(bmm_multfact, A)(A const x, A const m) {
-#ifndef DEBUG
   dynamic_assert(m == 0, "Invalid argument");
-#endif
 
   if (x <= 1)
     return 1;
@@ -157,10 +149,8 @@ inline A type(bmm_famean2, A)(A const x, A const y) {
 __attribute__ ((__const__, __pure__))
 #endif
 inline A type(bmm_flog, A)(A const x, A const b) {
-#ifdef DEBUG
   dynamic_assert(x > 0, "Invalid argument");
   dynamic_assert(b > 1, "Invalid argument");
-#endif
 
   A y = 0;
 
@@ -181,10 +171,8 @@ inline A type(bmm_flog, A)(A const x, A const b) {
 __attribute__ ((__const__, __pure__))
 #endif
 inline A type(bmm_clog, A)(A const x, A const b) {
-#ifdef DEBUG
   dynamic_assert(x > 0, "Invalid argument");
   dynamic_assert(b > 1, "Invalid argument");
-#endif
 
   return x == 1 ? 0 : type(bmm_flog, A)(x - 1, b) + 1;
 }

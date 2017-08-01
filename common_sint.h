@@ -11,9 +11,7 @@
 __attribute__ ((__const__, __pure__))
 #endif
 inline type(bmm_quot_t, A) type(bmm_quot, A)(A const x, A const y) {
-#ifndef DEBUG
   dynamic_assert(y != 0, "Invalid argument");
-#endif
 
   A const q = x / y;
   A const r = x % y;
@@ -41,9 +39,7 @@ inline A type(bmm_abs, A)(A const x) {
 __attribute__ ((__const__, __pure__))
 #endif
 inline A type(bmm_wrap, A)(A const x, A const a, A const b) {
-#ifndef DEBUG
   dynamic_assert(b > a, "Invalid argument");
-#endif
 
   // The condition below guarantees
   // that the body of the loop at the end is executed at most twice.
@@ -81,9 +77,7 @@ inline A type(bmm_wrap, A)(A const x, A const a, A const b) {
 __attribute__ ((__const__, __pure__))
 #endif
 inline A type(bmm_uwrap, A)(A const x, A const b) {
-#ifndef DEBUG
   dynamic_assert(b > 0, "Invalid argument");
-#endif
 
   return type(bmm_quot, A)(x, b).rem;
 }
@@ -91,7 +85,9 @@ inline A type(bmm_uwrap, A)(A const x, A const b) {
 /// The call `bmm_tamean2(x, y)`
 /// returns the truncated arithmetic mean of `x` and `y`.
 /// Overflows are impossible both internally and externally.
+#ifndef DEBUG
 __attribute__ ((__const__, __pure__))
+#endif
 inline A type(bmm_tamean2, A)(A const x, A const y) {
   A const z = x / 2 + y / 2;
 
@@ -140,6 +136,8 @@ inline A type(bmm_tamean2, A)(A const x, A const y) {
     case 2:
       return z + (z > 0 ? 1 : 0) + (z == 0 ? 1 : 0);
   }
+
+  dynamic_assert(false, "Nonexhaustive switch");
 
   return z;
 

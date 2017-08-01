@@ -37,6 +37,11 @@ static bool f(char const *const key, char const *const value,
   opts->part.y = 52.0e+8;
   opts->part.nu = 0.2;
 
+  opts->link.ktens = 1.0e+7;
+  opts->link.dktens = 1.0e+4;
+  opts->link.kshear = 1.0e-2;
+  opts->link.dkshear = 1.0e-2;
+
   opts->comm.dt = 2.0e-5;
 
   double const dtstuff = 1.0e-6;
@@ -60,7 +65,7 @@ static bool f(char const *const key, char const *const value,
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_SEDIMENT;
-      opts->script.tspan[istage] = 3.0e-3;
+      opts->script.tspan[istage] = 1.5e-3;
       opts->script.dt[istage] = dtstuff;
       opts->script.params[istage].sediment.kcohes = 3.0e+4;
 
@@ -72,7 +77,7 @@ static bool f(char const *const key, char const *const value,
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
-      opts->script.tspan[istage] = 3.0e-3;
+      opts->script.tspan[istage] = 6.0e-3;
       opts->script.dt[istage] = dtstuff;
     } else if (strcmp(value, "pile") == 0) {
       opts->part.rnew[0] = 2.078e-3;

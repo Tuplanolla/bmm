@@ -140,8 +140,12 @@ struct bmm_dem_opts {
     double cshlink;
     /// Tensile spring constant.
     double ktens;
+    /// Tensile spring constant derivative.
+    double dktens;
     /// Shear spring constant.
     double kshear;
+    /// Shear spring constant derivative.
+    double dkshear;
     /// Limit length factors for tensile stress induced breaking
     /// expressed as the width of the uniform distribution.
     double crlim[2];
@@ -360,6 +364,15 @@ struct bmm_dem {
   struct {
     /// Link force scheme.
     enum bmm_dem_flink tag;
+    // TODO These four are unused for now.
+    /// Link elasticity.
+    double k;
+    /// Link damping.
+    double dk;
+    /// Link angular elasticity.
+    double kappa;
+    /// Link angular damping.
+    double dkappa;
     /// Which other particles each particle is linked to.
     struct {
       /// Number of links from this particle.

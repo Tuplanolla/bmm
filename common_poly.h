@@ -17,7 +17,7 @@ inline void type(bmm_swap, A)(A *restrict const x, A *restrict const y) {
 /// The call `bmm_map(nmemb, proc)`
 /// maps over `nmemb` items with the procedure `proc`.
 /// Overflows are handled appropriately.
-__attribute__ ((__nonnull__ (2)))
+__attribute__ ((__nonnull__))
 inline void type(bmm_map, A)(size_t const nmemb, void (*const proc)(size_t)) {
   for (size_t i = 0; i < nmemb; ++i)
     proc(i);
@@ -38,7 +38,7 @@ inline void type(bmm_map_cls, A)(size_t const nmemb,
 /// folds over `nmemb` items with the procedure `proc`.
 /// by starting from the left with the value `init`.
 /// Overflows are handled appropriately.
-__attribute__ ((__nonnull__ (2)))
+__attribute__ ((__nonnull__))
 inline A type(bmm_foldl, A)(size_t const nmemb,
     A (*const proc)(size_t, A), A const init) {
   A x = init;
@@ -69,7 +69,7 @@ inline A type(bmm_foldl_cls, A)(size_t const nmemb,
 /// folds over `nmemb` items with the procedure `proc`.
 /// by starting from the right with the value `init`.
 /// Overflows are handled appropriately.
-__attribute__ ((__nonnull__ (2)))
+__attribute__ ((__nonnull__))
 inline A type(bmm_foldr, A)(size_t const nmemb,
     A (*const proc)(size_t, A), A const init) {
   A x = init;

@@ -385,6 +385,46 @@ void bmm_dem_rempart(struct bmm_dem *const dem,
   dem->cache.stale = true;
 }
 
+void bmm_dem_force_creeping(struct bmm_dem *const dem,
+    size_t const ipart) {
+  double const v = bmm_geom2d_norm(dem->part.v[ipart]);
+
+  if (v == 0.0)
+    return;
+
+  double vunit[BMM_NDIM];
+  bmm_geom2d_scale(vunit, dem->part.v[ipart], 1.0 / v);
+
+  double const f = -3.0 * M_2PI * dem->amb.params.creeping.mu *
+    dem->part.r[ipart] * v;
+
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+    dem->part.f[ipart][idim] += f * vunit[idim];
+
+  double const tau = -4.0 * M_2PI * dem->amb.params.creeping.mu *
+    type(bmm_power, double)(dem->part.r[ipart], 3);
+
+  dem->part.tau[ipart] += tau * dem->part.omega[ipart];
+}
+
+// TODO Flatten these to allow loop-invariant code motion.
+void bmm_dem_force_ambient(struct bmm_dem *const dem, size_t const ipart) {
+  switch (dem->amb.tag) {
+    case BMM_DEM_FAMB_CREEPING:
+      bmm_dem_force_creeping(dem, ipart);
+
+      break;
+    case BMM_DEM_FAMB_QUAD:
+
+      break;
+    case BMM_DEM_FAMB_CORR:
+
+      break;
+  }
+}
+
+// TODO Don't ever write code like I did here.
+
 void bmm_dem_force_pair(struct bmm_dem *const dem,
     size_t const ipart, size_t const jpart) {
   double xdiffij[BMM_NDIM];
@@ -545,48 +585,95 @@ void bmm_dem_force_pair(struct bmm_dem *const dem,
   dem->part.tau[jpart] += tauj;
 }
 
-void bmm_dem_force_creeping(struct bmm_dem *const dem,
-    size_t const ipart) {
-  double const v = bmm_geom2d_norm(dem->part.v[ipart]);
+void bmm_dem_force_link(struct bmm_dem *const dem,
+    size_t const ipart, size_t const jpart, size_t const ilink) {
+  double xdiffij[BMM_NDIM];
+  bmm_geom2d_cpdiff(xdiffij, dem->part.x[ipart], dem->part.x[jpart],
+      dem->opts.box.x, dem->opts.box.per);
 
-  if (v == 0.0)
-    return;
+  double const d = bmm_geom2d_norm(xdiffij);
+  double const ri = dem->part.r[ipart];
+  double const rj = dem->part.r[jpart];
+  double const r = ri + rj;
+  double const r2 = type(bmm_power, double)(r, 2);
 
-  double vunit[BMM_NDIM];
-  bmm_geom2d_scale(vunit, dem->part.v[ipart], 1.0 / v);
+  double xnormij[BMM_NDIM];
+  bmm_geom2d_scale(xnormij, xdiffij, 1.0 / d);
 
-  double const f = -3.0 * M_2PI * dem->amb.params.creeping.mu *
-    dem->part.r[ipart] * v;
+  double xtangij[BMM_NDIM];
+  bmm_geom2d_rperp(xtangij, xnormij);
 
-  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-    dem->part.f[ipart][idim] += f * vunit[idim];
+  double vdiffij[BMM_NDIM];
+  bmm_geom2d_diff(vdiffij, dem->part.v[ipart], dem->part.v[jpart]);
 
-  double const tau = -4.0 * M_2PI * dem->amb.params.creeping.mu *
-    type(bmm_power, double)(dem->part.r[ipart], 3);
+  // Normal forces first.
 
-  dem->part.tau[ipart] += tau * dem->part.omega[ipart];
-}
+  double fnorm = 0.0;
 
-// TODO Flatten these to allow loop-invariant code motion.
-void bmm_dem_force_ambient(struct bmm_dem *const dem, size_t const ipart) {
-  switch (dem->amb.tag) {
-    case BMM_DEM_FAMB_CREEPING:
-      bmm_dem_force_creeping(dem, ipart);
+  switch (dem->link.tag) {
+    case BMM_DEM_FLINK_SPRING:
+    case BMM_DEM_FLINK_BEAM:
+      {
+        {
+          double const zeta = dem->link.part[ipart].rrest[ilink] - d;
+          double const vnormji = -bmm_geom2d_dot(vdiffij, xnormij);
 
+          fnorm = -(dem->opts.link.ktens * zeta + dem->opts.link.dktens * vnormji);
+        }
+
+        double fnormij[BMM_NDIM];
+        bmm_geom2d_scale(fnormij, xnormij, fnorm);
+
+        double fnormji[BMM_NDIM];
+        bmm_geom2d_scale(fnormji, fnormij, -1.0);
+
+        bmm_geom2d_addto(dem->part.f[ipart], fnormij);
+        bmm_geom2d_addto(dem->part.f[jpart], fnormji);
+      }
       break;
-    case BMM_DEM_FAMB_QUAD:
+  }
 
-      break;
-    case BMM_DEM_FAMB_CORR:
+  switch (dem->link.tag) {
+    case BMM_DEM_FLINK_BEAM:
+      {
+        // Torques second.
+
+        double taui = 0.0;
+        double tauj = 0.0;
+
+        {
+          double const chii = dem->link.part[ipart].phirest[ilink][0] - dem->part.phi[ipart];
+          double const omegai = dem->part.omega[ipart];
+          double const chij = dem->link.part[ipart].phirest[ilink][1] - dem->part.phi[jpart];
+          double const omegaj = dem->part.omega[jpart];
+
+          taui = -(dem->opts.link.kshear * chii + dem->opts.link.dkshear * omegai);
+          tauj = -(dem->opts.link.kshear * chij + dem->opts.link.dkshear * omegaj);
+        }
+
+        dem->part.tau[ipart] += taui;
+        dem->part.tau[jpart] += tauj;
+
+        // Tangential forces third.
+
+        double ftang = 0.0;
+
+        {
+          ftang = (taui + tauj) / d;
+        }
+
+        double ftangij[BMM_NDIM];
+        bmm_geom2d_scale(ftangij, xtangij, ftang);
+
+        double ftangji[BMM_NDIM];
+        bmm_geom2d_scale(ftangji, ftangij, -1.0);
+
+        bmm_geom2d_addto(dem->part.f[ipart], ftangij);
+        bmm_geom2d_addto(dem->part.f[jpart], ftangji);
+      }
 
       break;
   }
-}
-
-void bmm_dem_force_link(struct bmm_dem *const dem,
-    size_t const ipart, size_t const jpart, size_t const ilink) {
-  // TODO This.
-  return;
 }
 
 void bmm_dem_force_external(struct bmm_dem *const dem, size_t const ipart) {
@@ -615,6 +702,9 @@ void bmm_dem_force(struct bmm_dem *const dem) {
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     bmm_dem_force_ambient(dem, ipart);
 
+  // TODO Exclude links from contacts.
+
+  /*
   switch (dem->cache.tag) {
     case BMM_DEM_CACHING_NONE:
       for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
@@ -633,6 +723,34 @@ void bmm_dem_force(struct bmm_dem *const dem) {
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     for (size_t ilink = 0; ilink < dem->link.part[ipart].n; ++ilink)
       bmm_dem_force_link(dem, ipart, dem->link.part[ipart].i[ilink], ilink);
+  */
+
+  switch (dem->cache.tag) {
+    case BMM_DEM_CACHING_NONE:
+      // TODO Nope!
+
+      break;
+    case BMM_DEM_CACHING_NEIGH:
+      for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+        for (size_t ineigh = 0; ineigh < dem->cache.neigh[ipart].n; ++ineigh) {
+          size_t const jpart = dem->cache.neigh[ipart].i[ineigh];
+
+          size_t jlink = SIZE_MAX;
+          for (size_t ilink = 0; ilink < dem->link.part[ipart].n; ++ilink)
+            if (dem->link.part[ipart].i[ilink] == jpart) {
+              jlink = ilink;
+
+              break;
+            }
+
+          if (jlink == SIZE_MAX)
+            bmm_dem_force_pair(dem, ipart, jpart);
+          else
+            bmm_dem_force_link(dem, ipart, jpart, jlink);
+        }
+
+      break;
+  }
 
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     bmm_dem_force_external(dem, ipart);
@@ -1186,9 +1304,11 @@ void bmm_dem_opts_def(struct bmm_dem_opts *const opts) {
   opts->part.rnew[1] = 1.0;
 
   opts->link.ccrlink = 1.2;
-  opts->link.cshlink = 0.8;
+  opts->link.cshlink = 1.0;
   opts->link.ktens = 1.0;
+  opts->link.dktens = 1.0;
   opts->link.kshear = 1.0;
+  opts->link.dkshear = 1.0;
   opts->link.crlim[0] = 1.0;
   opts->link.crlim[1] = 1.0;
   opts->link.cphilim[0] = 1.0;
@@ -1249,6 +1369,7 @@ void bmm_dem_def(struct bmm_dem *const dem,
   dem->tang.tag = BMM_DEM_FTANG_CS;
   dem->tau.tag = BMM_DEM_TAU_SOFT;
   dem->tau.tag = BMM_DEM_TAU_HARD;
+  dem->link.tag = BMM_DEM_FLINK_SPRING;
   dem->link.tag = BMM_DEM_FLINK_BEAM;
 
   // TODO Stop fucking around with the `union` of these parameters.
@@ -1279,6 +1400,21 @@ void bmm_dem_def(struct bmm_dem *const dem,
 
       dem->tang.params.cs.kappa = 1.0e+7;
       dem->tang.params.cs.mu = 0.5;
+
+      break;
+  }
+
+  switch (dem->link.tag) {
+    case BMM_DEM_FLINK_SPRING:
+      dem->link.k = 1.0;
+      dem->link.dk = 1.0;
+
+      break;
+    case BMM_DEM_FLINK_BEAM:
+      dem->link.k = 1.0;
+      dem->link.dk = 1.0;
+      dem->link.kappa = 1.0;
+      dem->link.dkappa = 1.0;
 
       break;
   }
@@ -1666,6 +1802,9 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
 
       if (!bmm_dem_link(dem))
         return false;
+
+      // TODO Yoink test.
+      dem->part.omega[0] = 1.0e+6;
 
       break;
     case BMM_DEM_MODE_FAULT:

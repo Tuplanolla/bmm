@@ -736,6 +736,19 @@ again:
     // Sleep the remaining time and allow the tick counter to wrap.
     SDL_Delay(trem);
     tnext += bmm_sdl_tstep(sdl);
+
+    // TODO Not here.
+    {
+      static int skip = 1;
+      if (skip == 0) {
+        SDL_Event e;
+        e.type = SDL_KEYDOWN;
+        e.key.keysym.sym = SDLK_MINUS;
+        SDL_PushEvent(&e);
+      }
+      if (skip >= 0)
+        --skip;
+    }
   }
 }
 

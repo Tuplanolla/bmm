@@ -36,7 +36,7 @@ inline bool bmm_io_read_to_bool(enum bmm_io_read const result) {
       return true;
   }
 
-  dynamic_assert(false, "Nonexhaustive cases");
+  dynamic_assert(false, "Nonexhaustive switch");
 }
 
 /// The call `bmm_io_wait(fd, timeout)`

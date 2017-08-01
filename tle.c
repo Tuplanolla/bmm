@@ -54,7 +54,7 @@ int bmm_tle_num_std(void) {
       return 0;
   }
 
-  dynamic_assert(false, "Nonexhaustive cases");
+  dynamic_assert(false, "Nonexhaustive switch");
 }
 
 enum bmm_tle_num bmm_tle_num_ext(void) {
@@ -65,7 +65,7 @@ enum bmm_tle_num bmm_tle_num_ext(void) {
       return tle.num.ext;
   }
 
-  dynamic_assert(false, "Nonexhaustive cases");
+  dynamic_assert(false, "Nonexhaustive switch");
 }
 
 char const *bmm_tle_msg(void) {
