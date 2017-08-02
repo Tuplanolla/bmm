@@ -651,8 +651,11 @@ void bmm_dem_force_link(struct bmm_dem *const dem,
 
           double const dchii = bmm_fp_swrap(dem->link.part[ipart].chirest[ilink][0] - chii, M_2PI);
           double const dchij = bmm_fp_swrap(dem->link.part[ipart].chirest[ilink][1] - chij, M_2PI);
-          double const omegai = dem->part.omega[ipart];
-          double const omegaj = dem->part.omega[jpart];
+
+          // TODO Derive these on paper too.
+          double const vrotij = -bmm_geom2d_dot(vdiffij, xtangij);
+          double const omegai = dem->part.omega[ipart] + vrotij / d;
+          double const omegaj = dem->part.omega[jpart] + vrotij / d;
 
           taui = -(dem->opts.link.kshear * dchii + dem->opts.link.dkshear * omegai);
           tauj = -(dem->opts.link.kshear * dchij + dem->opts.link.dkshear * omegaj);
@@ -1852,6 +1855,48 @@ static bool bmm_dem_script_create_couple(struct bmm_dem *const dem) {
   return true;
 }
 
+__attribute__ ((__nonnull__))
+static bool bmm_dem_script_create_triplet(struct bmm_dem *const dem) {
+  size_t jpart;
+
+  jpart = bmm_dem_addpart(dem);
+  if (jpart == SIZE_MAX)
+    return false;
+
+  double const scale = dem->opts.box.x[0];
+
+  dem->part.r[jpart] = 0.03 * scale;
+  dem->part.m[jpart] = dem->opts.part.rho * bmm_geom_ballvol(dem->part.r[jpart], BMM_NDIM);
+  dem->part.x[jpart][0] += 0.45 * scale;
+  dem->part.x[jpart][1] += 0.25 * scale;
+  dem->part.v[jpart][0] += 3.0e+1 * scale;
+  dem->part.omega[jpart] += 3.0e+4;
+
+  jpart = bmm_dem_addpart(dem);
+  if (jpart == SIZE_MAX)
+    return false;
+
+  dem->part.r[jpart] = 0.03 * scale;
+  dem->part.m[jpart] = dem->opts.part.rho * bmm_geom_ballvol(dem->part.r[jpart], BMM_NDIM);
+  dem->part.x[jpart][0] += 0.55 * scale;
+  dem->part.x[jpart][1] += 0.25 * scale;
+  dem->part.v[jpart][0] -= 3.0e+1 * scale;
+  dem->part.omega[jpart] += 3.0e+4;
+
+  jpart = bmm_dem_addpart(dem);
+  if (jpart == SIZE_MAX)
+    return false;
+
+  dem->part.r[jpart] = 0.02 * scale;
+  dem->part.m[jpart] = dem->opts.part.rho * bmm_geom_ballvol(dem->part.r[jpart], BMM_NDIM);
+  dem->part.x[jpart][0] += 0.5 * scale;
+  dem->part.x[jpart][1] += 0.25 * scale;
+  dem->part.v[jpart][0] -= 0.0e+1 * scale;
+  dem->part.omega[jpart] += -3.0e+4;
+
+  return true;
+}
+
 /// The call `bmm_dem_step(dem)`
 /// advances the simulation `dem` by one step.
 /// Make sure the simulation has not ended prior to the call
@@ -1894,15 +1939,22 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
       bmm_dem_script_balance(dem);
 
       break;
-    case BMM_DEM_MODE_TEST_GAS:
+    case BMM_DEM_MODE_CREATE_GAS:
       if (!bmm_dem_script_create_gas(dem))
         return false;
 
       bmm_dem_script_balance(dem);
 
       break;
-    case BMM_DEM_MODE_TEST_COUPLE:
+    case BMM_DEM_MODE_CREATE_COUPLE:
       if (!bmm_dem_script_create_couple(dem))
+        return false;
+
+      bmm_dem_script_balance(dem);
+
+      break;
+    case BMM_DEM_MODE_CREATE_TRIPLET:
+      if (!bmm_dem_script_create_triplet(dem))
         return false;
 
       bmm_dem_script_balance(dem);

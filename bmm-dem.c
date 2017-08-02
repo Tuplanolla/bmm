@@ -38,13 +38,13 @@ static bool f(char const *const key, char const *const value,
   opts->part.nu = 0.2;
 
   opts->link.ktens = 1.0e+9;
-  opts->link.dktens = 0.0e+4;
+  opts->link.dktens = 1.0e+4;
   opts->link.kshear = 2.0e+2;
-  opts->link.dkshear = 0.0e-2;
+  opts->link.dkshear = 1.0e-2;
 
   opts->comm.dt = 2.0e-5;
 
-  double const dtstuff = 1.0e-6;
+  double const dtstuff = 8.0e-7;
   size_t istage;
 
   if (strcmp(key, "script") == 0) {
@@ -144,11 +144,32 @@ static bool f(char const *const key, char const *const value,
       opts->script.dt[istage] = dtstuff;
 
       istage = bmm_dem_script_addstage(opts);
-      opts->script.mode[istage] = BMM_DEM_MODE_TEST_COUPLE;
+      opts->script.mode[istage] = BMM_DEM_MODE_CREATE_COUPLE;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
       opts->script.tspan[istage] = 3.0e-3;
+      opts->script.dt[istage] = dtstuff;
+    } else if (strcmp(value, "triplet") == 0) {
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
+      opts->script.tspan[istage] = 0.06e-3;
+      opts->script.dt[istage] = dtstuff;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_CREATE_TRIPLET;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
+      opts->script.tspan[istage] = 1.0e-3;
+      opts->script.dt[istage] = dtstuff;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_LINK;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
+      opts->script.tspan[istage] = 6.0e-3;
       opts->script.dt[istage] = dtstuff;
     } else
       return false;
