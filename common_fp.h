@@ -53,6 +53,19 @@ inline A type(bmm_uwrap, A)(A const x, A const b) {
   return type(bmm_quot, A)(x, b).rem;
 }
 
+/// The call `bmm_fact(x)`
+/// returns the factorial of `x`.
+/// If `x < 0` or `x` is infinite or `x` is not a number,
+/// the behavior is undefined.
+#ifndef DEBUG
+__attribute__ ((__const__, __pure__))
+#endif
+inline A type(bmm_fact, A)(A const x) {
+  dynamic_assert(x >= 0, "Invalid argument");
+
+  return tgamma(x + 1);
+}
+
 /// The call `bmm_resum2(x, y)`
 /// returns the reciprocal sum of `x` and `y`.
 /// If `x <= 0` or `y <= 0`, `x` or `y` are infinite or

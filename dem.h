@@ -61,6 +61,11 @@ enum bmm_dem_tau {
   BMM_DEM_TAU_HALFWAY
 };
 
+enum bmm_dem_fract {
+  BMM_DEM_FRACT_NONE,
+  BMM_DEM_FRACT_ELLIPSE
+};
+
 enum bmm_dem_flink {
   BMM_DEM_FLINK_NONE,
   BMM_DEM_FLINK_SPRING,
@@ -80,9 +85,13 @@ enum bmm_dem_mode {
   BMM_DEM_MODE_TEST_GAS,
   BMM_DEM_MODE_TEST_COUPLE,
   /// Create a fixed number of particles, sparse in the y-direction.
-  BMM_DEM_MODE_CREATE,
+  BMM_DEM_MODE_CREATE_HC,
+  BMM_DEM_MODE_CREATE_HEX,
+  BMM_DEM_MODE_CREATE_PILE,
+  BMM_DEM_MODE_CREATE_BEAM,
   /// Draw particles towards a harmonic force field zero along the x-axis.
   BMM_DEM_MODE_SEDIMENT,
+  BMM_DEM_MODE_GRAVY,
   /// Remove particles outside the bounding box.
   BMM_DEM_MODE_CLIP,
   /// Link nearby particles together.
@@ -172,6 +181,15 @@ struct bmm_dem_opts {
         /// Spacing factor.
         double cspace;
       } create;
+      /// For `BMM_DEM_MODE_CREATE_*`.
+      struct {
+        /// Target packing fraction.
+        double eta;
+        /// Thickness.
+        double layers;
+        /// Lengthness.
+        double slices;
+      } test;
       /// For `BMM_DEM_MODE_CRUNCH`.
       struct {
         /// Driving velocity target.
@@ -186,11 +204,14 @@ struct bmm_dem_opts {
       } fault;
       /// For `BMM_DEM_MODE_SEDIMENT`.
       struct {
-        /// Cohesive force.
-        double fcohes;
         /// Strength of cohesive force.
         double kcohes;
       } sediment;
+      /// For `BMM_DEM_MODE_GRAVY`.
+      struct {
+        /// Gravitational force.
+        double f;
+      } gravy;
     } params[BMM_MSTAGE];
   } script;
   /// Communications.
@@ -360,6 +381,11 @@ struct bmm_dem {
     /// Torques.
     double tau[BMM_MPART];
   } part;
+  /// Link fracture.
+  struct {
+    /// Link force scheme.
+    enum bmm_dem_fract tag;
+  } fract;
   /// Links between particles.
   struct {
     /// Link force scheme.
@@ -382,7 +408,7 @@ struct bmm_dem {
       /// Rest lengths for springs and beams.
       double rrest[BMM_MLINK];
       /// Rest angles for beams.
-      double phirest[BMM_MLINK][2];
+      double chirest[BMM_MLINK][2];
       /// Limit length for tensile stress induced breaking.
       double rlim[BMM_MLINK];
       /// Limit angle for shear stress induced breaking.

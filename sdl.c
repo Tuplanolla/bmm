@@ -351,7 +351,7 @@ static void bmm_sdl_draw(struct bmm_sdl const *const sdl) {
       }
 
       // Neighbors.
-      memcpy(blent, glBlue, sizeof glBlack);
+      memcpy(blent, glCyan, sizeof glBlack);
       blent[3] = 1.0f;
       memcpy(nope, blent, sizeof glBlack);
       nope[3] = 0.0f;

@@ -37,10 +37,10 @@ static bool f(char const *const key, char const *const value,
   opts->part.y = 52.0e+8;
   opts->part.nu = 0.2;
 
-  opts->link.ktens = 1.0e+7;
-  opts->link.dktens = 1.0e+4;
-  opts->link.kshear = 1.0e-2;
-  opts->link.dkshear = 1.0e-2;
+  opts->link.ktens = 1.0e+9;
+  opts->link.dktens = 0.0e+4;
+  opts->link.kshear = 2.0e+2;
+  opts->link.dkshear = 0.0e-2;
 
   opts->comm.dt = 2.0e-5;
 
@@ -48,7 +48,36 @@ static bool f(char const *const key, char const *const value,
   size_t istage;
 
   if (strcmp(key, "script") == 0) {
-    if (strcmp(value, "mix") == 0) {
+    if (strcmp(value, "beam") == 0) {
+      opts->part.rnew[0] = 2.078e-3;
+      opts->part.rnew[1] = opts->part.rnew[0] + 1.0e-9;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
+      opts->script.tspan[istage] = 0.03e-3;
+      opts->script.dt[istage] = dtstuff;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_CREATE_BEAM;
+      opts->script.params[istage].test.eta = bmm_geom_ballmpd(BMM_NDIM);
+      opts->script.params[istage].test.layers = 24.0;
+      opts->script.params[istage].test.slices = 42.0;
+      // opts->script.params[istage].test.layers = 16.0;
+      // opts->script.params[istage].test.slices = 16.0;
+      opts->script.params[istage].test.layers = 6.0;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_CLIP;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_LINK;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_GRAVY;
+      opts->script.tspan[istage] = 20.0e-3;
+      opts->script.dt[istage] = dtstuff;
+      opts->script.params[istage].gravy.f = 6.0e+2;
+    } else if (strcmp(value, "mix") == 0) {
       double const mu = 2.0e-3;
 
       opts->part.rnew[0] = 2.0 * mu / (1.0 + sqrt(2.0));
@@ -60,7 +89,7 @@ static bool f(char const *const key, char const *const value,
       opts->script.dt[istage] = dtstuff;
 
       istage = bmm_dem_script_addstage(opts);
-      opts->script.mode[istage] = BMM_DEM_MODE_CREATE;
+      opts->script.mode[istage] = BMM_DEM_MODE_CREATE_HC;
       opts->script.params[istage].create.eta = bmm_geom_ballmpd(BMM_NDIM);
 
       istage = bmm_dem_script_addstage(opts);
@@ -89,14 +118,14 @@ static bool f(char const *const key, char const *const value,
       opts->script.dt[istage] = dtstuff;
 
       istage = bmm_dem_script_addstage(opts);
-      opts->script.mode[istage] = BMM_DEM_MODE_CREATE;
-      opts->script.params[istage].create.eta = bmm_geom_ballmpd(BMM_NDIM);
+      opts->script.mode[istage] = BMM_DEM_MODE_CREATE_PILE;
+      opts->script.params[istage].test.eta = bmm_geom_ballmpd(BMM_NDIM);
 
       istage = bmm_dem_script_addstage(opts);
-      opts->script.mode[istage] = BMM_DEM_MODE_SEDIMENT;
+      opts->script.mode[istage] = BMM_DEM_MODE_GRAVY;
       opts->script.tspan[istage] = 30.0e-3;
       opts->script.dt[istage] = dtstuff;
-      opts->script.params[istage].sediment.kcohes = 3.0e+4;
+      opts->script.params[istage].gravy.f = 3.0e+4;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CLIP;
