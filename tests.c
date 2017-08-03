@@ -21,8 +21,8 @@ CHEAT_TEST(quot_sint,
         signed char const x = (signed char) i;
         signed char const y = (signed char) j;
 
-        type(bmm_quot_t, signed_char) const qr =
-          type(bmm_quot, signed_char)(x, y);
+        type(bmm_quotrem_t, signed_char) const qr =
+          type(bmm_quotrem, signed_char)(x, y);
         cheat_assert_signed_char(qr.quot * y + qr.rem, x);
         cheat_assert_not_int(type(bmm_sgn, signed_char)(qr.rem), -1);
       }
@@ -35,8 +35,8 @@ CHEAT_TEST(quot_uint,
         unsigned char const x = (unsigned char) i;
         unsigned char const y = (unsigned char) j;
 
-        type(bmm_quot_t, unsigned_char) const qr =
-          type(bmm_quot, unsigned_char)(x, y);
+        type(bmm_quotrem_t, unsigned_char) const qr =
+          type(bmm_quotrem, unsigned_char)(x, y);
         cheat_assert_unsigned_char(qr.quot * y + qr.rem, x);
         cheat_assert(qr.rem >= 0);
       }
@@ -49,8 +49,8 @@ CHEAT_TEST(quot_fp,
         double const x = (double) i / 64.0;
         double const y = (double) j / 64.0;
 
-        type(bmm_quot_t, double) const qr =
-          type(bmm_quot, double)(x, y);
+        type(bmm_quotrem_t, double) const qr =
+          type(bmm_quotrem, double)(x, y);
         cheat_assert_double(qr.quot * y + qr.rem, x, 1.0e-6);
         cheat_assert(qr.rem >= 0);
       }
@@ -145,6 +145,30 @@ CHEAT_TEST(uwrap_fp,
 
       cheat_assert(type(bmm_uwrap, double)(x, b) >= 0);
       cheat_assert(type(bmm_uwrap, double)(x, b) < b);
+    }
+)
+
+CHEAT_TEST(swrap_sint,
+  for (int i = -64; i < 64; ++i)
+    for (int j = 1; j < 128; ++j) {
+      signed char const x = (signed char) i;
+      signed char const c = (signed char) j;
+      signed char const b = c / 2;
+      signed char const a = b - c;
+
+      cheat_assert_signed_char(type(bmm_swrap, signed_char)(x, b - a),
+          type(bmm_wrap, signed_char)(x, a, b));
+    }
+)
+
+CHEAT_TEST(swrap_fp,
+  for (int i = -128; i < 128; ++i)
+    for (int j = 1; j < 128; ++j) {
+      double const x = (double) i / 64.0;
+      double const c = (double) j / 64.0;
+
+      cheat_assert(type(bmm_swrap, double)(x, c) >= -c / 2.0);
+      cheat_assert(type(bmm_swrap, double)(x, c) < c / 2.0);
     }
 )
 
@@ -266,7 +290,7 @@ CHEAT_TEST(tmean2_uint,
 CHEAT_DECLARE(
   __attribute__ ((__const__, __pure__))
   static int famean2_ref(int const x, int const y) {
-    return type(bmm_quot, int)(x + y, 2).quot;
+    return type(bmm_quot, int)(x + y, 2);
   }
 )
 

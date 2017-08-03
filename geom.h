@@ -163,15 +163,17 @@ inline double bmm_geom_ballmpd(size_t const d) {
   if (type(bmm_even, size_t)(d)) {
     size_t const n = d / 2;
 
-    c = type(bmm_power, double)(M_PI, n) / bmm_fp_fact(n, 1);
+    c = type(bmm_power, double)(M_PI, n) / (double) type(bmm_fact, size_t)(n);
   } else {
     size_t const k = d + 1;
     size_t const n = k / 2;
 
     // This could be unstable.
     // c = (type(bmm_power, double)(M_4PI, n) / M_PI) *
-    //   (bmm_fp_fact(n, 1) / bmm_fp_fact(k, 1));
-    c = (type(bmm_power, double)(M_2PI, n) / M_PI) * (1.0 / bmm_fp_fact(d, 2));
+    //   ((double) type(bmm_fact, size_t)(n) /
+    //     (double) type(bmm_fact, size_t)(k));
+    c = (type(bmm_power, double)(M_2PI, n) / M_PI) *
+      (1.0 / (double) type(bmm_multfact, size_t)(d, 2));
   }
 
   return c * bmm_geom_ballmpcd(d);

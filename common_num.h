@@ -9,13 +9,38 @@
 typedef struct {
   A quot;
   A rem;
-} type(bmm_quot_t, A);
+} type(bmm_quotrem_t, A);
+
+// This forward-declaration makes reverse dependencies possible.
+inline type(bmm_quotrem_t, A) type(bmm_quotrem, A)(A, A);
+
+/// The call `bmm_quot(x, y)`
+/// returns the quotient of `x` divided by `y`.
+/// If `y == 0`, the behavior is undefined.
+/// Overflows are impossible both internally and externally.
+#ifndef DEBUG
+__attribute__ ((__const__, __flatten__, __pure__))
+#endif
+inline A type(bmm_quot, A)(A const x, A const y) {
+  return type(bmm_quotrem, A)(x, y).quot;
+}
+
+/// The call `bmm_rem(x, y)`
+/// returns the remainder of `x` divided by `y`.
+/// If `y == 0`, the behavior is undefined.
+/// Overflows are impossible both internally and externally.
+#ifndef DEBUG
+__attribute__ ((__const__, __flatten__, __pure__))
+#endif
+inline A type(bmm_rem, A)(A const x, A const y) {
+  return type(bmm_quotrem, A)(x, y).rem;
+}
 
 /// The call `bmm_sgn(x)`
 /// returns the sign of `x`.
 /// If `x` is not a number, the behavior is undefined.
 /// Overflows are impossible both internally and externally.
-__attribute__ ((__const__, __pure__))
+__attribute__ ((__const__, __flatten__, __pure__))
 inline int type(bmm_sgn, A)(A const x) {
   return type(bmm_cmp, A)(x, 0);
 }

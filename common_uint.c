@@ -2,7 +2,7 @@
 
 #include "ext.h"
 
-extern inline type(bmm_quot_t, A) type(bmm_quot, A)(A, A);
+extern inline type(bmm_quotrem_t, A) type(bmm_quotrem, A)(A, A);
 
 extern inline A type(bmm_abs, A)(A);
 

@@ -4,7 +4,7 @@
 
 #include "ext.h"
 
-/// The call `bmm_quot(x, y)`
+/// The call `bmm_quotrem(x, y)`
 /// returns the quotient and remainder of `x` divided by `y`
 /// in `qr` such that `qr.quot * y + qr.rem == x` and `qr.rem >= 0`.
 /// If `y == 0`, the behavior is undefined.
@@ -12,10 +12,10 @@
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
-inline type(bmm_quot_t, A) type(bmm_quot, A)(A const x, A const y) {
+inline type(bmm_quotrem_t, A) type(bmm_quotrem, A)(A const x, A const y) {
   dynamic_assert(y != 0, "Invalid argument");
 
-  type(bmm_quot_t, A) const qr = {.quot = x / y, .rem = x % y};
+  type(bmm_quotrem_t, A) const qr = {.quot = x / y, .rem = x % y};
 
   return qr;
 }
@@ -184,9 +184,9 @@ inline A type(bmm_clog, A)(A const x, A const b) {
 __attribute__ ((__nonnull__))
 inline void type(bmm_hc, A)(A *const pij, A const i,
     size_t const ndim, A const nper) {
-  type(bmm_quot_t, A) dm = {.quot = i};
+  type(bmm_quotrem_t, A) dm = {.quot = i};
   for (size_t idim = 0; idim < ndim; ++idim) {
-    dm = type(bmm_quot, A)(dm.quot, nper);
+    dm = type(bmm_quotrem, A)(dm.quot, nper);
 
     pij[ndim - 1 - idim] = dm.rem;
   }
@@ -216,9 +216,9 @@ inline A type(bmm_unhc, A)(A const *const ij,
 __attribute__ ((__nonnull__))
 inline void type(bmm_hcd, A)(A *restrict const pij, A const i,
     size_t const ndim, A const *restrict const nper) {
-  type(bmm_quot_t, A) dm = {.quot = i};
+  type(bmm_quotrem_t, A) dm = {.quot = i};
   for (size_t idim = 0; idim < ndim; ++idim) {
-    dm = type(bmm_quot, A)(dm.quot, nper[ndim - 1 - idim]);
+    dm = type(bmm_quotrem, A)(dm.quot, nper[ndim - 1 - idim]);
 
     pij[ndim - 1 - idim] = dm.rem;
   }
@@ -227,9 +227,9 @@ inline void type(bmm_hcd, A)(A *restrict const pij, A const i,
   // but less reliable.
   // size_t *const buf = alloca(ndim * sizeof *buf);
   //
-  // type(bmm_quot_t, A) dm = {.quot = i};
+  // type(bmm_quotrem_t, A) dm = {.quot = i};
   // for (size_t idim = 0; idim < ndim; ++idim) {
-  //   dm = type(bmm_quot, A)(dm.quot, nper[ndim - 1 - idim]);
+  //   dm = type(bmm_quotrem, A)(dm.quot, nper[ndim - 1 - idim]);
   //
   //   buf[ndim - 1 - idim] = dm.rem;
   // }
@@ -240,9 +240,9 @@ inline void type(bmm_hcd, A)(A *restrict const pij, A const i,
   // The following implementation is suitable for loop fusion,
   // but slower (quadratic instead of linear).
   // for (size_t idim = 0; idim < ndim; ++idim) {
-  //   type(bmm_quot_t, A) dm = {.quot = i};
+  //   type(bmm_quotrem_t, A) dm = {.quot = i};
   //   for (size_t jdim = 0; jdim < ndim - idim; ++jdim)
-  //     dm = type(bmm_quot, A)(dm.quot, nper[ndim - 1 - jdim]);
+  //     dm = type(bmm_quotrem, A)(dm.quot, nper[ndim - 1 - jdim]);
   //
   //   pij[idim] = dm.rem;
   // }

@@ -6,6 +6,7 @@
 #include <math.h>
 #include <stddef.h>
 
+#include "common.h"
 #include "ext.h"
 
 #ifndef M_PI_4
@@ -28,40 +29,6 @@
 #define M_4PI 12.566370614359172
 #endif
 
-/// This structure holds the quotient and remainder of a division
-/// in unspecified order.
-typedef struct {
-  double quot;
-  double rem;
-} bmm_fp_div_t;
-
-/// The call `z = bmm_fp_div(x, y)`
-/// solves the division equation `z.quot * y + z.rem == x` for `z`,
-/// where `z.quot` is the quotient and `z.rem` is the remainder
-/// of the expression `x / y`.
-/// This is analogous to `div` or `type(bmm_div, size_t)`.
-__attribute__ ((__const__, __pure__))
-inline bmm_fp_div_t bmm_fp_div(double const x, double const y) {
-  bmm_fp_div_t const qr = {
-    .quot = trunc(x / y),
-    .rem = fmod(x, y)
-  };
-
-  return qr;
-}
-
-/// The call `bmm_fp_cmp(x, y)` returns
-///
-/// * `-1` if `x < y`,
-/// * `1` if `x > y` and
-/// * `0` otherwise.
-///
-/// This is analogous to `type(bmm_cmp, size_t)`.
-__attribute__ ((__const__, __pure__))
-inline int bmm_fp_cmp(double const x, double const y) {
-  return x < y ? -1 : x > y ? 1 : 0;
-}
-
 /// The call `bmm_fp_lexcmp(x, y, n)`
 /// performs `bmm_fp_cmp` on the arrays `x` and `y` of length `n`
 /// in lexicographic order.
@@ -69,7 +36,7 @@ __attribute__ ((__pure__))
 inline int bmm_fp_lexcmp(double const *restrict const x,
     double const *restrict const y, size_t const n) {
   for (size_t i = 0; i < n; ++i)
-    switch (bmm_fp_cmp(x[i], y[i])) {
+    switch (type(bmm_cmp, double)(x[i], y[i])) {
       case -1:
         return -1;
       case 1:
@@ -77,55 +44,6 @@ inline int bmm_fp_lexcmp(double const *restrict const x,
     }
 
   return 0;
-}
-
-/// The call `bmm_fp_identity(x)` returns `x`.
-/// This is analogous to `bmm_size_identity`.
-__attribute__ ((__const__, __pure__))
-inline double bmm_fp_identity(double const x) {
-  return x;
-}
-
-/// The call `bmm_fp_constant(x, y)` returns `x`.
-/// This is analogous to `bmm_size_constant`.
-__attribute__ ((__const__, __pure__))
-inline double bmm_fp_constant(double const x,
-    __attribute__ ((__unused__)) double const y) {
-  return x;
-}
-
-/// The call `bmm_fp_zero(x)` returns `0`.
-/// This is analogous to `bmm_size_zero`.
-__attribute__ ((__const__, __pure__))
-inline double bmm_fp_zero(__attribute__ ((__unused__)) double const x) {
-  return 0.0;
-}
-
-/// The call `bmm_fp_one(x)` returns `1`.
-/// This is analogous to `bmm_size_one`.
-__attribute__ ((__const__, __pure__))
-inline double bmm_fp_one(__attribute__ ((__unused__)) double const x) {
-  return 1.0;
-}
-
-/// The call `bmm_fp_midpoint(x, y)`
-/// returns the arithmetic mean of `x` and `y`.
-/// This is analogous to `bmm_size_midpoint`.
-__attribute__ ((__const__, __pure__))
-inline double bmm_fp_midpoint(double const x, double const y) {
-  return (x + y) / 2.0;
-}
-
-/// The call `bmm_fp_sq(x)` returns `x` squared.
-__attribute__ ((__const__, __pure__))
-inline double bmm_fp_sq(double const x) {
-  return x * x;
-}
-
-/// The call `bmm_fp_cb(x)` returns `x` cubed.
-__attribute__ ((__const__, __pure__))
-inline double bmm_fp_cb(double const x) {
-  return x * x * x;
 }
 
 /// The call `bmm_fp_rt(x, n)` returns the `n`th root of `x`.
@@ -205,30 +123,6 @@ inline double bmm_fp_uwrap(double const x, double const b) {
   return x - b * floor(x / b);
 }
 
-/// The call `bmm_fp_sum(x, n)`
-/// returns the sum of the array `x` of length `n`.
-__attribute__ ((__pure__))
-inline double bmm_fp_sum(double const *const x, size_t const n) {
-  double y = 0.0;
-
-  for (size_t i = 0; i < n; ++i)
-    y += x[i];
-
-  return y;
-}
-
-/// The call `bmm_fp_prod(x, n)`
-/// returns the product of the array `x` of length `n`.
-__attribute__ ((__pure__))
-inline double bmm_fp_prod(double const *const x, size_t const n) {
-  double y = 1.0;
-
-  for (size_t i = 0; i < n; ++i)
-    y *= x[i];
-
-  return y;
-}
-
 /// The call `bmm_fp_min(x, n)`
 /// returns the minimum of the array `x` of length `n`.
 __attribute__ ((__pure__))
@@ -251,32 +145,6 @@ inline double bmm_fp_max(double const *const x, size_t const n) {
     y = fmax(y, x[i]);
 
   return y;
-}
-
-/// The call `bmm_fp_lfold(f, x, n, z, ptr)`
-/// folds the procedure `f` over the array `x` of length `n`.
-/// by starting from the left with `z`.
-__attribute__ ((__nonnull__ (1, 2)))
-inline double bmm_fp_lfold(double (*const f)(double, double, void *),
-    double const *restrict const x, size_t const n,
-    double z, void *restrict const ptr) {
-  for (size_t i = 0; i < n; ++i)
-    z = f(x[i], z, ptr);
-
-  return z;
-}
-
-/// The call `bmm_fp_rfold(f, x, n, z, ptr)`
-/// folds the procedure `f` over the array `x` of length `n`.
-/// by starting from the right with `z`.
-__attribute__ ((__nonnull__ (1, 2)))
-inline double bmm_fp_rfold(double (*const f)(double, double, void *),
-    double const *restrict const x, size_t const n,
-    double z, void *restrict const ptr) {
-  for (size_t i = 0; i < n; ++i)
-    z = f(x[n - 1 - i], z, ptr);
-
-  return z;
 }
 
 /// The call `y = bmm_fp_lerp(x, x0, x1, y0, y1)`
@@ -302,23 +170,6 @@ inline double bmm_fp_lorp(double const x,
 __attribute__ ((__const__, __pure__))
 inline double bmm_fp_percent(double const x, double const y) {
   return y != 0.0 ? (x / y) * 100.0 : 100.0;
-}
-
-__attribute__ ((__const__, __deprecated__, __pure__))
-inline double bmm_fp_pow(double const x, size_t const n) {
-  return pow(x, (double) n);
-}
-
-/// The call `bmm_fp_fact(n, k)`
-/// returns the `k`-factorial of `n`.
-__attribute__ ((__const__, __pure__))
-inline double bmm_fp_fact(size_t const n, size_t const k) {
-  double x = 1.0;
-
-  for (size_t i = n; i > 1; i -= k)
-    x *= (double) i;
-
-  return x;
 }
 
 /// The call `n = bmm_fp_iclerp(x, x0, x1, n0, n1)`

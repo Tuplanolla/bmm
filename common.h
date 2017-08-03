@@ -66,30 +66,30 @@
 // #undef A
 
 #define A signed_char
-#include "common_sint.h"
+#include "common_int.h"
+#undef A
+#define A unsigned_char
+#include "common_int.h"
 #undef A
 #define A int
-#include "common_sint.h"
-#undef A
-
-#define A unsigned_char
-#include "common_uint.h"
+#include "common_int.h"
 #undef A
 #define A size_t
-#include "common_uint.h"
+#include "common_int.h"
 #undef A
 
 #define A signed_char
-#include "common_int.h"
-#undef A
-#define A unsigned_char
-#include "common_int.h"
+#include "common_sint.h"
 #undef A
 #define A int
-#include "common_int.h"
+#include "common_sint.h"
+#undef A
+
+#define A unsigned_char
+#include "common_uint.h"
 #undef A
 #define A size_t
-#include "common_int.h"
+#include "common_uint.h"
 #undef A
 
 #define A double

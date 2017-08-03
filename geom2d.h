@@ -48,7 +48,7 @@ __attribute__ ((__nonnull__, __pure__))
 inline double bmm_geom2d_norm2(double const *const x) {
   double d = 0.0;
   for (size_t idim = 0; idim < 2; ++idim)
-    d += bmm_fp_sq(x[idim]);
+    d += type(bmm_power, double)(x[idim], 2);
 
   return d;
 }

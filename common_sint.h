@@ -2,7 +2,7 @@
 
 #include "ext.h"
 
-/// The call `bmm_quot(x, y)`
+/// The call `bmm_quotrem(x, y)`
 /// returns the quotient and remainder of `x` divided by `y`
 /// in `qr` such that `qr.quot * y + qr.rem == x` and `qr.rem >= 0`.
 /// If `y == 0`, the behavior is undefined.
@@ -10,13 +10,13 @@
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
-inline type(bmm_quot_t, A) type(bmm_quot, A)(A const x, A const y) {
+inline type(bmm_quotrem_t, A) type(bmm_quotrem, A)(A const x, A const y) {
   dynamic_assert(y != 0, "Invalid argument");
 
   A const q = x / y;
   A const r = x % y;
   A const s = r >= 0 ? 0 : y < 0 ? -1 : 1;
-  type(bmm_quot_t, A) const qr = {.quot = q - s, .rem = r + s * y};
+  type(bmm_quotrem_t, A) const qr = {.quot = q - s, .rem = r + s * y};
 
   return qr;
 }
@@ -47,8 +47,8 @@ inline A type(bmm_wrap, A)(A const x, A const a, A const b) {
   A const m = type(bmm_abs, A)(x / 2);
   if (a >= 0 || b <= 0 || (a > -m && b < m)) {
     A const c = b - a;
-    A const r = type(bmm_quot, A)(x, c).rem;
-    A const s = type(bmm_quot, A)(a, c).rem;
+    A const r = type(bmm_rem, A)(x, c);
+    A const s = type(bmm_rem, A)(a, c);
 
     return (r >= s ? r - s : c - (s - r)) + a;
   }
@@ -79,7 +79,24 @@ __attribute__ ((__const__, __pure__))
 inline A type(bmm_uwrap, A)(A const x, A const b) {
   dynamic_assert(b > 0, "Invalid argument");
 
-  return type(bmm_quot, A)(x, b).rem;
+  return type(bmm_rem, A)(x, b);
+}
+
+/// The call `bmm_swrap(x, c)`
+/// finds such `y` that `-(c / 2 + c % 2) <= y < c / 2`
+/// by shifting `x` by the appropriate number of multiples of `c`.
+/// If `c <= 0`, the behavior is undefined.
+/// Overflows are impossible both internally and externally.
+#ifndef DEBUG
+__attribute__ ((__const__, __pure__))
+#endif
+inline A type(bmm_swrap, A)(A const x, A const c) {
+  dynamic_assert(c > 0, "Invalid argument");
+
+  A const b = c / 2;
+  A const a = b - c;
+
+  return type(bmm_rem, A)(x - a, c) + a;
 }
 
 /// The call `bmm_tamean2(x, y)`
@@ -151,12 +168,12 @@ inline A type(bmm_tamean2, A)(A const x, A const y) {
 /// Overflows are impossible both internally and externally.
 __attribute__ ((__const__, __pure__))
 inline A type(bmm_famean2, A)(A const x, A const y) {
-  type(bmm_quot_t, A) const qrx = type(bmm_quot, A)(x, 2);
-  type(bmm_quot_t, A) const qry = type(bmm_quot, A)(y, 2);
+  type(bmm_quotrem_t, A) const qrx = type(bmm_quotrem, A)(x, 2);
+  type(bmm_quotrem_t, A) const qry = type(bmm_quotrem, A)(y, 2);
 
   return (qrx.quot + qry.quot) + qrx.rem * qry.rem;
 
   // The following implementation is less complicated,
   // but susceptible to overflowing.
-  // return type(bmm_quot, A)(x + y, 2).quot;
+  // return type(bmm_quotrem, A)(x + y, 2).quot;
 }

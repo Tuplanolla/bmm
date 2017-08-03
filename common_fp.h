@@ -3,17 +3,17 @@
 #include "ext.h"
 #include "wrap.h"
 
-/// The call `bmm_quot(x, y)`
+/// The call `bmm_quotrem(x, y)`
 /// returns the quotient and remainder of `x` divided by `y`
 /// in `qr` such that `qr.quot * y + qr.rem == x` and `qr.rem >= 0`.
 /// If `y == 0` or `x` and `y` are infinite or `x` or `y` are not numbers,
 /// the behavior is undefined.
 __attribute__ ((__const__, __pure__))
-inline type(bmm_quot_t, A) type(bmm_quot, A)(A const x, A const y) {
+inline type(bmm_quotrem_t, A) type(bmm_quotrem, A)(A const x, A const y) {
   A const q = type(trunc, A)(x / y);
   A const r = type(fmod, A)(x, y);
   A const s = r >= 0 ? 0 : y < 0 ? -1 : 1;
-  type(bmm_quot_t, A) const qr = {.quot = q - s, .rem = r + s * y};
+  type(bmm_quotrem_t, A) const qr = {.quot = q - s, .rem = r + s * y};
 
   return qr;
 }
@@ -37,7 +37,7 @@ __attribute__ ((__const__, __pure__))
 inline A type(bmm_wrap, A)(A const x, A const a, A const b) {
   dynamic_assert(b > a, "Invalid argument");
 
-  return type(bmm_quot, A)(x - a, b - a).rem + a;
+  return type(bmm_rem, A)(x - a, b - a) + a;
 }
 
 /// The call `bmm_uwrap(x, b)`
@@ -50,7 +50,22 @@ __attribute__ ((__const__, __pure__))
 inline A type(bmm_uwrap, A)(A const x, A const b) {
   dynamic_assert(b > 0, "Invalid argument");
 
-  return type(bmm_quot, A)(x, b).rem;
+  return type(bmm_rem, A)(x, b);
+}
+
+/// The call `bmm_swrap(x, c)`
+/// is equivalent to `bmm_wrap(x, -c / 2, c / 2)`.
+/// If `c <= 0` or `x` is infinite or `x` or `c` are not numbers,
+/// the behavior is undefined.
+#ifndef DEBUG
+__attribute__ ((__const__, __pure__))
+#endif
+inline A type(bmm_swrap, A)(A const x, A const c) {
+  dynamic_assert(c > 0, "Invalid argument");
+
+  A const d = c / 2;
+
+  return type(bmm_wrap, A)(x, -d, d);
 }
 
 /// The call `bmm_fact(x)`

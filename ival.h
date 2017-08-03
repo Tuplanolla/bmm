@@ -5,6 +5,7 @@
 
 #include <stdbool.h>
 
+#include "common.h"
 #include "ext.h"
 #include "fp.h"
 
@@ -12,7 +13,7 @@
 /// returns the midpoint of the interval `a`.
 __attribute__ ((__const__, __pure__))
 inline double bmm_ival_midpoint(double const *const a) {
-  return bmm_fp_midpoint(a[0], a[1]);
+  return type(bmm_amean2, double)(a[0], a[1]);
 }
 
 /// The call `bmm_ival_length(a)`

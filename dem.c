@@ -1288,7 +1288,7 @@ bool bmm_dem_est_raddist(double *const pr, double *const pg,
 
   // We convert `w` from "importance weights"
   // to "frequency weights" or "analytic weights".
-  double wsum = bmm_fp_sum(w, nmemb);
+  double wsum = type(bmm_sum, double)(w, nmemb);
   for (size_t i = 0; i < nmemb; ++i)
     w[i] /= wsum;
 
@@ -1572,7 +1572,7 @@ static void bmm_dem_script_balance(struct bmm_dem *const dem) {
 __attribute__ ((__nonnull__))
 static bool bmm_dem_script_create_hc(struct bmm_dem *const dem) {
   double const etahc = bmm_geom_ballvol(0.5, BMM_NDIM);
-  double const vhc = bmm_fp_prod(dem->opts.box.x, BMM_NDIM);
+  double const vhc = type(bmm_prod, double)(dem->opts.box.x, BMM_NDIM);
   double const eta = dem->opts.script.params[dem->script.i].create.eta;
   double const v = vhc * (etahc / eta);
 
@@ -1622,7 +1622,7 @@ static bool bmm_dem_script_create_hc(struct bmm_dem *const dem) {
 __attribute__ ((__nonnull__))
 static bool bmm_dem_script_create_hex(struct bmm_dem *const dem) {
   double const etahc = bmm_geom_ballvol(0.5, BMM_NDIM);
-  double const vhc = bmm_fp_prod(dem->opts.box.x, BMM_NDIM);
+  double const vhc = type(bmm_prod, double)(dem->opts.box.x, BMM_NDIM);
   double const eta = dem->opts.script.params[dem->script.i].create.eta;
   double const v = vhc * (etahc / eta);
 
@@ -1675,7 +1675,7 @@ static bool bmm_dem_script_create_hex(struct bmm_dem *const dem) {
 __attribute__ ((__nonnull__))
 static bool bmm_dem_script_create_testpile(struct bmm_dem *const dem) {
   double const etahc = bmm_geom_ballvol(0.5, BMM_NDIM);
-  double const vhc = bmm_fp_prod(dem->opts.box.x, BMM_NDIM);
+  double const vhc = type(bmm_prod, double)(dem->opts.box.x, BMM_NDIM);
   double const eta = dem->opts.script.params[dem->script.i].test.eta;
   double const v = vhc * (etahc / eta);
 
@@ -1737,7 +1737,7 @@ static bool bmm_dem_script_create_testpile(struct bmm_dem *const dem) {
 __attribute__ ((__nonnull__))
 static bool bmm_dem_script_create_testbeam(struct bmm_dem *const dem) {
   double const etahc = bmm_geom_ballvol(0.5, BMM_NDIM);
-  double const vhc = bmm_fp_prod(dem->opts.box.x, BMM_NDIM);
+  double const vhc = type(bmm_prod, double)(dem->opts.box.x, BMM_NDIM);
   double const eta = dem->opts.script.params[dem->script.i].test.eta;
   double const v = vhc * (etahc / eta);
 
@@ -2165,7 +2165,7 @@ static bool rubbish(struct bmm_dem const *const dem) {
 
   // Snip.
 
-  double const v = bmm_fp_prod(dem->opts.box.x, BMM_NDIM);
+  double const v = type(bmm_prod, double)(dem->opts.box.x, BMM_NDIM);
   double const rho = (double) dem->part.n / v;
   double const dr = rmax / (double) nbin;
   double a = 0.0;
