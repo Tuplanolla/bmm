@@ -43,6 +43,11 @@
 #include "common_ord.h"
 #undef A
 
+// TODO Remove.
+#define A size_t
+#include "common_num.h"
+#undef A
+
 #define A signed_char
 #include "common_num.h"
 #undef A
@@ -55,9 +60,10 @@
 #define A double
 #include "common_num.h"
 #undef A
-#define A size_t
-#include "common_num.h"
-#undef A
+// TODO Add.
+// #define A size_t
+// #include "common_num.h"
+// #undef A
 
 #define A signed_char
 #include "common_sint.h"

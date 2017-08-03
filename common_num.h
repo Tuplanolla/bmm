@@ -45,3 +45,29 @@ inline A type(bmm_power, A)(A const x, size_t const e) {
   //
   // return y;
 }
+
+/// The call `bmm_sum(x, nmemb)`
+/// returns the sum of the array `x` of length `nmemb`.
+/// Overflows are impossible internally but possible externally.
+__attribute__ ((__pure__))
+inline A type(bmm_sum, A)(A const *const x, size_t const nmemb) {
+  A y = 0;
+
+  for (size_t i = 0; i < nmemb; ++i)
+    y += x[i];
+
+  return y;
+}
+
+/// The call `bmm_prod(x, nmemb)`
+/// returns the product of the array `x` of length `nmemb`.
+/// Overflows are impossible internally but possible externally.
+__attribute__ ((__pure__))
+inline A type(bmm_prod, A)(A const *const x, size_t const nmemb) {
+  A y = 1;
+
+  for (size_t i = 0; i < nmemb; ++i)
+    y *= x[i];
+
+  return y;
+}

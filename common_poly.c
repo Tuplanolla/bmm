@@ -13,10 +13,10 @@ extern inline A type(bmm_foldl, A)(size_t,
     A (*)(size_t, A), A);
 
 extern inline A type(bmm_foldl_cls, A)(size_t,
-    A (*)(size_t, A, void *), A, void *);
+    A (*)(size_t, A, void const *), A, void const *);
 
 extern inline A type(bmm_foldr, A)(size_t,
     A (*)(size_t, A), A);
 
 extern inline A type(bmm_foldr_cls, A)(size_t,
-    A (*)(size_t, A, void *), A, void *);
+    A (*)(size_t, A, void const *), A, void const *);

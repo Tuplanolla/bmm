@@ -56,7 +56,8 @@ inline A type(bmm_foldl, A)(size_t const nmemb,
 /// Overflows are handled appropriately.
 __attribute__ ((__nonnull__ (2)))
 inline A type(bmm_foldl_cls, A)(size_t const nmemb,
-    A (*const proc)(size_t, A, void *), A const init, void *const cls) {
+    A (*const proc)(size_t, A, void const *),
+    A const init, void const *const cls) {
   A x = init;
 
   for (size_t i = 0; i < nmemb; ++i)
@@ -88,7 +89,8 @@ inline A type(bmm_foldr, A)(size_t const nmemb,
 /// Overflows are handled appropriately.
 __attribute__ ((__nonnull__ (2)))
 inline A type(bmm_foldr_cls, A)(size_t const nmemb,
-    A (*const proc)(size_t, A, void *), A const init, void *const cls) {
+    A (*const proc)(size_t, A, void const *),
+    A const init, void const *const cls) {
   A x = init;
 
   size_t const k = nmemb - 1;

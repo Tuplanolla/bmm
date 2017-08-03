@@ -468,7 +468,7 @@ CHEAT_TEST(size_hcd_ord,
 CHEAT_TEST(size_hcd_iso,
   size_t ij[2];
 
-  for (size_t i = 0; i < bmm_size_prod(nper, ndim); ++i) {
+  for (size_t i = 0; i < type(bmm_prod, size_t)(nper, ndim); ++i) {
     type(bmm_hcd, size_t)(ij, i, ndim, nper);
     size_t const j = type(bmm_unhcd, size_t)(ij, ndim, nper);
 

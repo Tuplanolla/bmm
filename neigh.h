@@ -261,7 +261,7 @@ inline void bmm_neigh_ijcpij(size_t *restrict const pijcell,
 br:
   for (size_t idim = 0; idim < ndim; ++idim)
     if (per[idim])
-      pijcell[idim] = bmm_size_dec(ijcell[idim] + pijcell[idim],
+      pijcell[idim] = type(bmm_dec, size_t)(ijcell[idim] + pijcell[idim],
           1, nper[idim] - 1);
     else
       pijcell[idim] = ijcell[idim] + pijcell[idim] - 1;

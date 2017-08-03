@@ -1250,7 +1250,7 @@ bool bmm_dem_est_raddist(double *const pr, double *const pg,
   // TODO This is bad and stupid.
 
   // double g[BMM_TRI(BMM_MPART)];
-  size_t nmemb = bmm_size_tri(dem->part.n);
+  size_t nmemb = type(bmm_tri, size_t)(dem->part.n);
   double *const w = malloc(nmemb * sizeof *w);
   if (w == NULL)
     return false;
@@ -2195,16 +2195,17 @@ static bool rubbish(struct bmm_dem const *const dem) {
   return true;
 }
 
-static double abserr(double const x, double const z,
-    __attribute__ ((__unused__)) void *const ptr) {
-  return fabs(x) + z;
+static double abserr(size_t const i, double const z, void const *const cls) {
+  double const *const t = cls;
+
+  return z + fabs(t[i]);
 }
 
 bool bmm_dem_report(struct bmm_dem const *const dem) {
   if (dem->opts.verbose) {
     if (fprintf(stderr, "Time Error: %g\n",
-          bmm_fp_lfold(abserr,
-            dem->script.toff, dem->opts.script.n, 0.0, NULL)) < 0)
+          type(bmm_foldl_cls, double)(dem->opts.script.n,
+            abserr, 0.0, dem->script.toff)) < 0)
       return false;
   }
 
