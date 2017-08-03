@@ -1352,9 +1352,9 @@ void bmm_dem_opts_def(struct bmm_dem_opts *const opts) {
   opts->link.dktens = 1.0;
   opts->link.kshear = 1.0;
   opts->link.dkshear = 1.0;
-  opts->link.crlim[0] = 1.4;
+  opts->link.crlim[0] = 1.2;
   opts->link.crlim[1] = 1.6;
-  opts->link.cphilim[0] = 1.4;
+  opts->link.cphilim[0] = 1.2;
   opts->link.cphilim[1] = 1.6;
 
   opts->script.n = 0;
@@ -1793,6 +1793,30 @@ static bool bmm_dem_script_create_testbeam(struct bmm_dem *const dem) {
       break;
   }
 
+  for (size_t i = 0; i < 14; ++i) {
+    size_t ipart = bmm_dem_addpart(dem);
+    if (ipart == SIZE_MAX)
+      return false;
+
+    double const r = bmm_random_get(dem->rng, dem->opts.part.rnew);
+    double const v = bmm_geom_ballvol(r, BMM_NDIM);
+
+    dem->part.r[ipart] = r;
+    dem->part.m[ipart] = dem->opts.part.rho * v;
+
+    double a[2];
+    a[0] = 0.0;
+    a[1] = dem->opts.box.x[0];
+    dem->part.x[ipart][0] = bmm_random_get(dem->rng, a);
+    a[0] = 0.0;
+    a[1] = sqrt(4.0 * dem->opts.box.x[1]);
+    dem->part.x[ipart][1] =
+      bmm_random_get(dem->rng, a) * bmm_random_get(dem->rng, a) -
+      type(bmm_power, double)(bmm_ival_length(a), 2);
+
+    dem->part.role[ipart] = BMM_DEM_ROLE_FIXED;
+  }
+
   return true;
 }
 
@@ -1971,9 +1995,21 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
       dem->ext.params.harm.kcohes =
         dem->opts.script.params[dem->script.i].sediment.kcohes;
 
+      dem->amb.tag = BMM_DEM_FAMB_CREEPING;
+      dem->norm.tag = BMM_DEM_FNORM_VISCOEL;
+      dem->tang.tag = BMM_DEM_FTANG_NONE;
+      dem->fract.tag = BMM_DEM_FRACT_NONE;
+      dem->link.tag = BMM_DEM_FLINK_SPRING;
+
       break;
     case BMM_DEM_MODE_CLIP:
       bmm_dem_script_clip(dem);
+
+      dem->amb.tag = BMM_DEM_FAMB_NONE;
+      dem->norm.tag = BMM_DEM_FNORM_VISCOEL;
+      dem->tang.tag = BMM_DEM_FTANG_CS;
+      dem->fract.tag = BMM_DEM_FRACT_ELLIPSE;
+      dem->link.tag = BMM_DEM_FLINK_BEAM;
 
       break;
     case BMM_DEM_MODE_LINK:

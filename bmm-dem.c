@@ -37,10 +37,10 @@ static bool f(char const *const key, char const *const value,
   opts->part.y = 52.0e+8;
   opts->part.nu = 0.2;
 
-  opts->link.ktens = 1.0e+9;
-  opts->link.dktens = 1.0e+4;
+  opts->link.ktens = 1.0e+8;
+  opts->link.dktens = 2.0e+3;
   opts->link.kshear = 2.0e+2;
-  opts->link.dkshear = 1.0e-2;
+  opts->link.dkshear = 4.0e-3;
 
   opts->comm.dt = 2.0e-5;
 
@@ -64,7 +64,35 @@ static bool f(char const *const key, char const *const value,
       opts->script.params[istage].test.slices = 42.0;
       // opts->script.params[istage].test.layers = 16.0;
       // opts->script.params[istage].test.slices = 16.0;
-      opts->script.params[istage].test.layers = 6.0;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_LINK;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_GRAVY;
+      opts->script.tspan[istage] = 30.0e-3;
+      opts->script.dt[istage] = dtstuff;
+      opts->script.params[istage].gravy.f = 3.0e+3;
+    } else if (strcmp(value, "shear") == 0) {
+      double const mu = 2.0e-3;
+
+      opts->part.rnew[0] = 2.0 * mu / (1.0 + sqrt(2.0));
+      opts->part.rnew[1] = 4.0 * mu / (2.0 + sqrt(2.0));
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
+      opts->script.tspan[istage] = 0.03e-3;
+      opts->script.dt[istage] = dtstuff;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_CREATE_HC;
+      opts->script.params[istage].create.eta = bmm_geom_ballmpd(BMM_NDIM);
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_SEDIMENT;
+      opts->script.tspan[istage] = 2.0e-3;
+      opts->script.dt[istage] = dtstuff;
+      opts->script.params[istage].sediment.kcohes = 3.0e+4;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CLIP;
@@ -73,10 +101,9 @@ static bool f(char const *const key, char const *const value,
       opts->script.mode[istage] = BMM_DEM_MODE_LINK;
 
       istage = bmm_dem_script_addstage(opts);
-      opts->script.mode[istage] = BMM_DEM_MODE_GRAVY;
-      opts->script.tspan[istage] = 20.0e-3;
+      opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
+      opts->script.tspan[istage] = 6.0e-3;
       opts->script.dt[istage] = dtstuff;
-      opts->script.params[istage].gravy.f = 6.0e+2;
     } else if (strcmp(value, "mix") == 0) {
       double const mu = 2.0e-3;
 
