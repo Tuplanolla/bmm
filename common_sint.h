@@ -16,9 +16,8 @@ inline type(bmm_quotrem_t, A) type(bmm_quotrem, A)(A const x, A const y) {
   A const q = x / y;
   A const r = x % y;
   A const s = r >= 0 ? 0 : y < 0 ? -1 : 1;
-  type(bmm_quotrem_t, A) const qr = {.quot = q - s, .rem = r + s * y};
 
-  return qr;
+  return (type(bmm_quotrem_t, A)) {.quot = q - s, .rem = r + s * y};
 }
 
 /// The call `bmm_abs(x)`
@@ -70,7 +69,8 @@ inline A type(bmm_wrap, A)(A const x, A const a, A const b) {
 }
 
 /// The call `bmm_uwrap(x, b)`
-/// is equivalent to `bmm_wrap(x, 0, b)`.
+/// finds such `y` that `0 <= y < b`
+/// by shifting `x` by the appropriate number of multiples of `b`.
 /// If `b <= 0`, the behavior is undefined.
 /// Overflows are impossible both internally and externally.
 #ifndef DEBUG
@@ -97,6 +97,33 @@ inline A type(bmm_swrap, A)(A const x, A const c) {
   A const a = b - c;
 
   return type(bmm_rem, A)(x - a, c) + a;
+}
+
+/// The call `bmm_uclamp(x, b)`
+/// finds such `y` that `0 <= y <= b`
+/// by shifting `x` by the smallest possible amount.
+/// If `b < 0`, the behavior is undefined.
+/// Overflows are impossible both internally and externally.
+__attribute__ ((__const__, __pure__))
+inline A type(bmm_uclamp, A)(A const x, A const b) {
+  dynamic_assert(b >= 0, "Invalid argument");
+
+  return x < 0 ? 0 : x > b ? b : x;
+}
+
+/// The call `bmm_sclamp(x, c)`
+/// finds such `y` that `-(c / 2 + c % 2) <= y <= c / 2`
+/// by shifting `x` by the smallest possible amount.
+/// If `c < 0`, the behavior is undefined.
+/// Overflows are impossible both internally and externally.
+__attribute__ ((__const__, __pure__))
+inline A type(bmm_sclamp, A)(A const x, A const c) {
+  dynamic_assert(c >= 0, "Invalid argument");
+
+  A const b = c / 2;
+  A const a = b - c;
+
+  return x < a ? a : x > b ? b : x;
 }
 
 /// The call `bmm_tamean2(x, y)`

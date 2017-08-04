@@ -10,6 +10,10 @@ extern inline A type(bmm_uwrap, A)(A, A);
 
 extern inline A type(bmm_swrap, A)(A, A);
 
+extern inline A type(bmm_uclamp, A)(A, A);
+
+extern inline A type(bmm_sclamp, A)(A, A);
+
 extern inline A type(bmm_fact, A)(A);
 
 extern inline A type(bmm_resum2, A)(A, A);

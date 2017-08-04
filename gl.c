@@ -80,10 +80,10 @@ void glRectWire(GLfloat const x, GLfloat const y,
     GLfloat const w, GLfloat const h) {
   glBegin(GL_LINE_LOOP);
 
-  glVertex2d(x, y);
-  glVertex2d(x + w, y);
-  glVertex2d(x + w, y + h);
-  glVertex2d(x, y + h);
+  glVertex2f(x, y);
+  glVertex2f(x + w, y);
+  glVertex2f(x + w, y + h);
+  glVertex2f(x, y + h);
 
   glEnd();
 }

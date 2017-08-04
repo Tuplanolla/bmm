@@ -242,7 +242,7 @@ inline void bmm_geom2d_pdiff(double *restrict const xdiff,
   bmm_geom2d_diff(xdiff, x0, x1);
 
   for (size_t idim = 0; idim < 2; ++idim)
-    xdiff[idim] = bmm_fp_swrap(xdiff[idim], xper[idim]);
+    xdiff[idim] = type(bmm_swrap, double)(xdiff[idim], xper[idim]);
 }
 
 /// The call `bmm_geom2d_pdist2(x0, x1, xper)`
@@ -295,7 +295,7 @@ inline void bmm_geom2d_cpdiff(double *restrict const xdiff,
 
   for (size_t idim = 0; idim < 2; ++idim)
     if (per[idim])
-      xdiff[idim] = bmm_fp_swrap(xdiff[idim], xper[idim]);
+      xdiff[idim] = type(bmm_swrap, double)(xdiff[idim], xper[idim]);
 }
 
 /// The call `bmm_geom2d_cpdist2(x0, x1, xper, per)`

@@ -10,6 +10,8 @@ extern inline A type(bmm_wrap, A)(A, A, A);
 
 extern inline A type(bmm_uwrap, A)(A, A);
 
+extern inline A type(bmm_uclamp, A)(A, A);
+
 extern inline A type(bmm_fact, A)(A);
 
 extern inline A type(bmm_multfact, A)(A, A);
@@ -39,8 +41,6 @@ extern inline A type(bmm_unhcd, A)(A const *restrict,
 extern inline A type(bmm_firt, A)(A, A);
 
 extern inline A type(bmm_cirt, A)(A, A);
-
-extern inline A type(bmm_uclamp, A)(A, A);
 
 extern inline A type(bmm_uwrap, A)(A, A);
 

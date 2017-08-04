@@ -94,35 +94,6 @@ inline double bmm_fp_uclamp(double const x, double const b) {
   return x < 0.0 ? 0.0: x >= b ? b : x;
 }
 
-/// The call `z = bmm_fp_wrap(x, a, b)`
-/// solves the periodic equation `z == x - a + k * a` for `z`,
-/// where `a <= z < b` and `k` is some integer.
-__attribute__ ((__const__, __pure__))
-inline double bmm_fp_wrap(double const x, double const a, double const b) {
-  double const c = b - a;
-
-  return x - c * floor((x - a) / c);
-}
-
-/// The call `z = bmm_fp_swrap(x, b)`
-/// solves the periodic equation `z == x + k * b` for `z`,
-/// where `-b / 2 <= z < b / 2` and `k` is some integer.
-/// The `s` prefix means signed or symmetric.
-__attribute__ ((__const__, __pure__))
-inline double bmm_fp_swrap(double const x, double const b) {
-  return x - b * nearbyint(x / b);
-}
-
-/// The call `z = bmm_fp_uwrap(x, b)`
-/// solves the periodic equation `z == x + k * b` for `z`,
-/// where `0 <= z < b` and `k` is some integer.
-/// This is analogous to `type(bmm_uwrap, size_t)`.
-/// The `u` prefix means unsigned or unsymmetric (asymmetric).
-__attribute__ ((__const__, __pure__))
-inline double bmm_fp_uwrap(double const x, double const b) {
-  return x - b * floor(x / b);
-}
-
 /// The call `bmm_fp_min(x, n)`
 /// returns the minimum of the array `x` of length `n`.
 __attribute__ ((__pure__))

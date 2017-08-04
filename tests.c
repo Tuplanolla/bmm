@@ -109,9 +109,11 @@ CHEAT_TEST(wrap_fp,
         double const x = (double) i / 64.0;
         double const a = (double) j / 64.0;
         double const b = (double) k / 64.0;
+        double const y = type(bmm_wrap, double)(x, a, b);
 
-        cheat_assert(type(bmm_wrap, double)(x, a, b) >= a);
-        cheat_assert(type(bmm_wrap, double)(x, a, b) < b);
+        cheat_assert(y >= a);
+        cheat_assert(y < b);
+        cheat_assert_double(fmod(y - x, b - a), 0.0, 1.0e-6);
       }
 )
 
@@ -142,9 +144,10 @@ CHEAT_TEST(uwrap_fp,
     for (int j = 1; j < 128; ++j) {
       double const x = (double) i / 64.0;
       double const b = (double) j / 64.0;
+      double const y = type(bmm_uwrap, double)(x, b);
 
-      cheat_assert(type(bmm_uwrap, double)(x, b) >= 0);
-      cheat_assert(type(bmm_uwrap, double)(x, b) < b);
+      cheat_assert(y >= 0);
+      cheat_assert(y < b);
     }
 )
 
@@ -166,9 +169,119 @@ CHEAT_TEST(swrap_fp,
     for (int j = 1; j < 128; ++j) {
       double const x = (double) i / 64.0;
       double const c = (double) j / 64.0;
+      double const b = c / 2.0;
+      double const a = -b;
+      double const y = type(bmm_swrap, double)(x, c);
 
-      cheat_assert(type(bmm_swrap, double)(x, c) >= -c / 2.0);
-      cheat_assert(type(bmm_swrap, double)(x, c) < c / 2.0);
+      cheat_assert(y >= a);
+      cheat_assert(y <= b);
+      cheat_assert_double(fmod(y - x, c), 0.0, 1.0e-6);
+    }
+)
+
+CHEAT_TEST(clamp_sint,
+  for (int i = -128; i < 128; ++i)
+    for (int j = -128; j < 128; ++j)
+      for (int k = j + 1; k < 128; ++k) {
+        signed char const x = (signed char) i;
+        signed char const a = (signed char) j;
+        signed char const b = (signed char) k;
+        signed char const y = type(bmm_clamp, signed_char)(x, a, b);
+
+        cheat_assert(y >= a);
+        cheat_assert(y <= b);
+      }
+)
+
+CHEAT_TEST(clamp_uint,
+  for (int i = 0; i < 256; ++i)
+    for (int j = 0; j < 256; ++j)
+      for (int k = j + 1; k < 256; ++k) {
+        unsigned char const x = (unsigned char) i;
+        unsigned char const a = (unsigned char) j;
+        unsigned char const b = (unsigned char) k;
+        unsigned char const y = type(bmm_clamp, unsigned_char)(x, a, b);
+
+        cheat_assert(y >= a);
+        cheat_assert(y <= b);
+      }
+)
+
+CHEAT_TEST(clamp_fp,
+  for (int i = -128; i < 128; ++i)
+    for (int j = -128; j < 128; ++j)
+      for (int k = j + 1; k < 128; ++k) {
+        double const x = (double) i / 64.0;
+        double const a = (double) j / 64.0;
+        double const b = (double) k / 64.0;
+        double const y = type(bmm_clamp, double)(x, a, b);
+
+        cheat_assert(y >= a);
+        cheat_assert(y <= b);
+      }
+)
+
+CHEAT_TEST(uclamp_sint,
+  for (int i = -128; i < 128; ++i)
+    for (int j = 1; j < 128; ++j) {
+      signed char const x = (signed char) i;
+      signed char const b = (signed char) j;
+      signed char const y = type(bmm_uclamp, signed_char)(x, b);
+
+      cheat_assert(y >= 0);
+      cheat_assert(y <= b);
+    }
+)
+
+CHEAT_TEST(uclamp_uint,
+  for (int i = 0; i < 256; ++i)
+    for (int j = 1; j < 256; ++j) {
+      unsigned char const x = (unsigned char) i;
+      unsigned char const b = (unsigned char) j;
+      unsigned char const y = type(bmm_uclamp, unsigned_char)(x, b);
+
+      cheat_assert(y >= 0);
+      cheat_assert(y <= b);
+    }
+)
+
+CHEAT_TEST(uclamp_fp,
+  for (int i = -128; i < 128; ++i)
+    for (int j = 1; j < 128; ++j) {
+      double const x = (double) i / 64.0;
+      double const b = (double) j / 64.0;
+      double const y = type(bmm_uclamp, double)(x, b);
+
+      cheat_assert(y >= 0);
+      cheat_assert(y <= b);
+    }
+)
+
+CHEAT_TEST(sclamp_sint,
+  for (int i = -64; i < 64; ++i)
+    for (int j = 1; j < 128; ++j) {
+      signed char const x = (signed char) i;
+      signed char const c = (signed char) j;
+      signed char const b = c / 2;
+      signed char const a = b - c;
+      signed char const y = type(bmm_sclamp, signed_char)(x, c);
+
+      cheat_assert(y >= a);
+      cheat_assert(y <= b);
+    }
+)
+
+CHEAT_TEST(sclamp_fp,
+  for (int i = -128; i < 128; ++i)
+    for (int j = 1; j < 128; ++j) {
+      double const x = (double) i / 64.0;
+      double const c = (double) j / 64.0;
+      double const b = c / 2.0;
+      double const a = -b;
+      double const y = type(bmm_sclamp, double)(x, c);
+
+      cheat_assert(y >= a);
+      cheat_assert(y <= b);
     }
 )
 

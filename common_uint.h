@@ -15,9 +15,7 @@ __attribute__ ((__const__, __pure__))
 inline type(bmm_quotrem_t, A) type(bmm_quotrem, A)(A const x, A const y) {
   dynamic_assert(y != 0, "Invalid argument");
 
-  type(bmm_quotrem_t, A) const qr = {.quot = x / y, .rem = x % y};
-
-  return qr;
+  return (type(bmm_quotrem_t, A)) {.quot = x / y, .rem = x % y};
 }
 
 /// The call `bmm_abs(x)`
@@ -80,6 +78,15 @@ inline A type(bmm_uwrap, A)(A const x, A const b) {
   dynamic_assert(b > 0, "Invalid argument");
 
   return x % b;
+}
+
+/// The call `bmm_uclamp(x, b)`
+/// finds such `y` that `0 <= y <= b`
+/// by shifting `x` by the smallest possible amount.
+/// Overflows are impossible both internally and externally.
+__attribute__ ((__const__, __pure__))
+inline A type(bmm_uclamp, A)(A const x, A const b) {
+  return x > b ? b : x;
 }
 
 /// The call `bmm_fact(x)`
@@ -296,23 +303,6 @@ inline A type(bmm_firt, A)(A const n, A const k) {
 __attribute__ ((__const__, __pure__))
 inline A type(bmm_cirt, A)(A const n, A const k) {
   return n <= 1 ? n : type(bmm_firt, A)(n - 1, k) + 1;
-}
-
-/// The call `bmm_uclamp(n, b)` returns
-///
-/// * `n` if `0 <= n < b` and
-/// * `b - 1` if `n >= b`.
-///
-/// This is analogous to `bmm_fp_uclamp`.
-/// If `b <= 0`, the behavior is undefined.
-/// Overflows are impossible both internally and externally.
-#ifndef DEBUG
-__attribute__ ((__const__, __pure__))
-#endif
-inline A type(bmm_uclamp, A)(A const n, A const b) {
-  dynamic_assert(b > 0, "Invalid argument");
-
-  return n >= b ? b - 1 : n;
 }
 
 /// The call `bmm_uinc(n, b)`

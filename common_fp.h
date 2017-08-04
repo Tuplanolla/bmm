@@ -13,9 +13,8 @@ inline type(bmm_quotrem_t, A) type(bmm_quotrem, A)(A const x, A const y) {
   A const q = type(trunc, A)(x / y);
   A const r = type(fmod, A)(x, y);
   A const s = r >= 0 ? 0 : y < 0 ? -1 : 1;
-  type(bmm_quotrem_t, A) const qr = {.quot = q - s, .rem = r + s * y};
 
-  return qr;
+  return (type(bmm_quotrem_t, A)) {.quot = q - s, .rem = r + s * y};
 }
 
 /// The call `bmm_abs(x)`
@@ -37,11 +36,18 @@ __attribute__ ((__const__, __pure__))
 inline A type(bmm_wrap, A)(A const x, A const a, A const b) {
   dynamic_assert(b > a, "Invalid argument");
 
-  return type(bmm_rem, A)(x - a, b - a) + a;
+  A const c = b - a;
+
+  return x - c * floor((x - a) / c);
+
+  // The following implementation is more consistent with integers,
+  // but potentially slower.
+  // return type(bmm_rem, A)(x - a, b - a) + a;
 }
 
 /// The call `bmm_uwrap(x, b)`
-/// is equivalent to `bmm_wrap(x, 0, b)`.
+/// finds such `y` that `0 <= y < b`
+/// by shifting `x` by the appropriate number of multiples of `b`.
 /// If `b <= 0` or `x` is infinite or `x` or `b` are not numbers,
 /// the behavior is undefined.
 #ifndef DEBUG
@@ -50,11 +56,16 @@ __attribute__ ((__const__, __pure__))
 inline A type(bmm_uwrap, A)(A const x, A const b) {
   dynamic_assert(b > 0, "Invalid argument");
 
-  return type(bmm_rem, A)(x, b);
+  return x - b * floor(x / b);
+
+  // The following implementation is more consistent with integers,
+  // but potentially slower.
+  // return type(bmm_rem, A)(x, b);
 }
 
 /// The call `bmm_swrap(x, c)`
-/// is equivalent to `bmm_wrap(x, -c / 2, c / 2)`.
+/// finds such `y` that `-c / 2 <= y < c / 2`
+/// by shifting `x` by the appropriate number of multiples of `c`.
 /// If `c <= 0` or `x` is infinite or `x` or `c` are not numbers,
 /// the behavior is undefined.
 #ifndef DEBUG
@@ -63,9 +74,41 @@ __attribute__ ((__const__, __pure__))
 inline A type(bmm_swrap, A)(A const x, A const c) {
   dynamic_assert(c > 0, "Invalid argument");
 
-  A const d = c / 2;
+  return x - c * floor(x / c + 0.5);
 
-  return type(bmm_wrap, A)(x, -d, d);
+  // The following implementation is more consistent with integers,
+  // but potentially slower.
+  // A const d = c / 2;
+  //
+  // return type(bmm_wrap, A)(x, -d, d);
+}
+
+/// The call `bmm_uclamp(x, b)`
+/// finds such `y` that `0 <= y <= b`
+/// by shifting `x` by the smallest possible amount.
+/// If `b < 0` or `x` is infinite or `x` or `b` are not numbers,
+/// the behavior is undefined.
+/// Overflows are impossible both internally and externally.
+__attribute__ ((__const__, __pure__))
+inline A type(bmm_uclamp, A)(A const x, A const b) {
+  dynamic_assert(b >= 0, "Invalid argument");
+
+  return x < 0 ? 0 : x > b ? b : x;
+}
+
+/// The call `bmm_sclamp(x, c)`
+/// finds such `y` that `-c / 2 <= y <= c / 2`
+/// by shifting `x` by the smallest possible amount.
+/// If `c < 0` or `x` is infinite or `x` or `c` are not numbers,
+/// the behavior is undefined.
+__attribute__ ((__const__, __pure__))
+inline A type(bmm_sclamp, A)(A const x, A const c) {
+  dynamic_assert(c >= 0, "Invalid argument");
+
+  A const b = c / 2;
+  A const a = -b;
+
+  return x < a ? a : x > b ? b : x;
 }
 
 /// The call `bmm_fact(x)`

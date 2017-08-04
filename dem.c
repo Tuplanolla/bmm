@@ -642,15 +642,15 @@ void bmm_dem_force_link(struct bmm_dem *const dem,
         double tauj = 0.0;
 
         {
-          double const gammaij = bmm_fp_swrap(bmm_geom2d_dir(xdiffij), M_2PI);
-          double const gammaji = bmm_fp_swrap(gammaij + M_PI, M_2PI);
-          double const phii = bmm_fp_swrap(dem->part.phi[ipart], M_2PI);
-          double const phij = bmm_fp_swrap(dem->part.phi[jpart], M_2PI);
-          double const chii = bmm_fp_swrap(gammaij - phii, M_2PI);
-          double const chij = bmm_fp_swrap(gammaji - phij, M_2PI);
+          double const gammaij = type(bmm_swrap, double)(bmm_geom2d_dir(xdiffij), M_2PI);
+          double const gammaji = type(bmm_swrap, double)(gammaij + M_PI, M_2PI);
+          double const phii = type(bmm_swrap, double)(dem->part.phi[ipart], M_2PI);
+          double const phij = type(bmm_swrap, double)(dem->part.phi[jpart], M_2PI);
+          double const chii = type(bmm_swrap, double)(gammaij - phii, M_2PI);
+          double const chij = type(bmm_swrap, double)(gammaji - phij, M_2PI);
 
-          double const dchii = bmm_fp_swrap(dem->link.part[ipart].chirest[ilink][0] - chii, M_2PI);
-          double const dchij = bmm_fp_swrap(dem->link.part[ipart].chirest[ilink][1] - chij, M_2PI);
+          double const dchii = type(bmm_swrap, double)(dem->link.part[ipart].chirest[ilink][0] - chii, M_2PI);
+          double const dchij = type(bmm_swrap, double)(dem->link.part[ipart].chirest[ilink][1] - chij, M_2PI);
 
           // TODO Derive these on paper too.
           double const vrotij = -bmm_geom2d_dot(vdiffij, xtangij);
@@ -780,7 +780,7 @@ void bmm_dem_integ_euler(struct bmm_dem *const dem) {
           (1.0 / (double) BMM_FACT(1)) * dem->part.a[ipart][idim] * dt;
 
         if (dem->opts.box.per[idim])
-          dem->part.x[ipart][idim] = bmm_fp_uwrap(dem->part.x[ipart][idim],
+          dem->part.x[ipart][idim] = type(bmm_uwrap, double)(dem->part.x[ipart][idim],
               dem->opts.box.x[idim]);
       }
 
@@ -809,7 +809,7 @@ void bmm_dem_integ_taylor(struct bmm_dem *const dem) {
           (1.0 / (double) BMM_FACT(1)) * dem->part.a[ipart][idim] * dt;
 
         if (dem->opts.box.per[idim])
-          dem->part.x[ipart][idim] = bmm_fp_uwrap(dem->part.x[ipart][idim],
+          dem->part.x[ipart][idim] = type(bmm_uwrap, double)(dem->part.x[ipart][idim],
               dem->opts.box.x[idim]);
       }
 
@@ -837,7 +837,7 @@ void bmm_dem_integ_vel(struct bmm_dem *const dem) {
           (1.0 / (double) BMM_FACT(2)) * dem->part.a[ipart][idim] * dt2;
 
         if (dem->opts.box.per[idim])
-          dem->part.x[ipart][idim] = bmm_fp_uwrap(dem->part.x[ipart][idim],
+          dem->part.x[ipart][idim] = type(bmm_uwrap, double)(dem->part.x[ipart][idim],
               dem->opts.box.x[idim]);
 
         dem->integ.params.velvet.a[ipart][idim] = dem->part.a[ipart][idim];
@@ -871,7 +871,7 @@ void bmm_dem_integ_vet(struct bmm_dem *const dem) {
 // TODO This erases the winding number information needed by beams.
 void bmm_dem_stab(struct bmm_dem *const dem) {
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    dem->part.phi[ipart] = bmm_fp_uwrap(dem->part.phi[ipart], M_2PI);
+    dem->part.phi[ipart] = type(bmm_uwrap, double)(dem->part.phi[ipart], M_2PI);
 }
 
 void bmm_dem_predict(struct bmm_dem *const dem) {
@@ -969,12 +969,12 @@ bool bmm_dem_link_pair(struct bmm_dem *const dem,
   switch (dem->link.tag) {
     case BMM_DEM_FLINK_BEAM:
       {
-        double const gammaij = bmm_fp_swrap(bmm_geom2d_dir(xdiffij), M_2PI);
-        double const gammaji = bmm_fp_swrap(gammaij + M_PI, M_2PI);
-        double const phii = bmm_fp_swrap(dem->part.phi[ipart], M_2PI);
-        double const phij = bmm_fp_swrap(dem->part.phi[jpart], M_2PI);
-        double const chii = bmm_fp_swrap(gammaij - phii, M_2PI);
-        double const chij = bmm_fp_swrap(gammaji - phij, M_2PI);
+        double const gammaij = type(bmm_swrap, double)(bmm_geom2d_dir(xdiffij), M_2PI);
+        double const gammaji = type(bmm_swrap, double)(gammaij + M_PI, M_2PI);
+        double const phii = type(bmm_swrap, double)(dem->part.phi[ipart], M_2PI);
+        double const phij = type(bmm_swrap, double)(dem->part.phi[jpart], M_2PI);
+        double const chii = type(bmm_swrap, double)(gammaij - phii, M_2PI);
+        double const chij = type(bmm_swrap, double)(gammaji - phij, M_2PI);
 
         dem->link.part[ipart].chirest[dem->link.part[ipart].n][0] = chii;
 
@@ -1564,7 +1564,7 @@ static void bmm_dem_script_balance(struct bmm_dem *const dem) {
       dem->part.x[ipart][idim] += xcenter[idim] - xcom[idim];
 
       if (dem->opts.box.per[idim])
-        dem->part.x[ipart][idim] = bmm_fp_uwrap(dem->part.x[ipart][idim],
+        dem->part.x[ipart][idim] = type(bmm_uwrap, double)(dem->part.x[ipart][idim],
             dem->opts.box.x[idim]);
     }
 }
