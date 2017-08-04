@@ -604,6 +604,61 @@ since the undefinedness of overflows may allow some better optimizations.
 
 Annotate with `__attribute__ ((__flatten__, __hot__))`.
 
+#### Number Systems
+
+These may be implemented for various number types.
+
+    /// The call `bmm_from(x, ns)`
+    /// returns the value of `x` in the number system `ns`.
+    /// This is analogous to the unary operator `(type)`.
+
+    /// The call `bmm_to(x, ns)`
+    /// returns the value of `x` in the number system `ns`.
+    /// This is analogous to the unary operator `(type)`.
+
+    /// The call `bmm_zero(ns)`
+    /// returns zero in the number system `ns`.
+    /// This is analogous to the constant `0`.
+
+    /// The call `bmm_add(x, y, ns)`
+    /// returns the sum of `x` and `y` in the number system `ns`.
+    /// This is analogous to the binary operator `+`.
+
+    /// The call `bmm_neg(x, ns)`
+    /// returns the negation of `x` in the number system `ns`.
+    /// This is analogous to the unary operator `-`.
+
+    /// The call `bmm_sub(x, y, ns)`
+    /// returns the difference of `x` and `y` in the number system `ns`.
+    /// This is analogous to the binary operator `-`.
+
+    /// The call `bmm_succ(x, ns)`
+    /// returns the successor of `x` in the number system `ns`.
+    /// This is analogous to the unary operator `++`.
+
+    /// The call `bmm_pred(x, ns)`
+    /// returns the predecessor of `x` in the number system `ns`.
+    /// This is analogous to the unary operator `--`.
+
+    /// The call `bmm_one(ns)`
+    /// returns one in the number system `ns`.
+    /// This is analogous to the constant `1`.
+
+    /// The call `bmm_mul(x, y, ns)`
+    /// returns product of `x` and `y` in the number system `ns`.
+    /// This is analogous to the binary operator `*`.
+
+    /// The call `bmm_recip(x, ns)`
+    /// returns the reciprocal of `x` in the number system `ns`.
+
+    /// The call `bmm_quot(x, y, ns)`
+    /// returns quotient of `x` and `y` in the number system `ns`.
+    /// This is analogous to the binary operator `/`.
+
+    /// The call `bmm_rem(x, y, ns)`
+    /// returns remainder of `x` and `y` in the number system `ns`.
+    /// This is analogous to the binary operator `%`.
+
 [cfdem]: http://www.cfdem.com/
 [liggghts]: https://github.com/CFDEMproject/LIGGGHTS-PUBLIC
 [uio]: https://www.uio.no/english/services/it/research/hpc/abel/help/software/ESyS-Particle.html

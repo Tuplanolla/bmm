@@ -89,6 +89,64 @@ inline A type(bmm_uclamp, A)(A const x, A const b) {
   return x > b ? b : x;
 }
 
+// TODO Do we even need these? How about `bmm_wrapadd(x, y, a, b)`?
+
+/// The call `bmm_uinc(x, b)`
+/// is equivalent to `bmm_inc(x, 0, b)`.
+/// If `b <= 0`, the behavior is undefined.
+/// Overflows are possible both internally and externally.
+#ifndef DEBUG
+__attribute__ ((__const__, __pure__))
+#endif
+inline A type(bmm_uinc, A)(A const x, A const b) {
+  dynamic_assert(b > 0, "Invalid argument");
+
+  return (x + 1) % b;
+}
+
+/// The call `bmm_inc(x, a, b)`
+/// is equivalent to `type(bmm_wrap, A)(x + 1, a, b)` without wrapping.
+/// If `b <= a`, the behavior is undefined.
+/// Overflows are possible both internally and externally.
+#ifndef DEBUG
+__attribute__ ((__const__, __pure__))
+#endif
+inline A type(bmm_inc, A)(A const x, A const a, A const b) {
+  dynamic_assert(b > a, "Invalid argument");
+
+  A const c = b - a;
+
+  return (x % c + c - a % c + 1) % c + a;
+}
+
+/// The call `bmm_udec(x, b)`
+/// is equivalent to `bmm_dec(x, 0, b)`.
+/// If `b <= 0`, the behavior is undefined.
+/// Overflows are possible both internally and externally.
+#ifndef DEBUG
+__attribute__ ((__const__, __pure__))
+#endif
+inline A type(bmm_udec, A)(A const x, A const b) {
+  dynamic_assert(b > 0, "Invalid argument");
+
+  return (x + b - 1) % b;
+}
+
+/// The call `bmm_dec(x, a, b)`
+/// is equivalent to `type(bmm_wrap, A)(x - 1, a, b)` without wrapping.
+/// If `b <= a`, the behavior is undefined.
+/// Overflows are possible both internally and externally.
+#ifndef DEBUG
+__attribute__ ((__const__, __pure__))
+#endif
+inline A type(bmm_dec, A)(A const x, A const a, A const b) {
+  dynamic_assert(b > a, "Invalid argument");
+
+  A const c = b - a;
+
+  return (x % c + c - a % c - 1) % c + a;
+}
+
 /// The call `bmm_fact(x)`
 /// returns the factorial of `x`.
 /// Overflows are impossible internally but possible externally.
@@ -132,6 +190,17 @@ inline A type(bmm_multfact, A)(A const x, A const m) {
   return y;
 }
 
+// TODO Check and test this.
+
+/// The call `bmm_tri(x)`
+/// returns the `x`th triangular number.
+/// Overflows are possible internally even though they should not be.
+__attribute__ ((__const__, __pure__))
+inline A type(bmm_tri, A)(A const x) {
+  // return type(bmm_choose, A)(x + 1, 2);
+  return x * (x + 1) / 2;
+}
+
 /// The call `bmm_tamean2(x, y)`
 /// returns the truncated arithmetic mean of `x` and `y`.
 /// Overflows are impossible both internally and externally.
@@ -149,7 +218,7 @@ inline A type(bmm_famean2, A)(A const x, A const y) {
 }
 
 /// The call `bmm_flog(x, b)`
-/// returns the floor of the base `b` logarithm of `x`.
+/// returns the floored base `b` logarithm of `x`.
 /// If `x == 0` or `b <= 1`, the behavior is undefined.
 /// Overflows are impossible both internally and externally.
 #ifndef DEBUG
@@ -171,7 +240,7 @@ inline A type(bmm_flog, A)(A const x, A const b) {
 }
 
 /// The call `bmm_clog(x, b)`
-/// returns the ceiling of the base `b` logarithm of `x`.
+/// returns the ceilinged base `b` logarithm of `x`.
 /// If `x == 0` or `b <= 1`, the behavior is undefined.
 /// Overflows are impossible both internally and externally.
 #ifndef DEBUG
@@ -182,6 +251,37 @@ inline A type(bmm_clog, A)(A const x, A const b) {
   dynamic_assert(b > 1, "Invalid argument");
 
   return x == 1 ? 0 : type(bmm_flog, A)(x - 1, b) + 1;
+}
+
+// TODO Check and test these.
+
+/// The call `bmm_firt(n, k)`
+/// returns the floored root `k` of `n`.
+/// Overflows are possible internally even though they should not be.
+__attribute__ ((__const__, __pure__))
+inline A type(bmm_firt, A)(A const n, A const k) {
+  if (n <= 1)
+    return n;
+  else {
+    A const p = k - 1;
+    A r = n + 1;
+    A m = n;
+
+    while (m < r) {
+      r = m;
+      m = (p * r + n / type(bmm_power, A)(r, p)) / k;
+    }
+
+    return r;
+  }
+}
+
+/// The call `bmm_cirt(n, k)`
+/// returns the ceilinged root `k` of `n`.
+/// Overflows are possible internally even though they should not be.
+__attribute__ ((__const__, __pure__))
+inline A type(bmm_cirt, A)(A const n, A const k) {
+  return n <= 1 ? n : type(bmm_firt, A)(n - 1, k) + 1;
 }
 
 /// The call `bmm_hc(pij, i, ndim, nper)`
@@ -270,102 +370,4 @@ inline A type(bmm_unhcd, A)(A const *restrict const ij,
   }
 
   return i;
-}
-
-// TODO Check and test these.
-
-/// The call `bmm_size_firt(n, k)`
-/// returns the floor of the `k`th root of `n`.
-/// This is analogous to `bmm_fp_rt`.
-/// Overflows are possible internally even though they should not be.
-__attribute__ ((__const__, __pure__))
-inline A type(bmm_firt, A)(A const n, A const k) {
-  if (n <= 1)
-    return n;
-  else {
-    A const p = k - 1;
-    A r = n + 1;
-    A m = n;
-
-    while (m < r) {
-      r = m;
-      m = (p * r + n / type(bmm_power, A)(r, p)) / k;
-    }
-
-    return r;
-  }
-}
-
-/// The call `bmm_cirt(n, k)`
-/// returns the ceiling of the `k`th root of `n`.
-/// This is analogous to `bmm_fp_rt`.
-/// Overflows are possible internally even though they should not be.
-__attribute__ ((__const__, __pure__))
-inline A type(bmm_cirt, A)(A const n, A const k) {
-  return n <= 1 ? n : type(bmm_firt, A)(n - 1, k) + 1;
-}
-
-/// The call `bmm_uinc(n, b)`
-/// is equivalent to `bmm_inc(n, 0, b)`.
-/// If `b <= 0`, the behavior is undefined.
-/// Overflows are possible both internally and externally.
-#ifndef DEBUG
-__attribute__ ((__const__, __pure__))
-#endif
-inline A type(bmm_uinc, A)(A const n, A const b) {
-  dynamic_assert(b > 0, "Invalid argument");
-
-  return (n + 1) % b;
-}
-
-/// The call `bmm_inc(n, a, b)`
-/// is equivalent to `type(bmm_wrap, A)(n + 1, a, b)` without wrapping.
-/// If `b <= a`, the behavior is undefined.
-/// Overflows are possible both internally and externally.
-#ifndef DEBUG
-__attribute__ ((__const__, __pure__))
-#endif
-inline A type(bmm_inc, A)(A const n, A const a, A const b) {
-  dynamic_assert(b > a, "Invalid argument");
-
-  A const c = b - a;
-
-  return (n % c + c - a % c + 1) % c + a;
-}
-
-/// The call `bmm_udec(n, b)`
-/// is equivalent to `bmm_dec(n, 0, b)`.
-/// If `b <= 0`, the behavior is undefined.
-/// Overflows are possible both internally and externally.
-#ifndef DEBUG
-__attribute__ ((__const__, __pure__))
-#endif
-inline A type(bmm_udec, A)(A const n, A const b) {
-  dynamic_assert(b > 0, "Invalid argument");
-
-  return (n + b - 1) % b;
-}
-
-/// The call `bmm_dec(n, a, b)`
-/// is equivalent to `type(bmm_wrap, A)(n - 1, a, b)` without wrapping.
-/// If `b <= a`, the behavior is undefined.
-/// Overflows are possible both internally and externally.
-#ifndef DEBUG
-__attribute__ ((__const__, __pure__))
-#endif
-inline A type(bmm_dec, A)(A const n, A const a, A const b) {
-  dynamic_assert(b > a, "Invalid argument");
-
-  A const c = b - a;
-
-  return (n % c + c - a % c - 1) % c + a;
-}
-
-/// The call `bmm_tri(n)`
-/// returns the `n`th triangular number.
-/// Overflows are impossible internally but possible externally.
-__attribute__ ((__const__, __pure__))
-inline A type(bmm_tri, A)(A const n) {
-  // return type(bmm_choose, A)(n + 1, 2);
-  return n * (n + 1) / 2;
 }

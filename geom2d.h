@@ -13,23 +13,6 @@
 #include "fp.h"
 #include "ival.h"
 
-// TODO Generics and operator forms.
-// () [] -> .
-// ! ~ ++ -- + - (type) * & sizeof
-// * / %
-// + -
-// << >>
-// < <= > >=
-// == !=
-// &
-// ^
-// |
-// &&
-// ||
-// ?:
-// = += -= *= /= %= <<= >>= &= ^= |=
-// ,
-
 /// The call `bmm_geom2d_dot(x)`
 /// returns the dot product of the vectors `x` and `y`.
 __attribute__ ((__nonnull__, __pure__))
