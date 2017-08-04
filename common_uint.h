@@ -90,11 +90,12 @@ inline A type(bmm_uclamp, A)(A const x, A const b) {
 }
 
 // TODO Do we even need these? How about `bmm_wrapadd(x, y, a, b)`?
+// See the notes about number systems.
 
 /// The call `bmm_uinc(x, b)`
 /// is equivalent to `bmm_inc(x, 0, b)`.
 /// If `b <= 0`, the behavior is undefined.
-/// Overflows are possible both internally and externally.
+/// Overflows are possible internally even though they should not be.
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
@@ -107,7 +108,7 @@ inline A type(bmm_uinc, A)(A const x, A const b) {
 /// The call `bmm_inc(x, a, b)`
 /// is equivalent to `type(bmm_wrap, A)(x + 1, a, b)` without wrapping.
 /// If `b <= a`, the behavior is undefined.
-/// Overflows are possible both internally and externally.
+/// Overflows are possible internally even though they should not be.
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
@@ -122,7 +123,7 @@ inline A type(bmm_inc, A)(A const x, A const a, A const b) {
 /// The call `bmm_udec(x, b)`
 /// is equivalent to `bmm_dec(x, 0, b)`.
 /// If `b <= 0`, the behavior is undefined.
-/// Overflows are possible both internally and externally.
+/// Overflows are possible internally even though they should not be.
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
@@ -135,7 +136,7 @@ inline A type(bmm_udec, A)(A const x, A const b) {
 /// The call `bmm_dec(x, a, b)`
 /// is equivalent to `type(bmm_wrap, A)(x - 1, a, b)` without wrapping.
 /// If `b <= a`, the behavior is undefined.
-/// Overflows are possible both internally and externally.
+/// Overflows are possible internally even though they should not be.
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif

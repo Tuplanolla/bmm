@@ -89,6 +89,9 @@ static bool f(char const *const key, char const *const value,
       opts->script.params[istage].create.eta = bmm_geom_ballmpd(BMM_NDIM);
 
       istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_PRESET0;
+
+      istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_SEDIMENT;
       opts->script.tspan[istage] = 2.0e-3;
       opts->script.dt[istage] = dtstuff;
@@ -96,6 +99,9 @@ static bool f(char const *const key, char const *const value,
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CLIP;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_PRESET1;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_LINK;

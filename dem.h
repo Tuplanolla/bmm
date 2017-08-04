@@ -105,7 +105,10 @@ enum bmm_dem_mode {
   /// Fix the bottom and start forcing the top in the x-direction.
   BMM_DEM_MODE_CRUNCH,
   /// Begin measurements.
-  BMM_DEM_MODE_MEASURE
+  BMM_DEM_MODE_MEASURE,
+  /// Debug utilities.
+  BMM_DEM_MODE_PRESET0,
+  BMM_DEM_MODE_PRESET1
 };
 
 struct bmm_dem_opts {

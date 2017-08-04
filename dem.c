@@ -1995,6 +1995,8 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
       dem->ext.params.harm.kcohes =
         dem->opts.script.params[dem->script.i].sediment.kcohes;
 
+      break;
+    case BMM_DEM_MODE_PRESET0:
       dem->amb.tag = BMM_DEM_FAMB_CREEPING;
       dem->norm.tag = BMM_DEM_FNORM_VISCOEL;
       dem->tang.tag = BMM_DEM_FTANG_NONE;
@@ -2005,6 +2007,8 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
     case BMM_DEM_MODE_CLIP:
       bmm_dem_script_clip(dem);
 
+      break;
+    case BMM_DEM_MODE_PRESET1:
       dem->amb.tag = BMM_DEM_FAMB_NONE;
       dem->norm.tag = BMM_DEM_FNORM_VISCOEL;
       dem->tang.tag = BMM_DEM_FTANG_CS;
