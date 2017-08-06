@@ -427,11 +427,11 @@ void bmm_dem_force_ambient(struct bmm_dem *const dem, size_t const ipart) {
 
 void bmm_dem_force_pair(struct bmm_dem *const dem,
     size_t const ipart, size_t const jpart) {
-  double xdiffij[BMM_NDIM];
-  bmm_geom2d_cpdiff(xdiffij, dem->part.x[ipart], dem->part.x[jpart],
+  double xdiffji[BMM_NDIM];
+  bmm_geom2d_cpdiff(xdiffji, dem->part.x[ipart], dem->part.x[jpart],
       dem->opts.box.x, dem->opts.box.per);
 
-  double const d2 = bmm_geom2d_norm2(xdiffij);
+  double const d2 = bmm_geom2d_norm2(xdiffji);
   if (d2 == 0.0)
     return;
 
@@ -452,14 +452,14 @@ void bmm_dem_force_pair(struct bmm_dem *const dem,
 
   double const d = sqrt(d2);
 
-  double xnormij[BMM_NDIM];
-  bmm_geom2d_scale(xnormij, xdiffij, 1.0 / d);
+  double xnormji[BMM_NDIM];
+  bmm_geom2d_scale(xnormji, xdiffji, 1.0 / d);
 
-  double xtangij[BMM_NDIM];
-  bmm_geom2d_rperp(xtangij, xnormij);
+  double xtangji[BMM_NDIM];
+  bmm_geom2d_rperp(xtangji, xnormji);
 
   double vdiffij[BMM_NDIM];
-  bmm_geom2d_diff(vdiffij, dem->part.v[ipart], dem->part.v[jpart]);
+  bmm_geom2d_diff(vdiffij, dem->part.v[jpart], dem->part.v[ipart]);
 
   // Normal forces first.
 
@@ -467,33 +467,33 @@ void bmm_dem_force_pair(struct bmm_dem *const dem,
 
   {
     double const xi = r - d;
-    double const vnormji = -bmm_geom2d_dot(vdiffij, xnormij);
+    double const vnormij = bmm_geom2d_dot(vdiffij, xnormji);
     double const reff = type(bmm_resum2, double)(ri, rj);
 
     switch (dem->norm.tag) {
       case BMM_DEM_FNORM_DASHPOT:
-        fnorm = -type(bmm_max, double)(0.0,
-            dem->opts.part.y * xi + dem->norm.params.dashpot.gamma * vnormji);
+        fnorm = type(bmm_max, double)(0.0,
+            dem->opts.part.y * xi + dem->norm.params.dashpot.gamma * vnormij);
 
         break;
       case BMM_DEM_FNORM_VISCOEL:
-        fnorm = -type(bmm_max, double)(0.0,
+        fnorm = type(bmm_max, double)(0.0,
             (2.0 / 3.0) * (dem->opts.part.y /
               (1.0 - type(bmm_power, double)(dem->opts.part.nu, 2))) *
-            (xi + dem->norm.params.viscoel.a * vnormji) * sqrt(reff * xi));
+            (xi + dem->norm.params.viscoel.a * vnormij) * sqrt(reff * xi));
 
         break;
     }
   }
 
-  double fnormij[BMM_NDIM];
-  bmm_geom2d_scale(fnormij, xnormij, fnorm);
-
   double fnormji[BMM_NDIM];
-  bmm_geom2d_scale(fnormji, fnormij, -1.0);
+  bmm_geom2d_scale(fnormji, xnormji, fnorm);
 
-  bmm_geom2d_addto(dem->part.f[ipart], fnormij);
-  bmm_geom2d_addto(dem->part.f[jpart], fnormji);
+  double fnormij[BMM_NDIM];
+  bmm_geom2d_scale(fnormij, fnormji, -1.0);
+
+  bmm_geom2d_addto(dem->part.f[ipart], fnormji);
+  bmm_geom2d_addto(dem->part.f[jpart], fnormij);
 
   // Tangential forces second.
 
@@ -501,13 +501,13 @@ void bmm_dem_force_pair(struct bmm_dem *const dem,
 
   {
     // TODO By these signs, I think my n--t coordinate system is fucked.
-    double const vtangij = -bmm_geom2d_dot(vdiffij, xtangij) +
+    double const vtangij = bmm_geom2d_dot(vdiffij, xtangji) +
       ri * dem->part.omega[ipart] + rj * dem->part.omega[jpart];
     double const dt = dem->opts.script.dt[dem->script.i];
 
     switch (dem->tang.tag) {
       case BMM_DEM_FTANG_HW:
-        ftang = -copysign(type(bmm_min, double)(
+        ftang = copysign(type(bmm_min, double)(
               dem->tang.params.hw.gamma * type(bmm_abs, double)(vtangij),
               dem->tang.params.hw.mu * type(bmm_abs, double)(fnorm)), vtangij);
 
@@ -517,7 +517,7 @@ void bmm_dem_force_pair(struct bmm_dem *const dem,
         dem->tang.params.cs.zeta[ipart][jpart] += vtangij * dt;
         dem->tang.params.cs.zeta[jpart][ipart] += vtangij * dt;
 
-        ftang = -copysign(type(bmm_min, double)(
+        ftang = copysign(type(bmm_min, double)(
               dem->tang.params.cs.kappa * type(bmm_abs, double)(dem->tang.params.cs.zeta[ipart][jpart]),
               dem->tang.params.cs.mu * type(bmm_abs, double)(fnorm)), vtangij);
 
@@ -525,14 +525,14 @@ void bmm_dem_force_pair(struct bmm_dem *const dem,
     }
   }
 
-  double ftangij[BMM_NDIM];
-  bmm_geom2d_scale(ftangij, xtangij, ftang);
-
   double ftangji[BMM_NDIM];
-  bmm_geom2d_scale(ftangji, ftangij, -1.0);
+  bmm_geom2d_scale(ftangji, xtangji, ftang);
 
-  bmm_geom2d_addto(dem->part.f[ipart], ftangij);
-  bmm_geom2d_addto(dem->part.f[jpart], ftangji);
+  double ftangij[BMM_NDIM];
+  bmm_geom2d_scale(ftangij, ftangji, -1.0);
+
+  bmm_geom2d_addto(dem->part.f[ipart], ftangji);
+  bmm_geom2d_addto(dem->part.f[jpart], ftangij);
 
   // Torques third.
 
@@ -581,14 +581,16 @@ void bmm_dem_force_pair(struct bmm_dem *const dem,
     }
   }
 
-  dem->part.tau[ipart] += taui;
-  dem->part.tau[jpart] += tauj;
+  dem->part.tau[ipart] -= taui;
+  dem->part.tau[jpart] -= tauj;
 }
+
+// TODO This coordinate system has not been flipped yet.
 
 void bmm_dem_force_link(struct bmm_dem *const dem,
     size_t const ipart, size_t const jpart, size_t const ilink) {
   double xdiffij[BMM_NDIM];
-  bmm_geom2d_cpdiff(xdiffij, dem->part.x[ipart], dem->part.x[jpart],
+  bmm_geom2d_cpdiff(xdiffij, dem->part.x[jpart], dem->part.x[ipart],
       dem->opts.box.x, dem->opts.box.per);
 
   double const d = bmm_geom2d_norm(xdiffij);
@@ -604,7 +606,7 @@ void bmm_dem_force_link(struct bmm_dem *const dem,
   bmm_geom2d_rperp(xtangij, xnormij);
 
   double vdiffij[BMM_NDIM];
-  bmm_geom2d_diff(vdiffij, dem->part.v[ipart], dem->part.v[jpart]);
+  bmm_geom2d_diff(vdiffij, dem->part.v[jpart], dem->part.v[ipart]);
 
   // Normal forces first.
 
@@ -903,7 +905,7 @@ void bmm_dem_correct(struct bmm_dem *const dem) {
 void bmm_dem_fract_pair(struct bmm_dem *const dem,
     size_t const ipart, size_t const jpart, size_t const ilink) {
   double xdiffij[BMM_NDIM];
-  bmm_geom2d_cpdiff(xdiffij, dem->part.x[ipart], dem->part.x[jpart],
+  bmm_geom2d_cpdiff(xdiffij, dem->part.x[jpart], dem->part.x[ipart],
       dem->opts.box.x, dem->opts.box.per);
 
   double const d2 = bmm_geom2d_norm2(xdiffij);
@@ -947,7 +949,7 @@ void bmm_dem_fract(struct bmm_dem *const dem) {
 bool bmm_dem_link_pair(struct bmm_dem *const dem,
     size_t const ipart, size_t const jpart) {
   double xdiffij[BMM_NDIM];
-  bmm_geom2d_cpdiff(xdiffij, dem->part.x[ipart], dem->part.x[jpart],
+  bmm_geom2d_cpdiff(xdiffij, dem->part.x[jpart], dem->part.x[ipart],
       dem->opts.box.x, dem->opts.box.per);
 
   double const d2 = bmm_geom2d_norm2(xdiffij);

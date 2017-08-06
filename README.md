@@ -607,6 +607,8 @@ Annotate with `__attribute__ ((__flatten__, __hot__))`.
 #### Number Systems
 
 These may be implemented for various number types.
+Note that in curried languages "more constant" parameters come first,
+so for example `x / y == div y x`; here the opposite is the case.
 
     /// The call `bmm_from(x, ns)`
     /// returns the value of `x` in the number system `ns`.

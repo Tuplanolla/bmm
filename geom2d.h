@@ -169,7 +169,7 @@ __attribute__ ((__nonnull__))
 inline void bmm_geom2d_diff(double *restrict const xdiff,
     double const *restrict const x0, double const *restrict const x1) {
   for (size_t idim = 0; idim < 2; ++idim)
-    xdiff[idim] = x1[idim] - x0[idim];
+    xdiff[idim] = x0[idim] - x1[idim];
 }
 
 // TODO Make sense or get rid of this.
@@ -365,7 +365,7 @@ inline double bmm_geom2d_shellvol(double const *restrict const x,
     bmm_geom2d_refl(y, x, xper, mask[imask]);
 
     double z[2];
-    bmm_geom2d_diff(z, y, xper);
+    bmm_geom2d_diff(y, z, xper);
 
     if (bmm_geom2d_norm2(z) > type(bmm_power, double)(r, 2)) {
       double a[2];
