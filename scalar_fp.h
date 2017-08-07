@@ -47,13 +47,12 @@ inline A type(div, A)(A const x, A const y) {
   return x / y;
 }
 
-/// The call `quot(x, y)`
-/// returns the quotient of `x` and `y`.
-/// This is analogous to the binary operator `/`.
+/// The call `quote(x, y)`
+/// returns the Euclidean quotient of `x` and `y`.
 __attribute__ ((__const__, __pure__))
-inline A type(quot, A)(A const x, A const y) {
-  A const q = type(trunc, A)(x, y);
-  A const r = type(mod, A)(x, y);
+inline A type(quote, A)(A const x, A const y) {
+  A const q = type(quott, A)(x, y);
+  A const r = type(remt, A)(x, y);
   A const s = r >= type(zero, A)() ?
     type(zero, A)() : y < type(zero, A)() ?
     -type(one, A)() : type(one, A)();
@@ -61,12 +60,11 @@ inline A type(quot, A)(A const x, A const y) {
   return q - s;
 }
 
-/// The call `rem(x, y)`
-/// returns the remainder of `x` and `y`.
-/// This is analogous to the binary operator `%`.
+/// The call `reme(x, y)`
+/// returns the Euclidean remainder of `x` and `y`.
 __attribute__ ((__const__, __pure__))
-inline A type(rem, A)(A const x, A const y) {
-  A const r = type(mod, A)(x, y);
+inline A type(reme, A)(A const x, A const y) {
+  A const r = type(remt, A)(x, y);
   A const s = r >= type(zero, A)() ?
     type(zero, A)() : y < type(zero, A)() ?
     -type(one, A)() : type(one, A)();
@@ -120,18 +118,30 @@ inline void type(div_mut, A)(A *const iox, A const y) {
   *iox = type(div, A)(*iox, y);
 }
 
-/// The call `quot_mut(iox, y)`
-/// stores into `iox` the quotient of `iox` and `y`.
-/// This is analogous to the binary operator `/=`.
+/// The call `quott_mut(iox, y)`
+/// stores into `iox` the truncated quotient of `iox` and `y`.
 __attribute__ ((__nonnull__))
-inline void type(quot_mut, A)(A *const iox, A const y) {
-  *iox = type(quot, A)(*iox, y);
+inline void type(quott_mut, A)(A *const iox, A const y) {
+  *iox = type(quott, A)(*iox, y);
 }
 
-/// The call `rem_mut(iox, y)`
-/// stores into `iox` the remainder of `iox` and `y`.
-/// This is analogous to the binary operator `%=`.
+/// The call `remt_mut(iox, y)`
+/// stores into `iox` the truncated remainder of `iox` and `y`.
 __attribute__ ((__nonnull__))
-inline void type(rem_mut, A)(A *const iox, A const y) {
-  *iox = type(rem, A)(*iox, y);
+inline void type(remt_mut, A)(A *const iox, A const y) {
+  *iox = type(remt, A)(*iox, y);
+}
+
+/// The call `quote_mut(iox, y)`
+/// stores into `iox` the Euclidean quotient of `iox` and `y`.
+__attribute__ ((__nonnull__))
+inline void type(quote_mut, A)(A *const iox, A const y) {
+  *iox = type(quote, A)(*iox, y);
+}
+
+/// The call `reme_mut(iox, y)`
+/// stores into `iox` the Euclidean remainder of `iox` and `y`.
+__attribute__ ((__nonnull__))
+inline void type(reme_mut, A)(A *const iox, A const y) {
+  *iox = type(reme, A)(*iox, y);
 }

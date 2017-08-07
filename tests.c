@@ -14,80 +14,240 @@
 #include "neigh.h"
 #include "msg.h"
 
-CHEAT_TEST(add_def_sint,
-  for (int i = SCHAR_MIN; i <= SCHAR_MAX; ++i)
-    for (int j = SCHAR_MIN; j <= SCHAR_MAX; ++j) {
-      signed char const x = (signed char) i;
-      signed char const y = (signed char) j;
-
-      cheat_assert_int(
-          (y > 0 && SCHAR_MAX - y < x) ||
-          (y < 0 && SCHAR_MIN - y > x),
-          i + j < SCHAR_MIN ||
-          i + j > SCHAR_MAX);
-    }
+CHEAT_DECLARE(
+  static int const val = 64;
 )
 
-CHEAT_TEST(neg_def_sint,
-  for (int i = SCHAR_MIN; i <= SCHAR_MAX; ++i) {
-    signed char const x = (signed char) i;
-
-    cheat_assert_int(
-        (x > 0 && SCHAR_MIN + x > 0) ||
-        (x < 0 && SCHAR_MAX + x < 0),
-        -i < SCHAR_MIN ||
-        -i > SCHAR_MAX);
-  }
-)
-
-CHEAT_TEST(sub_def_sint,
-  for (int i = SCHAR_MIN; i <= SCHAR_MAX; ++i)
-    for (int j = SCHAR_MIN; j <= SCHAR_MAX; ++j) {
-      signed char const x = (signed char) i;
-      signed char const y = (signed char) j;
-
-      cheat_assert_int(
-          (y > 0 && SCHAR_MIN + y > x) ||
-          (y < 0 && SCHAR_MAX + y < x),
-          i - j < SCHAR_MIN ||
-          i - j > SCHAR_MAX);
-    }
-)
-
-CHEAT_TEST(mul_def_sint,
-  for (int i = SCHAR_MIN; i <= SCHAR_MAX; ++i)
-    for (int j = SCHAR_MIN; j <= SCHAR_MAX; ++j) {
-      signed char const x = (signed char) i;
-      signed char const y = (signed char) j;
-
-      if (SCHAR_MIN <= -SCHAR_MAX)
-        cheat_assert_int(
-            x > 0 ? (y > 0 ? SCHAR_MAX / y < x : SCHAR_MIN / x > y) :
-            x < 0 ? (y > 0 ? SCHAR_MIN / y > x : SCHAR_MAX / x > y) : false,
-            i * j < SCHAR_MIN ||
-            i * j > SCHAR_MAX);
-      else
-        cheat_assert_int(
-            x > 0 ? (y > 0 ? SCHAR_MAX / y < x : SCHAR_MIN / x > y) :
-            x < 0 ? (y > 0 ? SCHAR_MIN / y > x : SCHAR_MAX / -x < -y) : false,
-            i * j < SCHAR_MIN ||
-            i * j > SCHAR_MAX);
-    }
-)
-
-CHEAT_TEST(quot_def_sint,
-  for (int i = SCHAR_MIN; i <= SCHAR_MAX; ++i)
-    for (int j = SCHAR_MIN; j <= SCHAR_MAX; ++j)
-      if (j != 0) {
-        signed char const x = (signed char) i;
-        signed char const y = (signed char) j;
-
-        if (SCHAR_MIN <= -SCHAR_MAX && SCHAR_MIN / 2 >= -SCHAR_MAX)
+CHEAT_TEST(add_ovf_sint,
+  for (int minval = -val; minval <= -1; ++minval)
+    for (int maxval = 1; maxval <= val; ++maxval)
+      for (int x = minval; x <= maxval; ++x)
+        for (int y = minval; y <= maxval; ++y) {
+          cheat_assert_not(
+              (y > 0 && (maxval - y < minval || maxval - y > maxval)) ||
+              (y < 0 && (minval - y < minval || minval - y > maxval)));
           cheat_assert_int(
-              x < -SCHAR_MAX && y < 0 && y == -1,
-              i / j < SCHAR_MIN ||
-              i / j > SCHAR_MAX);
+              (y > 0 && maxval - y < x) ||
+              (y < 0 && minval - y > x),
+              x + y < minval ||
+              x + y > maxval);
+        }
+)
+
+CHEAT_TEST(add_ovf_uint,
+  for (int maxval = 1; maxval <= val; ++maxval)
+    for (int x = 0; x <= maxval; ++x)
+      for (int y = 0; y <= maxval; ++y) {
+        cheat_assert_not(
+            maxval - y < 0 || maxval - y > maxval);
+        cheat_assert_int(
+            maxval - y < x,
+            x + y < 0 ||
+            x + y > maxval);
       }
+)
+
+CHEAT_TEST(neg_ovf_sint,
+  for (int minval = -val; minval <= -1; ++minval)
+    for (int maxval = 1; maxval <= val; ++maxval)
+      for (int x = minval; x <= maxval; ++x) {
+        cheat_assert_not(
+            (x > 0 && (minval + x < minval || minval + x > maxval)) ||
+            (x < 0 && (maxval + x < minval || maxval + x > maxval)));
+        cheat_assert_int(
+            (x > 0 && minval + x > 0) ||
+            (x < 0 && maxval + x < 0),
+            -x < minval ||
+            -x > maxval);
+      }
+)
+
+CHEAT_TEST(sub_ovf_sint,
+  for (int minval = -val; minval <= -1; ++minval)
+    for (int maxval = 1; maxval <= val; ++maxval)
+      for (int x = minval; x <= maxval; ++x)
+        for (int y = minval; y <= maxval; ++y) {
+          cheat_assert_not(
+              (y > 0 && (minval + y < minval || minval + y > maxval)) ||
+              (y < 0 && (maxval + y < minval || maxval + y > maxval)));
+          cheat_assert_int(
+              (y > 0 && minval + y > x) ||
+              (y < 0 && maxval + y < x),
+              x - y < minval ||
+              x - y > maxval);
+        }
+)
+
+CHEAT_TEST(sub_ovf_uint,
+  for (int maxval = 1; maxval <= val; ++maxval)
+    for (int x = 0; x <= maxval; ++x)
+      for (int y = 0; y <= maxval; ++y)
+        cheat_assert_int(
+            y > x,
+            x - y < 0 ||
+            x - y > maxval);
+)
+
+CHEAT_TEST(mul_ovf_sint,
+  for (int minval = -val; minval <= -1; ++minval)
+    for (int maxval = 1; maxval <= val; ++maxval)
+      for (int x = minval; x <= maxval; ++x)
+        for (int y = minval; y <= maxval; ++y) {
+          cheat_assert_not(
+              x != 0 && (x > 0 ?
+                (y > 0 ? maxval / x < minval || maxval / x > maxval :
+                  minval / x < minval || minval / x > maxval) :
+                (y > 0 ? minval / y < minval || minval / y > maxval :
+                  (minval + maxval <= 0 ?
+                    maxval / x < minval || maxval / x > maxval :
+                    maxval / -x < minval || maxval / -x > maxval ||
+                    -y < minval || -y > maxval))));
+          cheat_assert_int(
+              x != 0 && (x > 0 ?
+                (y > 0 ? maxval / x < y :
+                  minval / x > y) :
+                (y > 0 ? minval / y > x :
+                  (minval + maxval <= 0 ?
+                    maxval / x > y :
+                    maxval / -x < -y))),
+              x * y < minval ||
+              x * y > maxval);
+        }
+)
+
+CHEAT_TEST(mul_ovf_uint,
+  for (int maxval = 1; maxval <= val; ++maxval)
+    for (int x = 0; x <= maxval; ++x)
+      for (int y = 0; y <= maxval; ++y) {
+        cheat_assert_not(
+            x != 0 &&
+            (maxval / x < 0 || maxval / x > maxval));
+        cheat_assert_int(
+            x != 0 &&
+            maxval / x < y,
+            x * y < 0 ||
+            x * y > maxval);
+      }
+)
+
+CHEAT_TEST(quott_ovf_sint,
+  for (int minval = -val; minval <= -1; ++minval)
+    for (int maxval = 1; maxval <= val; ++maxval)
+      for (int x = minval; x <= maxval; ++x)
+        for (int y = minval; y <= maxval; ++y)
+          if (y != 0) {
+            if (minval + maxval <= 0 && minval / 2 + maxval >= 0) {
+              cheat_assert_not(
+                  -maxval < minval || -maxval > maxval);
+              cheat_assert_int(
+                  x < -maxval && y < 0 && y == -1,
+                  x / y < minval ||
+                  x / y > maxval);
+            } else if (minval + maxval >= 0 && minval + maxval / 2 <= 0) {
+              cheat_assert_not(
+                  -minval < minval || -minval > maxval);
+              cheat_assert_int(
+                  x > -minval && y < 0 && y == -1,
+                  x / y < minval ||
+                  x / y > maxval);
+            }
+          }
+)
+
+CHEAT_TEST(quott_ovf_uint,
+  for (int maxval = 1; maxval <= val; ++maxval)
+    for (int x = 0; x <= maxval; ++x)
+      for (int y = 0; y <= maxval; ++y)
+        if (y != 0)
+          cheat_assert_int(
+              false,
+              x / y < 0 ||
+              x / y > maxval);
+)
+
+CHEAT_TEST(remt_ovf_sint,
+  for (int minval = -val; minval <= -1; ++minval)
+    for (int maxval = 1; maxval <= val; ++maxval)
+      for (int x = minval; x <= maxval; ++x)
+        for (int y = minval; y <= maxval; ++y)
+          if (y != 0) {
+            cheat_assert_int(
+                false,
+                x % y < minval ||
+                x % y > maxval);
+          }
+)
+
+CHEAT_TEST(remt_ovf_uint,
+  for (int maxval = 1; maxval <= val; ++maxval)
+    for (int x = 0; x <= maxval; ++x)
+      for (int y = 0; y <= maxval; ++y)
+        if (y != 0)
+          cheat_assert_int(
+              false,
+              x / y < 0 ||
+              x / y > maxval);
+)
+
+// TODO This.
+CHEAT_SKIP(quote_ovf_sint,
+  for (int minval = -val; minval <= -1; ++minval)
+    for (int maxval = 1; maxval <= val; ++maxval)
+      for (int x = minval; x <= maxval; ++x)
+        for (int y = minval; y <= maxval; ++y)
+          if (y != 0) {
+            if (minval + maxval <= 0 && minval / 2 + maxval >= 0) {
+              cheat_assert_not(
+                  -maxval < minval || -maxval > maxval);
+              cheat_assert_int(
+                  x < -maxval && y < 0 && y == -1,
+                  type(bmm_quot, int)(x, y) < minval ||
+                  type(bmm_quot, int)(x, y) > maxval);
+            } else if (minval + maxval >= 0 && minval + maxval / 2 <= 0) {
+              cheat_assert_not(
+                  -minval < minval || -minval > maxval);
+              cheat_assert_int(
+                  x > -minval && y < 0 && y == -1,
+                  type(bmm_quot, int)(x, y) < minval ||
+                  type(bmm_quot, int)(x, y) > maxval);
+            }
+          }
+)
+
+CHEAT_TEST(quote_ovf_uint,
+  for (int maxval = 1; maxval <= val; ++maxval)
+    for (int x = 0; x <= maxval; ++x)
+      for (int y = 0; y <= maxval; ++y)
+        if (y != 0)
+          cheat_assert_int(
+              false,
+              type(bmm_quot, int)(x, y) < 0 ||
+              type(bmm_quot, int)(x, y) > maxval);
+)
+
+// TODO This.
+CHEAT_SKIP(reme_ovf_sint,
+  for (int minval = -val; minval <= -1; ++minval)
+    for (int maxval = 1; maxval <= val; ++maxval)
+      for (int x = minval; x <= maxval; ++x)
+        for (int y = minval; y <= maxval; ++y)
+          if (y != 0) {
+            cheat_assert_int(
+                false,
+                type(bmm_rem, int)(x, y) < minval ||
+                type(bmm_rem, int)(x, y) > maxval);
+          }
+)
+
+CHEAT_TEST(reme_ovf_uint,
+  for (int maxval = 1; maxval <= val; ++maxval)
+    for (int x = 0; x <= maxval; ++x)
+      for (int y = 0; y <= maxval; ++y)
+        if (y != 0)
+          cheat_assert_int(
+              false,
+              type(bmm_rem, int)(x, y) < 0 ||
+              type(bmm_rem, int)(x, y) > maxval);
 )
 
 CHEAT_TEST(quot_sint,

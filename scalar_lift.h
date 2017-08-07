@@ -112,60 +112,18 @@ inline size_t type(maxval, size_t)(void) {
   return SIZE_MAX;
 }
 
-/// The call `bmm_trunc(x, y)`
+/// The call `quott(x, y)`
 /// returns the truncated quotient of `x` and `y`.
+/// This is analogous to the binary operator `/`.
 __attribute__ ((__const__, __pure__))
-inline signed_char type(trunc, signed_char)(signed_char const x,
-    signed_char const y) {
-  return x / y;
-}
-
-__attribute__ ((__const__, __pure__))
-inline unsigned_char type(trunc, unsigned_char)(unsigned_char const x,
-    unsigned_char const y) {
-  return x / y;
-}
-
-__attribute__ ((__const__, __pure__))
-inline int type(trunc, int)(int const x, int const y) {
-  return x / y;
-}
-
-__attribute__ ((__const__, __pure__))
-inline double type(trunc, double)(double const x, double const y) {
+inline double type(quott, double)(double const x, double const y) {
   return trunc(x / y);
 }
 
-__attribute__ ((__const__, __pure__))
-inline size_t type(trunc, size_t)(size_t const x, size_t const y) {
-  return x / y;
-}
-
-/// The call `bmm_mod(x)`
+/// The call `remt(x, y)`
 /// returns the truncated remainder of `x` and `y`.
+/// This is analogous to the binary operator `%`.
 __attribute__ ((__const__, __pure__))
-inline signed_char type(mod, signed_char)(signed_char const x,
-    signed_char const y) {
-  return x % y;
-}
-
-__attribute__ ((__const__, __pure__))
-inline unsigned_char type(mod, unsigned_char)(unsigned_char const x,
-    unsigned_char const y) {
-  return x % y;
-}
-
-__attribute__ ((__const__, __pure__))
-inline int type(mod, int)(int const x, int const y) {
-  return x % y;
-}
-
-__attribute__ ((__const__, __pure__))
-inline double type(mod, double)(double const x, double const y) {
+inline double type(remt, double)(double const x, double const y) {
   return fmod(x, y);
-}
-
-__attribute__ ((__const__, __pure__))
-inline size_t type(mod, size_t)(size_t const x, size_t const y) {
-  return x % y;
 }

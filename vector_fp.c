@@ -10,9 +10,13 @@ extern inline void type(mul, A, D)(A *restrict,
 inline void type(recip, A, D)(A *restrict, A const *restrict);
 extern inline void type(div, A, D)(A *restrict,
     A const *restrict, A const *restrict);
-extern inline void type(quot, A, D)(A *restrict,
+extern inline void type(quott, A, D)(A *restrict,
     A const *restrict, A const *restrict);
-extern inline void type(rem, A, D)(A *restrict,
+extern inline void type(remt, A, D)(A *restrict,
+    A const *restrict, A const *restrict);
+extern inline void type(quote, A, D)(A *restrict,
+    A const *restrict, A const *restrict);
+extern inline void type(reme, A, D)(A *restrict,
     A const *restrict, A const *restrict);
 
 extern inline void type(add_mut, A, D)(A *restrict, A const *restrict);
@@ -21,5 +25,7 @@ extern inline void type(sub_mut, A, D)(A *restrict, A const *restrict);
 extern inline void type(mul_mut, A, D)(A *restrict, A const *restrict);
 extern inline void type(recip_mut, A, D)(A *restrict);
 extern inline void type(div_mut, A, D)(A *restrict, A const *restrict);
-extern inline void type(quot_mut, A, D)(A *restrict, A const *restrict);
-extern inline void type(rem_mut, A, D)(A *restrict, A const *restrict);
+extern inline void type(quott_mut, A, D)(A *restrict, A const *restrict);
+extern inline void type(remt_mut, A, D)(A *restrict, A const *restrict);
+extern inline void type(quote_mut, A, D)(A *restrict, A const *restrict);
+extern inline void type(reme_mut, A, D)(A *restrict, A const *restrict);

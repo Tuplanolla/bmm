@@ -22,16 +22,6 @@ extern inline int type(maxval, int)(void);
 extern inline double type(maxval, double)(void);
 extern inline size_t type(maxval, size_t)(void);
 
-extern inline signed_char type(trunc, signed_char)(signed_char, signed_char);
-extern inline unsigned_char type(trunc, unsigned_char)(unsigned_char,
-    unsigned_char);
-extern inline int type(trunc, int)(int, int);
 extern inline double type(trunc, double)(double, double);
-extern inline size_t type(trunc, size_t)(size_t, size_t);
 
-extern inline signed_char type(mod, signed_char)(signed_char, signed_char);
-extern inline unsigned_char type(mod, unsigned_char)(unsigned_char,
-    unsigned_char);
-extern inline int type(mod, int)(int, int);
 extern inline double type(mod, double)(double, double);
-extern inline size_t type(mod, size_t)(size_t, size_t);

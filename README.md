@@ -667,13 +667,19 @@ so for example `x / y == div y x`; here the opposite is the case.
     /// returns the division of `x` and `y`.
     /// This is analogous to the binary operator `/`.
 
-    /// The call `quot(x, y)`
-    /// returns the quotient of `x` and `y`.
+    /// The call `quott(x, y)`
+    /// returns the truncated quotient of `x` and `y`.
     /// This is analogous to the binary operator `/`.
 
-    /// The call `rem(x, y)`
-    /// returns the remainder of `x` and `y`.
+    /// The call `remt(x, y)`
+    /// returns the truncated remainder of `x` and `y`.
     /// This is analogous to the binary operator `%`.
+
+    /// The call `quote(x, y)`
+    /// returns the Euclidean quotient of `x` and `y`.
+
+    /// The call `reme(x, y)`
+    /// returns the Euclidean remainder of `x` and `y`.
 
 Allocated versions follow.
 
@@ -722,13 +728,19 @@ Allocated versions follow.
     /// stores into `oz` the division of `x` and `y`.
     /// This is analogous to the binary operator `/`.
 
-    /// The call `quot(oz, x, y)`
-    /// stores into `oz` the quotient of `x` and `y`.
+    /// The call `quott(oz, x, y)`
+    /// stores into `oz` the truncated quotient of `x` and `y`.
     /// This is analogous to the binary operator `/`.
 
-    /// The call `rem(oz, x, y)`
-    /// stores into `oz` the remainder of `x` and `y`.
+    /// The call `remt(oz, x, y)`
+    /// stores into `oz` the truncated remainder of `x` and `y`.
     /// This is analogous to the binary operator `%`.
+
+    /// The call `quote(oz, x, y)`
+    /// stores into `oz` the Euclidean quotient of `x` and `y`.
+
+    /// The call `reme(oz, x, y)`
+    /// stores into `oz` the Euclidean remainder of `x` and `y`.
 
 Mutating versions follow.
 
@@ -762,13 +774,19 @@ Mutating versions follow.
     /// stores into `iox` the division of `iox` and `y`.
     /// This is analogous to the binary operator `/`.
 
-    /// The call `quot_mut(iox, y)`
-    /// stores into `iox` the quotient of `iox` and `y`.
+    /// The call `quott_mut(iox, y)`
+    /// stores into `iox` the truncated quotient of `iox` and `y`.
     /// This is analogous to the binary operator `/=`.
 
-    /// The call `rem_mut(iox, y)`
-    /// stores into `iox` the remainder of `iox` and `y`.
+    /// The call `remt_mut(iox, y)`
+    /// stores into `iox` the truncated remainder of `iox` and `y`.
     /// This is analogous to the binary operator `%=`.
+
+    /// The call `quote_mut(iox, y)`
+    /// stores into `iox` the Euclidean quotient of `iox` and `y`.
+
+    /// The call `reme_mut(iox, y)`
+    /// stores into `iox` the Euclidean remainder of `iox` and `y`.
 
 [cfdem]: http://www.cfdem.com/
 [liggghts]: https://github.com/CFDEMproject/LIGGGHTS-PUBLIC

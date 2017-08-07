@@ -65,7 +65,7 @@ inline void type(recip, A, D)(A *restrict const oy,
 }
 
 /// The call `div(oz, x, y)`
-/// stores into `oz` the quotient of `x` and `y`.
+/// stores into `oz` the division of `x` and `y`.
 /// This is analogous to the binary operator `/`.
 __attribute__ ((__nonnull__))
 inline void type(div, A, D)(A *restrict const oz,
@@ -74,24 +74,40 @@ inline void type(div, A, D)(A *restrict const oz,
     oz[i] = type(div, A)(x[i], y[i]);
 }
 
-/// The call `quot(oz, x, y)`
-/// stores into `oz` the quotient of `x` and `y`.
-/// This is analogous to the binary operator `/`.
+/// The call `quott(oz, x, y)`
+/// stores into `oz` the truncated quotient of `x` and `y`.
 __attribute__ ((__nonnull__))
-inline void type(quot, A, D)(A *restrict const oz,
+inline void type(quott, A, D)(A *restrict const oz,
     A const *restrict const x, A const *restrict const y) {
   for (size_t i = 0; i < D; ++i)
-    oz[i] = type(quot, A)(x[i], y[i]);
+    oz[i] = type(quott, A)(x[i], y[i]);
 }
 
-/// The call `rem(oz, x, y)`
-/// stores into `oz` the remainder of `x` and `y`.
-/// This is analogous to the binary operator `%`.
+/// The call `remt(oz, x, y)`
+/// stores into `oz` the truncated remainder of `x` and `y`.
 __attribute__ ((__nonnull__))
-inline void type(rem, A, D)(A *restrict const oz,
+inline void type(remt, A, D)(A *restrict const oz,
     A const *restrict const x, A const *restrict const y) {
   for (size_t i = 0; i < D; ++i)
-    oz[i] = type(rem, A)(x[i], y[i]);
+    oz[i] = type(remt, A)(x[i], y[i]);
+}
+
+/// The call `quote(oz, x, y)`
+/// stores into `oz` the Euclidean quotient of `x` and `y`.
+__attribute__ ((__nonnull__))
+inline void type(quote, A, D)(A *restrict const oz,
+    A const *restrict const x, A const *restrict const y) {
+  for (size_t i = 0; i < D; ++i)
+    oz[i] = type(quote, A)(x[i], y[i]);
+}
+
+/// The call `reme(oz, x, y)`
+/// stores into `oz` the Euclidean remainder of `x` and `y`.
+__attribute__ ((__nonnull__))
+inline void type(reme, A, D)(A *restrict const oz,
+    A const *restrict const x, A const *restrict const y) {
+  for (size_t i = 0; i < D; ++i)
+    oz[i] = type(reme, A)(x[i], y[i]);
 }
 
 /// The call `add_mut(iox, y)`
@@ -142,7 +158,7 @@ inline void type(recip_mut, A, D)(A *restrict const iox) {
 
 /// The call `div_mut(iox, y)`
 /// stores into `iox` the division of `iox` and `y`.
-/// This is analogous to the binary operator `/`.
+/// This is analogous to the binary operator `/=`.
 __attribute__ ((__nonnull__))
 inline void type(div_mut, A, D)(A *restrict const iox,
     A const *restrict const y) {
@@ -150,22 +166,41 @@ inline void type(div_mut, A, D)(A *restrict const iox,
     iox[i] = type(div, A)(iox[i], y[i]);
 }
 
-/// The call `quot_mut(iox, y)`
-/// stores into `iox` the quotient of `iox` and `y`.
-/// This is analogous to the binary operator `/=`.
+/// The call `quott_mut(iox, y)`
+/// stores into `iox` the truncated quotient of `iox` and `y`.
 __attribute__ ((__nonnull__))
-inline void type(quot_mut, A, D)(A *restrict const iox,
+inline void type(quott_mut, A, D)(A *restrict const iox,
     A const *restrict const y) {
   for (size_t i = 0; i < D; ++i)
-    iox[i] = type(quot, A)(iox[i], y[i]);
+    iox[i] = type(quott, A)(iox[i], y[i]);
 }
 
-/// The call `rem_mut(iox, y)`
-/// stores into `iox` the remainder of `iox` and `y`.
+/// The call `remt_mut(iox, y)`
+/// stores into `iox` the truncated remainder of `iox` and `y`.
 /// This is analogous to the binary operator `%=`.
 __attribute__ ((__nonnull__))
-inline void type(rem_mut, A, D)(A *restrict const iox,
+inline void type(remt_mut, A, D)(A *restrict const iox,
     A const *restrict const y) {
   for (size_t i = 0; i < D; ++i)
-    iox[i] = type(rem, A)(iox[i], y[i]);
+    iox[i] = type(remt, A)(iox[i], y[i]);
+}
+
+/// The call `quote_mut(iox, y)`
+/// stores into `iox` the Euclidean quotient of `iox` and `y`.
+/// This is analogous to the binary operator `/=`.
+__attribute__ ((__nonnull__))
+inline void type(quote_mut, A, D)(A *restrict const iox,
+    A const *restrict const y) {
+  for (size_t i = 0; i < D; ++i)
+    iox[i] = type(quote, A)(iox[i], y[i]);
+}
+
+/// The call `reme_mut(iox, y)`
+/// stores into `iox` the Euclidean remainder of `iox` and `y`.
+/// This is analogous to the binary operator `%=`.
+__attribute__ ((__nonnull__))
+inline void type(reme_mut, A, D)(A *restrict const iox,
+    A const *restrict const y) {
+  for (size_t i = 0; i < D; ++i)
+    iox[i] = type(reme, A)(iox[i], y[i]);
 }
