@@ -172,12 +172,14 @@ inline void bmm_geom2d_diff(double *restrict const xdiff,
     xdiff[idim] = x0[idim] - x1[idim];
 }
 
-// TODO Make sense or get rid of this.
+/// The call `bmm_geom2d_diffto(x0, x1)`
+/// sets the vector `x0` to the difference
+/// between the vectors `x0` and `x1`.
 __attribute__ ((__nonnull__))
-inline void bmm_geom2d_diffto(double *restrict const xdiff,
-    double const *restrict const x) {
+inline void bmm_geom2d_diffto(double *restrict const x0,
+    double const *restrict const x1) {
   for (size_t idim = 0; idim < 2; ++idim)
-    xdiff[idim] -= x[idim];
+    x0[idim] -= x1[idim];
 }
 
 /// The call `bmm_geom2d_dist2(x0, x1)`

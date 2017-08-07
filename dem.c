@@ -489,11 +489,8 @@ void bmm_dem_force_pair(struct bmm_dem *const dem,
   double fnormji[BMM_NDIM];
   bmm_geom2d_scale(fnormji, xnormji, fnorm);
 
-  double fnormij[BMM_NDIM];
-  bmm_geom2d_scale(fnormij, fnormji, -1.0);
-
   bmm_geom2d_addto(dem->part.f[ipart], fnormji);
-  bmm_geom2d_addto(dem->part.f[jpart], fnormij);
+  bmm_geom2d_diffto(dem->part.f[jpart], fnormji);
 
   // Tangential forces second.
 
@@ -528,11 +525,8 @@ void bmm_dem_force_pair(struct bmm_dem *const dem,
   double ftangji[BMM_NDIM];
   bmm_geom2d_scale(ftangji, xtangji, ftang);
 
-  double ftangij[BMM_NDIM];
-  bmm_geom2d_scale(ftangij, ftangji, -1.0);
-
   bmm_geom2d_addto(dem->part.f[ipart], ftangji);
-  bmm_geom2d_addto(dem->part.f[jpart], ftangij);
+  bmm_geom2d_diffto(dem->part.f[jpart], ftangji);
 
   // Torques third.
 

@@ -604,62 +604,171 @@ since the undefinedness of overflows may allow some better optimizations.
 
 Annotate with `__attribute__ ((__flatten__, __hot__))`.
 
+#### Programming Conventions
+
+All names consist of tokens that are eight or fewer characters long.
+Procedures are prefixed with the `namespace##_` token.
+Higher-order procedures that take closures
+are suffixed with the `##_cls` token.
+Procedures that need to emphasize mutation
+are suffixed with the `##_mut` token.
+In-parameters do not have prefixes or suffixes.
+Out-parameters that are written only use the prefix `o##`.
+Out-parameters that are read and written use the prefix `io##`.
+
 #### Number Systems
 
 These may be implemented for various number types.
 Note that in curried languages "more constant" parameters come first,
 so for example `x / y == div y x`; here the opposite is the case.
 
-    /// The call `bmm_from(x, ns)`
-    /// returns the value of `x` in the number system `ns`.
+    /// The call `from(x)`
+    /// returns the value of `x`.
     /// This is analogous to the unary operator `(type)`.
 
-    /// The call `bmm_to(x, ns)`
-    /// returns the value of `x` in the number system `ns`.
+    /// The call `to(x)`
+    /// returns the value of `x`.
     /// This is analogous to the unary operator `(type)`.
 
-    /// The call `bmm_zero(ns)`
-    /// returns zero in the number system `ns`.
+    /// The call `zero()`
+    /// returns zero.
     /// This is analogous to the constant `0`.
 
-    /// The call `bmm_add(x, y, ns)`
-    /// returns the sum of `x` and `y` in the number system `ns`.
+    /// The call `add(x, y)`
+    /// returns the sum of `x` and `y`.
     /// This is analogous to the binary operator `+`.
 
-    /// The call `bmm_neg(x, ns)`
-    /// returns the negation of `x` in the number system `ns`.
+    /// The call `neg(x)`
+    /// returns the negation of `x`.
     /// This is analogous to the unary operator `-`.
 
-    /// The call `bmm_sub(x, y, ns)`
-    /// returns the difference of `x` and `y` in the number system `ns`.
+    /// The call `sub(x, y)`
+    /// returns the difference of `x` and `y`.
     /// This is analogous to the binary operator `-`.
 
-    /// The call `bmm_succ(x, ns)`
-    /// returns the successor of `x` in the number system `ns`.
-    /// This is analogous to the unary operator `++`.
+    /// The call `succ(x)`
+    /// returns the successor of `x`.
 
-    /// The call `bmm_pred(x, ns)`
-    /// returns the predecessor of `x` in the number system `ns`.
-    /// This is analogous to the unary operator `--`.
+    /// The call `pred(x)`
+    /// returns the predecessor of `x`.
 
-    /// The call `bmm_one(ns)`
-    /// returns one in the number system `ns`.
+    /// The call `one()`
+    /// returns one.
     /// This is analogous to the constant `1`.
 
-    /// The call `bmm_mul(x, y, ns)`
-    /// returns product of `x` and `y` in the number system `ns`.
+    /// The call `mul(x, y)`
+    /// returns the product of `x` and `y`.
     /// This is analogous to the binary operator `*`.
 
-    /// The call `bmm_recip(x, ns)`
-    /// returns the reciprocal of `x` in the number system `ns`.
+    /// The call `recip(x)`
+    /// returns the reciprocal of `x`.
 
-    /// The call `bmm_quot(x, y, ns)`
-    /// returns quotient of `x` and `y` in the number system `ns`.
+    /// The call `div(x, y)`
+    /// returns the division of `x` and `y`.
     /// This is analogous to the binary operator `/`.
 
-    /// The call `bmm_rem(x, y, ns)`
-    /// returns remainder of `x` and `y` in the number system `ns`.
+    /// The call `quot(x, y)`
+    /// returns the quotient of `x` and `y`.
+    /// This is analogous to the binary operator `/`.
+
+    /// The call `rem(x, y)`
+    /// returns the remainder of `x` and `y`.
     /// This is analogous to the binary operator `%`.
+
+Allocated versions follow.
+
+    /// The call `from(oy, x)`
+    /// stores into `oy` the value of `x`.
+    /// This is analogous to the unary operator `(type)`.
+
+    /// The call `to(oy, x)`
+    /// stores into `oy` the value of `x`.
+    /// This is analogous to the unary operator `(type)`.
+
+    /// The call `zero(ox)`
+    /// stores into `ox` zero.
+    /// This is analogous to the constant `0`.
+
+    /// The call `add(oz, x, y)`
+    /// stores into `oz` the sum of `x` and `y`.
+    /// This is analogous to the binary operator `+`.
+
+    /// The call `neg(oy, x)`
+    /// stores into `oy` the negation of `x`.
+    /// This is analogous to the unary operator `-`.
+
+    /// The call `sub(oz, x, y)`
+    /// stores into `oz` the difference of `x` and `y`.
+    /// This is analogous to the binary operator `-`.
+
+    /// The call `succ(oy, x)`
+    /// stores into `oy` the successor of `x`.
+
+    /// The call `pred(oy, x)`
+    /// stores into `oy` the predecessor of `x`.
+
+    /// The call `one(ox)`
+    /// stores into `ox` one.
+    /// This is analogous to the constant `1`.
+
+    /// The call `mul(oz, x, y)`
+    /// stores into `oz` the product of `x` and `y`.
+    /// This is analogous to the binary operator `*`.
+
+    /// The call `recip(oy, x)`
+    /// stores into `oy` the reciprocal of `x`.
+
+    /// The call `div(oz, x, y)`
+    /// stores into `oz` the division of `x` and `y`.
+    /// This is analogous to the binary operator `/`.
+
+    /// The call `quot(oz, x, y)`
+    /// stores into `oz` the quotient of `x` and `y`.
+    /// This is analogous to the binary operator `/`.
+
+    /// The call `rem(oz, x, y)`
+    /// stores into `oz` the remainder of `x` and `y`.
+    /// This is analogous to the binary operator `%`.
+
+Mutating versions follow.
+
+    /// The call `add_mut(iox, y)`
+    /// stores into `iox` the sum of `iox` and `y`.
+    /// This is analogous to the binary operator `+=`.
+
+    /// The call `neg_mut(iox)`
+    /// stores into `iox` the negation of `iox`.
+
+    /// The call `sub_mut(iox, y)`
+    /// stores into `iox` the difference of `iox` and `y`.
+    /// This is analogous to the binary operator `-=`.
+
+    /// The call `succ_mut(iox)`
+    /// stores into `iox` the successor of `iox`.
+    /// This is analogous to the unary operator `++`.
+
+    /// The call `pred_mut(iox)`
+    /// stores into `iox` the predecessor of `iox`.
+    /// This is analogous to the unary operator `--`.
+
+    /// The call `mul_mut(iox, y)`
+    /// stores into `iox` the product of `iox` and `y`.
+    /// This is analogous to the binary operator `*=`.
+
+    /// The call `recip_mut(iox)`
+    /// stores into `iox` the reciprocal of `iox`.
+
+    /// The call `div_mut(iox, y)`
+    /// stores into `iox` the division of `iox` and `y`.
+    /// This is analogous to the binary operator `/`.
+
+    /// The call `quot_mut(iox, y)`
+    /// stores into `iox` the quotient of `iox` and `y`.
+    /// This is analogous to the binary operator `/=`.
+
+    /// The call `rem_mut(iox, y)`
+    /// stores into `iox` the remainder of `iox` and `y`.
+    /// This is analogous to the binary operator `%=`.
 
 [cfdem]: http://www.cfdem.com/
 [liggghts]: https://github.com/CFDEMproject/LIGGGHTS-PUBLIC
