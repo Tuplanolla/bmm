@@ -13,7 +13,7 @@
 /// returns the midpoint of the interval `a`.
 __attribute__ ((__const__, __pure__))
 inline double bmm_ival_midpoint(double const *const a) {
-  return type(bmm_amean2, double)(a[0], a[1]);
+  return $(bmm_amean2, double)(a[0], a[1]);
 }
 
 /// The call `bmm_ival_length(a)`

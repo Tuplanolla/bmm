@@ -36,7 +36,7 @@ __attribute__ ((__pure__))
 inline int bmm_fp_lexcmp(double const *restrict const x,
     double const *restrict const y, size_t const n) {
   for (size_t i = 0; i < n; ++i)
-    switch (type(bmm_cmp, double)(x[i], y[i])) {
+    switch ($(bmm_cmp, double)(x[i], y[i])) {
       case -1:
         return -1;
       case 1:

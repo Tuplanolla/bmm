@@ -31,7 +31,7 @@ __attribute__ ((__nonnull__, __pure__))
 inline double bmm_geom2d_norm2(double const *const x) {
   double d = 0.0;
   for (size_t idim = 0; idim < 2; ++idim)
-    d += type(bmm_power, double)(x[idim], 2);
+    d += $(bmm_power, double)(x[idim], 2);
 
   return d;
 }
@@ -227,7 +227,7 @@ inline void bmm_geom2d_pdiff(double *restrict const xdiff,
   bmm_geom2d_diff(xdiff, x0, x1);
 
   for (size_t idim = 0; idim < 2; ++idim)
-    xdiff[idim] = type(bmm_swrap, double)(xdiff[idim], xper[idim]);
+    xdiff[idim] = $(bmm_swrap, double)(xdiff[idim], xper[idim]);
 }
 
 /// The call `bmm_geom2d_pdist2(x0, x1, xper)`
@@ -280,7 +280,7 @@ inline void bmm_geom2d_cpdiff(double *restrict const xdiff,
 
   for (size_t idim = 0; idim < 2; ++idim)
     if (per[idim])
-      xdiff[idim] = type(bmm_swrap, double)(xdiff[idim], xper[idim]);
+      xdiff[idim] = $(bmm_swrap, double)(xdiff[idim], xper[idim]);
 }
 
 /// The call `bmm_geom2d_cpdist2(x0, x1, xper, per)`
@@ -369,7 +369,7 @@ inline double bmm_geom2d_shellvol(double const *restrict const x,
     double z[2];
     bmm_geom2d_diff(z, xper, y);
 
-    if (bmm_geom2d_norm2(z) > type(bmm_power, double)(r, 2)) {
+    if (bmm_geom2d_norm2(z) > $(bmm_power, double)(r, 2)) {
       double a[2];
       a[0] = per[0] || z[0] >= r ? 0.0 : acos(z[0] / r);
       a[1] = per[1] || z[1] >= r ? M_PI_2 : asin(z[1] / r);

@@ -308,7 +308,7 @@ static void bmm_sdl_draw(struct bmm_sdl const *const sdl) {
         (void) memcpy(x1, sdl->dem.cache.x[ipart], sizeof x1);
 
         double dx[BMM_NDIM];
-        dx[0] = x0[0] + type(bmm_swrap, double)(x1[0] - x0[0], sdl->dem.opts.box.x[0]);
+        dx[0] = x0[0] + $(bmm_swrap, double)(x1[0] - x0[0], sdl->dem.opts.box.x[0]);
         dx[1] = x1[1];
 
         x0[0] += off * sdl->dem.opts.box.x[0];
@@ -338,7 +338,7 @@ static void bmm_sdl_draw(struct bmm_sdl const *const sdl) {
         (void) memcpy(x1, sdl->dem.part.x[jpart], sizeof x1);
 
         double dx[BMM_NDIM];
-        dx[0] = x0[0] + type(bmm_swrap, double)(x1[0] - x0[0], sdl->dem.opts.box.x[0]);
+        dx[0] = x0[0] + $(bmm_swrap, double)(x1[0] - x0[0], sdl->dem.opts.box.x[0]);
         dx[1] = x1[1];
 
         x0[0] += off * sdl->dem.opts.box.x[0];
@@ -373,7 +373,7 @@ static void bmm_sdl_draw(struct bmm_sdl const *const sdl) {
         (void) memcpy(x1, sdl->dem.part.x[jpart], sizeof x1);
 
         double dx[BMM_NDIM];
-        dx[0] = x0[0] + type(bmm_swrap, double)(x1[0] - x0[0], sdl->dem.opts.box.x[0]);
+        dx[0] = x0[0] + $(bmm_swrap, double)(x1[0] - x0[0], sdl->dem.opts.box.x[0]);
         dx[1] = x1[1];
 
         x0[0] += off * sdl->dem.opts.box.x[0];

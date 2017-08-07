@@ -12,17 +12,17 @@
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
-inline type(bmm_quotrem_t, A) type(bmm_quotrem, A)(A const x, A const y) {
+inline $(bmm_quotrem_t, A) $(bmm_quotrem, A)(A const x, A const y) {
   dynamic_assert(y != 0, "Invalid argument");
 
-  return (type(bmm_quotrem_t, A)) {.quot = x / y, .rem = x % y};
+  return ($(bmm_quotrem_t, A)) {.quot = x / y, .rem = x % y};
 }
 
 /// The call `bmm_abs(x)`
 /// returns the absolute value of `x`.
 /// Overflows are impossible both internally and externally.
 __attribute__ ((__const__, __pure__))
-inline A type(bmm_abs, A)(A const x) {
+inline A $(bmm_abs, A)(A const x) {
   return x;
 }
 
@@ -34,7 +34,7 @@ inline A type(bmm_abs, A)(A const x) {
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
-inline A type(bmm_wrap, A)(A const x, A const a, A const b) {
+inline A $(bmm_wrap, A)(A const x, A const a, A const b) {
   dynamic_assert(b > a, "Invalid argument");
 
   A const c = b - a;
@@ -74,7 +74,7 @@ inline A type(bmm_wrap, A)(A const x, A const a, A const b) {
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
-inline A type(bmm_uwrap, A)(A const x, A const b) {
+inline A $(bmm_uwrap, A)(A const x, A const b) {
   dynamic_assert(b > 0, "Invalid argument");
 
   return x % b;
@@ -85,7 +85,7 @@ inline A type(bmm_uwrap, A)(A const x, A const b) {
 /// by shifting `x` by the smallest possible amount.
 /// Overflows are impossible both internally and externally.
 __attribute__ ((__const__, __pure__))
-inline A type(bmm_uclamp, A)(A const x, A const b) {
+inline A $(bmm_uclamp, A)(A const x, A const b) {
   return x > b ? b : x;
 }
 
@@ -99,20 +99,20 @@ inline A type(bmm_uclamp, A)(A const x, A const b) {
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
-inline A type(bmm_uinc, A)(A const x, A const b) {
+inline A $(bmm_uinc, A)(A const x, A const b) {
   dynamic_assert(b > 0, "Invalid argument");
 
   return (x + 1) % b;
 }
 
 /// The call `bmm_inc(x, a, b)`
-/// is equivalent to `type(bmm_wrap, A)(x + 1, a, b)` without wrapping.
+/// is equivalent to `$(bmm_wrap, A)(x + 1, a, b)` without wrapping.
 /// If `b <= a`, the behavior is undefined.
 /// Overflows are possible internally even though they should not be.
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
-inline A type(bmm_inc, A)(A const x, A const a, A const b) {
+inline A $(bmm_inc, A)(A const x, A const a, A const b) {
   dynamic_assert(b > a, "Invalid argument");
 
   A const c = b - a;
@@ -127,20 +127,20 @@ inline A type(bmm_inc, A)(A const x, A const a, A const b) {
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
-inline A type(bmm_udec, A)(A const x, A const b) {
+inline A $(bmm_udec, A)(A const x, A const b) {
   dynamic_assert(b > 0, "Invalid argument");
 
   return (x + b - 1) % b;
 }
 
 /// The call `bmm_dec(x, a, b)`
-/// is equivalent to `type(bmm_wrap, A)(x - 1, a, b)` without wrapping.
+/// is equivalent to `$(bmm_wrap, A)(x - 1, a, b)` without wrapping.
 /// If `b <= a`, the behavior is undefined.
 /// Overflows are possible internally even though they should not be.
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
-inline A type(bmm_dec, A)(A const x, A const a, A const b) {
+inline A $(bmm_dec, A)(A const x, A const a, A const b) {
   dynamic_assert(b > a, "Invalid argument");
 
   A const c = b - a;
@@ -152,7 +152,7 @@ inline A type(bmm_dec, A)(A const x, A const a, A const b) {
 /// returns the factorial of `x`.
 /// Overflows are impossible internally but possible externally.
 __attribute__ ((__const__, __pure__))
-inline A type(bmm_fact, A)(A const x) {
+inline A $(bmm_fact, A)(A const x) {
   if (x <= 1)
     return 1;
 
@@ -174,7 +174,7 @@ inline A type(bmm_fact, A)(A const x) {
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
-inline A type(bmm_multfact, A)(A const x, A const m) {
+inline A $(bmm_multfact, A)(A const x, A const m) {
   dynamic_assert(m > 0, "Invalid argument");
 
   if (x <= 1)
@@ -197,8 +197,8 @@ inline A type(bmm_multfact, A)(A const x, A const m) {
 /// returns the `x`th triangular number.
 /// Overflows are possible internally even though they should not be.
 __attribute__ ((__const__, __pure__))
-inline A type(bmm_tri, A)(A const x) {
-  // return type(bmm_choose, A)(x + 1, 2);
+inline A $(bmm_tri, A)(A const x) {
+  // return $(bmm_choose, A)(x + 1, 2);
   return x * (x + 1) / 2;
 }
 
@@ -206,7 +206,7 @@ inline A type(bmm_tri, A)(A const x) {
 /// returns the truncated arithmetic mean of `x` and `y`.
 /// Overflows are impossible both internally and externally.
 __attribute__ ((__const__, __pure__))
-inline A type(bmm_tamean2, A)(A const x, A const y) {
+inline A $(bmm_tamean2, A)(A const x, A const y) {
   return (x / 2 + y / 2) + (x % 2) * (y % 2);
 }
 
@@ -214,7 +214,7 @@ inline A type(bmm_tamean2, A)(A const x, A const y) {
 /// returns the floored arithmetic mean of `x` and `y`.
 /// Overflows are impossible both internally and externally.
 __attribute__ ((__const__, __pure__))
-inline A type(bmm_famean2, A)(A const x, A const y) {
+inline A $(bmm_famean2, A)(A const x, A const y) {
   return (x / 2 + y / 2) + (x % 2) * (y % 2);
 }
 
@@ -225,7 +225,7 @@ inline A type(bmm_famean2, A)(A const x, A const y) {
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
-inline A type(bmm_flog, A)(A const x, A const b) {
+inline A $(bmm_flog, A)(A const x, A const b) {
   dynamic_assert(x > 0, "Invalid argument");
   dynamic_assert(b > 1, "Invalid argument");
 
@@ -247,11 +247,11 @@ inline A type(bmm_flog, A)(A const x, A const b) {
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
-inline A type(bmm_clog, A)(A const x, A const b) {
+inline A $(bmm_clog, A)(A const x, A const b) {
   dynamic_assert(x > 0, "Invalid argument");
   dynamic_assert(b > 1, "Invalid argument");
 
-  return x == 1 ? 0 : type(bmm_flog, A)(x - 1, b) + 1;
+  return x == 1 ? 0 : $(bmm_flog, A)(x - 1, b) + 1;
 }
 
 // TODO Check and test these.
@@ -260,7 +260,7 @@ inline A type(bmm_clog, A)(A const x, A const b) {
 /// returns the floored root `k` of `n`.
 /// Overflows are possible internally even though they should not be.
 __attribute__ ((__const__, __pure__))
-inline A type(bmm_firt, A)(A const n, A const k) {
+inline A $(bmm_firt, A)(A const n, A const k) {
   if (n <= 1)
     return n;
   else {
@@ -270,7 +270,7 @@ inline A type(bmm_firt, A)(A const n, A const k) {
 
     while (m < r) {
       r = m;
-      m = (p * r + n / type(bmm_power, A)(r, p)) / k;
+      m = (p * r + n / $(bmm_power, A)(r, p)) / k;
     }
 
     return r;
@@ -281,8 +281,8 @@ inline A type(bmm_firt, A)(A const n, A const k) {
 /// returns the ceilinged root `k` of `n`.
 /// Overflows are possible internally even though they should not be.
 __attribute__ ((__const__, __pure__))
-inline A type(bmm_cirt, A)(A const n, A const k) {
-  return n <= 1 ? n : type(bmm_firt, A)(n - 1, k) + 1;
+inline A $(bmm_cirt, A)(A const n, A const k) {
+  return n <= 1 ? n : $(bmm_firt, A)(n - 1, k) + 1;
 }
 
 /// The call `bmm_hc(pij, i, ndim, nper)`
@@ -290,11 +290,11 @@ inline A type(bmm_cirt, A)(A const n, A const k) {
 /// in a hypercube with dimension `ndim` and side length `nper`.
 /// Overflows are impossible both internally and externally.
 __attribute__ ((__nonnull__))
-inline void type(bmm_hc, A)(A *const pij, A const i,
+inline void $(bmm_hc, A)(A *const pij, A const i,
     size_t const ndim, A const nper) {
-  type(bmm_quotrem_t, A) dm = {.quot = i};
+  $(bmm_quotrem_t, A) dm = {.quot = i};
   for (size_t idim = 0; idim < ndim; ++idim) {
-    dm = type(bmm_quotrem, A)(dm.quot, nper);
+    dm = $(bmm_quotrem, A)(dm.quot, nper);
 
     pij[ndim - 1 - idim] = dm.rem;
   }
@@ -305,7 +305,7 @@ inline void type(bmm_hc, A)(A *const pij, A const i,
 /// in a hypercube with dimension `ndim` and side length `nper`.
 /// Overflows are impossible internally but possible externally.
 __attribute__ ((__nonnull__, __pure__))
-inline A type(bmm_unhc, A)(A const *const ij,
+inline A $(bmm_unhc, A)(A const *const ij,
     size_t const ndim, A const nper) {
   A i = 0;
 
@@ -322,11 +322,11 @@ inline A type(bmm_unhc, A)(A const *const ij,
 /// in a hypercuboid with dimension `ndim` and side lengths `nper`.
 /// Overflows are impossible both internally and externally.
 __attribute__ ((__nonnull__))
-inline void type(bmm_hcd, A)(A *restrict const pij, A const i,
+inline void $(bmm_hcd, A)(A *restrict const pij, A const i,
     size_t const ndim, A const *restrict const nper) {
-  type(bmm_quotrem_t, A) dm = {.quot = i};
+  $(bmm_quotrem_t, A) dm = {.quot = i};
   for (size_t idim = 0; idim < ndim; ++idim) {
-    dm = type(bmm_quotrem, A)(dm.quot, nper[ndim - 1 - idim]);
+    dm = $(bmm_quotrem, A)(dm.quot, nper[ndim - 1 - idim]);
 
     pij[ndim - 1 - idim] = dm.rem;
   }
@@ -335,9 +335,9 @@ inline void type(bmm_hcd, A)(A *restrict const pij, A const i,
   // but less reliable.
   // size_t *const buf = alloca(ndim * sizeof *buf);
   //
-  // type(bmm_quotrem_t, A) dm = {.quot = i};
+  // $(bmm_quotrem_t, A) dm = {.quot = i};
   // for (size_t idim = 0; idim < ndim; ++idim) {
-  //   dm = type(bmm_quotrem, A)(dm.quot, nper[ndim - 1 - idim]);
+  //   dm = $(bmm_quotrem, A)(dm.quot, nper[ndim - 1 - idim]);
   //
   //   buf[ndim - 1 - idim] = dm.rem;
   // }
@@ -348,9 +348,9 @@ inline void type(bmm_hcd, A)(A *restrict const pij, A const i,
   // The following implementation is suitable for loop fusion,
   // but slower (quadratic instead of linear).
   // for (size_t idim = 0; idim < ndim; ++idim) {
-  //   type(bmm_quotrem_t, A) dm = {.quot = i};
+  //   $(bmm_quotrem_t, A) dm = {.quot = i};
   //   for (size_t jdim = 0; jdim < ndim - idim; ++jdim)
-  //     dm = type(bmm_quotrem, A)(dm.quot, nper[ndim - 1 - jdim]);
+  //     dm = $(bmm_quotrem, A)(dm.quot, nper[ndim - 1 - jdim]);
   //
   //   pij[idim] = dm.rem;
   // }
@@ -361,7 +361,7 @@ inline void type(bmm_hcd, A)(A *restrict const pij, A const i,
 /// in a hypercuboid with dimension `ndim` and side lengths `nper`.
 /// Overflows are impossible internally but possible externally.
 __attribute__ ((__nonnull__, __pure__))
-inline A type(bmm_unhcd, A)(A const *restrict const ij,
+inline A $(bmm_unhcd, A)(A const *restrict const ij,
     size_t const ndim, A const *restrict const nper) {
   A i = 0;
 

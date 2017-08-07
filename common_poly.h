@@ -8,7 +8,7 @@
 /// exchanges `x` with `y`.
 /// Overflows are handled appropriately.
 __attribute__ ((__nonnull__))
-inline void type(bmm_swap, A)(A *restrict const x, A *restrict const y) {
+inline void $(bmm_swap, A)(A *restrict const x, A *restrict const y) {
   A const tmp = *x;
   *x = *y;
   *y = tmp;
@@ -18,7 +18,7 @@ inline void type(bmm_swap, A)(A *restrict const x, A *restrict const y) {
 /// maps over `nmemb` items with the procedure `proc`.
 /// Overflows are handled appropriately.
 __attribute__ ((__nonnull__))
-inline void type(bmm_map, A)(size_t const nmemb, void (*const proc)(size_t)) {
+inline void $(bmm_map, A)(size_t const nmemb, void (*const proc)(size_t)) {
   for (size_t i = 0; i < nmemb; ++i)
     proc(i);
 }
@@ -28,7 +28,7 @@ inline void type(bmm_map, A)(size_t const nmemb, void (*const proc)(size_t)) {
 /// The closure `cls` is passed through to `proc`.
 /// Overflows are handled appropriately.
 __attribute__ ((__nonnull__ (2)))
-inline void type(bmm_map_cls, A)(size_t const nmemb,
+inline void $(bmm_map_cls, A)(size_t const nmemb,
     void (*const proc)(size_t, void *), void *const cls) {
   for (size_t i = 0; i < nmemb; ++i)
     proc(i, cls);
@@ -39,7 +39,7 @@ inline void type(bmm_map_cls, A)(size_t const nmemb,
 /// by starting from the left with the value `init`.
 /// Overflows are handled appropriately.
 __attribute__ ((__nonnull__))
-inline A type(bmm_foldl, A)(size_t const nmemb,
+inline A $(bmm_foldl, A)(size_t const nmemb,
     A (*const proc)(size_t, A), A const init) {
   A x = init;
 
@@ -55,7 +55,7 @@ inline A type(bmm_foldl, A)(size_t const nmemb,
 /// The closure `cls` is passed through to `proc`.
 /// Overflows are handled appropriately.
 __attribute__ ((__nonnull__ (2)))
-inline A type(bmm_foldl_cls, A)(size_t const nmemb,
+inline A $(bmm_foldl_cls, A)(size_t const nmemb,
     A (*const proc)(size_t, A, void const *),
     A const init, void const *const cls) {
   A x = init;
@@ -71,7 +71,7 @@ inline A type(bmm_foldl_cls, A)(size_t const nmemb,
 /// by starting from the right with the value `init`.
 /// Overflows are handled appropriately.
 __attribute__ ((__nonnull__))
-inline A type(bmm_foldr, A)(size_t const nmemb,
+inline A $(bmm_foldr, A)(size_t const nmemb,
     A (*const proc)(size_t, A), A const init) {
   A x = init;
 
@@ -88,7 +88,7 @@ inline A type(bmm_foldr, A)(size_t const nmemb,
 /// The closure `cls` is passed through to `proc`.
 /// Overflows are handled appropriately.
 __attribute__ ((__nonnull__ (2)))
-inline A type(bmm_foldr_cls, A)(size_t const nmemb,
+inline A $(bmm_foldr_cls, A)(size_t const nmemb,
     A (*const proc)(size_t, A, void const *),
     A const init, void const *const cls) {
   A x = init;

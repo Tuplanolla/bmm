@@ -201,15 +201,15 @@ CHEAT_SKIP(quote_ovf_sint,
                   -maxval < minval || -maxval > maxval);
               cheat_assert_int(
                   x < -maxval && y < 0 && y == -1,
-                  type(bmm_quot, int)(x, y) < minval ||
-                  type(bmm_quot, int)(x, y) > maxval);
+                  $(bmm_quot, int)(x, y) < minval ||
+                  $(bmm_quot, int)(x, y) > maxval);
             } else if (minval + maxval >= 0 && minval + maxval / 2 <= 0) {
               cheat_assert_not(
                   -minval < minval || -minval > maxval);
               cheat_assert_int(
                   x > -minval && y < 0 && y == -1,
-                  type(bmm_quot, int)(x, y) < minval ||
-                  type(bmm_quot, int)(x, y) > maxval);
+                  $(bmm_quot, int)(x, y) < minval ||
+                  $(bmm_quot, int)(x, y) > maxval);
             }
           }
 )
@@ -221,8 +221,8 @@ CHEAT_TEST(quote_ovf_uint,
         if (y != 0)
           cheat_assert_int(
               false,
-              type(bmm_quot, int)(x, y) < 0 ||
-              type(bmm_quot, int)(x, y) > maxval);
+              $(bmm_quot, int)(x, y) < 0 ||
+              $(bmm_quot, int)(x, y) > maxval);
 )
 
 // TODO This.
@@ -234,8 +234,8 @@ CHEAT_SKIP(reme_ovf_sint,
           if (y != 0) {
             cheat_assert_int(
                 false,
-                type(bmm_rem, int)(x, y) < minval ||
-                type(bmm_rem, int)(x, y) > maxval);
+                $(bmm_rem, int)(x, y) < minval ||
+                $(bmm_rem, int)(x, y) > maxval);
           }
 )
 
@@ -246,8 +246,8 @@ CHEAT_TEST(reme_ovf_uint,
         if (y != 0)
           cheat_assert_int(
               false,
-              type(bmm_rem, int)(x, y) < 0 ||
-              type(bmm_rem, int)(x, y) > maxval);
+              $(bmm_rem, int)(x, y) < 0 ||
+              $(bmm_rem, int)(x, y) > maxval);
 )
 
 CHEAT_TEST(quot_sint,
@@ -257,10 +257,10 @@ CHEAT_TEST(quot_sint,
         signed char const x = (signed char) i;
         signed char const y = (signed char) j;
 
-        type(bmm_quotrem_t, signed_char) const qr =
-          type(bmm_quotrem, signed_char)(x, y);
+        $(bmm_quotrem_t, signed_char) const qr =
+          $(bmm_quotrem, signed_char)(x, y);
         cheat_assert_signed_char(qr.quot * y + qr.rem, x);
-        cheat_assert_not_int(type(bmm_sgn, signed_char)(qr.rem), -1);
+        cheat_assert_not_int($(bmm_sgn, signed_char)(qr.rem), -1);
       }
 )
 
@@ -271,8 +271,8 @@ CHEAT_TEST(quot_uint,
         unsigned char const x = (unsigned char) i;
         unsigned char const y = (unsigned char) j;
 
-        type(bmm_quotrem_t, unsigned_char) const qr =
-          type(bmm_quotrem, unsigned_char)(x, y);
+        $(bmm_quotrem_t, unsigned_char) const qr =
+          $(bmm_quotrem, unsigned_char)(x, y);
         cheat_assert_unsigned_char(qr.quot * y + qr.rem, x);
         cheat_assert(qr.rem >= 0);
       }
@@ -285,8 +285,8 @@ CHEAT_TEST(quot_fp,
         double const x = (double) i / 64.0;
         double const y = (double) j / 64.0;
 
-        type(bmm_quotrem_t, double) const qr =
-          type(bmm_quotrem, double)(x, y);
+        $(bmm_quotrem_t, double) const qr =
+          $(bmm_quotrem, double)(x, y);
         cheat_assert_double(qr.quot * y + qr.rem, x, 1.0e-6);
         cheat_assert(qr.rem >= 0);
       }
@@ -320,7 +320,7 @@ CHEAT_TEST(wrap_sint,
         signed char const a = (signed char) j;
         signed char const b = (signed char) k;
 
-        cheat_assert_signed_char(type(bmm_wrap, signed_char)(x, a, b),
+        cheat_assert_signed_char($(bmm_wrap, signed_char)(x, a, b),
             (signed char) wrap_ref(i, j, k));
       }
 )
@@ -333,7 +333,7 @@ CHEAT_TEST(wrap_uint,
         unsigned char const a = (unsigned char) j;
         unsigned char const b = (unsigned char) k;
 
-        cheat_assert_unsigned_char(type(bmm_wrap, unsigned_char)(x, a, b),
+        cheat_assert_unsigned_char($(bmm_wrap, unsigned_char)(x, a, b),
             (unsigned char) wrap_ref(i, j, k));
       }
 )
@@ -345,7 +345,7 @@ CHEAT_TEST(wrap_fp,
         double const x = (double) i / 64.0;
         double const a = (double) j / 64.0;
         double const b = (double) k / 64.0;
-        double const y = type(bmm_wrap, double)(x, a, b);
+        double const y = $(bmm_wrap, double)(x, a, b);
 
         cheat_assert(y >= a);
         cheat_assert(y < b);
@@ -359,8 +359,8 @@ CHEAT_TEST(uwrap_sint,
       signed char const x = (signed char) i;
       signed char const b = (signed char) j;
 
-      cheat_assert_signed_char(type(bmm_uwrap, signed_char)(x, b),
-          type(bmm_wrap, signed_char)(x, 0, b));
+      cheat_assert_signed_char($(bmm_uwrap, signed_char)(x, b),
+          $(bmm_wrap, signed_char)(x, 0, b));
     }
 )
 
@@ -370,8 +370,8 @@ CHEAT_TEST(uwrap_uint,
       unsigned char const x = (unsigned char) i;
       unsigned char const b = (unsigned char) j;
 
-      cheat_assert_unsigned_char(type(bmm_uwrap, unsigned_char)(x, b),
-          type(bmm_wrap, unsigned_char)(x, 0, b));
+      cheat_assert_unsigned_char($(bmm_uwrap, unsigned_char)(x, b),
+          $(bmm_wrap, unsigned_char)(x, 0, b));
     }
 )
 
@@ -380,7 +380,7 @@ CHEAT_TEST(uwrap_fp,
     for (int j = 1; j <= SCHAR_MAX; ++j) {
       double const x = (double) i / 64.0;
       double const b = (double) j / 64.0;
-      double const y = type(bmm_uwrap, double)(x, b);
+      double const y = $(bmm_uwrap, double)(x, b);
 
       cheat_assert(y >= 0);
       cheat_assert(y < b);
@@ -395,8 +395,8 @@ CHEAT_TEST(swrap_sint,
       signed char const b = c / 2;
       signed char const a = b - c;
 
-      cheat_assert_signed_char(type(bmm_swrap, signed_char)(x, b - a),
-          type(bmm_wrap, signed_char)(x, a, b));
+      cheat_assert_signed_char($(bmm_swrap, signed_char)(x, b - a),
+          $(bmm_wrap, signed_char)(x, a, b));
     }
 )
 
@@ -407,7 +407,7 @@ CHEAT_TEST(swrap_fp,
       double const c = (double) j / 64.0;
       double const b = c / 2.0;
       double const a = -b;
-      double const y = type(bmm_swrap, double)(x, c);
+      double const y = $(bmm_swrap, double)(x, c);
 
       cheat_assert(y >= a);
       cheat_assert(y <= b);
@@ -422,7 +422,7 @@ CHEAT_TEST(clamp_sint,
         signed char const x = (signed char) i;
         signed char const a = (signed char) j;
         signed char const b = (signed char) k;
-        signed char const y = type(bmm_clamp, signed_char)(x, a, b);
+        signed char const y = $(bmm_clamp, signed_char)(x, a, b);
 
         cheat_assert(y >= a);
         cheat_assert(y <= b);
@@ -436,7 +436,7 @@ CHEAT_TEST(clamp_uint,
         unsigned char const x = (unsigned char) i;
         unsigned char const a = (unsigned char) j;
         unsigned char const b = (unsigned char) k;
-        unsigned char const y = type(bmm_clamp, unsigned_char)(x, a, b);
+        unsigned char const y = $(bmm_clamp, unsigned_char)(x, a, b);
 
         cheat_assert(y >= a);
         cheat_assert(y <= b);
@@ -450,7 +450,7 @@ CHEAT_TEST(clamp_fp,
         double const x = (double) i / 64.0;
         double const a = (double) j / 64.0;
         double const b = (double) k / 64.0;
-        double const y = type(bmm_clamp, double)(x, a, b);
+        double const y = $(bmm_clamp, double)(x, a, b);
 
         cheat_assert(y >= a);
         cheat_assert(y <= b);
@@ -462,7 +462,7 @@ CHEAT_TEST(uclamp_sint,
     for (int j = 1; j <= SCHAR_MAX; ++j) {
       signed char const x = (signed char) i;
       signed char const b = (signed char) j;
-      signed char const y = type(bmm_uclamp, signed_char)(x, b);
+      signed char const y = $(bmm_uclamp, signed_char)(x, b);
 
       cheat_assert(y >= 0);
       cheat_assert(y <= b);
@@ -474,7 +474,7 @@ CHEAT_TEST(uclamp_uint,
     for (int j = 1; j <= UCHAR_MAX; ++j) {
       unsigned char const x = (unsigned char) i;
       unsigned char const b = (unsigned char) j;
-      unsigned char const y = type(bmm_uclamp, unsigned_char)(x, b);
+      unsigned char const y = $(bmm_uclamp, unsigned_char)(x, b);
 
       cheat_assert(y >= 0);
       cheat_assert(y <= b);
@@ -486,7 +486,7 @@ CHEAT_TEST(uclamp_fp,
     for (int j = 1; j <= SCHAR_MAX; ++j) {
       double const x = (double) i / 64.0;
       double const b = (double) j / 64.0;
-      double const y = type(bmm_uclamp, double)(x, b);
+      double const y = $(bmm_uclamp, double)(x, b);
 
       cheat_assert(y >= 0);
       cheat_assert(y <= b);
@@ -500,7 +500,7 @@ CHEAT_TEST(sclamp_sint,
       signed char const c = (signed char) j;
       signed char const b = c / 2;
       signed char const a = b - c;
-      signed char const y = type(bmm_sclamp, signed_char)(x, c);
+      signed char const y = $(bmm_sclamp, signed_char)(x, c);
 
       cheat_assert(y >= a);
       cheat_assert(y <= b);
@@ -514,7 +514,7 @@ CHEAT_TEST(sclamp_fp,
       double const c = (double) j / 64.0;
       double const b = c / 2.0;
       double const a = -b;
-      double const y = type(bmm_sclamp, double)(x, c);
+      double const y = $(bmm_sclamp, double)(x, c);
 
       cheat_assert(y >= a);
       cheat_assert(y <= b);
@@ -536,7 +536,7 @@ CHEAT_DECLARE(
 CHEAT_TEST(power,
   for (int i = -5; i < 6; ++i)
     for (size_t j = 0; j < 7; ++j)
-      cheat_assert_size(type(bmm_power, int)(i, j), power_ref(i, j));
+      cheat_assert_size($(bmm_power, int)(i, j), power_ref(i, j));
 )
 
 CHEAT_DECLARE(
@@ -552,7 +552,7 @@ CHEAT_DECLARE(
 
 CHEAT_TEST(fact,
   for (size_t i = 0; i < 9; ++i)
-    cheat_assert_size(type(bmm_fact, size_t)(i), fact_ref(i));
+    cheat_assert_size($(bmm_fact, size_t)(i), fact_ref(i));
 )
 
 CHEAT_DECLARE(
@@ -585,11 +585,11 @@ CHEAT_DECLARE(
 
 CHEAT_TEST(multfact,
   for (size_t i = 0; i < 9; ++i)
-    cheat_assert_size(type(bmm_multfact, size_t)(i, 1), fact_ref(i));
+    cheat_assert_size($(bmm_multfact, size_t)(i, 1), fact_ref(i));
 
   for (size_t i = 0; i < 9; ++i)
     for (size_t j = 1; j < 9; ++j)
-      cheat_assert_size(type(bmm_multfact, size_t)(i, j), multfact_ref(i, j));
+      cheat_assert_size($(bmm_multfact, size_t)(i, j), multfact_ref(i, j));
 )
 
 CHEAT_TEST(mean2,
@@ -598,9 +598,9 @@ CHEAT_TEST(mean2,
       double const x = (double) i / 64.0;
       double const y = (double) j / 64.0;
 
-      double const a = type(bmm_amean2, double)(x, y);
-      double const g = type(bmm_gmean2, double)(x, y);
-      double const h = type(bmm_hmean2, double)(x, y);
+      double const a = $(bmm_amean2, double)(x, y);
+      double const g = $(bmm_gmean2, double)(x, y);
+      double const h = $(bmm_hmean2, double)(x, y);
 
       cheat_assert(a >= g);
       cheat_assert(g >= h);
@@ -620,7 +620,7 @@ CHEAT_TEST(tmean2_sint,
       signed char const x = (signed char) i;
       signed char const y = (signed char) j;
 
-      cheat_assert_signed_char(type(bmm_tamean2, signed_char)(x, y),
+      cheat_assert_signed_char($(bmm_tamean2, signed_char)(x, y),
           (signed char) tamean2_ref(i, j));
     }
 )
@@ -631,7 +631,7 @@ CHEAT_TEST(tmean2_uint,
       unsigned char const x = (unsigned char) i;
       unsigned char const y = (unsigned char) j;
 
-      cheat_assert_unsigned_char(type(bmm_tamean2, unsigned_char)(x, y),
+      cheat_assert_unsigned_char($(bmm_tamean2, unsigned_char)(x, y),
           (unsigned char) tamean2_ref(i, j));
     }
 )
@@ -639,7 +639,7 @@ CHEAT_TEST(tmean2_uint,
 CHEAT_DECLARE(
   __attribute__ ((__const__, __pure__))
   static int famean2_ref(int const x, int const y) {
-    return type(bmm_quot, int)(x + y, 2);
+    return $(bmm_quot, int)(x + y, 2);
   }
 )
 
@@ -649,7 +649,7 @@ CHEAT_TEST(fmean2_sint,
       signed char const x = (signed char) i;
       signed char const y = (signed char) j;
 
-      cheat_assert_signed_char(type(bmm_famean2, signed_char)(x, y),
+      cheat_assert_signed_char($(bmm_famean2, signed_char)(x, y),
           (signed char) famean2_ref(i, j));
     }
 )
@@ -660,7 +660,7 @@ CHEAT_TEST(fmean2_uint,
       unsigned char const x = (unsigned char) i;
       unsigned char const y = (unsigned char) j;
 
-      cheat_assert_unsigned_char(type(bmm_famean2, unsigned_char)(x, y),
+      cheat_assert_unsigned_char($(bmm_famean2, unsigned_char)(x, y),
           (unsigned char) famean2_ref(i, j));
     }
 )
@@ -693,7 +693,7 @@ CHEAT_DECLARE(
 CHEAT_TEST(flog,
   for (size_t i = 1; i < 17; ++i)
     for (size_t j = 2; j < 17; ++j)
-      cheat_assert_size(type(bmm_flog, size_t)(i, j), flog_ref(i, j));
+      cheat_assert_size($(bmm_flog, size_t)(i, j), flog_ref(i, j));
 )
 
 CHEAT_DECLARE(
@@ -724,7 +724,7 @@ CHEAT_DECLARE(
 CHEAT_TEST(clog,
   for (size_t i = 1; i < 17; ++i)
     for (size_t j = 2; j < 17; ++j)
-      cheat_assert_size(type(bmm_clog, size_t)(i, j), clog_ref(i, j));
+      cheat_assert_size($(bmm_clog, size_t)(i, j), clog_ref(i, j));
 )
 
 CHEAT_DECLARE(
@@ -732,14 +732,14 @@ CHEAT_DECLARE(
   static int compar(size_t const i, size_t const j, void *const cls) {
     int const *const x = cls;
 
-    return type(bmm_cmp, int)(x[i], x[j]);
+    return $(bmm_cmp, int)(x[i], x[j]);
   }
 
   __attribute__ ((__nonnull__))
   static void swap(size_t const i, size_t const j, void *const cls) {
     int *const x = cls;
 
-    type(bmm_swap, int)(&x[i], &x[j]);
+    $(bmm_swap, int)(&x[i], &x[j]);
   }
 )
 
@@ -798,15 +798,15 @@ CHEAT_TEST(geom2d_shell_outside,
 CHEAT_TEST(size_hc_ord,
   size_t ij[2];
 
-  type(bmm_hc, size_t)(ij, 0, ndim, nper[1]);
+  $(bmm_hc, size_t)(ij, 0, ndim, nper[1]);
   cheat_assert_size(ij[0], 0);
   cheat_assert_size(ij[1], 0);
 
-  type(bmm_hc, size_t)(ij, 1, ndim, nper[1]);
+  $(bmm_hc, size_t)(ij, 1, ndim, nper[1]);
   cheat_assert_size(ij[0], 0);
   cheat_assert_size(ij[1], 1);
 
-  type(bmm_hc, size_t)(ij, 2, ndim, nper[1]);
+  $(bmm_hc, size_t)(ij, 2, ndim, nper[1]);
   cheat_assert_size(ij[0], 0);
   cheat_assert_size(ij[1], 2);
 )
@@ -814,9 +814,9 @@ CHEAT_TEST(size_hc_ord,
 CHEAT_TEST(size_hc_iso,
   size_t ij[2];
 
-  for (size_t i = 0; i < type(bmm_power, size_t)(nper[1], ndim); ++i) {
-    type(bmm_hc, size_t)(ij, i, ndim, nper[1]);
-    size_t const j = type(bmm_unhc, size_t)(ij, ndim, nper[1]);
+  for (size_t i = 0; i < $(bmm_power, size_t)(nper[1], ndim); ++i) {
+    $(bmm_hc, size_t)(ij, i, ndim, nper[1]);
+    size_t const j = $(bmm_unhc, size_t)(ij, ndim, nper[1]);
 
     cheat_assert_size(j, i);
   }
@@ -825,15 +825,15 @@ CHEAT_TEST(size_hc_iso,
 CHEAT_TEST(size_hcd_ord,
   size_t ij[2];
 
-  type(bmm_hcd, size_t)(ij, 0, ndim, nper);
+  $(bmm_hcd, size_t)(ij, 0, ndim, nper);
   cheat_assert_size(ij[0], 0);
   cheat_assert_size(ij[1], 0);
 
-  type(bmm_hcd, size_t)(ij, 1, ndim, nper);
+  $(bmm_hcd, size_t)(ij, 1, ndim, nper);
   cheat_assert_size(ij[0], 0);
   cheat_assert_size(ij[1], 1);
 
-  type(bmm_hcd, size_t)(ij, 2, ndim, nper);
+  $(bmm_hcd, size_t)(ij, 2, ndim, nper);
   cheat_assert_size(ij[0], 0);
   cheat_assert_size(ij[1], 2);
 )
@@ -841,9 +841,9 @@ CHEAT_TEST(size_hcd_ord,
 CHEAT_TEST(size_hcd_iso,
   size_t ij[2];
 
-  for (size_t i = 0; i < type(bmm_prod, size_t)(nper, ndim); ++i) {
-    type(bmm_hcd, size_t)(ij, i, ndim, nper);
-    size_t const j = type(bmm_unhcd, size_t)(ij, ndim, nper);
+  for (size_t i = 0; i < $(bmm_prod, size_t)(nper, ndim); ++i) {
+    $(bmm_hcd, size_t)(ij, i, ndim, nper);
+    size_t const j = $(bmm_unhcd, size_t)(ij, ndim, nper);
 
     cheat_assert_size(j, i);
   }
@@ -1145,7 +1145,7 @@ CHEAT_TEST(msg_spec_lt_iso,
         out.tag = BMM_MSG_TAG_LT;
         out.msg.term.e = e;
 
-        for (size_t i = 0; i < type(bmm_power, size_t)(2, e); ++i)
+        for (size_t i = 0; i < $(bmm_power, size_t)(2, e); ++i)
           out.msg.term.buf[i] = i << i * 8 & 0xff;
 
         struct msg msg;

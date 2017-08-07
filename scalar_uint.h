@@ -3,22 +3,22 @@
 /// The call `add_ovf(x, y)`
 /// checks whether the sum of `x` and `y` would overflow.
 __attribute__ ((__const__, __pure__))
-inline bool type(add_ovf, A)(A const x, A const y) {
-  return type(maxval, A)() - y < x;
+inline bool $(add_ovf, A)(A const x, A const y) {
+  return $(maxval, A)() - y < x;
 }
 
 /// The call `sub_ovf(x, y)`
 /// checks whether the difference of `x` and `y` would overflow.
 __attribute__ ((__const__, __pure__))
-inline bool type(sub_ovf, A)(A const x, A const y) {
+inline bool $(sub_ovf, A)(A const x, A const y) {
   return y > x;
 }
 
 /// The call `mul_ovf(x, y)`
 /// checks whether the product of `x` and `y` would overflow.
 __attribute__ ((__const__, __pure__))
-inline bool type(mul_ovf, A)(A const x, A const y) {
-  return x != type(zero, A)() && type(maxval, A)() / x < y;
+inline bool $(mul_ovf, A)(A const x, A const y) {
+  return x != $(zero, A)() && $(maxval, A)() / x < y;
 }
 
 /// The call `quott_ovf(x, y)`
@@ -26,7 +26,7 @@ inline bool type(mul_ovf, A)(A const x, A const y) {
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
-inline bool type(quott_ovf, A)(__attribute__ ((__unused__)) A const x,
+inline bool $(quott_ovf, A)(__attribute__ ((__unused__)) A const x,
     __attribute__ ((__unused__)) A const y) {
   return false;
 }
@@ -34,7 +34,7 @@ inline bool type(quott_ovf, A)(__attribute__ ((__unused__)) A const x,
 /// The call `remt_ovf(x, y)`
 /// checks whether the truncated remainder of `x` and `y` would overflow.
 __attribute__ ((__const__, __pure__))
-inline bool type(remt_ovf, A)(__attribute__ ((__unused__)) A const x,
+inline bool $(remt_ovf, A)(__attribute__ ((__unused__)) A const x,
     __attribute__ ((__unused__)) A const y) {
   return false;
 }
@@ -42,7 +42,7 @@ inline bool type(remt_ovf, A)(__attribute__ ((__unused__)) A const x,
 /// The call `quote_ovf(x, y)`
 /// checks whether the Euclidean quotient of `x` and `y` would overflow.
 __attribute__ ((__const__, __pure__))
-inline bool type(quote_ovf, A)(__attribute__ ((__unused__)) A const x,
+inline bool $(quote_ovf, A)(__attribute__ ((__unused__)) A const x,
     __attribute__ ((__unused__)) A const y) {
   return false;
 }
@@ -50,7 +50,7 @@ inline bool type(quote_ovf, A)(__attribute__ ((__unused__)) A const x,
 /// The call `reme_ovf(x, y)`
 /// checks whether the Euclidean remainder of `x` and `y` would overflow.
 __attribute__ ((__const__, __pure__))
-inline bool type(reme_ovf, A)(__attribute__ ((__unused__)) A const x,
+inline bool $(reme_ovf, A)(__attribute__ ((__unused__)) A const x,
     __attribute__ ((__unused__)) A const y) {
   return false;
 }
@@ -61,8 +61,8 @@ inline bool type(reme_ovf, A)(__attribute__ ((__unused__)) A const x,
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
-inline A type(add, A)(A const x, A const y) {
-  dynamic_assert(!type(add_ovf, A)(x, y), "Arithmetic overflow");
+inline A $(add, A)(A const x, A const y) {
+  dynamic_assert(!$(add_ovf, A)(x, y), "Arithmetic overflow");
 
   return x + y;
 }
@@ -73,8 +73,8 @@ inline A type(add, A)(A const x, A const y) {
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
-inline A type(sub, A)(A const x, A const y) {
-  dynamic_assert(!type(sub_ovf, A)(x, y), "Arithmetic overflow");
+inline A $(sub, A)(A const x, A const y) {
+  dynamic_assert(!$(sub_ovf, A)(x, y), "Arithmetic overflow");
 
   return x - y;
 }
@@ -85,8 +85,8 @@ inline A type(sub, A)(A const x, A const y) {
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
-inline A type(mul, A)(A const x, A const y) {
-  dynamic_assert(!type(mul_ovf, A)(x, y), "Arithmetic overflow");
+inline A $(mul, A)(A const x, A const y) {
+  dynamic_assert(!$(mul_ovf, A)(x, y), "Arithmetic overflow");
 
   return x * y;
 }
@@ -97,9 +97,9 @@ inline A type(mul, A)(A const x, A const y) {
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
-inline A type(quott, A)(A const x, A const y) {
-  dynamic_assert(y != type(zero, A)(), "Division by zero");
-  dynamic_assert(!type(quott_ovf, A)(x, y), "Arithmetic overflow");
+inline A $(quott, A)(A const x, A const y) {
+  dynamic_assert(y != $(zero, A)(), "Division by zero");
+  dynamic_assert(!$(quott_ovf, A)(x, y), "Arithmetic overflow");
 
   return x / y;
 }
@@ -110,9 +110,9 @@ inline A type(quott, A)(A const x, A const y) {
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
-inline A type(remt, A)(A const x, A const y) {
-  dynamic_assert(y != type(zero, A)(), "Division by zero");
-  dynamic_assert(!type(remt_ovf, A)(x, y), "Arithmetic overflow");
+inline A $(remt, A)(A const x, A const y) {
+  dynamic_assert(y != $(zero, A)(), "Division by zero");
+  dynamic_assert(!$(remt_ovf, A)(x, y), "Arithmetic overflow");
 
   return x % y;
 }
@@ -122,9 +122,9 @@ inline A type(remt, A)(A const x, A const y) {
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
-inline A type(quote, A)(A const x, A const y) {
-  dynamic_assert(y != type(zero, A)(), "Division by zero");
-  dynamic_assert(!type(quote_ovf, A)(x, y), "Arithmetic overflow");
+inline A $(quote, A)(A const x, A const y) {
+  dynamic_assert(y != $(zero, A)(), "Division by zero");
+  dynamic_assert(!$(quote_ovf, A)(x, y), "Arithmetic overflow");
 
   return x / y;
 }
@@ -134,9 +134,9 @@ inline A type(quote, A)(A const x, A const y) {
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
-inline A type(reme, A)(A const x, A const y) {
-  dynamic_assert(y != type(zero, A)(), "Division by zero");
-  dynamic_assert(!type(reme_ovf, A)(x, y), "Arithmetic overflow");
+inline A $(reme, A)(A const x, A const y) {
+  dynamic_assert(y != $(zero, A)(), "Division by zero");
+  dynamic_assert(!$(reme_ovf, A)(x, y), "Arithmetic overflow");
 
   return x % y;
 }
@@ -145,52 +145,52 @@ inline A type(reme, A)(A const x, A const y) {
 /// stores into `iox` the sum of `iox` and `y`.
 /// This is analogous to the binary operator `+=`.
 __attribute__ ((__nonnull__))
-inline void type(add_mut, A)(A *const iox, A const y) {
-  *iox = type(add, A)(*iox, y);
+inline void $(add_mut, A)(A *const iox, A const y) {
+  *iox = $(add, A)(*iox, y);
 }
 
 /// The call `sub_mut(iox, y)`
 /// stores into `iox` the difference of `iox` and `y`.
 /// This is analogous to the binary operator `-=`.
 __attribute__ ((__nonnull__))
-inline void type(sub_mut, A)(A *const iox, A const y) {
-  *iox = type(sub, A)(*iox, y);
+inline void $(sub_mut, A)(A *const iox, A const y) {
+  *iox = $(sub, A)(*iox, y);
 }
 
 /// The call `mul_mut(iox, y)`
 /// stores into `iox` the product of `iox` and `y`.
 /// This is analogous to the binary operator `*=`.
 __attribute__ ((__nonnull__))
-inline void type(mul_mut, A)(A *const iox, A const y) {
-  *iox = type(mul, A)(*iox, y);
+inline void $(mul_mut, A)(A *const iox, A const y) {
+  *iox = $(mul, A)(*iox, y);
 }
 
 /// The call `quott_mut(iox, y)`
 /// stores into `iox` the truncated quotient of `iox` and `y`.
 /// This is analogous to the binary operator `/=`.
 __attribute__ ((__nonnull__))
-inline void type(quott_mut, A)(A *const iox, A const y) {
-  *iox = type(quott, A)(*iox, y);
+inline void $(quott_mut, A)(A *const iox, A const y) {
+  *iox = $(quott, A)(*iox, y);
 }
 
 /// The call `remt_mut(iox, y)`
 /// stores into `iox` the truncated remainder of `iox` and `y`.
 /// This is analogous to the binary operator `%=`.
 __attribute__ ((__nonnull__))
-inline void type(remt_mut, A)(A *const iox, A const y) {
-  *iox = type(remt, A)(*iox, y);
+inline void $(remt_mut, A)(A *const iox, A const y) {
+  *iox = $(remt, A)(*iox, y);
 }
 
 /// The call `quote_mut(iox, y)`
 /// stores into `iox` the Euclidean quotient of `iox` and `y`.
 __attribute__ ((__nonnull__))
-inline void type(quote_mut, A)(A *const iox, A const y) {
-  *iox = type(quote, A)(*iox, y);
+inline void $(quote_mut, A)(A *const iox, A const y) {
+  *iox = $(quote, A)(*iox, y);
 }
 
 /// The call `reme_mut(iox, y)`
 /// stores into `iox` the Euclidean remainder of `iox` and `y`.
 __attribute__ ((__nonnull__))
-inline void type(reme_mut, A)(A *const iox, A const y) {
-  *iox = type(reme, A)(*iox, y);
+inline void $(reme_mut, A)(A *const iox, A const y) {
+  *iox = $(reme, A)(*iox, y);
 }

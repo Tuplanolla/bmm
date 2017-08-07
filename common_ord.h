@@ -15,7 +15,7 @@
 ///
 /// This is useful with `bmm_hsort` for example.
 __attribute__ ((__const__, __pure__))
-inline int type(bmm_cmp, A)(A const x, A const y) {
+inline int $(bmm_cmp, A)(A const x, A const y) {
   return x < y ? -1 : x > y ? 1 : 0;
 }
 
@@ -25,7 +25,7 @@ inline int type(bmm_cmp, A)(A const x, A const y) {
 /// If `b < a` or `x` is infinite or `x`, `a` or `b` are not numbers,
 /// the behavior is undefined.
 __attribute__ ((__const__, __pure__))
-inline A type(bmm_clamp, A)(A const x, A const a, A const b) {
+inline A $(bmm_clamp, A)(A const x, A const a, A const b) {
   dynamic_assert(b >= a, "Invalid argument");
 
   return x < a ? a : x > b ? b : x;
@@ -35,7 +35,7 @@ inline A type(bmm_clamp, A)(A const x, A const a, A const b) {
 /// returns the lesser of `x` and `y`.
 /// If `x` or `y` are not numbers, the behavior is undefined.
 __attribute__ ((__const__, __pure__))
-inline A type(bmm_min, A)(A const x, A const y) {
+inline A $(bmm_min, A)(A const x, A const y) {
   return x < y ? x : y;
 }
 
@@ -43,6 +43,6 @@ inline A type(bmm_min, A)(A const x, A const y) {
 /// returns the lesser of `x` and `y`.
 /// If `x` or `y` are not numbers, the behavior is undefined.
 __attribute__ ((__const__, __pure__))
-inline A type(bmm_max, A)(A const x, A const y) {
+inline A $(bmm_max, A)(A const x, A const y) {
   return x > y ? x : y;
 }

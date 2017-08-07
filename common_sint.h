@@ -10,14 +10,14 @@
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
-inline type(bmm_quotrem_t, A) type(bmm_quotrem, A)(A const x, A const y) {
+inline $(bmm_quotrem_t, A) $(bmm_quotrem, A)(A const x, A const y) {
   dynamic_assert(y != 0, "Invalid argument");
 
   A const q = x / y;
   A const r = x % y;
   A const s = r >= 0 ? 0 : y < 0 ? -1 : 1;
 
-  return (type(bmm_quotrem_t, A)) {.quot = q - s, .rem = r + s * y};
+  return ($(bmm_quotrem_t, A)) {.quot = q - s, .rem = r + s * y};
 }
 
 /// The call `bmm_abs(x)`
@@ -25,7 +25,7 @@ inline type(bmm_quotrem_t, A) type(bmm_quotrem, A)(A const x, A const y) {
 /// If `-x` is not representable, the behavior is undefined.
 /// Overflows are impossible internally but possible externally.
 __attribute__ ((__const__, __pure__))
-inline A type(bmm_abs, A)(A const x) {
+inline A $(bmm_abs, A)(A const x) {
   return x < 0 ? -x : x;
 }
 
@@ -37,17 +37,17 @@ inline A type(bmm_abs, A)(A const x) {
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
-inline A type(bmm_wrap, A)(A const x, A const a, A const b) {
+inline A $(bmm_wrap, A)(A const x, A const a, A const b) {
   dynamic_assert(b > a, "Invalid argument");
 
   // The condition below guarantees
   // that the body of the loop at the end is executed at most twice.
 
-  A const m = type(bmm_abs, A)(x / 2);
+  A const m = $(bmm_abs, A)(x / 2);
   if (a >= 0 || b <= 0 || (a > -m && b < m)) {
     A const c = b - a;
-    A const r = type(bmm_rem, A)(x, c);
-    A const s = type(bmm_rem, A)(a, c);
+    A const r = $(bmm_rem, A)(x, c);
+    A const s = $(bmm_rem, A)(a, c);
 
     return (r >= s ? r - s : c - (s - r)) + a;
   }
@@ -76,10 +76,10 @@ inline A type(bmm_wrap, A)(A const x, A const a, A const b) {
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
-inline A type(bmm_uwrap, A)(A const x, A const b) {
+inline A $(bmm_uwrap, A)(A const x, A const b) {
   dynamic_assert(b > 0, "Invalid argument");
 
-  return type(bmm_rem, A)(x, b);
+  return $(bmm_rem, A)(x, b);
 }
 
 /// The call `bmm_swrap(x, c)`
@@ -90,13 +90,13 @@ inline A type(bmm_uwrap, A)(A const x, A const b) {
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
-inline A type(bmm_swrap, A)(A const x, A const c) {
+inline A $(bmm_swrap, A)(A const x, A const c) {
   dynamic_assert(c > 0, "Invalid argument");
 
   A const b = c / 2;
   A const a = b - c;
 
-  return type(bmm_rem, A)(x - a, c) + a;
+  return $(bmm_rem, A)(x - a, c) + a;
 }
 
 /// The call `bmm_uclamp(x, b)`
@@ -105,7 +105,7 @@ inline A type(bmm_swrap, A)(A const x, A const c) {
 /// If `b < 0`, the behavior is undefined.
 /// Overflows are impossible both internally and externally.
 __attribute__ ((__const__, __pure__))
-inline A type(bmm_uclamp, A)(A const x, A const b) {
+inline A $(bmm_uclamp, A)(A const x, A const b) {
   dynamic_assert(b >= 0, "Invalid argument");
 
   return x < 0 ? 0 : x > b ? b : x;
@@ -117,7 +117,7 @@ inline A type(bmm_uclamp, A)(A const x, A const b) {
 /// If `c < 0`, the behavior is undefined.
 /// Overflows are impossible both internally and externally.
 __attribute__ ((__const__, __pure__))
-inline A type(bmm_sclamp, A)(A const x, A const c) {
+inline A $(bmm_sclamp, A)(A const x, A const c) {
   dynamic_assert(c >= 0, "Invalid argument");
 
   A const b = c / 2;
@@ -132,7 +132,7 @@ inline A type(bmm_sclamp, A)(A const x, A const c) {
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
-inline A type(bmm_tamean2, A)(A const x, A const y) {
+inline A $(bmm_tamean2, A)(A const x, A const y) {
   A const z = x / 2 + y / 2;
 
   // This function was derived with the help
@@ -194,13 +194,13 @@ inline A type(bmm_tamean2, A)(A const x, A const y) {
 /// returns the floored arithmetic mean of `x` and `y`.
 /// Overflows are impossible both internally and externally.
 __attribute__ ((__const__, __pure__))
-inline A type(bmm_famean2, A)(A const x, A const y) {
-  type(bmm_quotrem_t, A) const qrx = type(bmm_quotrem, A)(x, 2);
-  type(bmm_quotrem_t, A) const qry = type(bmm_quotrem, A)(y, 2);
+inline A $(bmm_famean2, A)(A const x, A const y) {
+  $(bmm_quotrem_t, A) const qrx = $(bmm_quotrem, A)(x, 2);
+  $(bmm_quotrem_t, A) const qry = $(bmm_quotrem, A)(y, 2);
 
   return (qrx.quot + qry.quot) + qrx.rem * qry.rem;
 
   // The following implementation is less complicated,
   // but susceptible to overflowing.
-  // return type(bmm_quotrem, A)(x + y, 2).quot;
+  // return $(bmm_quotrem, A)(x + y, 2).quot;
 }

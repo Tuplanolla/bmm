@@ -69,7 +69,7 @@ inline bool bmm_neigh_qijcpij(size_t *restrict const pijoff,
     size_t const *restrict const ijcell,
     size_t const iquery, size_t const ndim,
     size_t const *restrict const nper, bool const *const per) {
-  type(bmm_hc, size_t)(pijoff, iquery, ndim, 3);
+  $(bmm_hc, size_t)(pijoff, iquery, ndim, 3);
 
   for (size_t idim = 0; idim < ndim; ++idim) {
     if (per[idim])
@@ -98,7 +98,7 @@ inline bool bmm_neigh_qijcpi(size_t *restrict const pijoff,
     size_t const *restrict const nper, bool const *const per) {
   size_t *const ijcell = alloca(ndim * sizeof *ijcell);
 
-  type(bmm_hcd, size_t)(ijcell, icell, ndim, nper);
+  $(bmm_hcd, size_t)(ijcell, icell, ndim, nper);
 
   return bmm_neigh_qijcpij(pijoff, ijcell, iquery, ndim, nper, per);
 }
@@ -119,7 +119,7 @@ inline size_t bmm_neigh_qicpij(size_t const *restrict const ijcell,
   if (!bmm_neigh_qijcpij(pijoff, ijcell, iquery, ndim, nper, per))
     return SIZE_MAX;
 
-  return type(bmm_unhcd, size_t)(pijoff, ndim, nper);
+  return $(bmm_unhcd, size_t)(pijoff, ndim, nper);
 }
 
 /// The call `bmm_neigh_qicpi(icell, iquery, ndim, nper, per)`
@@ -138,12 +138,12 @@ inline size_t bmm_neigh_qicpi(size_t const icell,
   size_t *const pijoff = alloca(ndim * sizeof *pijoff);
   size_t *const ijcell = alloca(ndim * sizeof *ijcell);
 
-  type(bmm_hcd, size_t)(ijcell, icell, ndim, nper);
+  $(bmm_hcd, size_t)(ijcell, icell, ndim, nper);
 
   if (!bmm_neigh_qijcpij(pijoff, ijcell, iquery, ndim, nper, per))
     return SIZE_MAX;
 
-  return type(bmm_unhcd, size_t)(pijoff, ndim, nper);
+  return $(bmm_unhcd, size_t)(pijoff, ndim, nper);
 }
 
 /// The call `bmm_neigh_ncpij(ijcell, ndim, nper, per, mask)`
@@ -159,7 +159,7 @@ inline size_t bmm_neigh_ncpij(size_t const *restrict const ijcell,
 
   size_t nneigh = 0;
 
-  size_t const nquery = type(bmm_power, size_t)(3, ndim);
+  size_t const nquery = $(bmm_power, size_t)(3, ndim);
   size_t const kquery = nquery / 2;
 
   if (BMM_MASKANY(mask, BMM_NEIGH_MASK_RLOWERH))
@@ -193,7 +193,7 @@ inline size_t bmm_neigh_ncpi(size_t const icell,
 
   size_t nneigh = 0;
 
-  size_t const nquery = type(bmm_power, size_t)(3, ndim);
+  size_t const nquery = $(bmm_power, size_t)(3, ndim);
   size_t const kquery = nquery / 2;
 
   if (BMM_MASKANY(mask, BMM_NEIGH_MASK_RLOWERH))
@@ -224,7 +224,7 @@ inline void bmm_neigh_ijcpij(size_t *restrict const pijcell,
     size_t const *restrict const ijcell, size_t const ineigh,
     size_t const ndim, size_t const *restrict const nper,
     bool const *const per, int const mask) {
-  size_t const nquery = type(bmm_power, size_t)(3, ndim);
+  size_t const nquery = $(bmm_power, size_t)(3, ndim);
   size_t const kquery = nquery / 2;
 
   size_t jneigh = 0;
@@ -261,7 +261,7 @@ inline void bmm_neigh_ijcpij(size_t *restrict const pijcell,
 br:
   for (size_t idim = 0; idim < ndim; ++idim)
     if (per[idim])
-      pijcell[idim] = type(bmm_dec, size_t)(ijcell[idim] + pijcell[idim],
+      pijcell[idim] = $(bmm_dec, size_t)(ijcell[idim] + pijcell[idim],
           1, nper[idim] - 1);
     else
       pijcell[idim] = ijcell[idim] + pijcell[idim] - 1;
@@ -279,7 +279,7 @@ inline void bmm_neigh_ijcpi(size_t *restrict const pijcell,
     bool const *const per, int const mask) {
   size_t *const ijcell = alloca(ndim * sizeof *ijcell);
 
-  type(bmm_hcd, size_t)(ijcell, icell, ndim, nper);
+  $(bmm_hcd, size_t)(ijcell, icell, ndim, nper);
 
   bmm_neigh_ijcpij(pijcell, ijcell, ineigh, ndim, nper, per, mask);
 }
@@ -298,7 +298,7 @@ inline size_t bmm_neigh_icpij(size_t const *restrict const ijcell,
 
   bmm_neigh_ijcpij(pijcell, ijcell, ineigh, ndim, nper, per, mask);
 
-  return type(bmm_unhcd, size_t)(pijcell, ndim, nper);
+  return $(bmm_unhcd, size_t)(pijcell, ndim, nper);
 }
 
 /// The call `bmm_neigh_icpi(icell, ineigh, ndim, nper, per, mask)`
@@ -314,11 +314,11 @@ inline size_t bmm_neigh_icpi(size_t const icell,
   size_t *const pijcell = alloca(ndim * sizeof *pijcell);
   size_t *const ijcell = alloca(ndim * sizeof *ijcell);
 
-  type(bmm_hcd, size_t)(ijcell, icell, ndim, nper);
+  $(bmm_hcd, size_t)(ijcell, icell, ndim, nper);
 
   bmm_neigh_ijcpij(pijcell, ijcell, ineigh, ndim, nper, per, mask);
 
-  return type(bmm_unhcd, size_t)(pijcell, ndim, nper);
+  return $(bmm_unhcd, size_t)(pijcell, ndim, nper);
 }
 
 #endif

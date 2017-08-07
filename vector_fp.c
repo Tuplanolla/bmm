@@ -1,31 +1,31 @@
-extern inline void type(zero, A, D)(A *);
-extern inline void type(add, A, D)(A *restrict,
+extern inline void $(zero, A, D)(A *);
+extern inline void $(add, A, D)(A *restrict,
     A const *restrict, A const *restrict);
-inline void type(neg, A, D)(A *restrict, A const *restrict);
-extern inline void type(sub, A, D)(A *restrict,
+inline void $(neg, A, D)(A *restrict, A const *restrict);
+extern inline void $(sub, A, D)(A *restrict,
     A const *restrict, A const *restrict);
-extern inline void type(one, A, D)(A *);
-extern inline void type(mul, A, D)(A *restrict,
+extern inline void $(one, A, D)(A *);
+extern inline void $(mul, A, D)(A *restrict,
     A const *restrict, A const *restrict);
-inline void type(recip, A, D)(A *restrict, A const *restrict);
-extern inline void type(div, A, D)(A *restrict,
+inline void $(recip, A, D)(A *restrict, A const *restrict);
+extern inline void $(div, A, D)(A *restrict,
     A const *restrict, A const *restrict);
-extern inline void type(quott, A, D)(A *restrict,
+extern inline void $(quott, A, D)(A *restrict,
     A const *restrict, A const *restrict);
-extern inline void type(remt, A, D)(A *restrict,
+extern inline void $(remt, A, D)(A *restrict,
     A const *restrict, A const *restrict);
-extern inline void type(quote, A, D)(A *restrict,
+extern inline void $(quote, A, D)(A *restrict,
     A const *restrict, A const *restrict);
-extern inline void type(reme, A, D)(A *restrict,
+extern inline void $(reme, A, D)(A *restrict,
     A const *restrict, A const *restrict);
 
-extern inline void type(add_mut, A, D)(A *restrict, A const *restrict);
-extern inline void type(neg_mut, A, D)(A *restrict);
-extern inline void type(sub_mut, A, D)(A *restrict, A const *restrict);
-extern inline void type(mul_mut, A, D)(A *restrict, A const *restrict);
-extern inline void type(recip_mut, A, D)(A *restrict);
-extern inline void type(div_mut, A, D)(A *restrict, A const *restrict);
-extern inline void type(quott_mut, A, D)(A *restrict, A const *restrict);
-extern inline void type(remt_mut, A, D)(A *restrict, A const *restrict);
-extern inline void type(quote_mut, A, D)(A *restrict, A const *restrict);
-extern inline void type(reme_mut, A, D)(A *restrict, A const *restrict);
+extern inline void $(add_mut, A, D)(A *restrict, A const *restrict);
+extern inline void $(neg_mut, A, D)(A *restrict);
+extern inline void $(sub_mut, A, D)(A *restrict, A const *restrict);
+extern inline void $(mul_mut, A, D)(A *restrict, A const *restrict);
+extern inline void $(recip_mut, A, D)(A *restrict);
+extern inline void $(div_mut, A, D)(A *restrict, A const *restrict);
+extern inline void $(quott_mut, A, D)(A *restrict, A const *restrict);
+extern inline void $(remt_mut, A, D)(A *restrict, A const *restrict);
+extern inline void $(quote_mut, A, D)(A *restrict, A const *restrict);
+extern inline void $(reme_mut, A, D)(A *restrict, A const *restrict);

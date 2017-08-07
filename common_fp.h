@@ -9,19 +9,19 @@
 /// If `y == 0` or `x` and `y` are infinite or `x` or `y` are not numbers,
 /// the behavior is undefined.
 __attribute__ ((__const__, __pure__))
-inline type(bmm_quotrem_t, A) type(bmm_quotrem, A)(A const x, A const y) {
-  A const q = type(trunc, A)(x / y);
-  A const r = type(fmod, A)(x, y);
+inline $(bmm_quotrem_t, A) $(bmm_quotrem, A)(A const x, A const y) {
+  A const q = $(trunc, A)(x / y);
+  A const r = $(fmod, A)(x, y);
   A const s = r >= 0 ? 0 : y < 0 ? -1 : 1;
 
-  return (type(bmm_quotrem_t, A)) {.quot = q - s, .rem = r + s * y};
+  return ($(bmm_quotrem_t, A)) {.quot = q - s, .rem = r + s * y};
 }
 
 /// The call `bmm_abs(x)`
 /// returns the absolute value of `x`.
 /// If `x` is not a number, the behavior is undefined.
 __attribute__ ((__const__, __pure__))
-inline A type(bmm_abs, A)(A const x) {
+inline A $(bmm_abs, A)(A const x) {
   return x < 0 ? -x : x;
 }
 
@@ -33,7 +33,7 @@ inline A type(bmm_abs, A)(A const x) {
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
-inline A type(bmm_wrap, A)(A const x, A const a, A const b) {
+inline A $(bmm_wrap, A)(A const x, A const a, A const b) {
   dynamic_assert(b > a, "Invalid argument");
 
   A const c = b - a;
@@ -42,7 +42,7 @@ inline A type(bmm_wrap, A)(A const x, A const a, A const b) {
 
   // The following implementation is more consistent with integers,
   // but potentially slower.
-  // return type(bmm_rem, A)(x - a, b - a) + a;
+  // return $(bmm_rem, A)(x - a, b - a) + a;
 }
 
 /// The call `bmm_uwrap(x, b)`
@@ -53,14 +53,14 @@ inline A type(bmm_wrap, A)(A const x, A const a, A const b) {
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
-inline A type(bmm_uwrap, A)(A const x, A const b) {
+inline A $(bmm_uwrap, A)(A const x, A const b) {
   dynamic_assert(b > 0, "Invalid argument");
 
   return x - b * floor(x / b);
 
   // The following implementation is more consistent with integers,
   // but potentially slower.
-  // return type(bmm_rem, A)(x, b);
+  // return $(bmm_rem, A)(x, b);
 }
 
 /// The call `bmm_swrap(x, c)`
@@ -71,7 +71,7 @@ inline A type(bmm_uwrap, A)(A const x, A const b) {
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
-inline A type(bmm_swrap, A)(A const x, A const c) {
+inline A $(bmm_swrap, A)(A const x, A const c) {
   dynamic_assert(c > 0, "Invalid argument");
 
   return x - c * floor(x / c + 0.5);
@@ -80,7 +80,7 @@ inline A type(bmm_swrap, A)(A const x, A const c) {
   // but potentially slower.
   // A const d = c / 2;
   //
-  // return type(bmm_wrap, A)(x, -d, d);
+  // return $(bmm_wrap, A)(x, -d, d);
 }
 
 /// The call `bmm_uclamp(x, b)`
@@ -90,7 +90,7 @@ inline A type(bmm_swrap, A)(A const x, A const c) {
 /// the behavior is undefined.
 /// Overflows are impossible both internally and externally.
 __attribute__ ((__const__, __pure__))
-inline A type(bmm_uclamp, A)(A const x, A const b) {
+inline A $(bmm_uclamp, A)(A const x, A const b) {
   dynamic_assert(b >= 0, "Invalid argument");
 
   return x < 0 ? 0 : x > b ? b : x;
@@ -102,7 +102,7 @@ inline A type(bmm_uclamp, A)(A const x, A const b) {
 /// If `c < 0` or `x` is infinite or `x` or `c` are not numbers,
 /// the behavior is undefined.
 __attribute__ ((__const__, __pure__))
-inline A type(bmm_sclamp, A)(A const x, A const c) {
+inline A $(bmm_sclamp, A)(A const x, A const c) {
   dynamic_assert(c >= 0, "Invalid argument");
 
   A const b = c / 2;
@@ -118,7 +118,7 @@ inline A type(bmm_sclamp, A)(A const x, A const c) {
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
-inline A type(bmm_fact, A)(A const x) {
+inline A $(bmm_fact, A)(A const x) {
   dynamic_assert(x >= 0, "Invalid argument");
 
   return tgamma(x + 1);
@@ -131,7 +131,7 @@ inline A type(bmm_fact, A)(A const x) {
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
-inline A type(bmm_resum2, A)(A const x, A const y) {
+inline A $(bmm_resum2, A)(A const x, A const y) {
   dynamic_assert(x > 0, "Invalid argument");
   dynamic_assert(y > 0, "Invalid argument");
 
@@ -147,10 +147,10 @@ inline A type(bmm_resum2, A)(A const x, A const y) {
 /// If `x` or `y` are infinite or
 /// `x` or `y` are not numbers, the behavior is undefined.
 __attribute__ ((__const__, __pure__))
-inline A type(bmm_pmean2, A)(A const x, A const y, A const e) {
-  A const z = (type(pow, A)(x, e) + type(pow, A)(y, e)) / 2;
+inline A $(bmm_pmean2, A)(A const x, A const y, A const e) {
+  A const z = ($(pow, A)(x, e) + $(pow, A)(y, e)) / 2;
 
-  return type(pow, A)(z, 1 / e);
+  return $(pow, A)(z, 1 / e);
 }
 
 /// The call `bmm_amean2(x, y)`
@@ -159,7 +159,7 @@ inline A type(bmm_pmean2, A)(A const x, A const y, A const e) {
 /// If `x` or `y` are infinite or
 /// `x` or `y` are not numbers, the behavior is undefined.
 __attribute__ ((__const__, __pure__))
-inline A type(bmm_amean2, A)(A const x, A const y) {
+inline A $(bmm_amean2, A)(A const x, A const y) {
   return (x + y) / 2;
 }
 
@@ -171,7 +171,7 @@ inline A type(bmm_amean2, A)(A const x, A const y) {
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
-inline A type(bmm_gmean2, A)(A const x, A const y) {
+inline A $(bmm_gmean2, A)(A const x, A const y) {
   dynamic_assert(x >= 0, "Invalid argument");
   dynamic_assert(y >= 0, "Invalid argument");
 
@@ -184,6 +184,6 @@ inline A type(bmm_gmean2, A)(A const x, A const y) {
 /// If `x <= 0` or `y <= 0`, `x` or `y` are infinite or
 /// `x` or `y` are not numbers, the behavior is undefined.
 __attribute__ ((__const__, __pure__))
-inline A type(bmm_hmean2, A)(A const x, A const y) {
-  return 2 * type(bmm_resum2, A)(x, y);
+inline A $(bmm_hmean2, A)(A const x, A const y) {
+  return 2 * $(bmm_resum2, A)(x, y);
 }

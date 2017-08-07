@@ -48,12 +48,12 @@
 /// expands to the number of members in the array `x`.
 #define nmembof(x) (sizeof (x) / msizeof(x))
 
-/// The preprocessor directive `type(x, ...)`
+/// The preprocessor directive `$(x, ...)`
 /// expands to the template instantiation of the value `x` with the type `...`.
 /// Due to the limitations of the language
 /// the types have to be single tokens.
 /// Luckily this can always be satisfied by using `typedef`.
-#define type(...) BMM_VA_DECL(BMM_SPLICE, __VA_ARGS__)
+#define $(...) BMM_VA_DECL(BMM_SPLICE, __VA_ARGS__)
 
 #ifndef static_assert
 #define static_assert_line_(p, n) __attribute__ ((__unused__)) \

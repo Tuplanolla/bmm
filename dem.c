@@ -69,7 +69,7 @@ __attribute__ ((__nonnull__))
 static void bmm_dem_cache_j(struct bmm_dem *const dem,
     size_t const ipart) {
   dem->cache.j[ipart] = dem->part.jred[ipart] *
-    dem->part.m[ipart] * type(bmm_power, double)(dem->part.r[ipart], 2);
+    dem->part.m[ipart] * $(bmm_power, double)(dem->part.r[ipart], 2);
 }
 
 /// The call `bmm_dem_cache_x(dem, ipart)`
@@ -103,7 +103,7 @@ static void bmm_dem_cache_ijcell(struct bmm_dem *const dem,
 __attribute__ ((__nonnull__))
 static void bmm_dem_cache_icell(struct bmm_dem *const dem,
     size_t const ipart) {
-  dem->cache.icell[ipart] = type(bmm_unhcd, size_t)(dem->cache.ijcell[ipart],
+  dem->cache.icell[ipart] = $(bmm_unhcd, size_t)(dem->cache.ijcell[ipart],
       BMM_NDIM, dem->opts.cache.ncell);
 }
 
@@ -157,7 +157,7 @@ static bool bmm_dem_cache_eligible(struct bmm_dem const *const dem,
 
   if (bmm_geom2d_cpdist2(dem->cache.x[ipart], dem->cache.x[jpart],
         dem->opts.box.x, dem->opts.box.per) >
-      type(bmm_power, double)(dem->opts.cache.rcutoff, 2))
+      $(bmm_power, double)(dem->opts.cache.rcutoff, 2))
     return false;
 
   return true;
@@ -402,7 +402,7 @@ void bmm_dem_force_creeping(struct bmm_dem *const dem,
     dem->part.f[ipart][idim] += f * vunit[idim];
 
   double const tau = -4.0 * M_2PI * dem->amb.params.creeping.mu *
-    type(bmm_power, double)(dem->part.r[ipart], 3);
+    $(bmm_power, double)(dem->part.r[ipart], 3);
 
   dem->part.tau[ipart] += tau * dem->part.omega[ipart];
 }
@@ -438,7 +438,7 @@ void bmm_dem_force_pair(struct bmm_dem *const dem,
   double const ri = dem->part.r[ipart];
   double const rj = dem->part.r[jpart];
   double const r = ri + rj;
-  double const r2 = type(bmm_power, double)(r, 2);
+  double const r2 = $(bmm_power, double)(r, 2);
   if (d2 > r2) {
     // TODO No!
     switch (dem->tang.tag) {
@@ -468,18 +468,18 @@ void bmm_dem_force_pair(struct bmm_dem *const dem,
   {
     double const xi = r - d;
     double const vnormij = bmm_geom2d_dot(vdiffij, xnormji);
-    double const reff = type(bmm_resum2, double)(ri, rj);
+    double const reff = $(bmm_resum2, double)(ri, rj);
 
     switch (dem->norm.tag) {
       case BMM_DEM_FNORM_DASHPOT:
-        fnorm = type(bmm_max, double)(0.0,
+        fnorm = $(bmm_max, double)(0.0,
             dem->opts.part.y * xi + dem->norm.params.dashpot.gamma * vnormij);
 
         break;
       case BMM_DEM_FNORM_VISCOEL:
-        fnorm = type(bmm_max, double)(0.0,
+        fnorm = $(bmm_max, double)(0.0,
             (2.0 / 3.0) * (dem->opts.part.y /
-              (1.0 - type(bmm_power, double)(dem->opts.part.nu, 2))) *
+              (1.0 - $(bmm_power, double)(dem->opts.part.nu, 2))) *
             (xi + dem->norm.params.viscoel.a * vnormij) * sqrt(reff * xi));
 
         break;
@@ -504,9 +504,9 @@ void bmm_dem_force_pair(struct bmm_dem *const dem,
 
     switch (dem->tang.tag) {
       case BMM_DEM_FTANG_HW:
-        ftang = copysign(type(bmm_min, double)(
-              dem->tang.params.hw.gamma * type(bmm_abs, double)(vtangij),
-              dem->tang.params.hw.mu * type(bmm_abs, double)(fnorm)), vtangij);
+        ftang = copysign($(bmm_min, double)(
+              dem->tang.params.hw.gamma * $(bmm_abs, double)(vtangij),
+              dem->tang.params.hw.mu * $(bmm_abs, double)(fnorm)), vtangij);
 
         break;
       // TODO No!
@@ -514,9 +514,9 @@ void bmm_dem_force_pair(struct bmm_dem *const dem,
         dem->tang.params.cs.zeta[ipart][jpart] += vtangij * dt;
         dem->tang.params.cs.zeta[jpart][ipart] += vtangij * dt;
 
-        ftang = copysign(type(bmm_min, double)(
-              dem->tang.params.cs.kappa * type(bmm_abs, double)(dem->tang.params.cs.zeta[ipart][jpart]),
-              dem->tang.params.cs.mu * type(bmm_abs, double)(fnorm)), vtangij);
+        ftang = copysign($(bmm_min, double)(
+              dem->tang.params.cs.kappa * $(bmm_abs, double)(dem->tang.params.cs.zeta[ipart][jpart]),
+              dem->tang.params.cs.mu * $(bmm_abs, double)(fnorm)), vtangij);
 
         break;
     }
@@ -535,14 +535,14 @@ void bmm_dem_force_pair(struct bmm_dem *const dem,
 
   {
     // TODO This warrants a sanity check.
-    double const ri2 = type(bmm_power, double)(ri, 2);
-    double const rj2 = type(bmm_power, double)(rj, 2);
+    double const ri2 = $(bmm_power, double)(ri, 2);
+    double const rj2 = $(bmm_power, double)(rj, 2);
     double const bij = (1.0 / 2.0) * (1.0 - (rj2 - ri2) / d2);
     double const bji = 1.0 - bij;
     double const sij = bij * d;
     double const sji = bji * d;
-    double const sij2 = type(bmm_power, double)(sij, 2);
-    double const sji2 = type(bmm_power, double)(sji, 2);
+    double const sij2 = $(bmm_power, double)(sij, 2);
+    double const sji2 = $(bmm_power, double)(sji, 2);
     double const cij = 2.0 * sqrt(ri2 - sij2);
     double const cd2sij = cij / (2.0 * sij);
     double const cd2sji = cij / (2.0 * sji);
@@ -591,7 +591,7 @@ void bmm_dem_force_link(struct bmm_dem *const dem,
   double const ri = dem->part.r[ipart];
   double const rj = dem->part.r[jpart];
   double const r = ri + rj;
-  double const r2 = type(bmm_power, double)(r, 2);
+  double const r2 = $(bmm_power, double)(r, 2);
 
   double xnormij[BMM_NDIM];
   bmm_geom2d_scale(xnormij, xdiffij, 1.0 / d);
@@ -638,15 +638,15 @@ void bmm_dem_force_link(struct bmm_dem *const dem,
         double tauj = 0.0;
 
         {
-          double const gammaij = type(bmm_swrap, double)(bmm_geom2d_dir(xdiffij), M_2PI);
-          double const gammaji = type(bmm_swrap, double)(gammaij + M_PI, M_2PI);
-          double const phii = type(bmm_swrap, double)(dem->part.phi[ipart], M_2PI);
-          double const phij = type(bmm_swrap, double)(dem->part.phi[jpart], M_2PI);
-          double const chii = type(bmm_swrap, double)(gammaij - phii, M_2PI);
-          double const chij = type(bmm_swrap, double)(gammaji - phij, M_2PI);
+          double const gammaij = $(bmm_swrap, double)(bmm_geom2d_dir(xdiffij), M_2PI);
+          double const gammaji = $(bmm_swrap, double)(gammaij + M_PI, M_2PI);
+          double const phii = $(bmm_swrap, double)(dem->part.phi[ipart], M_2PI);
+          double const phij = $(bmm_swrap, double)(dem->part.phi[jpart], M_2PI);
+          double const chii = $(bmm_swrap, double)(gammaij - phii, M_2PI);
+          double const chij = $(bmm_swrap, double)(gammaji - phij, M_2PI);
 
-          double const dchii = type(bmm_swrap, double)(dem->link.part[ipart].chirest[ilink][0] - chii, M_2PI);
-          double const dchij = type(bmm_swrap, double)(dem->link.part[ipart].chirest[ilink][1] - chij, M_2PI);
+          double const dchii = $(bmm_swrap, double)(dem->link.part[ipart].chirest[ilink][0] - chii, M_2PI);
+          double const dchij = $(bmm_swrap, double)(dem->link.part[ipart].chirest[ilink][1] - chij, M_2PI);
 
           // TODO Derive these on paper too.
           double const vrotij = -bmm_geom2d_dot(vdiffij, xtangij);
@@ -776,7 +776,7 @@ void bmm_dem_integ_euler(struct bmm_dem *const dem) {
           (1.0 / (double) BMM_FACT(1)) * dem->part.a[ipart][idim] * dt;
 
         if (dem->opts.box.per[idim])
-          dem->part.x[ipart][idim] = type(bmm_uwrap, double)(dem->part.x[ipart][idim],
+          dem->part.x[ipart][idim] = $(bmm_uwrap, double)(dem->part.x[ipart][idim],
               dem->opts.box.x[idim]);
       }
 
@@ -793,7 +793,7 @@ void bmm_dem_integ_taylor(struct bmm_dem *const dem) {
   if (dt == 0.0)
     return;
 
-  double const dt2 = type(bmm_power, double)(dt, 2);
+  double const dt2 = $(bmm_power, double)(dt, 2);
 
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     if (dem->part.role[ipart] == BMM_DEM_ROLE_FREE) {
@@ -805,7 +805,7 @@ void bmm_dem_integ_taylor(struct bmm_dem *const dem) {
           (1.0 / (double) BMM_FACT(1)) * dem->part.a[ipart][idim] * dt;
 
         if (dem->opts.box.per[idim])
-          dem->part.x[ipart][idim] = type(bmm_uwrap, double)(dem->part.x[ipart][idim],
+          dem->part.x[ipart][idim] = $(bmm_uwrap, double)(dem->part.x[ipart][idim],
               dem->opts.box.x[idim]);
       }
 
@@ -823,7 +823,7 @@ void bmm_dem_integ_vel(struct bmm_dem *const dem) {
   if (dt == 0.0)
     return;
 
-  double const dt2 = type(bmm_power, double)(dt, 2);
+  double const dt2 = $(bmm_power, double)(dt, 2);
 
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     if (dem->part.role[ipart] == BMM_DEM_ROLE_FREE) {
@@ -833,7 +833,7 @@ void bmm_dem_integ_vel(struct bmm_dem *const dem) {
           (1.0 / (double) BMM_FACT(2)) * dem->part.a[ipart][idim] * dt2;
 
         if (dem->opts.box.per[idim])
-          dem->part.x[ipart][idim] = type(bmm_uwrap, double)(dem->part.x[ipart][idim],
+          dem->part.x[ipart][idim] = $(bmm_uwrap, double)(dem->part.x[ipart][idim],
               dem->opts.box.x[idim]);
 
         dem->integ.params.velvet.a[ipart][idim] = dem->part.a[ipart][idim];
@@ -867,7 +867,7 @@ void bmm_dem_integ_vet(struct bmm_dem *const dem) {
 // TODO This erases the winding number information needed by beams.
 void bmm_dem_stab(struct bmm_dem *const dem) {
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    dem->part.phi[ipart] = type(bmm_uwrap, double)(dem->part.phi[ipart], M_2PI);
+    dem->part.phi[ipart] = $(bmm_uwrap, double)(dem->part.phi[ipart], M_2PI);
 }
 
 void bmm_dem_predict(struct bmm_dem *const dem) {
@@ -905,7 +905,7 @@ void bmm_dem_fract_pair(struct bmm_dem *const dem,
   double const d2 = bmm_geom2d_norm2(xdiffij);
 
   // TODO Do not use `rlim` but rather `f` and proper stress criteria.
-  if (d2 > type(bmm_power, double)(dem->link.part[ipart].rlim[ilink], 2)) {
+  if (d2 > $(bmm_power, double)(dem->link.part[ipart].rlim[ilink], 2)) {
     --dem->link.part[ipart].n;
 
     size_t const jlink = dem->link.part[ipart].n;
@@ -949,7 +949,7 @@ bool bmm_dem_link_pair(struct bmm_dem *const dem,
   double const d2 = bmm_geom2d_norm2(xdiffij);
 
   double const r = dem->part.r[ipart] + dem->part.r[jpart];
-  double const r2 = type(bmm_power, double)(r, 2);
+  double const r2 = $(bmm_power, double)(r, 2);
 
   if (d2 > r2 * dem->opts.link.ccrlink)
     return true;
@@ -965,12 +965,12 @@ bool bmm_dem_link_pair(struct bmm_dem *const dem,
   switch (dem->link.tag) {
     case BMM_DEM_FLINK_BEAM:
       {
-        double const gammaij = type(bmm_swrap, double)(bmm_geom2d_dir(xdiffij), M_2PI);
-        double const gammaji = type(bmm_swrap, double)(gammaij + M_PI, M_2PI);
-        double const phii = type(bmm_swrap, double)(dem->part.phi[ipart], M_2PI);
-        double const phij = type(bmm_swrap, double)(dem->part.phi[jpart], M_2PI);
-        double const chii = type(bmm_swrap, double)(gammaij - phii, M_2PI);
-        double const chij = type(bmm_swrap, double)(gammaji - phij, M_2PI);
+        double const gammaij = $(bmm_swrap, double)(bmm_geom2d_dir(xdiffij), M_2PI);
+        double const gammaji = $(bmm_swrap, double)(gammaij + M_PI, M_2PI);
+        double const phii = $(bmm_swrap, double)(dem->part.phi[ipart], M_2PI);
+        double const phij = $(bmm_swrap, double)(dem->part.phi[jpart], M_2PI);
+        double const chii = $(bmm_swrap, double)(gammaij - phii, M_2PI);
+        double const chij = $(bmm_swrap, double)(gammaji - phij, M_2PI);
 
         dem->link.part[ipart].chirest[dem->link.part[ipart].n][0] = chii;
 
@@ -1071,9 +1071,9 @@ double bmm_dem_est_ekin(struct bmm_dem const *const dem) {
 
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
     for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-      e += dem->part.m[ipart] * type(bmm_power, double)(dem->part.v[ipart][idim], 2);
+      e += dem->part.m[ipart] * $(bmm_power, double)(dem->part.v[ipart][idim], 2);
 
-    e += dem->cache.j[ipart] * type(bmm_power, double)(dem->part.omega[ipart], 2);
+    e += dem->cache.j[ipart] * $(bmm_power, double)(dem->part.omega[ipart], 2);
   }
 
   return (1.0 / 2.0) * e;
@@ -1136,7 +1136,7 @@ double bmm_dem_est_cor(struct bmm_dem const *const dem) {
       (dem->part.m[ipart] + dem->part.m[ipart]);
     e += exp(-M_PI * dem->norm.params.dashpot.gamma / (2.0 * mred) /
         sqrt(dem->opts.part.y / mred -
-          type(bmm_power, double)(dem->norm.params.dashpot.gamma / (2.0 * mred), 2)));
+          $(bmm_power, double)(dem->norm.params.dashpot.gamma / (2.0 * mred), 2)));
   }
 
   return e / (double) dem->part.n;
@@ -1220,7 +1220,7 @@ __attribute__ ((__nonnull__, __pure__))
 static int compar(size_t const i, size_t const j, void *const cls) {
   double const *const *const rw = cls;
 
-  return type(bmm_cmp, double)(rw[0][i], rw[0][j]);
+  return $(bmm_cmp, double)(rw[0][i], rw[0][j]);
 }
 
 __attribute__ ((__nonnull__))
@@ -1246,7 +1246,7 @@ bool bmm_dem_est_raddist(double *const pr, double *const pg,
   // TODO This is bad and stupid.
 
   // double g[BMM_TRI(BMM_MPART)];
-  size_t nmemb = type(bmm_tri, size_t)(dem->part.n);
+  size_t nmemb = $(bmm_tri, size_t)(dem->part.n);
   double *const w = malloc(nmemb * sizeof *w);
   if (w == NULL)
     return false;
@@ -1284,7 +1284,7 @@ bool bmm_dem_est_raddist(double *const pr, double *const pg,
 
   // We convert `w` from "importance weights"
   // to "frequency weights" or "analytic weights".
-  double wsum = type(bmm_sum, double)(w, nmemb);
+  double wsum = $(bmm_sum, double)(w, nmemb);
   for (size_t i = 0; i < nmemb; ++i)
     w[i] /= wsum;
 
@@ -1541,7 +1541,7 @@ bool bmm_dem_cache_expired(struct bmm_dem const *const dem) {
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     if (bmm_geom2d_cpdist2(dem->part.x[ipart], dem->cache.x[ipart],
           dem->opts.box.x, dem->opts.box.per) >=
-        type(bmm_power, double)(r - dem->part.r[ipart], 2))
+        $(bmm_power, double)(r - dem->part.r[ipart], 2))
       return true;
 
   return false;
@@ -1560,7 +1560,7 @@ static void bmm_dem_script_balance(struct bmm_dem *const dem) {
       dem->part.x[ipart][idim] += xcenter[idim] - xcom[idim];
 
       if (dem->opts.box.per[idim])
-        dem->part.x[ipart][idim] = type(bmm_uwrap, double)(dem->part.x[ipart][idim],
+        dem->part.x[ipart][idim] = $(bmm_uwrap, double)(dem->part.x[ipart][idim],
             dem->opts.box.x[idim]);
     }
 }
@@ -1568,7 +1568,7 @@ static void bmm_dem_script_balance(struct bmm_dem *const dem) {
 __attribute__ ((__nonnull__))
 static bool bmm_dem_script_create_hc(struct bmm_dem *const dem) {
   double const etahc = bmm_geom_ballvol(0.5, BMM_NDIM);
-  double const vhc = type(bmm_prod, double)(dem->opts.box.x, BMM_NDIM);
+  double const vhc = $(bmm_prod, double)(dem->opts.box.x, BMM_NDIM);
   double const eta = dem->opts.script.params[dem->script.i].create.eta;
   double const v = vhc * (etahc / eta);
 
@@ -1618,7 +1618,7 @@ static bool bmm_dem_script_create_hc(struct bmm_dem *const dem) {
 __attribute__ ((__nonnull__))
 static bool bmm_dem_script_create_hex(struct bmm_dem *const dem) {
   double const etahc = bmm_geom_ballvol(0.5, BMM_NDIM);
-  double const vhc = type(bmm_prod, double)(dem->opts.box.x, BMM_NDIM);
+  double const vhc = $(bmm_prod, double)(dem->opts.box.x, BMM_NDIM);
   double const eta = dem->opts.script.params[dem->script.i].create.eta;
   double const v = vhc * (etahc / eta);
 
@@ -1671,7 +1671,7 @@ static bool bmm_dem_script_create_hex(struct bmm_dem *const dem) {
 __attribute__ ((__nonnull__))
 static bool bmm_dem_script_create_testpile(struct bmm_dem *const dem) {
   double const etahc = bmm_geom_ballvol(0.5, BMM_NDIM);
-  double const vhc = type(bmm_prod, double)(dem->opts.box.x, BMM_NDIM);
+  double const vhc = $(bmm_prod, double)(dem->opts.box.x, BMM_NDIM);
   double const eta = dem->opts.script.params[dem->script.i].test.eta;
   double const v = vhc * (etahc / eta);
 
@@ -1733,7 +1733,7 @@ static bool bmm_dem_script_create_testpile(struct bmm_dem *const dem) {
 __attribute__ ((__nonnull__))
 static bool bmm_dem_script_create_testbeam(struct bmm_dem *const dem) {
   double const etahc = bmm_geom_ballvol(0.5, BMM_NDIM);
-  double const vhc = type(bmm_prod, double)(dem->opts.box.x, BMM_NDIM);
+  double const vhc = $(bmm_prod, double)(dem->opts.box.x, BMM_NDIM);
   double const eta = dem->opts.script.params[dem->script.i].test.eta;
   double const v = vhc * (etahc / eta);
 
@@ -1808,7 +1808,7 @@ static bool bmm_dem_script_create_testbeam(struct bmm_dem *const dem) {
     a[1] = sqrt(4.0 * dem->opts.box.x[1]);
     dem->part.x[ipart][1] =
       bmm_random_get(dem->rng, a) * bmm_random_get(dem->rng, a) -
-      type(bmm_power, double)(bmm_ival_length(a), 2);
+      $(bmm_power, double)(bmm_ival_length(a), 2);
 
     dem->part.role[ipart] = BMM_DEM_ROLE_FIXED;
   }
@@ -2165,7 +2165,7 @@ static bool rubbish(struct bmm_dem const *const dem) {
 
   // Snip.
 
-  double const v = type(bmm_prod, double)(dem->opts.box.x, BMM_NDIM);
+  double const v = $(bmm_prod, double)(dem->opts.box.x, BMM_NDIM);
   double const rho = (double) dem->part.n / v;
   double const dr = rmax / (double) nbin;
   double a = 0.0;
@@ -2204,7 +2204,7 @@ static double abserr(size_t const i, double const z, void const *const cls) {
 bool bmm_dem_report(struct bmm_dem const *const dem) {
   if (dem->opts.verbose) {
     if (fprintf(stderr, "Time Error: %g\n",
-          type(bmm_foldl_cls, double)(dem->opts.script.n,
+          $(bmm_foldl_cls, double)(dem->opts.script.n,
             abserr, 0.0, dem->script.toff)) < 0)
       return false;
   }

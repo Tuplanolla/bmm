@@ -18,13 +18,13 @@ __attribute__ ((__const__, __pure__))
 inline double bmm_geom_ballvol(double const r, size_t d) {
   // This would not be guaranteed to be tail-call optimized.
   // return d == 0 ? 1.0 : d == 1 ? 2.0 * r :
-  //   (M_2PI * type(bmm_power, double)(r, 2) / (double) d) *
+  //   (M_2PI * $(bmm_power, double)(r, 2) / (double) d) *
   //   bmm_geom_ballvol(r, d - 2);
 
-  double v = type(bmm_even, size_t)(d) ? 1.0 : 2.0 * r;
+  double v = $(bmm_even, size_t)(d) ? 1.0 : 2.0 * r;
 
   while (d > 1) {
-    v *= M_2PI * type(bmm_power, double)(r, 2) / (double) d;
+    v *= M_2PI * $(bmm_power, double)(r, 2) / (double) d;
     d -= 2;
   }
 
@@ -40,14 +40,14 @@ __attribute__ ((__const__, __pure__))
 inline double bmm_geom_ballsurf(double const r, size_t d) {
   // This would not be guaranteed to be tail-call optimized.
   // return d == 0 ? 0.0 : d == 1 ? 2.0 : d == 2 ? M_2PI * r :
-  //   (M_2PI * type(bmm_power, double)(r, 2) / (double) (d - 2)) *
+  //   (M_2PI * $(bmm_power, double)(r, 2) / (double) (d - 2)) *
   //   bmm_geom_ballsurf(r, d - 2);
 
-  double a = d == 0 ? 0.0 : type(bmm_odd, size_t)(d) ? 2.0 : M_2PI * r;
+  double a = d == 0 ? 0.0 : $(bmm_odd, size_t)(d) ? 2.0 : M_2PI * r;
 
   while (d > 2) {
     d -= 2;
-    a *= M_2PI * type(bmm_power, double)(r, 2) / (double) d;
+    a *= M_2PI * $(bmm_power, double)(r, 2) / (double) d;
   }
 
   return a;
@@ -77,7 +77,7 @@ inline double bmm_geom_ballrmoi(size_t const d) {
 __attribute__ ((__const__, __pure__))
 inline double bmm_geom_ballmoi(double const m, double const r,
     size_t const d) {
-  return bmm_geom_ballrmoi(d) * m * type(bmm_power, double)(r, 2);
+  return bmm_geom_ballrmoi(d) * m * $(bmm_power, double)(r, 2);
 }
 
 /// The call `bmm_geom_ballprmoi(d)`
@@ -103,7 +103,7 @@ inline double bmm_geom_ballprmoi(size_t const d) {
 __attribute__ ((__const__, __pure__))
 inline double bmm_geom_ballpmoi(double const m, double const r,
     size_t const d) {
-  return bmm_geom_ballprmoi(d) * m * type(bmm_power, double)(r, 2);
+  return bmm_geom_ballprmoi(d) * m * $(bmm_power, double)(r, 2);
 }
 
 /// The call `bmm_geom_ballmpcd(d)`
@@ -160,20 +160,20 @@ __attribute__ ((__const__, __pure__))
 inline double bmm_geom_ballmpd(size_t const d) {
   double c;
 
-  if (type(bmm_even, size_t)(d)) {
+  if ($(bmm_even, size_t)(d)) {
     size_t const n = d / 2;
 
-    c = type(bmm_power, double)(M_PI, n) / (double) type(bmm_fact, size_t)(n);
+    c = $(bmm_power, double)(M_PI, n) / (double) $(bmm_fact, size_t)(n);
   } else {
     size_t const k = d + 1;
     size_t const n = k / 2;
 
     // This could be unstable.
-    // c = (type(bmm_power, double)(M_4PI, n) / M_PI) *
-    //   ((double) type(bmm_fact, size_t)(n) /
-    //     (double) type(bmm_fact, size_t)(k));
-    c = (type(bmm_power, double)(M_2PI, n) / M_PI) *
-      (1.0 / (double) type(bmm_multfact, size_t)(d, 2));
+    // c = ($(bmm_power, double)(M_4PI, n) / M_PI) *
+    //   ((double) $(bmm_fact, size_t)(n) /
+    //     (double) $(bmm_fact, size_t)(k));
+    c = ($(bmm_power, double)(M_2PI, n) / M_PI) *
+      (1.0 / (double) $(bmm_multfact, size_t)(d, 2));
   }
 
   return c * bmm_geom_ballmpcd(d);

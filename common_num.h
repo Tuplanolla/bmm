@@ -9,10 +9,10 @@
 typedef struct {
   A quot;
   A rem;
-} type(bmm_quotrem_t, A);
+} $(bmm_quotrem_t, A);
 
 // This forward-declaration makes reverse dependencies possible.
-inline type(bmm_quotrem_t, A) type(bmm_quotrem, A)(A, A);
+inline $(bmm_quotrem_t, A) $(bmm_quotrem, A)(A, A);
 
 /// The call `bmm_quot(x, y)`
 /// returns the quotient of `x` divided by `y`.
@@ -21,8 +21,8 @@ inline type(bmm_quotrem_t, A) type(bmm_quotrem, A)(A, A);
 #ifndef DEBUG
 __attribute__ ((__const__, __flatten__, __pure__))
 #endif
-inline A type(bmm_quot, A)(A const x, A const y) {
-  return type(bmm_quotrem, A)(x, y).quot;
+inline A $(bmm_quot, A)(A const x, A const y) {
+  return $(bmm_quotrem, A)(x, y).quot;
 }
 
 /// The call `bmm_rem(x, y)`
@@ -32,8 +32,8 @@ inline A type(bmm_quot, A)(A const x, A const y) {
 #ifndef DEBUG
 __attribute__ ((__const__, __flatten__, __pure__))
 #endif
-inline A type(bmm_rem, A)(A const x, A const y) {
-  return type(bmm_quotrem, A)(x, y).rem;
+inline A $(bmm_rem, A)(A const x, A const y) {
+  return $(bmm_quotrem, A)(x, y).rem;
 }
 
 /// The call `bmm_sgn(x)`
@@ -41,8 +41,8 @@ inline A type(bmm_rem, A)(A const x, A const y) {
 /// If `x` is not a number, the behavior is undefined.
 /// Overflows are impossible both internally and externally.
 __attribute__ ((__const__, __flatten__, __pure__))
-inline int type(bmm_sgn, A)(A const x) {
-  return type(bmm_cmp, A)(x, 0);
+inline int $(bmm_sgn, A)(A const x) {
+  return $(bmm_cmp, A)(x, 0);
 }
 
 /// The call `bmm_power(x, e)`
@@ -51,7 +51,7 @@ inline int type(bmm_sgn, A)(A const x) {
 /// If `x` is not a number, the behavior is undefined.
 /// Overflows are impossible internally but possible externally.
 __attribute__ ((__const__, __pure__))
-inline A type(bmm_power, A)(A const x, size_t const e) {
+inline A $(bmm_power, A)(A const x, size_t const e) {
   A y = 1;
 
   A m = x;
@@ -75,7 +75,7 @@ inline A type(bmm_power, A)(A const x, size_t const e) {
 /// returns the sum of the array `x` of length `nmemb`.
 /// Overflows are impossible internally but possible externally.
 __attribute__ ((__pure__))
-inline A type(bmm_sum, A)(A const *const x, size_t const nmemb) {
+inline A $(bmm_sum, A)(A const *const x, size_t const nmemb) {
   A y = 0;
 
   for (size_t i = 0; i < nmemb; ++i)
@@ -88,7 +88,7 @@ inline A type(bmm_sum, A)(A const *const x, size_t const nmemb) {
 /// returns the product of the array `x` of length `nmemb`.
 /// Overflows are impossible internally but possible externally.
 __attribute__ ((__pure__))
-inline A type(bmm_prod, A)(A const *const x, size_t const nmemb) {
+inline A $(bmm_prod, A)(A const *const x, size_t const nmemb) {
   A y = 1;
 
   for (size_t i = 0; i < nmemb; ++i)

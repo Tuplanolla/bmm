@@ -7,8 +7,9 @@ CFLAGS+=-D_GNU_SOURCE -DDEBUG -O0 -ftrapv -g \
 	-Weverything \
 	-Wno-aggregate-return -Wno-bad-function-cast -Wno-disabled-macro-expansion \
 	-Wno-missing-prototypes -Wno-padded -Wno-unused-parameter -Wno-attributes -Wno-unused-function -Wno-shadow \
-	-Wno-switch -Wno-used-but-marked-unused
-# TODO The second to last line should be removed later.
+	-Wno-switch -Wno-used-but-marked-unused \
+	-Wdollar-in-identifier-extension
+# TODO The third to last line should be removed later.
 endif
 ifeq ($(CONFIG), profile)
 CFLAGS+=-D_GNU_SOURCE -DNDEBUG -O3 -g -save-temps
@@ -23,7 +24,7 @@ ifeq ($(CONFIG), debug)
 CFLAGS+=-D_GNU_SOURCE -DDEBUG -Og -ftrapv -g \
 	$$(cat gcc-$$(./gcc-version | tr . _)-release) \
 	-Wno-error -Wno-fatal-errors -Wno-system-headers \
-	-Wno-c++-compat \
+	-Wno-c++-compat -Wno-c90-c99-compat \
 	-Wno-long-long -Wno-traditional -Wno-traditional-conversion \
 	-Wno-declaration-after-statement -Wno-unsuffixed-float-constants \
 	-Wno-address -Wno-aggregate-return \
