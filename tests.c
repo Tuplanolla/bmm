@@ -14,9 +14,85 @@
 #include "neigh.h"
 #include "msg.h"
 
+CHEAT_TEST(add_def_sint,
+  for (int i = SCHAR_MIN; i <= SCHAR_MAX; ++i)
+    for (int j = SCHAR_MIN; j <= SCHAR_MAX; ++j) {
+      signed char const x = (signed char) i;
+      signed char const y = (signed char) j;
+
+      cheat_assert_int(
+          (y > 0 && SCHAR_MAX - y < x) ||
+          (y < 0 && SCHAR_MIN - y > x),
+          i + j < SCHAR_MIN ||
+          i + j > SCHAR_MAX);
+    }
+)
+
+CHEAT_TEST(neg_def_sint,
+  for (int i = SCHAR_MIN; i <= SCHAR_MAX; ++i) {
+    signed char const x = (signed char) i;
+
+    cheat_assert_int(
+        (x > 0 && SCHAR_MIN + x > 0) ||
+        (x < 0 && SCHAR_MAX + x < 0),
+        -i < SCHAR_MIN ||
+        -i > SCHAR_MAX);
+  }
+)
+
+CHEAT_TEST(sub_def_sint,
+  for (int i = SCHAR_MIN; i <= SCHAR_MAX; ++i)
+    for (int j = SCHAR_MIN; j <= SCHAR_MAX; ++j) {
+      signed char const x = (signed char) i;
+      signed char const y = (signed char) j;
+
+      cheat_assert_int(
+          (y > 0 && SCHAR_MIN + y > x) ||
+          (y < 0 && SCHAR_MAX + y < x),
+          i - j < SCHAR_MIN ||
+          i - j > SCHAR_MAX);
+    }
+)
+
+CHEAT_TEST(mul_def_sint,
+  for (int i = SCHAR_MIN; i <= SCHAR_MAX; ++i)
+    for (int j = SCHAR_MIN; j <= SCHAR_MAX; ++j) {
+      signed char const x = (signed char) i;
+      signed char const y = (signed char) j;
+
+      if (SCHAR_MIN <= -SCHAR_MAX)
+        cheat_assert_int(
+            x > 0 ? (y > 0 ? SCHAR_MAX / y < x : SCHAR_MIN / x > y) :
+            x < 0 ? (y > 0 ? SCHAR_MIN / y > x : SCHAR_MAX / x > y) : false,
+            i * j < SCHAR_MIN ||
+            i * j > SCHAR_MAX);
+      else
+        cheat_assert_int(
+            x > 0 ? (y > 0 ? SCHAR_MAX / y < x : SCHAR_MIN / x > y) :
+            x < 0 ? (y > 0 ? SCHAR_MIN / y > x : SCHAR_MAX / -x < -y) : false,
+            i * j < SCHAR_MIN ||
+            i * j > SCHAR_MAX);
+    }
+)
+
+CHEAT_TEST(quot_def_sint,
+  for (int i = SCHAR_MIN; i <= SCHAR_MAX; ++i)
+    for (int j = SCHAR_MIN; j <= SCHAR_MAX; ++j)
+      if (j != 0) {
+        signed char const x = (signed char) i;
+        signed char const y = (signed char) j;
+
+        if (SCHAR_MIN <= -SCHAR_MAX && SCHAR_MIN / 2 >= -SCHAR_MAX)
+          cheat_assert_int(
+              x < -SCHAR_MAX && y < 0 && y == -1,
+              i / j < SCHAR_MIN ||
+              i / j > SCHAR_MAX);
+      }
+)
+
 CHEAT_TEST(quot_sint,
-  for (int i = -128; i < 128; ++i)
-    for (int j = -128; j < 128; ++j)
+  for (int i = SCHAR_MIN; i <= SCHAR_MAX; ++i)
+    for (int j = SCHAR_MIN; j <= SCHAR_MAX; ++j)
       if (j != 0) {
         signed char const x = (signed char) i;
         signed char const y = (signed char) j;
@@ -29,8 +105,8 @@ CHEAT_TEST(quot_sint,
 )
 
 CHEAT_TEST(quot_uint,
-  for (int i = 0; i < 256; ++i)
-    for (int j = 0; j < 256; ++j)
+  for (int i = 0; i <= UCHAR_MAX; ++i)
+    for (int j = 0; j <= UCHAR_MAX; ++j)
       if (j != 0) {
         unsigned char const x = (unsigned char) i;
         unsigned char const y = (unsigned char) j;
@@ -43,8 +119,8 @@ CHEAT_TEST(quot_uint,
 )
 
 CHEAT_TEST(quot_fp,
-  for (int i = -128; i < 128; ++i)
-    for (int j = -128; j < 128; ++j)
+  for (int i = SCHAR_MIN; i <= SCHAR_MAX; ++i)
+    for (int j = SCHAR_MIN; j <= SCHAR_MAX; ++j)
       if (j != 0) {
         double const x = (double) i / 64.0;
         double const y = (double) j / 64.0;
@@ -77,9 +153,9 @@ CHEAT_DECLARE(
 )
 
 CHEAT_TEST(wrap_sint,
-  for (int i = -128; i < 128; ++i)
-    for (int j = -128; j < 128; ++j)
-      for (int k = j + 1; k < 128; ++k) {
+  for (int i = SCHAR_MIN; i <= SCHAR_MAX; ++i)
+    for (int j = SCHAR_MIN; j <= SCHAR_MAX; ++j)
+      for (int k = j + 1; k <= SCHAR_MAX; ++k) {
         signed char const x = (signed char) i;
         signed char const a = (signed char) j;
         signed char const b = (signed char) k;
@@ -90,9 +166,9 @@ CHEAT_TEST(wrap_sint,
 )
 
 CHEAT_TEST(wrap_uint,
-  for (int i = 0; i < 256; ++i)
-    for (int j = 0; j < 256; ++j)
-      for (int k = j + 1; k < 256; ++k) {
+  for (int i = 0; i <= UCHAR_MAX; ++i)
+    for (int j = 0; j <= UCHAR_MAX; ++j)
+      for (int k = j + 1; k <= UCHAR_MAX; ++k) {
         unsigned char const x = (unsigned char) i;
         unsigned char const a = (unsigned char) j;
         unsigned char const b = (unsigned char) k;
@@ -103,9 +179,9 @@ CHEAT_TEST(wrap_uint,
 )
 
 CHEAT_TEST(wrap_fp,
-  for (int i = -128; i < 128; ++i)
-    for (int j = -128; j < 128; ++j)
-      for (int k = j + 1; k < 128; ++k) {
+  for (int i = SCHAR_MIN; i <= SCHAR_MAX; ++i)
+    for (int j = SCHAR_MIN; j <= SCHAR_MAX; ++j)
+      for (int k = j + 1; k <= SCHAR_MAX; ++k) {
         double const x = (double) i / 64.0;
         double const a = (double) j / 64.0;
         double const b = (double) k / 64.0;
@@ -118,8 +194,8 @@ CHEAT_TEST(wrap_fp,
 )
 
 CHEAT_TEST(uwrap_sint,
-  for (int i = -128; i < 128; ++i)
-    for (int j = 1; j < 128; ++j) {
+  for (int i = SCHAR_MIN; i <= SCHAR_MAX; ++i)
+    for (int j = 1; j <= SCHAR_MAX; ++j) {
       signed char const x = (signed char) i;
       signed char const b = (signed char) j;
 
@@ -129,8 +205,8 @@ CHEAT_TEST(uwrap_sint,
 )
 
 CHEAT_TEST(uwrap_uint,
-  for (int i = 0; i < 256; ++i)
-    for (int j = 1; j < 256; ++j) {
+  for (int i = 0; i <= UCHAR_MAX; ++i)
+    for (int j = 1; j <= UCHAR_MAX; ++j) {
       unsigned char const x = (unsigned char) i;
       unsigned char const b = (unsigned char) j;
 
@@ -140,8 +216,8 @@ CHEAT_TEST(uwrap_uint,
 )
 
 CHEAT_TEST(uwrap_fp,
-  for (int i = -128; i < 128; ++i)
-    for (int j = 1; j < 128; ++j) {
+  for (int i = SCHAR_MIN; i <= SCHAR_MAX; ++i)
+    for (int j = 1; j <= SCHAR_MAX; ++j) {
       double const x = (double) i / 64.0;
       double const b = (double) j / 64.0;
       double const y = type(bmm_uwrap, double)(x, b);
@@ -153,7 +229,7 @@ CHEAT_TEST(uwrap_fp,
 
 CHEAT_TEST(swrap_sint,
   for (int i = -64; i < 64; ++i)
-    for (int j = 1; j < 128; ++j) {
+    for (int j = 1; j <= SCHAR_MAX; ++j) {
       signed char const x = (signed char) i;
       signed char const c = (signed char) j;
       signed char const b = c / 2;
@@ -165,8 +241,8 @@ CHEAT_TEST(swrap_sint,
 )
 
 CHEAT_TEST(swrap_fp,
-  for (int i = -128; i < 128; ++i)
-    for (int j = 1; j < 128; ++j) {
+  for (int i = SCHAR_MIN; i <= SCHAR_MAX; ++i)
+    for (int j = 1; j <= SCHAR_MAX; ++j) {
       double const x = (double) i / 64.0;
       double const c = (double) j / 64.0;
       double const b = c / 2.0;
@@ -180,9 +256,9 @@ CHEAT_TEST(swrap_fp,
 )
 
 CHEAT_TEST(clamp_sint,
-  for (int i = -128; i < 128; ++i)
-    for (int j = -128; j < 128; ++j)
-      for (int k = j + 1; k < 128; ++k) {
+  for (int i = SCHAR_MIN; i <= SCHAR_MAX; ++i)
+    for (int j = SCHAR_MIN; j <= SCHAR_MAX; ++j)
+      for (int k = j + 1; k <= SCHAR_MAX; ++k) {
         signed char const x = (signed char) i;
         signed char const a = (signed char) j;
         signed char const b = (signed char) k;
@@ -194,9 +270,9 @@ CHEAT_TEST(clamp_sint,
 )
 
 CHEAT_TEST(clamp_uint,
-  for (int i = 0; i < 256; ++i)
-    for (int j = 0; j < 256; ++j)
-      for (int k = j + 1; k < 256; ++k) {
+  for (int i = 0; i <= UCHAR_MAX; ++i)
+    for (int j = 0; j <= UCHAR_MAX; ++j)
+      for (int k = j + 1; k <= UCHAR_MAX; ++k) {
         unsigned char const x = (unsigned char) i;
         unsigned char const a = (unsigned char) j;
         unsigned char const b = (unsigned char) k;
@@ -208,9 +284,9 @@ CHEAT_TEST(clamp_uint,
 )
 
 CHEAT_TEST(clamp_fp,
-  for (int i = -128; i < 128; ++i)
-    for (int j = -128; j < 128; ++j)
-      for (int k = j + 1; k < 128; ++k) {
+  for (int i = SCHAR_MIN; i <= SCHAR_MAX; ++i)
+    for (int j = SCHAR_MIN; j <= SCHAR_MAX; ++j)
+      for (int k = j + 1; k <= SCHAR_MAX; ++k) {
         double const x = (double) i / 64.0;
         double const a = (double) j / 64.0;
         double const b = (double) k / 64.0;
@@ -222,8 +298,8 @@ CHEAT_TEST(clamp_fp,
 )
 
 CHEAT_TEST(uclamp_sint,
-  for (int i = -128; i < 128; ++i)
-    for (int j = 1; j < 128; ++j) {
+  for (int i = SCHAR_MIN; i <= SCHAR_MAX; ++i)
+    for (int j = 1; j <= SCHAR_MAX; ++j) {
       signed char const x = (signed char) i;
       signed char const b = (signed char) j;
       signed char const y = type(bmm_uclamp, signed_char)(x, b);
@@ -234,8 +310,8 @@ CHEAT_TEST(uclamp_sint,
 )
 
 CHEAT_TEST(uclamp_uint,
-  for (int i = 0; i < 256; ++i)
-    for (int j = 1; j < 256; ++j) {
+  for (int i = 0; i <= UCHAR_MAX; ++i)
+    for (int j = 1; j <= UCHAR_MAX; ++j) {
       unsigned char const x = (unsigned char) i;
       unsigned char const b = (unsigned char) j;
       unsigned char const y = type(bmm_uclamp, unsigned_char)(x, b);
@@ -246,8 +322,8 @@ CHEAT_TEST(uclamp_uint,
 )
 
 CHEAT_TEST(uclamp_fp,
-  for (int i = -128; i < 128; ++i)
-    for (int j = 1; j < 128; ++j) {
+  for (int i = SCHAR_MIN; i <= SCHAR_MAX; ++i)
+    for (int j = 1; j <= SCHAR_MAX; ++j) {
       double const x = (double) i / 64.0;
       double const b = (double) j / 64.0;
       double const y = type(bmm_uclamp, double)(x, b);
@@ -259,7 +335,7 @@ CHEAT_TEST(uclamp_fp,
 
 CHEAT_TEST(sclamp_sint,
   for (int i = -64; i < 64; ++i)
-    for (int j = 1; j < 128; ++j) {
+    for (int j = 1; j <= SCHAR_MAX; ++j) {
       signed char const x = (signed char) i;
       signed char const c = (signed char) j;
       signed char const b = c / 2;
@@ -272,8 +348,8 @@ CHEAT_TEST(sclamp_sint,
 )
 
 CHEAT_TEST(sclamp_fp,
-  for (int i = -128; i < 128; ++i)
-    for (int j = 1; j < 128; ++j) {
+  for (int i = SCHAR_MIN; i <= SCHAR_MAX; ++i)
+    for (int j = 1; j <= SCHAR_MAX; ++j) {
       double const x = (double) i / 64.0;
       double const c = (double) j / 64.0;
       double const b = c / 2.0;

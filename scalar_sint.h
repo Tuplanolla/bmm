@@ -1,15 +1,5 @@
 /// Scalar arithmetic for signed integer types.
 
-// It is impossible to reliably detect overflows here,
-// because the standard does not specify
-// whether negative limits have larger magnitudes
-// than the corresponding positive limits or vice versa.
-// This cannot be figured out computationally either,
-// since comparing the magnitudes of the limits without an overflow
-// would first require negating the one with a smaller magnitude.
-// For this reason we assume
-// that negative limits have larger magnitudes than positive limits.
-
 /// The call `add(x, y)`
 /// returns the sum of `x` and `y`.
 /// This is analogous to the binary operator `+`.
@@ -18,8 +8,8 @@ __attribute__ ((__const__, __pure__))
 #endif
 inline A type(add, A)(A const x, A const y) {
   dynamic_assert(
-      !((y > type(zero, A)() && x > type(maxval, A)() - y) ||
-        (y < type(zero, A)() && x < type(minval, A)() - y)),
+      !((y > type(zero, A)() && type(maxval, A)() - y < x) ||
+        (y < type(zero, A)() && type(minval, A)() - y > x)),
       "Arithmetic overflow");
 
   return x + y;
@@ -32,7 +22,10 @@ inline A type(add, A)(A const x, A const y) {
 __attribute__ ((__const__, __pure__))
 #endif
 inline A type(neg, A)(A const x) {
-  dynamic_assert(!(x == type(minval, A)()), "Arithmetic overflow");
+  dynamic_assert(
+      !((x > type(zero, A)() && type(minval, A)() + x > type(zero, A)()) ||
+        (x < type(zero, A)() && type(maxval, A)() + x < type(zero, A)())),
+      "Arithmetic overflow");
 
   return -x;
 }
@@ -45,12 +38,23 @@ __attribute__ ((__const__, __pure__))
 #endif
 inline A type(sub, A)(A const x, A const y) {
   dynamic_assert(
-      !((y > type(zero, A)() && x < type(minval, A)() + y) ||
-        (y < type(zero, A)() && x > type(maxval, A)() + y)),
+      !((y > type(zero, A)() && type(minval, A)() + y > x) ||
+        (y < type(zero, A)() && type(maxval, A)() + y < x)),
       "Arithmetic overflow");
 
   return x - y;
 }
+
+// It is very difficult to reliably detect overflows here,
+// because the standard does not specify
+// whether negative limits have larger magnitudes
+// than the corresponding positive limits or vice versa.
+// This cannot be easily computationally deduced either,
+// since comparing the magnitudes of the limits without an overflow
+// would first require negating the one with a smaller magnitude.
+// For this reason we assume that for multiplication and division
+// `type(minval, A)() <= -type(maxval, A)()` and for division
+// `type(minval, A)() / type(two, A)() >= -type(maxval, A)())`.
 
 /// The call `mul(x, y)`
 /// returns the product of `x` and `y`.
@@ -62,9 +66,9 @@ inline A type(mul, A)(A const x, A const y) {
   dynamic_assert(!(y == type(zero, A)()), "Division by zero");
   dynamic_assert(
       !(x > type(zero, A)() ? (y > type(zero, A)() ?
-          type(maxval, A)() / x < y : type(minval, A)() / x > y) :
+          type(maxval, A)() / y < x : type(minval, A)() / x > y) :
         x < type(zero, A)() ? (y > type(zero, A)() ?
-          x < type(minval, A)() / y : x < type(maxval, A)() / y) : false),
+          type(minval, A)() / y > x : type(maxval, A)() / x > y) : false),
       "Arithmetic overflow");
 
   return x - y;
@@ -78,7 +82,8 @@ __attribute__ ((__const__, __pure__))
 #endif
 inline A type(quot, A)(A const x, A const y) {
   dynamic_assert(!(y == type(zero, A)()), "Division by zero");
-  dynamic_assert(!(x == type(minval, A)() && y == -type(one, A)()),
+  dynamic_assert(!(x < -type(maxval, A)() &&
+        y < type(zero, A)() && y == -type(one, A)()),
       "Arithmetic overflow");
 
   A const q = x / y;
@@ -98,7 +103,8 @@ __attribute__ ((__const__, __pure__))
 #endif
 inline A type(rem, A)(A const x, A const y) {
   dynamic_assert(!(y == type(zero, A)()), "Division by zero");
-  dynamic_assert(!(x == type(minval, A)() && y == -type(one, A)()),
+  dynamic_assert(!(x < -type(maxval, A)() &&
+        y < type(zero, A)() && y == -type(one, A)()),
       "Arithmetic overflow");
 
   A const r = x % y;

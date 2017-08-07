@@ -7,7 +7,7 @@
 __attribute__ ((__const__, __pure__))
 #endif
 inline A type(add, A)(A const x, A const y) {
-  dynamic_assert(!(type(maxval, A)() - x < y), "Arithmetic overflow");
+  dynamic_assert(!(type(maxval, A)() - y < x), "Arithmetic overflow");
 
   return x + y;
 }
@@ -19,7 +19,7 @@ inline A type(add, A)(A const x, A const y) {
 __attribute__ ((__const__, __pure__))
 #endif
 inline A type(sub, A)(A const x, A const y) {
-  dynamic_assert(!(x < y), "Arithmetic overflow");
+  dynamic_assert(!(type(minval, A)() + y > x), "Arithmetic overflow");
 
   return x - y;
 }
@@ -31,7 +31,7 @@ inline A type(sub, A)(A const x, A const y) {
 __attribute__ ((__const__, __pure__))
 #endif
 inline A type(mul, A)(A const x, A const y) {
-  dynamic_assert(!(type(maxval, A)() / x < y), "Arithmetic overflow");
+  dynamic_assert(!(type(maxval, A)() / y < x), "Arithmetic overflow");
 
   return x * y;
 }

@@ -367,7 +367,7 @@ inline double bmm_geom2d_shellvol(double const *restrict const x,
     bmm_geom2d_refl(y, x, xper, mask[imask]);
 
     double z[2];
-    bmm_geom2d_diff(y, z, xper);
+    bmm_geom2d_diff(z, xper, y);
 
     if (bmm_geom2d_norm2(z) > type(bmm_power, double)(r, 2)) {
       double a[2];
