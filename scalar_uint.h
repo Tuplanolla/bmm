@@ -39,22 +39,6 @@ inline bool $(remt_ovf, A)(__attribute__ ((__unused__)) A const x,
   return false;
 }
 
-/// The call `quote_ovf(x, y)`
-/// checks whether the Euclidean quotient of `x` and `y` would overflow.
-__attribute__ ((__const__, __pure__))
-inline bool $(quote_ovf, A)(__attribute__ ((__unused__)) A const x,
-    __attribute__ ((__unused__)) A const y) {
-  return false;
-}
-
-/// The call `reme_ovf(x, y)`
-/// checks whether the Euclidean remainder of `x` and `y` would overflow.
-__attribute__ ((__const__, __pure__))
-inline bool $(reme_ovf, A)(__attribute__ ((__unused__)) A const x,
-    __attribute__ ((__unused__)) A const y) {
-  return false;
-}
-
 /// The call `add(x, y)`
 /// returns the sum of `x` and `y`.
 /// This is analogous to the binary operator `+`.
@@ -117,16 +101,21 @@ inline A $(remt, A)(A const x, A const y) {
   return x % y;
 }
 
+/// The call `quotremt(oz, x, y)`
+/// stores into `oz` the truncated quotient and remainder of `x` and `y`.
+__attribute__ ((__nonnull__))
+inline void $(quotremt, A)(A *const oz, A const x, A const y) {
+  oz[0] = $(quott, A)(x, y);
+  oz[1] = $(remt, A)(x, y);
+}
+
 /// The call `quote(x, y)`
 /// returns the Euclidean quotient of `x` and `y`.
 #ifndef DEBUG
 __attribute__ ((__const__, __pure__))
 #endif
 inline A $(quote, A)(A const x, A const y) {
-  dynamic_assert(y != $(zero, A)(), "Division by zero");
-  dynamic_assert(!$(quote_ovf, A)(x, y), "Arithmetic overflow");
-
-  return x / y;
+  return $(quott, A)(x, y);
 }
 
 /// The call `reme(x, y)`
@@ -135,10 +124,15 @@ inline A $(quote, A)(A const x, A const y) {
 __attribute__ ((__const__, __pure__))
 #endif
 inline A $(reme, A)(A const x, A const y) {
-  dynamic_assert(y != $(zero, A)(), "Division by zero");
-  dynamic_assert(!$(reme_ovf, A)(x, y), "Arithmetic overflow");
+  return $(remt, A)(x, y);
+}
 
-  return x % y;
+/// The call `quotreme(oz, x, y)`
+/// stores into `oz` the Euclidean quotient and remainder of `x` and `y`.
+__attribute__ ((__nonnull__))
+inline void $(quotreme, A)(A *const oz, A const x, A const y) {
+  oz[0] = $(quote, A)(x, y);
+  oz[1] = $(reme, A)(x, y);
 }
 
 /// The call `add_mut(iox, y)`
@@ -181,6 +175,13 @@ inline void $(remt_mut, A)(A *const iox, A const y) {
   *iox = $(remt, A)(*iox, y);
 }
 
+/// The call `quotremt_mut(iox)`
+/// stores into `iox` the truncated quotient and remainder of `iox`.
+__attribute__ ((__nonnull__))
+inline void $(quotremt_mut, A)(A *const iox) {
+  $(quotremt, A)(iox, iox[0], iox[1]);
+}
+
 /// The call `quote_mut(iox, y)`
 /// stores into `iox` the Euclidean quotient of `iox` and `y`.
 __attribute__ ((__nonnull__))
@@ -193,4 +194,11 @@ inline void $(quote_mut, A)(A *const iox, A const y) {
 __attribute__ ((__nonnull__))
 inline void $(reme_mut, A)(A *const iox, A const y) {
   *iox = $(reme, A)(*iox, y);
+}
+
+/// The call `quotreme_mut(iox)`
+/// stores into `iox` the truncated quotient and remainder of `iox`.
+__attribute__ ((__nonnull__))
+inline void $(quotreme_mut, A)(A *const iox) {
+  $(quotreme, A)(iox, iox[0], iox[1]);
 }

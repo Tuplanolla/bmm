@@ -22,6 +22,6 @@ extern inline int $(maxval, int)(void);
 extern inline double $(maxval, double)(void);
 extern inline size_t $(maxval, size_t)(void);
 
-extern inline double $(trunc, double)(double, double);
+extern inline double $(quott, double)(double, double);
 
-extern inline double $(mod, double)(double, double);
+extern inline double $(remt, double)(double, double);

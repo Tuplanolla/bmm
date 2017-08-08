@@ -47,6 +47,14 @@ inline A $(div, A)(A const x, A const y) {
   return x / y;
 }
 
+/// The call `quotremt(oz, x, y)`
+/// stores into `oz` the truncated quotient and remainder of `x` and `y`.
+__attribute__ ((__const__, __pure__))
+inline void $(quotremt, A)(A *const oz, A const x, A const y) {
+  oz[0] = $(quott, A)(x, y);
+  oz[1] = $(remt, A)(x, y);
+}
+
 /// The call `quote(x, y)`
 /// returns the Euclidean quotient of `x` and `y`.
 __attribute__ ((__const__, __pure__))
@@ -57,7 +65,7 @@ inline A $(quote, A)(A const x, A const y) {
     $(zero, A)() : y < $(zero, A)() ?
     -$(one, A)() : $(one, A)();
 
-  return q - s;
+  return $(sub, A)(q, s);
 }
 
 /// The call `reme(x, y)`
@@ -69,7 +77,21 @@ inline A $(reme, A)(A const x, A const y) {
     $(zero, A)() : y < $(zero, A)() ?
     -$(one, A)() : $(one, A)();
 
-  return r + s * y;
+  return $(add, A)(r, $(mul, A)(s, y));
+}
+
+/// The call `quotreme(oz, x, y)`
+/// stores into `oz` the Euclidean quotient and remainder of `x` and `y`.
+__attribute__ ((__const__, __pure__))
+inline void $(quotreme, A)(A *const oz, A const x, A const y) {
+  A const q = $(quott, A)(x, y);
+  A const r = $(remt, A)(x, y);
+  A const s = r >= $(zero, A)() ?
+    $(zero, A)() : y < $(zero, A)() ?
+    -$(one, A)() : $(one, A)();
+
+  oz[0] = $(sub, A)(q, s);
+  oz[1] = $(add, A)(r, $(mul, A)(s, y));
 }
 
 /// The call `add_mut(iox, y)`
@@ -132,6 +154,13 @@ inline void $(remt_mut, A)(A *const iox, A const y) {
   *iox = $(remt, A)(*iox, y);
 }
 
+/// The call `quotremt_mut(iox)`
+/// stores into `iox` the truncated quotient and remainder of `iox`.
+__attribute__ ((__nonnull__))
+inline void $(quotremt_mut, A)(A *const iox) {
+  $(quotremt, A)(iox, iox[0], iox[1]);
+}
+
 /// The call `quote_mut(iox, y)`
 /// stores into `iox` the Euclidean quotient of `iox` and `y`.
 __attribute__ ((__nonnull__))
@@ -144,4 +173,11 @@ inline void $(quote_mut, A)(A *const iox, A const y) {
 __attribute__ ((__nonnull__))
 inline void $(reme_mut, A)(A *const iox, A const y) {
   *iox = $(reme, A)(*iox, y);
+}
+
+/// The call `quotreme_mut(iox)`
+/// stores into `iox` the Euclidean quotient and remainder of `iox`.
+__attribute__ ((__nonnull__))
+inline void $(quotreme_mut, A)(A *const iox) {
+  $(quotreme, A)(iox, iox[0], iox[1]);
 }

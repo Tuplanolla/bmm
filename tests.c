@@ -93,25 +93,38 @@ CHEAT_TEST(mul_ovf_sint,
     for (int maxval = 1; maxval <= val; ++maxval)
       for (int x = minval; x <= maxval; ++x)
         for (int y = minval; y <= maxval; ++y) {
-          cheat_assert_not(
-              x != 0 && (x > 0 ?
-                (y > 0 ? maxval / x < minval || maxval / x > maxval :
-                  minval / x < minval || minval / x > maxval) :
-                (y > 0 ? minval / y < minval || minval / y > maxval :
-                  (minval + maxval <= 0 ?
-                    maxval / x < minval || maxval / x > maxval :
+          if (minval + maxval <= 0) {
+            cheat_assert_not(
+                x != 0 && (x > 0 ?
+                  (y > 0 ? maxval / x < minval || maxval / x > maxval :
+                    minval / x < minval || minval / x > maxval) :
+                  (y > 0 ? minval / y < minval || minval / y > maxval :
+                    maxval / x < minval || maxval / x > maxval)));
+            cheat_assert_int(
+                x != 0 && (x > 0 ?
+                  (y > 0 ? maxval / x < y :
+                    minval / x > y) :
+                  (y > 0 ? minval / y > x :
+                    maxval / x > y)),
+                x * y < minval ||
+                x * y > maxval);
+          } else if (minval + maxval >= 0) {
+            cheat_assert_not(
+                x != 0 && (x > 0 ?
+                  (y > 0 ? maxval / x < minval || maxval / x > maxval :
+                    minval / x < minval || minval / x > maxval) :
+                  (y > 0 ? minval / y < minval || minval / y > maxval :
                     maxval / -x < minval || maxval / -x > maxval ||
-                    -y < minval || -y > maxval))));
-          cheat_assert_int(
-              x != 0 && (x > 0 ?
-                (y > 0 ? maxval / x < y :
-                  minval / x > y) :
-                (y > 0 ? minval / y > x :
-                  (minval + maxval <= 0 ?
-                    maxval / x > y :
-                    maxval / -x < -y))),
-              x * y < minval ||
-              x * y > maxval);
+                    -y < minval || -y > maxval)));
+            cheat_assert_int(
+                x != 0 && (x > 0 ?
+                  (y > 0 ? maxval / x < y :
+                    minval / x > y) :
+                  (y > 0 ? minval / y > x :
+                    maxval / -x < -y)),
+                x * y < minval ||
+                x * y > maxval);
+          }
         }
 )
 
@@ -185,69 +198,8 @@ CHEAT_TEST(remt_ovf_uint,
         if (y != 0)
           cheat_assert_int(
               false,
-              x / y < 0 ||
-              x / y > maxval);
-)
-
-// TODO This.
-CHEAT_SKIP(quote_ovf_sint,
-  for (int minval = -val; minval <= -1; ++minval)
-    for (int maxval = 1; maxval <= val; ++maxval)
-      for (int x = minval; x <= maxval; ++x)
-        for (int y = minval; y <= maxval; ++y)
-          if (y != 0) {
-            if (minval + maxval <= 0 && minval / 2 + maxval >= 0) {
-              cheat_assert_not(
-                  -maxval < minval || -maxval > maxval);
-              cheat_assert_int(
-                  x < -maxval && y < 0 && y == -1,
-                  $(bmm_quot, int)(x, y) < minval ||
-                  $(bmm_quot, int)(x, y) > maxval);
-            } else if (minval + maxval >= 0 && minval + maxval / 2 <= 0) {
-              cheat_assert_not(
-                  -minval < minval || -minval > maxval);
-              cheat_assert_int(
-                  x > -minval && y < 0 && y == -1,
-                  $(bmm_quot, int)(x, y) < minval ||
-                  $(bmm_quot, int)(x, y) > maxval);
-            }
-          }
-)
-
-CHEAT_TEST(quote_ovf_uint,
-  for (int maxval = 1; maxval <= val; ++maxval)
-    for (int x = 0; x <= maxval; ++x)
-      for (int y = 0; y <= maxval; ++y)
-        if (y != 0)
-          cheat_assert_int(
-              false,
-              $(bmm_quot, int)(x, y) < 0 ||
-              $(bmm_quot, int)(x, y) > maxval);
-)
-
-// TODO This.
-CHEAT_SKIP(reme_ovf_sint,
-  for (int minval = -val; minval <= -1; ++minval)
-    for (int maxval = 1; maxval <= val; ++maxval)
-      for (int x = minval; x <= maxval; ++x)
-        for (int y = minval; y <= maxval; ++y)
-          if (y != 0) {
-            cheat_assert_int(
-                false,
-                $(bmm_rem, int)(x, y) < minval ||
-                $(bmm_rem, int)(x, y) > maxval);
-          }
-)
-
-CHEAT_TEST(reme_ovf_uint,
-  for (int maxval = 1; maxval <= val; ++maxval)
-    for (int x = 0; x <= maxval; ++x)
-      for (int y = 0; y <= maxval; ++y)
-        if (y != 0)
-          cheat_assert_int(
-              false,
-              $(bmm_rem, int)(x, y) < 0 ||
-              $(bmm_rem, int)(x, y) > maxval);
+              x % y < 0 ||
+              x % y > maxval);
 )
 
 CHEAT_TEST(quot_sint,

@@ -1,13 +1,13 @@
 extern inline void $(zero, A, D)(A *);
 extern inline void $(add, A, D)(A *restrict,
     A const *restrict, A const *restrict);
-inline void $(neg, A, D)(A *restrict, A const *restrict);
+extern inline void $(neg, A, D)(A *restrict, A const *restrict);
 extern inline void $(sub, A, D)(A *restrict,
     A const *restrict, A const *restrict);
 extern inline void $(one, A, D)(A *);
 extern inline void $(mul, A, D)(A *restrict,
     A const *restrict, A const *restrict);
-inline void $(recip, A, D)(A *restrict, A const *restrict);
+extern inline void $(recip, A, D)(A *restrict, A const *restrict);
 extern inline void $(div, A, D)(A *restrict,
     A const *restrict, A const *restrict);
 extern inline void $(quott, A, D)(A *restrict,

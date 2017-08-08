@@ -8,7 +8,7 @@ CFLAGS+=-D_GNU_SOURCE -DDEBUG -O0 -ftrapv -g \
 	-Wno-aggregate-return -Wno-bad-function-cast -Wno-disabled-macro-expansion \
 	-Wno-missing-prototypes -Wno-padded -Wno-unused-parameter -Wno-attributes -Wno-unused-function -Wno-shadow \
 	-Wno-switch -Wno-used-but-marked-unused \
-	-Wdollar-in-identifier-extension
+	-Wno-dollar-in-identifier-extension
 # TODO The third to last line should be removed later.
 endif
 ifeq ($(CONFIG), profile)
