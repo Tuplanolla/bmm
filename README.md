@@ -575,6 +575,21 @@ Ignoring `const` and other qualifiers, the following basic types exist in C11.
 | Extended Floating-Point Numbers |                  | `complex double`      |  
 | Extended Floating-Point Numbers |                  | `complex long double` |  
 
+The following classes or traites are employed.
+
+    |------------------- poly -------------------|  Polymorphic
+    |-------------------- eq --------------------|  Equivalence with =
+    |-------------- ord ---------------|            Order with < and >
+    |-------------- bnd ---------------|            Bounded with ^ and v
+       |------------------ num ------------------|  Numeric with +, *, 0 and 1
+       |-------- int --------|                      Integral with ++ and --
+       |-- sint --|                                 Signed integral with -
+                  |-- uint --|                      Unsigned integral
+                             |-------- fp -------|  Floating-point with -, / and %
+                             |-- sfp --|            Scalar floating-point
+                                       |-- vfp --|  Vector floating-point with ||
+    |------------------- mono -------------------|  Monomorphic
+
 ### Do These Things
 
 See if better sedimentation algorithms exist.
