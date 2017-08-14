@@ -410,14 +410,8 @@ void bmm_dem_force_creeping(struct bmm_dem *const dem,
 // TODO Flatten these to allow loop-invariant code motion.
 void bmm_dem_force_ambient(struct bmm_dem *const dem, size_t const ipart) {
   switch (dem->amb.tag) {
-    case BMM_DEM_FAMB_CREEPING:
+    case BMM_DEM_AMB_FAXEN:
       bmm_dem_force_creeping(dem, ipart);
-
-      break;
-    case BMM_DEM_FAMB_QUAD:
-
-      break;
-    case BMM_DEM_FAMB_CORR:
 
       break;
   }
@@ -442,7 +436,7 @@ void bmm_dem_force_pair(struct bmm_dem *const dem,
   if (d2 > r2) {
     // TODO No!
     switch (dem->tang.tag) {
-      case BMM_DEM_FTANG_CS:
+      case BMM_DEM_TANG_CS:
         dem->tang.params.cs.zeta[ipart][jpart] = 0.0;
         dem->tang.params.cs.zeta[jpart][ipart] = 0.0;
     }
@@ -471,12 +465,12 @@ void bmm_dem_force_pair(struct bmm_dem *const dem,
     double const reff = $(bmm_resum2, double)(ri, rj);
 
     switch (dem->norm.tag) {
-      case BMM_DEM_FNORM_DASHPOT:
+      case BMM_DEM_NORM_DASHPOT:
         fnorm = $(bmm_max, double)(0.0,
             dem->opts.part.y * xi + dem->norm.params.dashpot.gamma * vnormij);
 
         break;
-      case BMM_DEM_FNORM_VISCOEL:
+      case BMM_DEM_NORM_BSHP:
         fnorm = $(bmm_max, double)(0.0,
             (2.0 / 3.0) * (dem->opts.part.y /
               (1.0 - $(bmm_power, double)(dem->opts.part.nu, 2))) *
@@ -503,14 +497,14 @@ void bmm_dem_force_pair(struct bmm_dem *const dem,
     double const dt = dem->opts.script.dt[dem->script.i];
 
     switch (dem->tang.tag) {
-      case BMM_DEM_FTANG_HW:
+      case BMM_DEM_TANG_HW:
         ftang = copysign($(bmm_min, double)(
               dem->tang.params.hw.gamma * $(bmm_abs, double)(vtangij),
               dem->tang.params.hw.mu * $(bmm_abs, double)(fnorm)), vtangij);
 
         break;
       // TODO No!
-      case BMM_DEM_FTANG_CS:
+      case BMM_DEM_TANG_CS:
         dem->tang.params.cs.zeta[ipart][jpart] += vtangij * dt;
         dem->tang.params.cs.zeta[jpart][ipart] += vtangij * dt;
 
@@ -552,22 +546,22 @@ void bmm_dem_force_pair(struct bmm_dem *const dem,
     double const ajit = (1.0 / 2.0) * (ri + sji);
 
     switch (dem->tau.tag) {
-      case BMM_DEM_TAU_SOFT:
+      case BMM_DEM_TORQUE_SOFT:
         taui = sij * ftang;
         tauj = sji * ftang;
 
         break;
-      case BMM_DEM_TAU_HARD:
+      case BMM_DEM_TORQUE_HARD:
         taui = ri * ftang;
         tauj = rj * ftang;
 
         break;
-      case BMM_DEM_TAU_AVERAGE:
+      case BMM_DEM_TORQUE_MEAN:
         taui = aij * ftang;
         tauj = aji * ftang;
 
         break;
-      case BMM_DEM_TAU_HALFWAY:
+      case BMM_DEM_TORQUE_HALFWAY:
         taui = aijt * ftang;
         tauj = ajit * ftang;
 
@@ -607,8 +601,8 @@ void bmm_dem_force_link(struct bmm_dem *const dem,
   double fnorm = 0.0;
 
   switch (dem->link.tag) {
-    case BMM_DEM_FLINK_SPRING:
-    case BMM_DEM_FLINK_BEAM:
+    case BMM_DEM_LINK_SPRING:
+    case BMM_DEM_LINK_BEAM:
       {
         {
           double const zeta = dem->link.part[ipart].rrest[ilink] - d;
@@ -630,7 +624,7 @@ void bmm_dem_force_link(struct bmm_dem *const dem,
   }
 
   switch (dem->link.tag) {
-    case BMM_DEM_FLINK_BEAM:
+    case BMM_DEM_LINK_BEAM:
       {
         // Torques second.
 
@@ -684,13 +678,14 @@ void bmm_dem_force_link(struct bmm_dem *const dem,
 
 void bmm_dem_force_external(struct bmm_dem *const dem, size_t const ipart) {
   switch (dem->ext.tag) {
-    case BMM_DEM_FEXT_ABS:
-      dem->part.f[ipart][1] += dem->ext.params.abs.fcohes;
+    case BMM_DEM_EXT_HARM:
+      dem->part.f[ipart][1] += dem->ext.params.harm.k *
+        (dem->opts.box.x[1] / 2.0 - dem->part.x[ipart][1]);
 
       break;
-    case BMM_DEM_FEXT_HARM:
-      dem->part.f[ipart][1] += dem->ext.params.harm.kcohes *
-        (dem->opts.box.x[1] / 2.0 - dem->part.x[ipart][1]);
+    case BMM_DEM_EXT_GRAVY:
+      // TODO This is not how gravity works!
+      dem->part.f[ipart][1] += dem->ext.params.gravy.f;
 
       break;
   }
@@ -724,14 +719,14 @@ void bmm_dem_force(struct bmm_dem *const dem) {
     }
 
   switch (dem->cache.tag) {
-    case BMM_DEM_CACHING_NONE:
+    case BMM_DEM_CACHE_NONE:
       for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
         for (size_t jpart = ipart + 1; jpart < dem->part.n; ++jpart)
           if (contact[ipart][jpart] && contact[jpart][ipart])
             bmm_dem_force_pair(dem, ipart, jpart);
 
       break;
-    case BMM_DEM_CACHING_NEIGH:
+    case BMM_DEM_CACHE_NEIGH:
       for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
         for (size_t ineigh = 0; ineigh < dem->cache.neigh[ipart].n; ++ineigh) {
           size_t const jpart = dem->cache.neigh[ipart].i[ineigh];
@@ -924,14 +919,14 @@ void bmm_dem_fract_pair(struct bmm_dem *const dem,
     dem->link.part[ipart].philim[ilink] = dem->link.part[ipart].philim[jlink];
   }
 
-  switch (dem->fract.tag) {
-    case BMM_DEM_FRACT_ELLIPSE:
+  switch (dem->yield.tag) {
+    case BMM_DEM_YIELD_ZE:
 
       break;
   }
 }
 
-void bmm_dem_fract(struct bmm_dem *const dem) {
+void bmm_dem_yield(struct bmm_dem *const dem) {
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     for (size_t ilink = 0; ilink < dem->link.part[ipart].n; ++ilink) {
       size_t const jpart = dem->link.part[ipart].i[ilink];
@@ -963,7 +958,7 @@ bool bmm_dem_link_pair(struct bmm_dem *const dem,
 
   // TODO Check sign.
   switch (dem->link.tag) {
-    case BMM_DEM_FLINK_BEAM:
+    case BMM_DEM_LINK_BEAM:
       {
         double const gammaij = $(bmm_swrap, double)(bmm_geom2d_dir(xdiffij), M_2PI);
         double const gammaji = $(bmm_swrap, double)(gammaij + M_PI, M_2PI);
@@ -981,7 +976,7 @@ bool bmm_dem_link_pair(struct bmm_dem *const dem,
         dem->link.part[ipart].philim[dem->link.part[ipart].n] =
           cphilim * M_2PI;
       }
-    case BMM_DEM_FLINK_SPRING:
+    case BMM_DEM_LINK_SPRING:
       {
         double const crlim = bmm_random_get(dem->rng, dem->opts.link.crlim);
 
@@ -1002,14 +997,14 @@ bool bmm_dem_link_pair(struct bmm_dem *const dem,
 // TODO Check triangulation quality and compare with Delaunay.
 bool bmm_dem_link(struct bmm_dem *const dem) {
   switch (dem->cache.tag) {
-    case BMM_DEM_CACHING_NONE:
+    case BMM_DEM_CACHE_NONE:
       for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
         for (size_t jpart = ipart + 1; jpart < dem->part.n; ++jpart)
           if (!bmm_dem_link_pair(dem, ipart, jpart))
             return false;
 
       break;
-    case BMM_DEM_CACHING_NEIGH:
+    case BMM_DEM_CACHE_NEIGH:
       for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
         for (size_t ineigh = 0; ineigh < dem->cache.neigh[ipart].n; ++ineigh)
           if (!bmm_dem_link_pair(dem, ipart, dem->cache.neigh[ipart].i[ineigh]))
@@ -1398,42 +1393,42 @@ void bmm_dem_def(struct bmm_dem *const dem,
   dem->integ.tag = BMM_DEM_INTEG_EULER;
   dem->integ.tag = BMM_DEM_INTEG_TAYLOR;
   dem->integ.tag = BMM_DEM_INTEG_VELVET;
-  dem->cache.tag = BMM_DEM_CACHING_NONE;
-  dem->cache.tag = BMM_DEM_CACHING_NEIGH;
-  dem->ext.tag = BMM_DEM_FEXT_NONE;
-  dem->amb.tag = BMM_DEM_FAMB_CREEPING;
-  dem->norm.tag = BMM_DEM_FNORM_DASHPOT;
-  dem->norm.tag = BMM_DEM_FNORM_VISCOEL;
-  dem->tang.tag = BMM_DEM_FTANG_HW;
-  dem->tang.tag = BMM_DEM_FTANG_CS;
-  dem->tau.tag = BMM_DEM_TAU_SOFT;
-  dem->tau.tag = BMM_DEM_TAU_HARD;
-  dem->fract.tag = BMM_DEM_FRACT_ELLIPSE;
-  dem->link.tag = BMM_DEM_FLINK_SPRING;
-  dem->link.tag = BMM_DEM_FLINK_BEAM;
+  dem->cache.tag = BMM_DEM_CACHE_NONE;
+  dem->cache.tag = BMM_DEM_CACHE_NEIGH;
+  dem->ext.tag = BMM_DEM_EXT_NONE;
+  dem->amb.tag = BMM_DEM_AMB_FAXEN;
+  dem->norm.tag = BMM_DEM_NORM_DASHPOT;
+  dem->norm.tag = BMM_DEM_NORM_BSHP;
+  dem->tang.tag = BMM_DEM_TANG_HW;
+  dem->tang.tag = BMM_DEM_TANG_CS;
+  dem->tau.tag = BMM_DEM_TORQUE_SOFT;
+  dem->tau.tag = BMM_DEM_TORQUE_HARD;
+  dem->yield.tag = BMM_DEM_YIELD_ZE;
+  dem->link.tag = BMM_DEM_LINK_SPRING;
+  dem->link.tag = BMM_DEM_LINK_BEAM;
 
   // TODO Stop fucking around with the `union` of these parameters.
   dem->amb.params.creeping.mu = 1.0e-3;
 
   switch (dem->norm.tag) {
-    case BMM_DEM_FNORM_DASHPOT:
+    case BMM_DEM_NORM_DASHPOT:
       dem->norm.params.dashpot.gamma = 1.0e+3;
 
       break;
-    case BMM_DEM_FNORM_VISCOEL:
+    case BMM_DEM_NORM_BSHP:
       dem->norm.params.viscoel.a = 2.0e-2;
 
       break;
   }
 
   switch (dem->tang.tag) {
-    case BMM_DEM_FTANG_HW:
+    case BMM_DEM_TANG_HW:
       dem->tang.params.hw.gamma = 1.0e+2;
       dem->tang.params.hw.mu = 0.5;
 
       break;
     // TODO No!
-    case BMM_DEM_FTANG_CS:
+    case BMM_DEM_TANG_CS:
       for (size_t ipart = 0; ipart < nmembof(dem->tang.params.cs.zeta); ++ipart)
         for (size_t jpart = 0; jpart < nmembof(dem->tang.params.cs.zeta[ipart]); ++jpart)
           dem->tang.params.cs.zeta[ipart][jpart] = 0.0;
@@ -1445,12 +1440,12 @@ void bmm_dem_def(struct bmm_dem *const dem,
   }
 
   switch (dem->link.tag) {
-    case BMM_DEM_FLINK_SPRING:
+    case BMM_DEM_LINK_SPRING:
       dem->link.k = 1.0;
       dem->link.dk = 1.0;
 
       break;
-    case BMM_DEM_FLINK_BEAM:
+    case BMM_DEM_LINK_BEAM:
       dem->link.k = 1.0;
       dem->link.dk = 1.0;
       dem->link.kappa = 1.0;
@@ -1981,23 +1976,23 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
 
       break;
     case BMM_DEM_MODE_GRAVY:
-      dem->ext.tag = BMM_DEM_FEXT_ABS;
-      dem->ext.params.abs.fcohes =
+      dem->ext.tag = BMM_DEM_EXT_GRAVY;
+      dem->ext.params.gravy.f =
         -dem->opts.script.params[dem->script.i].gravy.f;
 
       break;
     case BMM_DEM_MODE_SEDIMENT:
-      dem->ext.tag = BMM_DEM_FEXT_HARM;
-      dem->ext.params.harm.kcohes =
+      dem->ext.tag = BMM_DEM_EXT_HARM;
+      dem->ext.params.harm.k =
         dem->opts.script.params[dem->script.i].sediment.kcohes;
 
       break;
     case BMM_DEM_MODE_PRESET0:
-      dem->amb.tag = BMM_DEM_FAMB_CREEPING;
-      dem->norm.tag = BMM_DEM_FNORM_VISCOEL;
-      dem->tang.tag = BMM_DEM_FTANG_NONE;
-      dem->fract.tag = BMM_DEM_FRACT_NONE;
-      dem->link.tag = BMM_DEM_FLINK_SPRING;
+      dem->amb.tag = BMM_DEM_AMB_FAXEN;
+      dem->norm.tag = BMM_DEM_NORM_BSHP;
+      dem->tang.tag = BMM_DEM_TANG_NONE;
+      dem->yield.tag = BMM_DEM_YIELD_NONE;
+      dem->link.tag = BMM_DEM_LINK_SPRING;
 
       break;
     case BMM_DEM_MODE_CLIP:
@@ -2005,15 +2000,15 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
 
       break;
     case BMM_DEM_MODE_PRESET1:
-      dem->amb.tag = BMM_DEM_FAMB_NONE;
-      dem->norm.tag = BMM_DEM_FNORM_VISCOEL;
-      dem->tang.tag = BMM_DEM_FTANG_CS;
-      dem->fract.tag = BMM_DEM_FRACT_ELLIPSE;
-      dem->link.tag = BMM_DEM_FLINK_BEAM;
+      dem->amb.tag = BMM_DEM_AMB_NONE;
+      dem->norm.tag = BMM_DEM_NORM_BSHP;
+      dem->tang.tag = BMM_DEM_TANG_CS;
+      dem->yield.tag = BMM_DEM_YIELD_ZE;
+      dem->link.tag = BMM_DEM_LINK_BEAM;
 
       break;
     case BMM_DEM_MODE_LINK:
-      dem->ext.tag = BMM_DEM_FEXT_NONE;
+      dem->ext.tag = BMM_DEM_EXT_NONE;
 
       if (!bmm_dem_link(dem))
         return false;
@@ -2048,7 +2043,7 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
   bmm_dem_accel(dem);
   bmm_dem_correct(dem);
   // TODO Here or there?
-  bmm_dem_fract(dem);
+  bmm_dem_yield(dem);
 
   if (dem->time.istep % dem->opts.time.istab == 0)
     bmm_dem_stab(dem);

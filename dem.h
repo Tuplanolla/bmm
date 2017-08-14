@@ -15,67 +15,130 @@
 #include "io.h"
 #include "msg.h"
 
+/// Special particle properties.
+enum bmm_dem_role {
+  /// Free particle.
+  BMM_DEM_ROLE_FREE,
+  /// Fixed particle.
+  BMM_DEM_ROLE_FIXED
+};
+
+/// Cache policies.
+enum bmm_dem_cache {
+  BMM_DEM_CACHE_NONE,
+  /// Neighbor cell caching.
+  BMM_DEM_CACHE_NEIGH
+};
+
+/// Integration schemes.
 enum bmm_dem_integ {
-  /// Forward Euler.
+  /// Forward Euler scheme.
   BMM_DEM_INTEG_EULER,
-  /// Taylor series.
+  /// Forward scheme using Taylor expansions.
   BMM_DEM_INTEG_TAYLOR,
-  /// Velocity Verlet.
+  /// Velocity Verlet (not leapfrog) scheme.
   BMM_DEM_INTEG_VELVET
 };
 
-enum bmm_dem_caching {
-  BMM_DEM_CACHING_NONE,
-  BMM_DEM_CACHING_NEIGH
+/// External force schemes.
+enum bmm_dem_ext {
+  BMM_DEM_EXT_NONE,
+  /// Harmonic force field.
+  BMM_DEM_EXT_HARM,
+  /// Gravitational acceleration.
+  BMM_DEM_EXT_GRAVY
 };
 
-enum bmm_dem_fext {
-  BMM_DEM_FEXT_NONE,
-  BMM_DEM_FEXT_ABS,
-  BMM_DEM_FEXT_HARM
+/// Ambient force schemes.
+enum bmm_dem_amb {
+  BMM_DEM_AMB_NONE,
+  /// Free stream creeping flow.
+  BMM_DEM_AMB_FAXEN
 };
 
-enum bmm_dem_famb {
-  BMM_DEM_FAMB_NONE,
-  BMM_DEM_FAMB_CREEPING,
-  BMM_DEM_FAMB_QUAD,
-  BMM_DEM_FAMB_CORR
+/// Normal force schemes.
+enum bmm_dem_norm {
+  BMM_DEM_NORM_NONE,
+  /// Ideal restitution model.
+  BMM_DEM_NORM_IDEAL,
+  /// Linear dashpot model.
+  BMM_DEM_NORM_DASHPOT,
+  /// Elastic model by Hertz.
+  BMM_DEM_NORM_HERTZ,
+  /// Viscoelastic model by Brilliantov, Spahn, Hertzsch and Poschel.
+  BMM_DEM_NORM_BSHP,
+  /// Piecewise model by Walton and Braun.
+  BMM_DEM_NORM_WB
 };
 
-enum bmm_dem_fnorm {
-  BMM_DEM_FNORM_NONE,
-  BMM_DEM_FNORM_DASHPOT,
-  BMM_DEM_FNORM_VISCOEL
+/// Tangential force schemes.
+enum bmm_dem_tang {
+  BMM_DEM_TANG_NONE,
+  /// Dynamic model by Coulomb.
+  // TODO This is `\\mu F` only.
+  BMM_DEM_TANG_COULOMB,
+  /// Viscous model.
+  // TODO This is `\\gamma \\mu` only.
+  BMM_DEM_TANG_VISCOUS,
+  /// Static model by Cundall and Strack.
+  BMM_DEM_TANG_CS,
+  /// Dynamic model by Haff and Werner.
+  BMM_DEM_TANG_HW,
+  /// Piecewise model by Walton and Braun.
+  BMM_DEM_TANG_WB,
+  /// Microscopic asperity model by Brilliantov, Spahn, Hertzsch and Poschel.
+  // TODO This is strange.
+  BMM_DEM_TANG_BSHP
 };
 
-enum bmm_dem_ftang {
-  BMM_DEM_FTANG_NONE,
-  BMM_DEM_FTANG_HW,
-  BMM_DEM_FTANG_CS
+/// Torque mediation schemes.
+enum bmm_dem_torque {
+  /// Radii deform considerably.
+  BMM_DEM_TORQUE_SOFT,
+  /// Radii deform negligibly.
+  BMM_DEM_TORQUE_HARD,
+  /// Compromise.
+  BMM_DEM_TORQUE_MEAN,
+  /// Simplified compromise.
+  BMM_DEM_TORQUE_HALFWAY
 };
 
-enum bmm_dem_tau {
-  BMM_DEM_TAU_SOFT,
-  BMM_DEM_TAU_HARD,
-  BMM_DEM_TAU_AVERAGE,
-  BMM_DEM_TAU_HALFWAY
+/// Link force schemes.
+enum bmm_dem_link {
+  BMM_DEM_LINK_NONE,
+  /// Ideal spring model.
+  BMM_DEM_LINK_SPRING,
+  /// Ideal beam model.
+  BMM_DEM_LINK_BEAM,
+  /// Bending beam model by Euler and Bernoulli.
+  BMM_DEM_LINK_EB,
+  /// Bending and shear beam model.
+  BMM_DEM_LINK_SHEAR,
+  /// Bending and rotary beam model by Rayleigh.
+  BMM_DEM_LINK_RAYLEIGH,
+  /// Bending, shear and rotary beam model by Timoshenko.
+  BMM_DEM_LINK_TIMO
 };
 
-enum bmm_dem_fract {
-  BMM_DEM_FRACT_NONE,
-  BMM_DEM_FRACT_ELLIPSE
-};
-
-enum bmm_dem_flink {
-  BMM_DEM_FLINK_NONE,
-  BMM_DEM_FLINK_SPRING,
-  BMM_DEM_FLINK_BEAM
-};
-
-enum bmm_dem_role {
-  BMM_DEM_ROLE_FREE,
-  BMM_DEM_ROLE_FIXED,
-  BMM_DEM_ROLE_DRIVEN
+/// Yield stress criteria.
+enum bmm_dem_yield {
+  BMM_DEM_YIELD_NONE,
+  /// Maximum normal stress criterion by Rankine.
+  BMM_DEM_YIELD_RANKINE,
+  /// Maximum shear stress criterion by Tresca.
+  BMM_DEM_YIELD_TRESCA,
+  /// Maximum distortion energy criterion by von Mises.
+  BMM_DEM_YIELD_VONMISES,
+  /// Mohr--Coulomb criterion.
+  BMM_DEM_YIELD_MC,
+  /// Ellipse criterion by Zhang and Eckert.
+  BMM_DEM_YIELD_ZE,
+  /// Pressure criterion by Drucker and Prager.
+  BMM_DEM_YIELD_DP,
+  /// Extended pressure criterion by Bresler and Pister.
+  BMM_DEM_YIELD_BP,
+  /// Combined criterion by Willam and Warnke.
+  BMM_DEM_YIELD_WW
 };
 
 enum bmm_dem_mode {
@@ -83,6 +146,7 @@ enum bmm_dem_mode {
   BMM_DEM_MODE_IDLE,
   /// Create a fixed number of particles, sparse in the y-direction.
   BMM_DEM_MODE_CREATE_GAS,
+  /// Test systems.
   BMM_DEM_MODE_CREATE_COUPLE,
   BMM_DEM_MODE_CREATE_TRIPLET,
   BMM_DEM_MODE_CREATE_HC,
@@ -91,6 +155,7 @@ enum bmm_dem_mode {
   BMM_DEM_MODE_CREATE_BEAM,
   /// Draw particles towards a harmonic force field zero along the x-axis.
   BMM_DEM_MODE_SEDIMENT,
+  /// Draw particles toward infinity along the y-axis.
   BMM_DEM_MODE_GRAVY,
   /// Remove particles outside the bounding box.
   BMM_DEM_MODE_CLIP,
@@ -267,29 +332,30 @@ struct bmm_dem {
   } integ;
   /// External forces.
   struct {
-    /// External force scheme.
-    enum bmm_dem_fext tag;
+    /// Force scheme.
+    enum bmm_dem_ext tag;
     /// Parameters.
     union {
-      /// For `BMM_DEM_FEXT_ABS`.
-      struct {
-        /// Force.
-        double fcohes;
-      } abs;
-      /// For `BMM_DEM_FEXT_HARM`.
+      /// For `BMM_DEM_EXT_HARM`.
       struct {
         /// Harmonic constant.
-        double kcohes;
+        double k;
+        // TODO Add directional parameters here.
       } harm;
+      /// For `BMM_DEM_EXT_GRAVY`.
+      struct {
+        /// Force.
+        double f;
+      } gravy;
     } params;
   } ext;
   /// Ambient forces.
   struct {
-    /// Ambient force scheme.
-    enum bmm_dem_famb tag;
+    /// Force scheme.
+    enum bmm_dem_amb tag;
     /// Parameters.
     union {
-      /// For `BMM_DEM_FAMB_CREEPING`.
+      /// For `BMM_DEM_AMB_CREEPING`.
       struct {
         /// Dynamic viscosity of compressible solution.
         double mu;
@@ -298,16 +364,16 @@ struct bmm_dem {
   } amb;
   /// Normal forces.
   struct {
-    /// Normal force scheme.
-    enum bmm_dem_fnorm tag;
+    /// Force scheme.
+    enum bmm_dem_norm tag;
     /// Parameters.
     union {
-      /// For `BMM_DEM_FNORM_DASHPOT`.
+      /// For `BMM_DEM_NORM_DASHPOT`.
       struct {
         /// Dashpot elasticity.
         double gamma;
       } dashpot;
-      /// For `BMM_DEM_FNORM_VISCOEL`.
+      /// For `BMM_DEM_NORM_BSHP`.
       struct {
         /// Dissipative constant.
         double a;
@@ -316,18 +382,18 @@ struct bmm_dem {
   } norm;
   /// Tangential forces.
   struct {
-    /// Tangential force scheme.
-    enum bmm_dem_ftang tag;
+    /// Force scheme.
+    enum bmm_dem_tang tag;
     /// Parameters.
     union {
-      /// For `BMM_DEM_FTANG_HW`.
+      /// For `BMM_DEM_TANG_HW`.
       struct {
         /// Haff--Werner elasticity.
         double gamma;
         /// Coulomb friction parameter.
         double mu;
       } hw;
-      /// For `BMM_DEM_FTANG_CS`.
+      /// For `BMM_DEM_TANG_CS`.
       struct {
         /// Cundall--Strack elasticity.
         double kappa;
@@ -342,7 +408,7 @@ struct bmm_dem {
   /// Torques.
   struct {
     /// Torque scheme.
-    enum bmm_dem_tau tag;
+    enum bmm_dem_torque tag;
   } tau;
   /// Timekeeping.
   struct {
@@ -384,15 +450,15 @@ struct bmm_dem {
     /// Torques.
     double tau[BMM_MPART];
   } part;
-  /// Link fracture.
+  /// Link yield.
   struct {
-    /// Link force scheme.
-    enum bmm_dem_fract tag;
-  } fract;
+    /// Yield criterion.
+    enum bmm_dem_yield tag;
+  } yield;
   /// Links between particles.
   struct {
-    /// Link force scheme.
-    enum bmm_dem_flink tag;
+    /// Force scheme.
+    enum bmm_dem_link tag;
     // TODO These four are unused for now.
     /// Link elasticity.
     double k;
@@ -446,7 +512,7 @@ struct bmm_dem {
   /// This is only used for performance optimization.
   struct {
     /// Caching scheme.
-    enum bmm_dem_caching tag;
+    enum bmm_dem_cache tag;
     /// Freshness right now.
     bool stale;
     /// Current revision.
