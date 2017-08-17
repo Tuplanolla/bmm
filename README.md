@@ -675,6 +675,13 @@ so for example `x / y == div y x`; here the opposite is the case.
     /// returns the product of `x` and `y`.
     /// This is analogous to the binary operator `*`.
 
+    /// The call `ipow(x, n)`
+    /// returns the value of `x` raised to the integer power of `n`.
+
+    /// The call `two()`
+    /// returns two.
+    /// This is analogous to the constant `2`.
+
     /// The call `recip(x)`
     /// returns the reciprocal of `x`.
 
@@ -695,6 +702,29 @@ so for example `x / y == div y x`; here the opposite is the case.
 
     /// The call `reme(x, y)`
     /// returns the Euclidean remainder of `x` and `y`.
+
+    /// The call `pow(x, y)`
+    /// returns the value of `x` raised to the power of `y`.
+
+    /// The call `rt(x, y)`
+    /// returns the value of `x` dropped to the root of `y`.
+
+More exotic things are polymorphic over two types.
+
+    /// The call `dist(x, y)`
+    /// returns the distance between `x` and `y`.
+
+    /// The call `smul(x, a)`
+    /// returns the scalar product of `x` and `a`.
+
+    /// The call `norm(x)`
+    /// returns the norm of `x`.
+
+    /// The call `conj(x)`
+    /// returns the conjugate of `x`.
+
+    /// The call `imul(x, y)`
+    /// returns the inner product of `x` and `y`.
 
 Allocated versions follow.
 
@@ -736,6 +766,13 @@ Allocated versions follow.
     /// stores into `oz` the product of `x` and `y`.
     /// This is analogous to the binary operator `*`.
 
+    /// The call `ipow(oy, x, n)`
+    /// stores into `oy` `x` raised to the integer power of `n`.
+
+    /// The call `two(ox)`
+    /// stores into `ox` two.
+    /// This is analogous to the constant `2`.
+
     /// The call `recip(oy, x)`
     /// stores into `oy` the reciprocal of `x`.
 
@@ -756,6 +793,23 @@ Allocated versions follow.
 
     /// The call `reme(oz, x, y)`
     /// stores into `oz` the Euclidean remainder of `x` and `y`.
+
+Polymorphism mixes up the following.
+
+    /// The call `dist(oa, x, y)`
+    /// stores into `oa` the distance between `x` and `y`.
+
+    /// The call `smul(oy, x, a)`
+    /// stores into `oy` the scalar product of `x` and `a`.
+
+    /// The call `norm(oa, x)`
+    /// stores into `oa` the norm of `x`.
+
+    /// The call `conj(oy, x)`
+    /// stores into `oy` the conjugate of `x`.
+
+    /// The call `imul(oa, x, y)`
+    /// stores into `oa` the inner product of `x` and `y`.
 
 Mutating versions follow.
 
@@ -802,6 +856,14 @@ Mutating versions follow.
 
     /// The call `reme_mut(iox, y)`
     /// stores into `iox` the Euclidean remainder of `iox` and `y`.
+
+The other cases are, again, tricky.
+
+    /// The call `smul_mut(iox, a)`
+    /// stores into `iox` the scalar product of `iox` and `a`.
+
+    /// The call `conj_mut(iox)`
+    /// stores into `iox` the conjugate of `iox`.
 
 [cfdem]: http://www.cfdem.com/
 [liggghts]: https://github.com/CFDEMproject/LIGGGHTS-PUBLIC
