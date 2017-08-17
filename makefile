@@ -206,14 +206,6 @@ neigh.o: neigh.c neigh.h common.h alias.h ext.h cpp.h common_mono.h \
 opt.o: opt.c opt.h ext.h cpp.h tle.h tle_.h
 pow.o: pow.c
 random.o: random.c random.h ext.h cpp.h
-scalar.o: scalar.c alias.h ext.h cpp.h scalar.h scalar_lift.h \
- scalar_int.h scalar_sint.h scalar_uint.h scalar_fp.h scalar_lift.c \
- scalar_int.c scalar_sint.c scalar_uint.c scalar_fp.c
-scalar_fp.o: scalar_fp.c
-scalar_int.o: scalar_int.c
-scalar_lift.o: scalar_lift.c
-scalar_sint.o: scalar_sint.c
-scalar_uint.o: scalar_uint.c
 sdl.o: sdl.c common.h alias.h ext.h cpp.h common_mono.h common_poly.h \
  common_ord.h common_num.h common_int.h common_sint.h common_uint.h \
  common_fp.h wrap.h dem.h conf.h geom2d.h fp.h ival.h io.h msg.h endy.h \
@@ -226,8 +218,4 @@ tests.o: tests.c alias.h common.h ext.h cpp.h common_mono.h common_poly.h \
  common_ord.h common_num.h common_int.h common_sint.h common_uint.h \
  common_fp.h wrap.h endy.h fp.h geom2d.h ival.h neigh.h msg.h io.h msg_.h
 tle.o: tle.c ext.h cpp.h hack.h sec.h tle.h tle_.h
-vector.o: vector.c ext.h cpp.h vector.h scalar.h alias.h scalar_lift.h \
- scalar_int.h scalar_sint.h scalar_uint.h scalar_fp.h vector_fp.h \
- vector_fp.c
-vector_fp.o: vector_fp.c
 wrap.o: wrap.c ext.h cpp.h wrap.h alias.h
