@@ -11,6 +11,21 @@
 #include "str.h"
 #include "tle.h"
 
+__attribute__ ((__nonnull__))
+static bool ind_straight(double const *const x, void *const cls) {
+  struct bmm_dem_opts *const opts = cls;
+
+  return x[1] > opts->box.x[1] / 2.0;
+}
+
+__attribute__ ((__nonnull__))
+static bool ind_wave(double const *const x, void *const cls) {
+  struct bmm_dem_opts *const opts = cls;
+
+  return x[1] > opts->box.x[1] / 2.0 +
+    opts->box.x[1] * 0.05 * sin(M_2PI * x[0] / (opts->box.x[0] / 2.0));
+}
+
 __attribute__ ((__nonnull__ (1, 2)))
 static bool f(char const *const key, char const *const value,
     void *const ptr) {
@@ -107,8 +122,33 @@ static bool f(char const *const key, char const *const value,
       opts->script.mode[istage] = BMM_DEM_MODE_LINK;
 
       istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_FAULT;
+      opts->script.params[istage].fault.ind = ind_straight;
+      opts->script.params[istage].fault.ind = ind_wave;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_GLUE;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_PRESET1;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_SEPARATE;
+      opts->script.tspan[istage] = 0.1e-3;
+      opts->script.dt[istage] = dtstuff;
+      opts->script.params[istage].separate.xgap[0] = 0.0;
+      opts->script.params[istage].separate.xgap[1] = mu;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_CRUNCH;
+      opts->script.tspan[istage] = 4.0e-3;
+      opts->script.dt[istage] = dtstuff;
+      opts->script.params[istage].crunch.f[0] = 1.0e+6;
+      opts->script.params[istage].crunch.f[1] = -1.0e+6;
+
+      istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
-      opts->script.tspan[istage] = 6.0e-3;
+      opts->script.tspan[istage] = 4.0e-3;
       opts->script.dt[istage] = dtstuff;
     } else if (strcmp(value, "mix") == 0) {
       double const mu = 2.0e-3;

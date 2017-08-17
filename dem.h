@@ -46,7 +46,9 @@ enum bmm_dem_ext {
   /// Harmonic force field.
   BMM_DEM_EXT_HARM,
   /// Gravitational acceleration.
-  BMM_DEM_EXT_GRAVY
+  BMM_DEM_EXT_GRAVY,
+  /// Driving force.
+  BMM_DEM_EXT_DRIVE
 };
 
 /// Ambient force schemes.
@@ -84,11 +86,11 @@ enum bmm_dem_tang {
   BMM_DEM_TANG_CS,
   /// Dynamic model by Haff and Werner.
   BMM_DEM_TANG_HW,
-  /// Piecewise model by Walton and Braun.
-  BMM_DEM_TANG_WB,
   /// Microscopic asperity model by Brilliantov, Spahn, Hertzsch and Poschel.
   // TODO This is strange.
-  BMM_DEM_TANG_BSHP
+  BMM_DEM_TANG_BSHP,
+  /// Piecewise model by Walton and Braun.
+  BMM_DEM_TANG_WB
 };
 
 /// Torque mediation schemes.
@@ -159,15 +161,17 @@ enum bmm_dem_mode {
   BMM_DEM_MODE_GRAVY,
   /// Remove particles outside the bounding box.
   BMM_DEM_MODE_CLIP,
+  // TODO Choose link strengths from the Weibull distribution.
   /// Link nearby particles together.
   BMM_DEM_MODE_LINK,
-  // TODO Consider another way to do this:
-  // use a partitioning indicator function when linking.
   /// Break the links that cross the zero along the x-axis.
   BMM_DEM_MODE_FAULT,
   /// Pull the material apart in the y-direction.
   BMM_DEM_MODE_SEPARATE,
-  /// Fix the bottom and start forcing the top in the x-direction.
+  // TODO Also "fix" the top during this stage.
+  /// Fix the bottom.
+  BMM_DEM_MODE_GLUE,
+  /// Start forcing the top in the x-direction.
   BMM_DEM_MODE_CRUNCH,
   /// Begin measurements.
   BMM_DEM_MODE_MEASURE,
@@ -264,12 +268,19 @@ struct bmm_dem_opts {
         double v[BMM_NDIM];
         /// Force increment.
         double fadjust;
+        /// Force target.
+        double f[BMM_NDIM];
       } crunch;
       /// For `BMM_DEM_MODE_FAULT`.
       struct {
+        /// Fault shape (via indication).
+        bool (*ind)(double const *, void *);
+      } fault;
+      /// For `BMM_DEM_MODE_SEPARATE`.
+      struct {
         /// Pull-apart vector.
         double xgap[BMM_NDIM];
-      } fault;
+      } separate;
       /// For `BMM_DEM_MODE_SEDIMENT`.
       struct {
         /// Strength of cohesive force.
@@ -498,6 +509,8 @@ struct bmm_dem {
     union {
       /// For `BMM_DEM_MODE_CRUNCH`.
       struct {
+        /// Number of driven particles.
+        size_t ndrive;
         /// Total driving force.
         double f[BMM_NDIM];
       } crunch;

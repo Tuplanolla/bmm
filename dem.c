@@ -324,10 +324,10 @@ size_t bmm_dem_addpart(struct bmm_dem *const dem) {
   return ipart;
 }
 
-/// The call `bmm_dem_reassign(dem, ipart, jpart)`
+/// The call `bmm_dem_copypart(dem, ipart, jpart)`
 /// reassigns the particle `jpart` to `ipart`.
 __attribute__ ((__nonnull__))
-static void bmm_dem_reassign(struct bmm_dem *const dem,
+static void bmm_dem_copypart(struct bmm_dem *const dem,
     size_t const ipart, size_t const jpart) {
   dem->part.role[ipart] = dem->part.role[jpart];
   dem->part.l[ipart] = dem->part.l[jpart];
@@ -362,7 +362,7 @@ static void bmm_dem_reassign(struct bmm_dem *const dem,
     dem->link.part[ipart].rrest[ilink] = dem->link.part[jpart].rrest[ilink];
 
   for (size_t ilink = 0; ilink < dem->link.part[jpart].n; ++ilink)
-    for (size_t iend = 0; iend < nmembof(dem->link.part[ipart].chirest[ilink]); ++iend)
+    for (size_t iend = 0; iend < 2; ++iend)
       dem->link.part[ipart].chirest[ilink][iend] =
         dem->link.part[jpart].chirest[ilink][iend];
 
@@ -380,7 +380,37 @@ void bmm_dem_rempart(struct bmm_dem *const dem,
   size_t const jpart = dem->part.n;
 
   if (jpart != ipart)
-    bmm_dem_reassign(dem, ipart, jpart);
+    bmm_dem_copypart(dem, ipart, jpart);
+
+  dem->cache.stale = true;
+}
+
+/// The call `bmm_dem_copylink(dem, ipart, ilink, jlink)`
+/// reassigns the link `jlink` to `ilink` for the particle `ipart`.
+__attribute__ ((__nonnull__))
+static void bmm_dem_copylink(struct bmm_dem *const dem,
+    size_t const ipart, size_t const ilink, size_t const jlink) {
+  dem->link.part[ipart].i[ilink] = dem->link.part[ipart].i[jlink];
+
+  dem->link.part[ipart].rrest[ilink] = dem->link.part[ipart].rrest[jlink];
+
+  for (size_t iend = 0; iend < 2; ++iend)
+    dem->link.part[ipart].chirest[ilink][iend] =
+      dem->link.part[ipart].chirest[jlink][iend];
+
+  dem->link.part[ipart].rlim[ilink] = dem->link.part[ipart].rlim[jlink];
+
+  dem->link.part[ipart].philim[ilink] = dem->link.part[ipart].philim[jlink];
+}
+
+void bmm_dem_remlink(struct bmm_dem *const dem,
+    size_t const ipart, size_t const ilink) {
+  --dem->link.part[ipart].n;
+
+  size_t const jlink = dem->link.part[ipart].n;
+
+  if (jlink != ilink)
+    bmm_dem_copylink(dem, ipart, ilink, jlink);
 
   dem->cache.stale = true;
 }
@@ -688,6 +718,16 @@ void bmm_dem_force_external(struct bmm_dem *const dem, size_t const ipart) {
       dem->part.f[ipart][1] += dem->ext.params.gravy.f;
 
       break;
+    case BMM_DEM_EXT_DRIVE:
+      // TODO Parametrize the drive layer thickness and
+      // determine it ahead of time.
+      if (dem->part.x[ipart][1] > dem->opts.box.x[1] * 0.8)
+        for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+          dem->part.f[ipart][idim] +=
+            dem->opts.script.params[dem->script.i].crunch.f[idim] /
+            (double) dem->script.state.crunch.ndrive;
+
+      break;
   }
 }
 
@@ -734,6 +774,16 @@ void bmm_dem_force(struct bmm_dem *const dem) {
           if (contact[ipart][jpart] && contact[jpart][ipart])
             bmm_dem_force_pair(dem, ipart, jpart);
         }
+
+      break;
+  }
+
+  switch (dem->ext.tag) {
+    case BMM_DEM_EXT_DRIVE:
+      dem->script.state.crunch.ndrive = 0;
+      for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+        if (dem->part.x[ipart][1] > dem->opts.box.x[1] * 0.8)
+          ++dem->script.state.crunch.ndrive;
 
       break;
   }
@@ -891,7 +941,28 @@ void bmm_dem_correct(struct bmm_dem *const dem) {
   }
 }
 
-void bmm_dem_fract_pair(struct bmm_dem *const dem,
+void bmm_dem_fault_pair(struct bmm_dem *const dem,
+    size_t const ipart, size_t const jpart, size_t const ilink) {
+  bool const iind = dem->opts.script.params[dem->script.i].fault.
+    ind(dem->part.x[ipart], &dem->opts);
+
+  bool const jind = dem->opts.script.params[dem->script.i].fault.
+    ind(dem->part.x[jpart], &dem->opts);
+
+  if (iind != jind)
+    bmm_dem_remlink(dem, ipart, ilink);
+}
+
+void bmm_dem_fault(struct bmm_dem *const dem) {
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    for (size_t ilink = 0; ilink < dem->link.part[ipart].n; ++ilink) {
+      size_t const jpart = dem->link.part[ipart].i[ilink];
+
+      bmm_dem_fault_pair(dem, ipart, jpart, ilink);
+    }
+}
+
+void bmm_dem_yield_pair(struct bmm_dem *const dem,
     size_t const ipart, size_t const jpart, size_t const ilink) {
   double xdiffij[BMM_NDIM];
   bmm_geom2d_cpdiff(xdiffij, dem->part.x[jpart], dem->part.x[ipart],
@@ -900,24 +971,8 @@ void bmm_dem_fract_pair(struct bmm_dem *const dem,
   double const d2 = bmm_geom2d_norm2(xdiffij);
 
   // TODO Do not use `rlim` but rather `f` and proper stress criteria.
-  if (d2 > $(bmm_power, double)(dem->link.part[ipart].rlim[ilink], 2)) {
-    --dem->link.part[ipart].n;
-
-    size_t const jlink = dem->link.part[ipart].n;
-
-    // TODO Reassignment again.
-
-    dem->link.part[ipart].i[ilink] = dem->link.part[ipart].i[jlink];
-
-    dem->link.part[ipart].rrest[ilink] = dem->link.part[ipart].rrest[jlink];
-
-    dem->link.part[ipart].chirest[ilink][0] = dem->link.part[ipart].chirest[jlink][0];
-    dem->link.part[ipart].chirest[ilink][1] = dem->link.part[ipart].chirest[jlink][1];
-
-    dem->link.part[ipart].rlim[ilink] = dem->link.part[ipart].rlim[jlink];
-
-    dem->link.part[ipart].philim[ilink] = dem->link.part[ipart].philim[jlink];
-  }
+  if (d2 > $(bmm_power, double)(dem->link.part[ipart].rlim[ilink], 2))
+    bmm_dem_remlink(dem, ipart, ilink);
 
   switch (dem->yield.tag) {
     case BMM_DEM_YIELD_ZE:
@@ -931,7 +986,7 @@ void bmm_dem_yield(struct bmm_dem *const dem) {
     for (size_t ilink = 0; ilink < dem->link.part[ipart].n; ++ilink) {
       size_t const jpart = dem->link.part[ipart].i[ilink];
 
-      bmm_dem_fract_pair(dem, ipart, jpart, ilink);
+      bmm_dem_yield_pair(dem, ipart, jpart, ilink);
     }
 }
 
@@ -2018,12 +2073,21 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
 
       break;
     case BMM_DEM_MODE_FAULT:
+      bmm_dem_fault(dem);
 
       break;
     case BMM_DEM_MODE_SEPARATE:
 
       break;
+    case BMM_DEM_MODE_GLUE:
+      for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+        // TODO Parametrize the glue layer thickness.
+        if (dem->part.x[ipart][1] < dem->opts.box.x[1] * 0.1)
+          dem->part.role[ipart] = BMM_DEM_ROLE_FIXED;
+
+      break;
     case BMM_DEM_MODE_CRUNCH:
+      dem->ext.tag = BMM_DEM_EXT_DRIVE;
 
       break;
     case BMM_DEM_MODE_MEASURE:
