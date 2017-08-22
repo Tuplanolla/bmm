@@ -55,7 +55,11 @@ enum bmm_dem_ext {
 enum bmm_dem_amb {
   BMM_DEM_AMB_NONE,
   /// Free stream creeping flow.
-  BMM_DEM_AMB_FAXEN
+  BMM_DEM_AMB_FAXEN,
+  /// Laminar channel flow.
+  BMM_DEM_AMB_LAMCHAN,
+  /// Turbulent channel flow.
+  BMM_DEM_AMB_TURBCHAN
 };
 
 /// Normal force schemes.
@@ -76,15 +80,15 @@ enum bmm_dem_norm {
 /// Tangential force schemes.
 enum bmm_dem_tang {
   BMM_DEM_TANG_NONE,
-  /// Dynamic model by Coulomb.
+  /// Linear model by Coulomb.
   // TODO This is `\\mu F` only.
   BMM_DEM_TANG_COULOMB,
   /// Viscous model.
   // TODO This is `\\gamma \\mu` only.
   BMM_DEM_TANG_VISCOUS,
-  /// Static model by Cundall and Strack.
+  /// Spring model by Cundall and Strack.
   BMM_DEM_TANG_CS,
-  /// Dynamic model by Haff and Werner.
+  /// Power law model by Haff and Werner.
   BMM_DEM_TANG_HW,
   /// Microscopic asperity model by Brilliantov, Spahn, Hertzsch and Poschel.
   // TODO This is strange.
@@ -95,12 +99,12 @@ enum bmm_dem_tang {
 
 /// Torque mediation schemes.
 enum bmm_dem_torque {
-  /// Radii deform considerably.
-  BMM_DEM_TORQUE_SOFT,
-  /// Radii deform negligibly.
+  /// Undeformed radii.
   BMM_DEM_TORQUE_HARD,
-  /// Compromise.
-  BMM_DEM_TORQUE_MEAN,
+  /// Deformed radii.
+  BMM_DEM_TORQUE_SOFT,
+  /// Averaged compromise.
+  BMM_DEM_TORQUE_AVERAGE,
   /// Simplified compromise.
   BMM_DEM_TORQUE_HALFWAY
 };

@@ -576,17 +576,17 @@ void bmm_dem_force_pair(struct bmm_dem *const dem,
     double const ajit = (1.0 / 2.0) * (ri + sji);
 
     switch (dem->tau.tag) {
-      case BMM_DEM_TORQUE_SOFT:
-        taui = sij * ftang;
-        tauj = sji * ftang;
-
-        break;
       case BMM_DEM_TORQUE_HARD:
         taui = ri * ftang;
         tauj = rj * ftang;
 
         break;
-      case BMM_DEM_TORQUE_MEAN:
+      case BMM_DEM_TORQUE_SOFT:
+        taui = sij * ftang;
+        tauj = sji * ftang;
+
+        break;
+      case BMM_DEM_TORQUE_AVERAGE:
         taui = aij * ftang;
         tauj = aji * ftang;
 
