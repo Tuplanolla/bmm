@@ -496,18 +496,18 @@ void bmm_dem_force_pair(struct bmm_dem *const dem,
 
     switch (dem->norm.tag) {
       case BMM_DEM_NORM_DASHPOT:
-        fnorm = $(bmm_max, double)(0.0,
-            dem->opts.part.y * xi + dem->norm.params.dashpot.gamma * vnormij);
+        fnorm = dem->opts.part.y * xi + dem->norm.params.dashpot.gamma * vnormij;
 
         break;
       case BMM_DEM_NORM_BSHP:
-        fnorm = $(bmm_max, double)(0.0,
-            (2.0 / 3.0) * (dem->opts.part.y /
+        fnorm = (2.0 / 3.0) * (dem->opts.part.y /
               (1.0 - $(bmm_power, double)(dem->opts.part.nu, 2))) *
-            (xi + dem->norm.params.viscoel.a * vnormij) * sqrt(reff * xi));
+            (xi + dem->norm.params.viscoel.a * vnormij) * sqrt(reff * xi);
 
         break;
     }
+
+    fnorm = $(bmm_max, double)(0.0, fnorm);
   }
 
   double fnormji[BMM_NDIM];
