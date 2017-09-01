@@ -20,7 +20,9 @@ enum bmm_dem_role {
   /// Free particle.
   BMM_DEM_ROLE_FREE,
   /// Fixed particle.
-  BMM_DEM_ROLE_FIXED
+  BMM_DEM_ROLE_FIXED,
+  /// Driven particle.
+  BMM_DEM_ROLE_DRIVEN
 };
 
 /// Cache policies.
@@ -28,6 +30,15 @@ enum bmm_dem_cache {
   BMM_DEM_CACHE_NONE,
   /// Neighbor cell caching.
   BMM_DEM_CACHE_NEIGH
+};
+
+/// Contact types for pairs of particles.
+enum bmm_dem_contact {
+  BMM_DEM_CONTACT_NONE,
+  /// Weak contact that may develop into no contact.
+  BMM_DEM_CONTACT_WEAK,
+  /// Strong contact that may develop into weak or no contact.
+  BMM_DEM_CONTACT_STRONG
 };
 
 /// Integration schemes.
@@ -109,8 +120,8 @@ enum bmm_dem_torque {
   BMM_DEM_TORQUE_HALFWAY
 };
 
-/// Link force schemes.
-enum bmm_dem_link {
+/// Cohesive force schemes.
+enum bmm_dem_cohes {
   BMM_DEM_LINK_NONE,
   /// Ideal spring model.
   BMM_DEM_LINK_SPRING,
@@ -126,7 +137,7 @@ enum bmm_dem_link {
   BMM_DEM_LINK_TIMO
 };
 
-/// Yield stress criteria.
+/// Yield criteria.
 enum bmm_dem_yield {
   BMM_DEM_YIELD_NONE,
   /// Maximum normal stress criterion by Rankine.
@@ -317,7 +328,7 @@ struct bmm_dem_opts {
     /// because those outside the bounding extend to infinity.
     size_t ncell[BMM_NDIM];
     /// Maximum distance for qualifying as a neighbor.
-    double rcutoff;
+    double dcutoff;
   } cache;
 };
 
@@ -377,7 +388,8 @@ struct bmm_dem {
       } creeping;
     } params;
   } amb;
-  /// Normal forces.
+  // TODO These are for `BMM_DEM_CONTACT_WEAK`.
+  /// Weak normal forces.
   struct {
     /// Force scheme.
     enum bmm_dem_norm tag;
@@ -386,6 +398,8 @@ struct bmm_dem {
       /// For `BMM_DEM_NORM_DASHPOT`.
       struct {
         /// Dashpot elasticity.
+        double k;
+        /// Dashpot viscosity.
         double gamma;
       } dashpot;
       /// For `BMM_DEM_NORM_BSHP`.
@@ -395,7 +409,7 @@ struct bmm_dem {
       } viscoel;
     } params;
   } norm;
-  /// Tangential forces.
+  /// Weak tangential forces.
   struct {
     /// Force scheme.
     enum bmm_dem_tang tag;
@@ -420,11 +434,55 @@ struct bmm_dem {
       } cs;
     } params;
   } tang;
-  /// Torques.
+  /// Weak torques.
   struct {
-    /// Torque scheme.
+    /// Torque mediation scheme.
     enum bmm_dem_torque tag;
   } tau;
+  /// Strong-to-weak yield criteria.
+  struct {
+    /// Yield criterion.
+    enum bmm_dem_yield tag;
+  } yield;
+  // TODO These are for `BMM_DEM_CONTACT_STRONG`.
+  /*
+  /// Strong normal forces.
+  struct {
+    /// Force scheme.
+    enum bmm_dem_conorm tag;
+  } conorm;
+  /// Strong tangential forces.
+  struct {
+    /// Force scheme.
+    enum bmm_dem_cotang tag;
+  } cotang;
+  /// Strong torques.
+  struct {
+    /// Torque mediation scheme.
+    enum bmm_dem_cotorque tag;
+  } cotau;
+  */
+  /// Links between particles.
+  __attribute__ ((__deprecated__))
+  struct {
+    /// Force scheme.
+    enum bmm_dem_cohes tag;
+    /// Which other particles each particle is linked to.
+    struct {
+      /// Number of links from this particle.
+      size_t n;
+      /// Target particle indices.
+      size_t i[BMM_MLINK];
+      /// Rest lengths for springs and beams.
+      double rrest[BMM_MLINK];
+      /// Rest angles for beams.
+      double chirest[BMM_MLINK][2];
+      /// Limit length for tensile stress induced breaking.
+      double rlim[BMM_MLINK];
+      /// Limit angle for shear stress induced breaking.
+      double philim[BMM_MLINK];
+    } part[BMM_MPART];
+  } link;
   /// Timekeeping.
   struct {
     /// Time.
@@ -465,40 +523,40 @@ struct bmm_dem {
     /// Torques.
     double tau[BMM_MPART];
   } part;
-  /// Link yield.
+  /// Contacts between particles.
   struct {
-    /// Yield criterion.
-    enum bmm_dem_yield tag;
-  } yield;
-  /// Links between particles.
-  struct {
-    /// Force scheme.
-    enum bmm_dem_link tag;
-    // TODO These four are unused for now.
-    /// Link elasticity.
-    double k;
-    /// Link damping.
-    double dk;
-    /// Link angular elasticity.
-    double kappa;
-    /// Link angular damping.
-    double dkappa;
-    /// Which other particles each particle is linked to.
+    /// Source mappings.
+    ///
+    /// Theoretically contacts are symmetric and reflexive,
+    /// but here they are represented asymmetrically and nonreflexively
+    /// such that the source index is always smaller than the target index.
+    /// Theoretically contacts may also have unbounded effective distances,
+    /// but here they may be limited by practical constraints
+    /// such as `opts.cache.dcutoff`.
     struct {
-      /// Number of links from this particle.
-      size_t n;
-      /// Target particle indices.
-      size_t i[BMM_MLINK];
-      /// Rest lengths for springs and beams.
-      double rrest[BMM_MLINK];
-      /// Rest angles for beams.
-      double chirest[BMM_MLINK][2];
-      /// Limit length for tensile stress induced breaking.
-      double rlim[BMM_MLINK];
-      /// Limit angle for shear stress induced breaking.
-      double philim[BMM_MLINK];
-    } part[BMM_MPART];
-  } link;
+      /// Number of targets.
+      size_t ntgt;
+      /// Target indices.
+      size_t ipart[BMM_MCONTACT];
+      /// Contact types.
+      enum bmm_dem_contact tag[BMM_MCONTACT];
+      /// Transient state.
+      union {
+        /// For `BMM_DEM_CONTACT_WEAK`.
+        struct {
+          /// Strains while sticking.
+          double epsilon[BMM_MCONTACT];
+        } weak;
+        /// For `BMM_DEM_CONTACT_STRONG`.
+        struct {
+          /// Rest distances.
+          double drest[BMM_MCONTACT];
+          /// Rest angles.
+          double chirest[BMM_MCONTACT][2];
+        } strong;
+      } state;
+    } src[BMM_MPART];
+  } contact;
   /// Script state.
   struct {
     /// Current stage (may be one past the end to signal the end).

@@ -40,9 +40,9 @@ static bool f(char const *const key, char const *const value,
   for (size_t idim = 0; idim < BMM_NDIM; ++idim)
     opts->cache.ncell[idim] = 12;
 
-  opts->cache.rcutoff = (double) INFINITY;
+  opts->cache.dcutoff = (double) INFINITY;
   for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-    opts->cache.rcutoff = fmin(opts->cache.rcutoff,
+    opts->cache.dcutoff = fmin(opts->cache.dcutoff,
         opts->box.x[idim] / (double) (opts->cache.ncell[idim] - 2));
 
   // Now in SI base units!
@@ -143,8 +143,8 @@ static bool f(char const *const key, char const *const value,
       opts->script.mode[istage] = BMM_DEM_MODE_CRUNCH;
       opts->script.tspan[istage] = 4.0e-3;
       opts->script.dt[istage] = dtstuff;
-      opts->script.params[istage].crunch.f[0] = 1.0e+6;
-      opts->script.params[istage].crunch.f[1] = -1.0e+6;
+      opts->script.params[istage].crunch.f[0] = 4.0e+5;
+      opts->script.params[istage].crunch.f[1] = -2.0e+5;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_IDLE;

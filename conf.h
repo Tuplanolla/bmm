@@ -34,6 +34,9 @@
 /// Maximum number of particles.
 #define BMM_MPART 1024
 
+/// Maximum number of contacts per particle.
+#define BMM_MCONTACT 8
+
 /// Maximum number of links per particle.
 #define BMM_MLINK 8
 

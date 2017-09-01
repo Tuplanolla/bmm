@@ -157,7 +157,7 @@ static bool bmm_dem_cache_eligible(struct bmm_dem const *const dem,
 
   if (bmm_geom2d_cpdist2(dem->cache.x[ipart], dem->cache.x[jpart],
         dem->opts.box.x, dem->opts.box.per) >
-      $(bmm_power, double)(dem->opts.cache.rcutoff, 2))
+      $(bmm_power, double)(dem->opts.cache.dcutoff, 2))
     return false;
 
   return true;
@@ -496,7 +496,8 @@ void bmm_dem_force_pair(struct bmm_dem *const dem,
 
     switch (dem->norm.tag) {
       case BMM_DEM_NORM_DASHPOT:
-        fnorm = dem->opts.part.y * xi + dem->norm.params.dashpot.gamma * vnormij;
+        fnorm = dem->norm.params.dashpot.k * xi +
+          dem->norm.params.dashpot.gamma * vnormij;
 
         break;
       case BMM_DEM_NORM_BSHP:
@@ -1185,7 +1186,7 @@ double bmm_dem_est_cor(struct bmm_dem const *const dem) {
       dem->part.m[ipart] * dem->part.m[ipart] /
       (dem->part.m[ipart] + dem->part.m[ipart]);
     e += exp(-M_PI * dem->norm.params.dashpot.gamma / (2.0 * mred) /
-        sqrt(dem->opts.part.y / mred -
+        sqrt(dem->norm.params.dashpot.k / mred -
           $(bmm_power, double)(dem->norm.params.dashpot.gamma / (2.0 * mred), 2)));
   }
 
@@ -1422,14 +1423,14 @@ void bmm_dem_opts_def(struct bmm_dem_opts *const opts) {
     */
   }
 
-  opts->cache.rcutoff = (double) INFINITY;
+  opts->cache.dcutoff = (double) INFINITY;
   for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
-    opts->cache.rcutoff = fmin(opts->cache.rcutoff,
+    opts->cache.dcutoff = fmin(opts->cache.dcutoff,
         opts->box.x[idim] / (double) (opts->cache.ncell[idim] - 2));
 
     // TODO Use this somewhere.
     /*
-    dynamic_assert(opts->cache.rcutoff <= opts->box.x[idim] /
+    dynamic_assert(opts->cache.dcutoff <= opts->box.x[idim] /
         (double) ((opts->cache.ncell[idim] - 2) * 2),
         "Neighbor cells too small");
     */
@@ -1467,6 +1468,7 @@ void bmm_dem_def(struct bmm_dem *const dem,
 
   switch (dem->norm.tag) {
     case BMM_DEM_NORM_DASHPOT:
+      dem->norm.params.dashpot.k = 1.0e+6;
       dem->norm.params.dashpot.gamma = 1.0e+3;
 
       break;
@@ -1496,15 +1498,9 @@ void bmm_dem_def(struct bmm_dem *const dem,
 
   switch (dem->link.tag) {
     case BMM_DEM_LINK_SPRING:
-      dem->link.k = 1.0;
-      dem->link.dk = 1.0;
 
       break;
     case BMM_DEM_LINK_BEAM:
-      dem->link.k = 1.0;
-      dem->link.dk = 1.0;
-      dem->link.kappa = 1.0;
-      dem->link.dkappa = 1.0;
 
       break;
   }
@@ -1586,7 +1582,7 @@ bool bmm_dem_puts(struct bmm_dem const *const dem,
 
 bool bmm_dem_cache_expired(struct bmm_dem const *const dem) {
   // TODO Use `dem->opts.part.rnew[1]` instead of `dem->part.r[ipart]`.
-  double const r = dem->opts.cache.rcutoff / 2.0;
+  double const r = dem->opts.cache.dcutoff / 2.0;
 
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     if (bmm_geom2d_cpdist2(dem->part.x[ipart], dem->cache.x[ipart],
@@ -2060,6 +2056,7 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
       dem->tang.tag = BMM_DEM_TANG_CS;
       dem->yield.tag = BMM_DEM_YIELD_ZE;
       dem->link.tag = BMM_DEM_LINK_BEAM;
+      // dem->opts.part.y = 52.0e+9;
 
       break;
     case BMM_DEM_MODE_LINK:
