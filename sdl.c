@@ -55,7 +55,7 @@ enum bmm_io_read bmm_dem_gets_stuff(struct bmm_dem *const dem,
           return BMM_IO_READ_EOF;
       }
 
-      return msg_read(&dem->link, sizeof dem->link, NULL);
+      return msg_read(&dem->pair, sizeof dem->pair, NULL);
     case BMM_MSG_NUM_PARTS:
       switch (msg_read(&dem->part.n, sizeof dem->part.n, NULL)) {
         case BMM_IO_READ_ERROR:
@@ -328,8 +328,8 @@ static void bmm_sdl_draw(struct bmm_sdl const *const sdl) {
       blent[3] = 1.0f - (float) t;
       glColor4fv(blent);
 
-      for (size_t ilink = 0; ilink < sdl->dem.link.part[ipart].n; ++ilink) {
-        size_t const jpart = sdl->dem.link.part[ipart].i[ilink];
+      for (size_t ilink = 0; ilink < sdl->dem.pair[BMM_DEM_CONT_STRONG].cont.src[ipart].n; ++ilink) {
+        size_t const jpart = sdl->dem.pair[BMM_DEM_CONT_STRONG].cont.src[ipart].itgt[ilink];
 
         double x0[BMM_NDIM];
         double x1[BMM_NDIM];
@@ -508,8 +508,8 @@ static bool more_heresy(struct bmm_sdl const *const sdl) {
   }
 
   for (size_t ipart = 0; ipart < sdl->dem.part.n; ++ipart) {
-    for (size_t ilink = 0; ilink < sdl->dem.link.part[ipart].n; ++ilink) {
-      size_t const jpart = sdl->dem.link.part[ipart].i[ilink];
+    for (size_t ilink = 0; ilink < sdl->dem.pair[BMM_DEM_CONT_STRONG].cont.src[ipart].n; ++ilink) {
+      size_t const jpart = sdl->dem.pair[BMM_DEM_CONT_STRONG].cont.src[ipart].itgt[ilink];
 
       if (fprintf(stream, "%zu %g %g\n",
             (size_t) 0,

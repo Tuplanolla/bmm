@@ -33,12 +33,23 @@ enum bmm_dem_cache {
 };
 
 /// Contact types for pairs of particles.
-enum bmm_dem_contact {
-  BMM_DEM_CONTACT_NONE,
+enum bmm_dem_cont {
   /// Weak contact that may develop into no contact.
-  BMM_DEM_CONTACT_WEAK,
+  BMM_DEM_CONT_WEAK,
   /// Strong contact that may develop into weak or no contact.
-  BMM_DEM_CONTACT_STRONG
+  BMM_DEM_CONT_STRONG,
+  /// Number of contact types.
+  BMM_NCONT
+};
+
+/// Endpoints for pairs of particles.
+enum bmm_dem_end {
+  /// Back end.
+  BMM_DEM_END_TAIL,
+  /// Front end.
+  BMM_DEM_END_HEAD,
+  /// Number of ends.
+  BMM_NEND
 };
 
 /// Integration schemes.
@@ -120,8 +131,8 @@ enum bmm_dem_torque {
   BMM_DEM_TORQUE_HALFWAY
 };
 
-/// Cohesive force schemes.
-enum bmm_dem_cohes {
+/// Link force schemes.
+enum bmm_dem_link {
   BMM_DEM_LINK_NONE,
   /// Ideal spring model.
   BMM_DEM_LINK_SPRING,
@@ -135,6 +146,11 @@ enum bmm_dem_cohes {
   BMM_DEM_LINK_RAYLEIGH,
   /// Bending, shear and rotary beam model by Timoshenko.
   BMM_DEM_LINK_TIMO
+};
+
+/// Bonding criteria.
+enum bmm_dem_bond {
+  BMM_DEM_BOND_NONSENSE
 };
 
 /// Yield criteria.
@@ -244,10 +260,10 @@ struct bmm_dem_opts {
     double dkshear;
     /// Limit length factors for tensile stress induced breaking
     /// expressed as the width of the uniform distribution.
-    double crlim[2];
+    double crlim[BMM_NEND];
     /// Limit angle factors for shear stress induced breaking
     /// expressed as the width of the uniform distribution.
-    double cphilim[2];
+    double cphilim[BMM_NEND];
   } link;
   /// Script to follow.
   struct {
@@ -332,6 +348,86 @@ struct bmm_dem_opts {
   } cache;
 };
 
+struct bmm_dem_pair {
+  /// Contacts between particles.
+  struct {
+    /// Source mappings.
+    ///
+    /// Theoretically contacts are symmetric and reflexive,
+    /// but here they are represented asymmetrically and nonreflexively
+    /// such that the source index is always smaller than the target index.
+    /// Theoretically contacts may also have unbounded effective distances,
+    /// but here they may be limited by practical constraints
+    /// such as `opts.cache.dcutoff`.
+    struct {
+      /// Number of targets.
+      size_t n;
+      /// Target indices.
+      size_t itgt[BMM_MCONTACT];
+      /// Rest distances.
+      double drest[BMM_MCONTACT];
+      /// Rest angles.
+      double chirest[BMM_MCONTACT][2];
+      /// Strains while sticking.
+      // TODO This is redundant.
+      double epsilon[BMM_MCONTACT];
+      /// Limit length for tensile stress induced breaking.
+      __attribute__ ((__deprecated__))
+      double rlim[BMM_MLINK];
+      /// Limit angle for shear stress induced breaking.
+      __attribute__ ((__deprecated__))
+      double philim[BMM_MLINK];
+    } src[BMM_MPART];
+  } cont;
+  /// Normal forces.
+  struct {
+    /// Force scheme.
+    enum bmm_dem_norm tag;
+    /// Parameters.
+    union {
+      /// For `BMM_DEM_NORM_DASHPOT`.
+      struct {
+        /// Dashpot elasticity.
+        double k;
+        /// Dashpot viscosity.
+        double gamma;
+      } dashpot;
+      /// For `BMM_DEM_NORM_BSHP`.
+      struct {
+        /// Dissipative constant.
+        double a;
+      } viscoel;
+    } params;
+  } norm;
+  /// Tangential forces.
+  struct {
+    /// Force scheme.
+    enum bmm_dem_tang tag;
+    /// Parameters.
+    union {
+      /// For `BMM_DEM_TANG_HW`.
+      struct {
+        /// Haff--Werner elasticity.
+        double gamma;
+        /// Coulomb friction parameter.
+        double mu;
+      } hw;
+      /// For `BMM_DEM_TANG_CS`.
+      struct {
+        /// Cundall--Strack elasticity.
+        double kappa;
+        /// Coulomb friction parameter.
+        double mu;
+      } cs;
+    } params;
+  } tang;
+  /// Torques.
+  struct {
+    /// Torque mediation scheme.
+    enum bmm_dem_torque tag;
+  } torque;
+};
+
 struct bmm_dem {
   struct bmm_dem_opts opts;
   /// Random number generator state.
@@ -388,101 +484,24 @@ struct bmm_dem {
       } creeping;
     } params;
   } amb;
-  // TODO These are for `BMM_DEM_CONTACT_WEAK`.
-  /// Weak normal forces.
+  /// Contacts.
+  struct bmm_dem_pair pair[BMM_NCONT];
+  /// Weak-to-strong bonding criteria.
   struct {
-    /// Force scheme.
-    enum bmm_dem_norm tag;
-    /// Parameters.
-    union {
-      /// For `BMM_DEM_NORM_DASHPOT`.
-      struct {
-        /// Dashpot elasticity.
-        double k;
-        /// Dashpot viscosity.
-        double gamma;
-      } dashpot;
-      /// For `BMM_DEM_NORM_BSHP`.
-      struct {
-        /// Dissipative constant.
-        double a;
-      } viscoel;
-    } params;
-  } norm;
-  /// Weak tangential forces.
-  struct {
-    /// Force scheme.
-    enum bmm_dem_tang tag;
-    /// Parameters.
-    union {
-      /// For `BMM_DEM_TANG_HW`.
-      struct {
-        /// Haff--Werner elasticity.
-        double gamma;
-        /// Coulomb friction parameter.
-        double mu;
-      } hw;
-      /// For `BMM_DEM_TANG_CS`.
-      struct {
-        /// Cundall--Strack elasticity.
-        double kappa;
-        /// Coulomb friction parameter.
-        double mu;
-        // TODO Pick a better data structure.
-        /// Elongations.
-        double zeta[BMM_MPART][BMM_MPART];
-      } cs;
-    } params;
-  } tang;
-  /// Weak torques.
-  struct {
-    /// Torque mediation scheme.
-    enum bmm_dem_torque tag;
-  } tau;
+    /// Bonding criterion.
+    // TODO Put link creation parameters here.
+    enum bmm_dem_bond tag;
+  } bond;
   /// Strong-to-weak yield criteria.
   struct {
     /// Yield criterion.
     enum bmm_dem_yield tag;
   } yield;
-  // TODO These are for `BMM_DEM_CONTACT_STRONG`.
-  /*
-  /// Strong normal forces.
-  struct {
-    /// Force scheme.
-    enum bmm_dem_conorm tag;
-  } conorm;
-  /// Strong tangential forces.
-  struct {
-    /// Force scheme.
-    enum bmm_dem_cotang tag;
-  } cotang;
-  /// Strong torques.
-  struct {
-    /// Torque mediation scheme.
-    enum bmm_dem_cotorque tag;
-  } cotau;
-  */
-  /// Links between particles.
+  /// Deprecated scheme selector.
   __attribute__ ((__deprecated__))
   struct {
-    /// Force scheme.
-    enum bmm_dem_cohes tag;
-    /// Which other particles each particle is linked to.
-    struct {
-      /// Number of links from this particle.
-      size_t n;
-      /// Target particle indices.
-      size_t i[BMM_MLINK];
-      /// Rest lengths for springs and beams.
-      double rrest[BMM_MLINK];
-      /// Rest angles for beams.
-      double chirest[BMM_MLINK][2];
-      /// Limit length for tensile stress induced breaking.
-      double rlim[BMM_MLINK];
-      /// Limit angle for shear stress induced breaking.
-      double philim[BMM_MLINK];
-    } part[BMM_MPART];
-  } link;
+    enum bmm_dem_link tag;
+  } cont_dep;
   /// Timekeeping.
   struct {
     /// Time.
@@ -523,40 +542,6 @@ struct bmm_dem {
     /// Torques.
     double tau[BMM_MPART];
   } part;
-  /// Contacts between particles.
-  struct {
-    /// Source mappings.
-    ///
-    /// Theoretically contacts are symmetric and reflexive,
-    /// but here they are represented asymmetrically and nonreflexively
-    /// such that the source index is always smaller than the target index.
-    /// Theoretically contacts may also have unbounded effective distances,
-    /// but here they may be limited by practical constraints
-    /// such as `opts.cache.dcutoff`.
-    struct {
-      /// Number of targets.
-      size_t ntgt;
-      /// Target indices.
-      size_t ipart[BMM_MCONTACT];
-      /// Contact types.
-      enum bmm_dem_contact tag[BMM_MCONTACT];
-      /// Transient state.
-      union {
-        /// For `BMM_DEM_CONTACT_WEAK`.
-        struct {
-          /// Strains while sticking.
-          double epsilon[BMM_MCONTACT];
-        } weak;
-        /// For `BMM_DEM_CONTACT_STRONG`.
-        struct {
-          /// Rest distances.
-          double drest[BMM_MCONTACT];
-          /// Rest angles.
-          double chirest[BMM_MCONTACT][2];
-        } strong;
-      } state;
-    } src[BMM_MPART];
-  } contact;
   /// Script state.
   struct {
     /// Current stage (may be one past the end to signal the end).
