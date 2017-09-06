@@ -286,6 +286,205 @@ bool bmm_dem_cache_build(struct bmm_dem *const dem) {
   return true;
 }
 
+size_t bmm_dem_search_cont(struct bmm_dem const *const dem,
+    enum bmm_dem_ct const ict, size_t const ipart, size_t const jpart) {
+  for (size_t icont = 0; icont < dem->pair[ict].cont.src[ipart].n; ++icont) {
+    size_t const kpart = dem->pair[ict].cont.src[ipart].itgt[icont];
+
+    if (kpart == jpart)
+      return icont;
+  }
+
+  return SIZE_MAX;
+}
+
+size_t bmm_dem_addcont_unsafe(struct bmm_dem *const dem,
+    enum bmm_dem_ct const ict, size_t const ipart, size_t const jpart) {
+  size_t const icont = dem->pair[ict].cont.src[ipart].n;
+
+  if (icont >= BMM_MCONTACT)
+    return SIZE_MAX;
+
+  ++dem->pair[ict].cont.src[ipart].n;
+
+  double xdiffij[BMM_NDIM];
+  bmm_geom2d_cpdiff(xdiffij, dem->part.x[jpart], dem->part.x[ipart],
+      dem->opts.box.x, dem->opts.box.per);
+
+  double const d = bmm_geom2d_norm(xdiffij);
+  double const r = dem->part.r[ipart] + dem->part.r[jpart];
+
+  // TODO Excessive wrapping!
+  double const gammaij = $(bmm_swrap, double)(bmm_geom2d_dir(xdiffij), M_2PI);
+  double const gammaji = $(bmm_swrap, double)(gammaij + M_PI, M_2PI);
+  double const phii = $(bmm_swrap, double)(dem->part.phi[ipart], M_2PI);
+  double const phij = $(bmm_swrap, double)(dem->part.phi[jpart], M_2PI);
+  double const chii = $(bmm_swrap, double)(gammaij - phii, M_2PI);
+  double const chij = $(bmm_swrap, double)(gammaji - phij, M_2PI);
+
+  dem->pair[ict].cont.src[ipart].chirest[icont][0] = chii;
+
+  dem->pair[ict].cont.src[ipart].chirest[icont][1] = chij;
+
+  double const cphilim = bmm_random_get(dem->rng, dem->opts.cont.cphilim);
+
+  dem->pair[ict].cont.src[ipart].philim[icont] = cphilim * M_2PI;
+
+  double const crlim = bmm_random_get(dem->rng, dem->opts.cont.crlim);
+  double const drest = d * dem->opts.cont.cshcont;
+
+  dem->pair[ict].cont.src[ipart].rlim[icont] = crlim * drest;
+
+  dem->pair[ict].cont.src[ipart].drest[icont] = drest;
+  dem->pair[ict].cont.src[ipart].itgt[icont] = jpart;
+
+  // TODO Really?
+  // dem->cache.stale = true;
+
+  return icont;
+}
+
+size_t bmm_dem_addcont(struct bmm_dem *const dem,
+    enum bmm_dem_ct const ict, size_t const ipart, size_t const jpart) {
+  // TODO Does this ever fail?
+  // dynamic_assert(ipart < jpart, "Yes");
+  if (ipart < jpart)
+    return bmm_dem_addcont_unsafe(dem, ict, ipart, jpart);
+  else
+    return bmm_dem_addcont_unsafe(dem, ict, jpart, ipart);
+}
+
+/// The call `bmm_dem_copycont(dem, ipart, icont, jcont)`
+/// reassigns the contact `jcont` to `icont` for the particle `ipart`.
+__attribute__ ((__nonnull__))
+static void bmm_dem_copycont(struct bmm_dem *const dem,
+    enum bmm_dem_ct const ict, size_t const ipart, size_t const icont, size_t const jcont) {
+  dem->pair[ict].cont.src[ipart].itgt[icont] = dem->pair[ict].cont.src[ipart].itgt[jcont];
+
+  dem->pair[ict].cont.src[ipart].drest[icont] = dem->pair[ict].cont.src[ipart].drest[jcont];
+
+  for (size_t iend = 0; iend < BMM_NEND; ++iend)
+    dem->pair[ict].cont.src[ipart].chirest[icont][iend] =
+      dem->pair[ict].cont.src[ipart].chirest[jcont][iend];
+
+  dem->pair[ict].cont.src[ipart].rlim[icont] = dem->pair[ict].cont.src[ipart].rlim[jcont];
+
+  dem->pair[ict].cont.src[ipart].philim[icont] = dem->pair[ict].cont.src[ipart].philim[jcont];
+}
+
+void bmm_dem_remcont_unsafe(struct bmm_dem *const dem,
+    enum bmm_dem_ct const ict, size_t const ipart, size_t const icont) {
+  --dem->pair[ict].cont.src[ipart].n;
+
+  size_t const jcont = dem->pair[ict].cont.src[ipart].n;
+
+  if (jcont != icont)
+    bmm_dem_copycont(dem, ict, ipart, icont, jcont);
+
+  // TODO Really?
+  // dem->cache.stale = true;
+}
+
+void bmm_dem_remcont(struct bmm_dem *const dem,
+    enum bmm_dem_ct const ict, size_t const ipart, size_t const jpart, size_t const icont) {
+  // TODO Does this ever fail?
+  // dynamic_assert(ipart < jpart, "Yes");
+  if (ipart < jpart)
+    bmm_dem_remcont_unsafe(dem, ict, ipart, icont);
+  else
+    bmm_dem_remcont_unsafe(dem, ict, jpart, icont);
+}
+
+bool bmm_dem_yield_pair(struct bmm_dem *const dem,
+    size_t const ipart, size_t const jpart, size_t const icont) {
+  double xdiffij[BMM_NDIM];
+  bmm_geom2d_cpdiff(xdiffij, dem->part.x[jpart], dem->part.x[ipart],
+      dem->opts.box.x, dem->opts.box.per);
+
+  double const d2 = bmm_geom2d_norm2(xdiffij);
+
+  // TODO Do not use `rlim` but rather `f` and proper stress criteria.
+  if (d2 > $(bmm_power, double)(dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].rlim[icont], 2)) {
+    bmm_dem_remcont(dem, BMM_DEM_CT_STRONG, ipart, jpart, icont);
+
+    return true;
+  }
+
+  switch (dem->yield.tag) {
+    case BMM_DEM_YIELD_ZE:
+
+      break;
+  }
+
+  return false;
+}
+
+void bmm_dem_analyze_pair(struct bmm_dem *const dem,
+    size_t const ipart, size_t const jpart) {
+  // TODO Settle these order problems.
+  if (ipart >= jpart) {
+    bmm_dem_analyze_pair(dem, jpart, ipart);
+
+    return;
+  }
+
+  size_t const icont = bmm_dem_search_cont(dem, BMM_DEM_CT_STRONG, ipart, jpart);
+  if (icont != SIZE_MAX)
+    (void) bmm_dem_yield_pair(dem, ipart, jpart, icont);
+  else {
+    double xdiffji[BMM_NDIM];
+    bmm_geom2d_cpdiff(xdiffji, dem->part.x[ipart], dem->part.x[jpart],
+        dem->opts.box.x, dem->opts.box.per);
+
+    double const d2 = bmm_geom2d_norm2(xdiffji);
+    double const r2 = $(bmm_power, double)(dem->part.r[ipart] + dem->part.r[jpart], 2);
+    bool const overlap = d2 <= r2;
+
+    size_t const jcont = bmm_dem_search_cont(dem, BMM_DEM_CT_WEAK, ipart, jpart);
+    if (jcont != SIZE_MAX) {
+      if (!overlap)
+        bmm_dem_remcont(dem, BMM_DEM_CT_WEAK, ipart, jpart, jcont);
+    } else {
+      if (overlap)
+        bmm_dem_addcont(dem, BMM_DEM_CT_WEAK, ipart, jpart);
+    }
+  }
+}
+
+void bmm_dem_analyze(struct bmm_dem *const dem) {
+  // This happens:
+  // for all particles,
+  // for all directed neighbors of particle,
+  // search for neighbor in strong contacts,
+  // if found then contact is strong and needs yield analysis,
+  // otherwise search for neighbor in weak contacts,
+  // if found then contact is weak and needs overlap analysis (removal),
+  // otherwise contact is missing and needs overlap analysis (addition).
+  // After this analysis we can calculate forces optimally
+  // by leveraging the csr sparse matrix format for contacts:
+  // for all particles,
+  // sum ambient forces,
+  // for all strong and weak contacts,
+  // sum forces.
+  switch (dem->cache.tag) {
+    case BMM_DEM_CACHE_NONE:
+      for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+        for (size_t jpart = ipart + 1; jpart < dem->part.n; ++jpart)
+          bmm_dem_analyze_pair(dem, ipart, jpart);
+
+      break;
+    case BMM_DEM_CACHE_NEIGH:
+      for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+        for (size_t ineigh = 0; ineigh < dem->cache.neigh[ipart].n; ++ineigh) {
+          size_t const jpart = dem->cache.neigh[ipart].i[ineigh];
+
+          bmm_dem_analyze_pair(dem, ipart, jpart);
+        }
+
+      break;
+  }
+}
+
 size_t bmm_dem_addpart(struct bmm_dem *const dem) {
   size_t const ipart = dem->part.n;
 
@@ -353,25 +552,25 @@ static void bmm_dem_copypart(struct bmm_dem *const dem,
 
   dem->part.tau[ipart] = dem->part.tau[jpart];
 
-  for (size_t icont = 0; icont < BMM_NCONT; ++icont) {
-    dem->pair[icont].cont.src[ipart].n = dem->pair[icont].cont.src[jpart].n;
+  for (size_t ict = 0; ict < BMM_NCT; ++ict) {
+    dem->pair[ict].cont.src[ipart].n = dem->pair[ict].cont.src[jpart].n;
 
-    for (size_t ilink = 0; ilink < dem->pair[icont].cont.src[jpart].n; ++ilink)
-      dem->pair[icont].cont.src[ipart].itgt[ilink] = dem->pair[icont].cont.src[jpart].itgt[ilink];
+    for (size_t ict = 0; ict < dem->pair[ict].cont.src[jpart].n; ++ict)
+      dem->pair[ict].cont.src[ipart].itgt[ict] = dem->pair[ict].cont.src[jpart].itgt[ict];
 
-    for (size_t ilink = 0; ilink < dem->pair[icont].cont.src[jpart].n; ++ilink)
-      dem->pair[icont].cont.src[ipart].drest[ilink] = dem->pair[icont].cont.src[jpart].drest[ilink];
+    for (size_t ict = 0; ict < dem->pair[ict].cont.src[jpart].n; ++ict)
+      dem->pair[ict].cont.src[ipart].drest[ict] = dem->pair[ict].cont.src[jpart].drest[ict];
 
-    for (size_t ilink = 0; ilink < dem->pair[icont].cont.src[jpart].n; ++ilink)
+    for (size_t ict = 0; ict < dem->pair[ict].cont.src[jpart].n; ++ict)
       for (size_t iend = 0; iend < BMM_NEND; ++iend)
-        dem->pair[icont].cont.src[ipart].chirest[ilink][iend] =
-          dem->pair[icont].cont.src[jpart].chirest[ilink][iend];
+        dem->pair[ict].cont.src[ipart].chirest[ict][iend] =
+          dem->pair[ict].cont.src[jpart].chirest[ict][iend];
 
-    for (size_t ilink = 0; ilink < dem->pair[icont].cont.src[jpart].n; ++ilink)
-      dem->pair[icont].cont.src[ipart].rlim[ilink] = dem->pair[icont].cont.src[jpart].rlim[ilink];
+    for (size_t ict = 0; ict < dem->pair[ict].cont.src[jpart].n; ++ict)
+      dem->pair[ict].cont.src[ipart].rlim[ict] = dem->pair[ict].cont.src[jpart].rlim[ict];
 
-    for (size_t ilink = 0; ilink < dem->pair[icont].cont.src[jpart].n; ++ilink)
-      dem->pair[icont].cont.src[ipart].philim[ilink] = dem->pair[icont].cont.src[jpart].philim[ilink];
+    for (size_t ict = 0; ict < dem->pair[ict].cont.src[jpart].n; ++ict)
+      dem->pair[ict].cont.src[ipart].philim[ict] = dem->pair[ict].cont.src[jpart].philim[ict];
   }
 }
 
@@ -381,102 +580,11 @@ void bmm_dem_rempart(struct bmm_dem *const dem,
 
   size_t const jpart = dem->part.n;
 
+  // TODO Go over particles that are in contact with this (N583) and
+  // update their associations (otherwise there will be dangling contacts).
+
   if (jpart != ipart)
     bmm_dem_copypart(dem, ipart, jpart);
-
-  dem->cache.stale = true;
-}
-
-size_t bmm_dem_addlink_unsafe(struct bmm_dem *const dem,
-    enum bmm_dem_cont icont, size_t const ipart, size_t const jpart) {
-  size_t const ilink = dem->pair[icont].cont.src[ipart].n;
-
-  if (ilink >= BMM_MCONTACT)
-    return SIZE_MAX;
-
-  ++dem->pair[icont].cont.src[ipart].n;
-
-  double xdiffij[BMM_NDIM];
-  bmm_geom2d_cpdiff(xdiffij, dem->part.x[jpart], dem->part.x[ipart],
-      dem->opts.box.x, dem->opts.box.per);
-
-  double const d = bmm_geom2d_norm(xdiffij);
-  double const r = dem->part.r[ipart] + dem->part.r[jpart];
-
-  // TODO Excessive wrapping!
-  double const gammaij = $(bmm_swrap, double)(bmm_geom2d_dir(xdiffij), M_2PI);
-  double const gammaji = $(bmm_swrap, double)(gammaij + M_PI, M_2PI);
-  double const phii = $(bmm_swrap, double)(dem->part.phi[ipart], M_2PI);
-  double const phij = $(bmm_swrap, double)(dem->part.phi[jpart], M_2PI);
-  double const chii = $(bmm_swrap, double)(gammaij - phii, M_2PI);
-  double const chij = $(bmm_swrap, double)(gammaji - phij, M_2PI);
-
-  dem->pair[icont].cont.src[ipart].chirest[ilink][0] = chii;
-
-  dem->pair[icont].cont.src[ipart].chirest[ilink][1] = chij;
-
-  double const cphilim = bmm_random_get(dem->rng, dem->opts.link.cphilim);
-
-  dem->pair[icont].cont.src[ipart].philim[ilink] = cphilim * M_2PI;
-
-  double const crlim = bmm_random_get(dem->rng, dem->opts.link.crlim);
-  double const drest = d * dem->opts.link.cshlink;
-
-  dem->pair[icont].cont.src[ipart].rlim[ilink] = crlim * drest;
-
-  dem->pair[icont].cont.src[ipart].drest[ilink] = drest;
-  dem->pair[icont].cont.src[ipart].itgt[ilink] = jpart;
-
-  // TODO Really?
-  dem->cache.stale = true;
-
-  return ilink;
-}
-
-size_t bmm_dem_addlink(struct bmm_dem *const dem,
-    enum bmm_dem_cont icont, size_t const ipart, size_t const jpart) {
-  // TODO Does this ever fail?
-  return ipart < jpart ?
-    bmm_dem_addlink_unsafe(dem, icont, ipart, jpart) :
-    bmm_dem_addlink_unsafe(dem, icont, jpart, ipart);
-}
-
-/// The call `bmm_dem_copylink(dem, ipart, ilink, jlink)`
-/// reassigns the link `jlink` to `ilink` for the particle `ipart`.
-__attribute__ ((__nonnull__))
-static void bmm_dem_copylink(struct bmm_dem *const dem,
-    enum bmm_dem_cont icont, size_t const ipart, size_t const ilink, size_t const jlink) {
-  dem->pair[icont].cont.src[ipart].itgt[ilink] = dem->pair[icont].cont.src[ipart].itgt[jlink];
-
-  dem->pair[icont].cont.src[ipart].drest[ilink] = dem->pair[icont].cont.src[ipart].drest[jlink];
-
-  for (size_t iend = 0; iend < BMM_NEND; ++iend)
-    dem->pair[icont].cont.src[ipart].chirest[ilink][iend] =
-      dem->pair[icont].cont.src[ipart].chirest[jlink][iend];
-
-  dem->pair[icont].cont.src[ipart].rlim[ilink] = dem->pair[icont].cont.src[ipart].rlim[jlink];
-
-  dem->pair[icont].cont.src[ipart].philim[ilink] = dem->pair[icont].cont.src[ipart].philim[jlink];
-}
-
-void bmm_dem_remlink_unsafe(struct bmm_dem *const dem,
-    enum bmm_dem_cont icont, size_t const ipart, size_t const ilink) {
-  --dem->pair[icont].cont.src[ipart].n;
-
-  size_t const jlink = dem->pair[icont].cont.src[ipart].n;
-
-  if (jlink != ilink)
-    bmm_dem_copylink(dem, icont, ipart, ilink, jlink);
-
-  dem->cache.stale = true;
-}
-
-void bmm_dem_remlink(struct bmm_dem *const dem,
-    enum bmm_dem_cont icont, size_t const ipart, size_t const jpart, size_t const ilink) {
-  // TODO Does this ever fail?
-  return ipart < jpart ?
-    bmm_dem_remlink_unsafe(dem, icont, ipart, ilink) :
-    bmm_dem_remlink_unsafe(dem, icont, jpart, ilink);
 }
 
 void bmm_dem_force_creeping(struct bmm_dem *const dem,
@@ -529,9 +637,9 @@ void bmm_dem_force_pair(struct bmm_dem *const dem,
   double const r2 = $(bmm_power, double)(r, 2);
   if (d2 > r2) {
     // TODO No!
-    switch (dem->pair[BMM_DEM_CONT_WEAK].tang.tag) {
+    switch (dem->pair[BMM_DEM_CT_WEAK].tang.tag) {
       case BMM_DEM_TANG_CS:
-        dem->pair[BMM_DEM_CONT_STRONG].cont.src[ipart].epsilon[jpart] = 0.0;
+        dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].epsilon[jpart] = 0.0;
     }
 
     return;
@@ -557,16 +665,16 @@ void bmm_dem_force_pair(struct bmm_dem *const dem,
     double const vnormij = bmm_geom2d_dot(vdiffij, xnormji);
     double const reff = $(bmm_resum2, double)(ri, rj);
 
-    switch (dem->pair[BMM_DEM_CONT_WEAK].norm.tag) {
+    switch (dem->pair[BMM_DEM_CT_WEAK].norm.tag) {
       case BMM_DEM_NORM_DASHPOT:
-        fnorm = dem->pair[BMM_DEM_CONT_WEAK].norm.params.dashpot.k * xi +
-          dem->pair[BMM_DEM_CONT_WEAK].norm.params.dashpot.gamma * vnormij;
+        fnorm = dem->pair[BMM_DEM_CT_WEAK].norm.params.dashpot.k * xi +
+          dem->pair[BMM_DEM_CT_WEAK].norm.params.dashpot.gamma * vnormij;
 
         break;
       case BMM_DEM_NORM_BSHP:
         fnorm = (2.0 / 3.0) * (dem->opts.part.y /
               (1.0 - $(bmm_power, double)(dem->opts.part.nu, 2))) *
-            (xi + dem->pair[BMM_DEM_CONT_WEAK].norm.params.viscoel.a * vnormij) * sqrt(reff * xi);
+            (xi + dem->pair[BMM_DEM_CT_WEAK].norm.params.viscoel.a * vnormij) * sqrt(reff * xi);
 
         break;
     }
@@ -590,24 +698,24 @@ void bmm_dem_force_pair(struct bmm_dem *const dem,
       ri * dem->part.omega[ipart] + rj * dem->part.omega[jpart];
     double const dt = dem->opts.script.dt[dem->script.i];
 
-    switch (dem->pair[BMM_DEM_CONT_WEAK].tang.tag) {
+    switch (dem->pair[BMM_DEM_CT_WEAK].tang.tag) {
       case BMM_DEM_TANG_HW:
         ftang = copysign($(bmm_min, double)(
-              dem->pair[BMM_DEM_CONT_WEAK].tang.params.hw.gamma * $(bmm_abs, double)(vtangij),
-              dem->pair[BMM_DEM_CONT_WEAK].tang.params.hw.mu * $(bmm_abs, double)(fnorm)), vtangij);
+              dem->pair[BMM_DEM_CT_WEAK].tang.params.hw.gamma * $(bmm_abs, double)(vtangij),
+              dem->pair[BMM_DEM_CT_WEAK].tang.params.hw.mu * $(bmm_abs, double)(fnorm)), vtangij);
 
         break;
       // TODO No!
       case BMM_DEM_TANG_CS:
         // TODO Always the case?
         if (ipart < jpart)
-          dem->pair[BMM_DEM_CONT_STRONG].cont.src[ipart].epsilon[jpart] += vtangij * dt;
+          dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].epsilon[jpart] += vtangij * dt;
         else
-          dem->pair[BMM_DEM_CONT_STRONG].cont.src[jpart].epsilon[ipart] += vtangij * dt;
+          dem->pair[BMM_DEM_CT_STRONG].cont.src[jpart].epsilon[ipart] += vtangij * dt;
 
         ftang = copysign($(bmm_min, double)(
-              dem->pair[BMM_DEM_CONT_WEAK].tang.params.cs.kappa * $(bmm_abs, double)(dem->pair[BMM_DEM_CONT_STRONG].cont.src[ipart].epsilon[jpart]),
-              dem->pair[BMM_DEM_CONT_WEAK].tang.params.cs.mu * $(bmm_abs, double)(fnorm)), vtangij);
+              dem->pair[BMM_DEM_CT_WEAK].tang.params.cs.kappa * $(bmm_abs, double)(dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].epsilon[jpart]),
+              dem->pair[BMM_DEM_CT_WEAK].tang.params.cs.mu * $(bmm_abs, double)(fnorm)), vtangij);
 
         break;
     }
@@ -642,7 +750,7 @@ void bmm_dem_force_pair(struct bmm_dem *const dem,
     double const aijt = (1.0 / 2.0) * (ri + sij);
     double const ajit = (1.0 / 2.0) * (ri + sji);
 
-    switch (dem->pair[BMM_DEM_CONT_WEAK].torque.tag) {
+    switch (dem->pair[BMM_DEM_CT_WEAK].torque.tag) {
       case BMM_DEM_TORQUE_HARD:
         taui = ri * ftang;
         tauj = rj * ftang;
@@ -672,8 +780,8 @@ void bmm_dem_force_pair(struct bmm_dem *const dem,
 
 // TODO This coordinate system has not been flipped yet.
 
-void bmm_dem_force_link(struct bmm_dem *const dem,
-    size_t const ipart, size_t const jpart, size_t const ilink) {
+void bmm_dem_force_cont(struct bmm_dem *const dem,
+    size_t const ipart, size_t const jpart, size_t const icont) {
   double xdiffij[BMM_NDIM];
   bmm_geom2d_cpdiff(xdiffij, dem->part.x[jpart], dem->part.x[ipart],
       dem->opts.box.x, dem->opts.box.per);
@@ -702,11 +810,11 @@ void bmm_dem_force_link(struct bmm_dem *const dem,
     case BMM_DEM_LINK_BEAM:
       {
         {
-          double const drest = d * dem->opts.link.cshlink;
-          double const zeta = dem->pair[BMM_DEM_CONT_STRONG].cont.src[ipart].drest[ilink] - d;
+          double const drest = d * dem->opts.cont.cshcont;
+          double const zeta = dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].drest[icont] - d;
           double const vnormji = -bmm_geom2d_dot(vdiffij, xnormij);
 
-          fnorm = -(dem->opts.link.ktens * zeta + dem->opts.link.dktens * vnormji);
+          fnorm = -(dem->opts.cont.ktens * zeta + dem->opts.cont.dktens * vnormji);
         }
 
         double fnormij[BMM_NDIM];
@@ -737,16 +845,16 @@ void bmm_dem_force_link(struct bmm_dem *const dem,
           double const chii = $(bmm_swrap, double)(gammaij - phii, M_2PI);
           double const chij = $(bmm_swrap, double)(gammaji - phij, M_2PI);
 
-          double const dchii = $(bmm_swrap, double)(dem->pair[BMM_DEM_CONT_STRONG].cont.src[ipart].chirest[ilink][0] - chii, M_2PI);
-          double const dchij = $(bmm_swrap, double)(dem->pair[BMM_DEM_CONT_STRONG].cont.src[ipart].chirest[ilink][1] - chij, M_2PI);
+          double const dchii = $(bmm_swrap, double)(dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].chirest[icont][BMM_DEM_END_TAIL] - chii, M_2PI);
+          double const dchij = $(bmm_swrap, double)(dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].chirest[icont][BMM_DEM_END_HEAD] - chij, M_2PI);
 
           // TODO Derive these on paper too.
           double const vrotij = -bmm_geom2d_dot(vdiffij, xtangij);
           double const omegai = dem->part.omega[ipart] + vrotij / d;
           double const omegaj = dem->part.omega[jpart] + vrotij / d;
 
-          taui = -(dem->opts.link.kshear * dchii + dem->opts.link.dkshear * omegai);
-          tauj = -(dem->opts.link.kshear * dchij + dem->opts.link.dkshear * omegaj);
+          taui = -(dem->opts.cont.kshear * dchii + dem->opts.cont.dkshear * omegai);
+          tauj = -(dem->opts.cont.kshear * dchij + dem->opts.cont.dkshear * omegaj);
         }
 
         dem->part.tau[ipart] += taui;
@@ -787,9 +895,7 @@ void bmm_dem_force_external(struct bmm_dem *const dem, size_t const ipart) {
 
       break;
     case BMM_DEM_EXT_DRIVE:
-      // TODO Parametrize the drive layer thickness and
-      // determine it ahead of time.
-      if (dem->part.x[ipart][1] > dem->opts.box.x[1] * 0.8)
+      if (dem->part.role[ipart] == BMM_DEM_ROLE_DRIVEN)
         for (size_t idim = 0; idim < BMM_NDIM; ++idim)
           dem->part.f[ipart][idim] +=
             dem->opts.script.params[dem->script.i].crunch.f[idim] /
@@ -810,47 +916,26 @@ void bmm_dem_force(struct bmm_dem *const dem) {
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     bmm_dem_force_ambient(dem, ipart);
 
-  // TODO Exclude links from contacts, see note (CA2131).
-  bool contact[BMM_MPART][BMM_MPART];
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    for (size_t jpart = 0; jpart < dem->part.n; ++jpart)
-      contact[ipart][jpart] = true;
+    for (size_t icont = 0; icont < dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].n; ++icont) {
+      size_t const jpart = dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].itgt[icont];
 
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    for (size_t ilink = 0; ilink < dem->pair[BMM_DEM_CONT_STRONG].cont.src[ipart].n; ++ilink) {
-      size_t const jpart = dem->pair[BMM_DEM_CONT_STRONG].cont.src[ipart].itgt[ilink];
-
-      bmm_dem_force_link(dem, ipart, jpart, ilink);
-
-      contact[ipart][jpart] = false;
-      contact[jpart][ipart] = false;
+      bmm_dem_force_cont(dem, ipart, jpart, icont);
     }
 
-  switch (dem->cache.tag) {
-    case BMM_DEM_CACHE_NONE:
-      for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-        for (size_t jpart = ipart + 1; jpart < dem->part.n; ++jpart)
-          if (contact[ipart][jpart] && contact[jpart][ipart])
-            bmm_dem_force_pair(dem, ipart, jpart);
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    for (size_t icont = 0; icont < dem->pair[BMM_DEM_CT_WEAK].cont.src[ipart].n; ++icont) {
+      size_t const jpart = dem->pair[BMM_DEM_CT_WEAK].cont.src[ipart].itgt[icont];
 
-      break;
-    case BMM_DEM_CACHE_NEIGH:
-      for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-        for (size_t ineigh = 0; ineigh < dem->cache.neigh[ipart].n; ++ineigh) {
-          size_t const jpart = dem->cache.neigh[ipart].i[ineigh];
+      bmm_dem_force_pair(dem, ipart, jpart);
+    }
 
-          if (contact[ipart][jpart] && contact[jpart][ipart])
-            bmm_dem_force_pair(dem, ipart, jpart);
-        }
-
-      break;
-  }
-
+  // TODO This still sucks.
   switch (dem->ext.tag) {
     case BMM_DEM_EXT_DRIVE:
       dem->script.state.crunch.ndrive = 0;
       for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-        if (dem->part.x[ipart][1] > dem->opts.box.x[1] * 0.8)
+        if (dem->part.role[ipart] == BMM_DEM_ROLE_DRIVEN)
           ++dem->script.state.crunch.ndrive;
 
       break;
@@ -881,7 +966,7 @@ void bmm_dem_integ_euler(struct bmm_dem *const dem) {
     return;
 
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    if (dem->part.role[ipart] == BMM_DEM_ROLE_FREE) {
+    if (dem->part.role[ipart] != BMM_DEM_ROLE_FIXED) {
       for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
         dem->part.x[ipart][idim] +=
           (1.0 / (double) BMM_FACT(1)) * dem->part.v[ipart][idim] * dt;
@@ -909,7 +994,7 @@ void bmm_dem_integ_taylor(struct bmm_dem *const dem) {
   double const dt2 = $(bmm_power, double)(dt, 2);
 
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    if (dem->part.role[ipart] == BMM_DEM_ROLE_FREE) {
+    if (dem->part.role[ipart] != BMM_DEM_ROLE_FIXED) {
       for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
         dem->part.x[ipart][idim] +=
           (1.0 / (double) BMM_FACT(1)) * dem->part.v[ipart][idim] * dt +
@@ -939,7 +1024,7 @@ void bmm_dem_integ_vel(struct bmm_dem *const dem) {
   double const dt2 = $(bmm_power, double)(dt, 2);
 
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    if (dem->part.role[ipart] == BMM_DEM_ROLE_FREE) {
+    if (dem->part.role[ipart] != BMM_DEM_ROLE_FIXED) {
       for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
         dem->part.x[ipart][idim] +=
           (1.0 / (double) BMM_FACT(1)) * dem->part.v[ipart][idim] * dt +
@@ -967,7 +1052,7 @@ void bmm_dem_integ_vet(struct bmm_dem *const dem) {
     return;
 
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    if (dem->part.role[ipart] == BMM_DEM_ROLE_FREE) {
+    if (dem->part.role[ipart] != BMM_DEM_ROLE_FIXED) {
       for (size_t idim = 0; idim < BMM_NDIM; ++idim)
         dem->part.v[ipart][idim] += (1.0 / (double) BMM_FACT(2)) *
           (dem->integ.params.velvet.a[ipart][idim] + dem->part.a[ipart][idim]) * dt;
@@ -1010,7 +1095,7 @@ void bmm_dem_correct(struct bmm_dem *const dem) {
 }
 
 void bmm_dem_fault_pair(struct bmm_dem *const dem,
-    size_t const ipart, size_t const jpart, size_t const ilink) {
+    size_t const ipart, size_t const jpart, size_t const icont) {
   bool const iind = dem->opts.script.params[dem->script.i].fault.
     ind(dem->part.x[ipart], &dem->opts);
 
@@ -1018,48 +1103,25 @@ void bmm_dem_fault_pair(struct bmm_dem *const dem,
     ind(dem->part.x[jpart], &dem->opts);
 
   if (iind != jind)
-    bmm_dem_remlink(dem, BMM_DEM_CONT_STRONG, ipart, jpart, ilink);
+    bmm_dem_remcont(dem, BMM_DEM_CT_STRONG, ipart, jpart, icont);
 }
 
 void bmm_dem_fault(struct bmm_dem *const dem) {
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    for (size_t ilink = 0; ilink < dem->pair[BMM_DEM_CONT_STRONG].cont.src[ipart].n; ++ilink) {
-      size_t const jpart = dem->pair[BMM_DEM_CONT_STRONG].cont.src[ipart].itgt[ilink];
+    for (size_t icont = 0; icont < dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].n; ++icont) {
+      size_t const jpart = dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].itgt[icont];
 
-      bmm_dem_fault_pair(dem, ipart, jpart, ilink);
-    }
-}
-
-void bmm_dem_yield_pair(struct bmm_dem *const dem,
-    size_t const ipart, size_t const jpart, size_t const ilink) {
-  double xdiffij[BMM_NDIM];
-  bmm_geom2d_cpdiff(xdiffij, dem->part.x[jpart], dem->part.x[ipart],
-      dem->opts.box.x, dem->opts.box.per);
-
-  double const d2 = bmm_geom2d_norm2(xdiffij);
-
-  // TODO Do not use `rlim` but rather `f` and proper stress criteria.
-  if (d2 > $(bmm_power, double)(dem->pair[BMM_DEM_CONT_STRONG].cont.src[ipart].rlim[ilink], 2))
-    bmm_dem_remlink(dem, BMM_DEM_CONT_STRONG, ipart, jpart, ilink);
-
-  switch (dem->yield.tag) {
-    case BMM_DEM_YIELD_ZE:
-
-      break;
-  }
-}
-
-void bmm_dem_yield(struct bmm_dem *const dem) {
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    for (size_t ilink = 0; ilink < dem->pair[BMM_DEM_CONT_STRONG].cont.src[ipart].n; ++ilink) {
-      size_t const jpart = dem->pair[BMM_DEM_CONT_STRONG].cont.src[ipart].itgt[ilink];
-
-      bmm_dem_yield_pair(dem, ipart, jpart, ilink);
+      bmm_dem_fault_pair(dem, ipart, jpart, icont);
     }
 }
 
 bool bmm_dem_link_pair(struct bmm_dem *const dem,
     size_t const ipart, size_t const jpart) {
+  // TODO Settle these order problems.
+  if (ipart >= jpart) {
+    return bmm_dem_link_pair(dem, jpart, ipart);
+  }
+
   double xdiffij[BMM_NDIM];
   bmm_geom2d_cpdiff(xdiffij, dem->part.x[jpart], dem->part.x[ipart],
       dem->opts.box.x, dem->opts.box.per);
@@ -1069,10 +1131,14 @@ bool bmm_dem_link_pair(struct bmm_dem *const dem,
   double const r = dem->part.r[ipart] + dem->part.r[jpart];
   double const r2 = $(bmm_power, double)(r, 2);
 
-  if (d2 > r2 * dem->opts.link.ccrlink)
+  if (d2 > r2 * dem->opts.cont.ccrcont)
     return true;
 
-  return bmm_dem_addlink(dem, BMM_DEM_CONT_STRONG, ipart, jpart) != SIZE_MAX;
+  size_t const icont = bmm_dem_search_cont(dem, BMM_DEM_CT_WEAK, ipart, jpart);
+  if (icont != SIZE_MAX)
+    bmm_dem_remcont(dem, BMM_DEM_CT_WEAK, ipart, jpart, icont);
+
+  return bmm_dem_addcont(dem, BMM_DEM_CT_STRONG, ipart, jpart) != SIZE_MAX;
 }
 
 // TODO Check triangulation quality and compare with Delaunay.
@@ -1097,9 +1163,9 @@ bool bmm_dem_link(struct bmm_dem *const dem) {
   return true;
 }
 
-bool bmm_dem_unlink(struct bmm_dem *const dem) {
+bool bmm_dem_uncont(struct bmm_dem *const dem) {
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    dem->pair[BMM_DEM_CONT_STRONG].cont.src[ipart].n = 0;
+    dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].n = 0;
 
   return true;
 }
@@ -1136,6 +1202,11 @@ static void bmm_dem_script_clip(struct bmm_dem *const dem) {
       bmm_dem_rempart(dem, ipart);
       --ipart;
     }
+
+  // TODO See (N583).
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    for (size_t ict = 0; ict < BMM_NCT; ++ict)
+      dem->pair[ict].cont.src[ipart].n = 0;
 }
 
 /// The call `bmm_dem_est_ekin(dem)`
@@ -1210,9 +1281,9 @@ double bmm_dem_est_cor(struct bmm_dem const *const dem) {
     double const mred =
       dem->part.m[ipart] * dem->part.m[ipart] /
       (dem->part.m[ipart] + dem->part.m[ipart]);
-    e += exp(-M_PI * dem->pair[BMM_DEM_CONT_WEAK].norm.params.dashpot.gamma / (2.0 * mred) /
-        sqrt(dem->pair[BMM_DEM_CONT_WEAK].norm.params.dashpot.k / mred -
-          $(bmm_power, double)(dem->pair[BMM_DEM_CONT_WEAK].norm.params.dashpot.gamma / (2.0 * mred), 2)));
+    e += exp(-M_PI * dem->pair[BMM_DEM_CT_WEAK].norm.params.dashpot.gamma / (2.0 * mred) /
+        sqrt(dem->pair[BMM_DEM_CT_WEAK].norm.params.dashpot.k / mred -
+          $(bmm_power, double)(dem->pair[BMM_DEM_CT_WEAK].norm.params.dashpot.gamma / (2.0 * mred), 2)));
   }
 
   return e / (double) dem->part.n;
@@ -1418,16 +1489,16 @@ void bmm_dem_opts_def(struct bmm_dem_opts *const opts) {
   opts->part.rnew[0] = 1.0;
   opts->part.rnew[1] = 1.0;
 
-  opts->link.ccrlink = 1.2;
-  opts->link.cshlink = 1.0;
-  opts->link.ktens = 1.0;
-  opts->link.dktens = 1.0;
-  opts->link.kshear = 1.0;
-  opts->link.dkshear = 1.0;
-  opts->link.crlim[0] = 1.2;
-  opts->link.crlim[1] = 1.6;
-  opts->link.cphilim[0] = 1.2;
-  opts->link.cphilim[1] = 1.6;
+  opts->cont.ccrcont = 1.2;
+  opts->cont.cshcont = 1.0;
+  opts->cont.ktens = 1.0;
+  opts->cont.dktens = 1.0;
+  opts->cont.kshear = 1.0;
+  opts->cont.dkshear = 1.0;
+  opts->cont.crlim[0] = 1.2;
+  opts->cont.crlim[1] = 1.6;
+  opts->cont.cphilim[0] = 1.2;
+  opts->cont.cphilim[1] = 1.6;
 
   opts->script.n = 0;
 
@@ -1478,13 +1549,13 @@ void bmm_dem_def(struct bmm_dem *const dem,
   dem->cache.tag = BMM_DEM_CACHE_NEIGH;
   dem->ext.tag = BMM_DEM_EXT_NONE;
   dem->amb.tag = BMM_DEM_AMB_FAXEN;
-  dem->pair[BMM_DEM_CONT_WEAK].norm.tag = BMM_DEM_NORM_DASHPOT;
-  dem->pair[BMM_DEM_CONT_WEAK].norm.tag = BMM_DEM_NORM_BSHP;
+  dem->pair[BMM_DEM_CT_WEAK].norm.tag = BMM_DEM_NORM_DASHPOT;
+  dem->pair[BMM_DEM_CT_WEAK].norm.tag = BMM_DEM_NORM_BSHP;
   // TODO Reinstate this.
-  dem->pair[BMM_DEM_CONT_WEAK].tang.tag = BMM_DEM_TANG_CS;
-  dem->pair[BMM_DEM_CONT_WEAK].tang.tag = BMM_DEM_TANG_HW;
-  dem->pair[BMM_DEM_CONT_WEAK].torque.tag = BMM_DEM_TORQUE_SOFT;
-  dem->pair[BMM_DEM_CONT_WEAK].torque.tag = BMM_DEM_TORQUE_HARD;
+  dem->pair[BMM_DEM_CT_WEAK].tang.tag = BMM_DEM_TANG_CS;
+  dem->pair[BMM_DEM_CT_WEAK].tang.tag = BMM_DEM_TANG_HW;
+  dem->pair[BMM_DEM_CT_WEAK].torque.tag = BMM_DEM_TORQUE_SOFT;
+  dem->pair[BMM_DEM_CT_WEAK].torque.tag = BMM_DEM_TORQUE_HARD;
   dem->yield.tag = BMM_DEM_YIELD_ZE;
   dem->cont_dep.tag = BMM_DEM_LINK_SPRING;
   dem->cont_dep.tag = BMM_DEM_LINK_BEAM;
@@ -1492,32 +1563,32 @@ void bmm_dem_def(struct bmm_dem *const dem,
   // TODO Stop fucking around with the `union` of these parameters.
   dem->amb.params.creeping.mu = 1.0e-3;
 
-  switch (dem->pair[BMM_DEM_CONT_WEAK].norm.tag) {
+  switch (dem->pair[BMM_DEM_CT_WEAK].norm.tag) {
     case BMM_DEM_NORM_DASHPOT:
-      dem->pair[BMM_DEM_CONT_WEAK].norm.params.dashpot.k = 1.0e+6;
-      dem->pair[BMM_DEM_CONT_WEAK].norm.params.dashpot.gamma = 1.0e+3;
+      dem->pair[BMM_DEM_CT_WEAK].norm.params.dashpot.k = 1.0e+6;
+      dem->pair[BMM_DEM_CT_WEAK].norm.params.dashpot.gamma = 1.0e+3;
 
       break;
     case BMM_DEM_NORM_BSHP:
-      dem->pair[BMM_DEM_CONT_WEAK].norm.params.viscoel.a = 2.0e-2;
+      dem->pair[BMM_DEM_CT_WEAK].norm.params.viscoel.a = 2.0e-2;
 
       break;
   }
 
-  switch (dem->pair[BMM_DEM_CONT_WEAK].tang.tag) {
+  switch (dem->pair[BMM_DEM_CT_WEAK].tang.tag) {
     case BMM_DEM_TANG_HW:
-      dem->pair[BMM_DEM_CONT_WEAK].tang.params.hw.gamma = 1.0e+2;
-      dem->pair[BMM_DEM_CONT_WEAK].tang.params.hw.mu = 0.5;
+      dem->pair[BMM_DEM_CT_WEAK].tang.params.hw.gamma = 1.0e+2;
+      dem->pair[BMM_DEM_CT_WEAK].tang.params.hw.mu = 0.5;
 
       break;
     // TODO No!
     case BMM_DEM_TANG_CS:
-      for (size_t ipart = 0; ipart < nmembof(dem->pair[BMM_DEM_CONT_STRONG].cont.src); ++ipart)
-        for (size_t jpart = 0; jpart < nmembof(dem->pair[BMM_DEM_CONT_STRONG].cont.src[ipart].epsilon); ++jpart)
-          dem->pair[BMM_DEM_CONT_STRONG].cont.src[ipart].epsilon[jpart] = 0.0;
+      for (size_t ipart = 0; ipart < nmembof(dem->pair[BMM_DEM_CT_STRONG].cont.src); ++ipart)
+        for (size_t jpart = 0; jpart < nmembof(dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].epsilon); ++jpart)
+          dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].epsilon[jpart] = 0.0;
 
-      dem->pair[BMM_DEM_CONT_WEAK].tang.params.cs.kappa = 1.0e+7;
-      dem->pair[BMM_DEM_CONT_WEAK].tang.params.cs.mu = 0.5;
+      dem->pair[BMM_DEM_CT_WEAK].tang.params.cs.kappa = 1.0e+7;
+      dem->pair[BMM_DEM_CT_WEAK].tang.params.cs.mu = 0.5;
 
       break;
   }
@@ -1537,8 +1608,8 @@ void bmm_dem_def(struct bmm_dem *const dem,
   dem->part.n = 0;
   dem->part.lnew = 0;
 
-  for (size_t ipart = 0; ipart < nmembof(dem->pair[BMM_DEM_CONT_STRONG].cont.src); ++ipart)
-    dem->pair[BMM_DEM_CONT_STRONG].cont.src[ipart].n = 0;
+  for (size_t ipart = 0; ipart < nmembof(dem->pair[BMM_DEM_CT_STRONG].cont.src); ++ipart)
+    dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].n = 0;
 
   dem->script.i = 0;
   dem->script.tprev = 0.0;
@@ -2066,8 +2137,8 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
       break;
     case BMM_DEM_MODE_PRESET0:
       dem->amb.tag = BMM_DEM_AMB_FAXEN;
-      dem->pair[BMM_DEM_CONT_WEAK].norm.tag = BMM_DEM_NORM_BSHP;
-      dem->pair[BMM_DEM_CONT_WEAK].tang.tag = BMM_DEM_TANG_NONE;
+      dem->pair[BMM_DEM_CT_WEAK].norm.tag = BMM_DEM_NORM_BSHP;
+      dem->pair[BMM_DEM_CT_WEAK].tang.tag = BMM_DEM_TANG_NONE;
       dem->yield.tag = BMM_DEM_YIELD_NONE;
       dem->cont_dep.tag = BMM_DEM_LINK_SPRING;
 
@@ -2078,10 +2149,10 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
       break;
     case BMM_DEM_MODE_PRESET1:
       dem->amb.tag = BMM_DEM_AMB_NONE;
-      dem->pair[BMM_DEM_CONT_WEAK].norm.tag = BMM_DEM_NORM_BSHP;
+      dem->pair[BMM_DEM_CT_WEAK].norm.tag = BMM_DEM_NORM_BSHP;
       // TODO Reinstate this.
-      dem->pair[BMM_DEM_CONT_WEAK].tang.tag = BMM_DEM_TANG_CS;
-      dem->pair[BMM_DEM_CONT_WEAK].tang.tag = BMM_DEM_TANG_HW;
+      dem->pair[BMM_DEM_CT_WEAK].tang.tag = BMM_DEM_TANG_CS;
+      dem->pair[BMM_DEM_CT_WEAK].tang.tag = BMM_DEM_TANG_HW;
       dem->yield.tag = BMM_DEM_YIELD_ZE;
       dem->cont_dep.tag = BMM_DEM_LINK_BEAM;
       // dem->opts.part.y = 52.0e+9;
@@ -2114,6 +2185,10 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
     case BMM_DEM_MODE_CRUNCH:
       dem->ext.tag = BMM_DEM_EXT_DRIVE;
 
+      for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+        if (dem->part.x[ipart][1] > dem->opts.box.x[1] * 0.9)
+          dem->part.role[ipart] = BMM_DEM_ROLE_DRIVEN;
+
       break;
     case BMM_DEM_MODE_MEASURE:
 
@@ -2128,25 +2203,10 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
   }
 
   bmm_dem_predict(dem);
-  // TODO Contact analysis (CA2131):
-  // for all particles,
-  // for all directed neighbors of particle,
-  // search for neighbor in strong contacts,
-  // if found then contact is strong and needs yield analysis,
-  // otherwise search for neighbor in weak contacts,
-  // if found then contact is weak and needs overlap analysis (removal),
-  // otherwise contact is missing and needs overlap analysis (addition).
-  // After this analysis we can calculate forces optimally
-  // by leveraging the csr sparse matrix format for contacts:
-  // for all particles,
-  // sum ambient forces,
-  // for all strong and weak contacts,
-  // sum forces.
+  bmm_dem_analyze(dem);
   bmm_dem_force(dem);
   bmm_dem_accel(dem);
   bmm_dem_correct(dem);
-  // TODO Here or at note (CA2131)?
-  bmm_dem_yield(dem);
 
   if (dem->time.istep % dem->opts.time.istab == 0)
     bmm_dem_stab(dem);

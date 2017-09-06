@@ -33,13 +33,13 @@ enum bmm_dem_cache {
 };
 
 /// Contact types for pairs of particles.
-enum bmm_dem_cont {
+enum bmm_dem_ct {
   /// Weak contact that may develop into no contact.
-  BMM_DEM_CONT_WEAK,
+  BMM_DEM_CT_WEAK,
   /// Strong contact that may develop into weak or no contact.
-  BMM_DEM_CONT_STRONG,
+  BMM_DEM_CT_STRONG,
   /// Number of contact types.
-  BMM_NCONT
+  BMM_NCT
 };
 
 /// Endpoints for pairs of particles.
@@ -192,10 +192,10 @@ enum bmm_dem_mode {
   BMM_DEM_MODE_GRAVY,
   /// Remove particles outside the bounding box.
   BMM_DEM_MODE_CLIP,
-  // TODO Choose link strengths from the Weibull distribution.
+  // TODO Choose contact strengths from the Weibull distribution.
   /// Link nearby particles together.
   BMM_DEM_MODE_LINK,
-  /// Break the links that cross the zero along the x-axis.
+  /// Break the contacts that cross the zero along the x-axis.
   BMM_DEM_MODE_FAULT,
   /// Pull the material apart in the y-direction.
   BMM_DEM_MODE_SEPARATE,
@@ -245,11 +245,12 @@ struct bmm_dem_opts {
     double rnew[2];
   } part;
   /// Links between particles.
+  __attribute__ ((__deprecated__))
   struct {
     /// Link length creation factor.
-    double ccrlink;
+    double ccrcont;
     /// Link length expansion factor.
-    double cshlink;
+    double cshcont;
     /// Tensile spring constant.
     double ktens;
     /// Tensile spring constant derivative.
@@ -264,7 +265,7 @@ struct bmm_dem_opts {
     /// Limit angle factors for shear stress induced breaking
     /// expressed as the width of the uniform distribution.
     double cphilim[BMM_NEND];
-  } link;
+  } cont;
   /// Script to follow.
   struct {
     /// Number of stages.
@@ -485,11 +486,11 @@ struct bmm_dem {
     } params;
   } amb;
   /// Contacts.
-  struct bmm_dem_pair pair[BMM_NCONT];
+  struct bmm_dem_pair pair[BMM_NCT];
   /// Weak-to-strong bonding criteria.
   struct {
     /// Bonding criterion.
-    // TODO Put link creation parameters here.
+    // TODO Put contact creation parameters here.
     enum bmm_dem_bond tag;
   } bond;
   /// Strong-to-weak yield criteria.

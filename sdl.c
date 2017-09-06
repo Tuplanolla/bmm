@@ -320,16 +320,45 @@ static void bmm_sdl_draw(struct bmm_sdl const *const sdl) {
         glEnd();
       }
 
-      // Links.
-      memcpy(blent, glMagenta, sizeof glBlack);
+      // Contacts.
+      memcpy(blent, glRed, sizeof glBlack);
       blent[3] = 1.0f;
       memcpy(nope, blent, sizeof glBlack);
       nope[3] = 0.0f;
       blent[3] = 1.0f - (float) t;
       glColor4fv(blent);
 
-      for (size_t ilink = 0; ilink < sdl->dem.pair[BMM_DEM_CONT_STRONG].cont.src[ipart].n; ++ilink) {
-        size_t const jpart = sdl->dem.pair[BMM_DEM_CONT_STRONG].cont.src[ipart].itgt[ilink];
+      for (size_t icont = 0; icont < sdl->dem.pair[BMM_DEM_CT_WEAK].cont.src[ipart].n; ++icont) {
+        size_t const jpart = sdl->dem.pair[BMM_DEM_CT_WEAK].cont.src[ipart].itgt[icont];
+
+        double x0[BMM_NDIM];
+        double x1[BMM_NDIM];
+
+        (void) memcpy(x0, sdl->dem.part.x[ipart], sizeof x0);
+        (void) memcpy(x1, sdl->dem.part.x[jpart], sizeof x1);
+
+        double dx[BMM_NDIM];
+        dx[0] = x0[0] + $(bmm_swrap, double)(x1[0] - x0[0], sdl->dem.opts.box.x[0]);
+        dx[1] = x1[1];
+
+        x0[0] += off * sdl->dem.opts.box.x[0];
+        dx[0] += off * sdl->dem.opts.box.x[0];
+
+        glBegin(GL_LINES);
+        glVertex2dv(x0);
+        glVertex2dv(dx);
+        glEnd();
+      }
+
+      memcpy(blent, glGreen, sizeof glBlack);
+      blent[3] = 1.0f;
+      memcpy(nope, blent, sizeof glBlack);
+      nope[3] = 0.0f;
+      blent[3] = 1.0f - (float) t;
+      glColor4fv(blent);
+
+      for (size_t icont = 0; icont < sdl->dem.pair[BMM_DEM_CT_STRONG].cont.src[ipart].n; ++icont) {
+        size_t const jpart = sdl->dem.pair[BMM_DEM_CT_STRONG].cont.src[ipart].itgt[icont];
 
         double x0[BMM_NDIM];
         double x1[BMM_NDIM];
@@ -508,8 +537,8 @@ static bool more_heresy(struct bmm_sdl const *const sdl) {
   }
 
   for (size_t ipart = 0; ipart < sdl->dem.part.n; ++ipart) {
-    for (size_t ilink = 0; ilink < sdl->dem.pair[BMM_DEM_CONT_STRONG].cont.src[ipart].n; ++ilink) {
-      size_t const jpart = sdl->dem.pair[BMM_DEM_CONT_STRONG].cont.src[ipart].itgt[ilink];
+    for (size_t icont = 0; icont < sdl->dem.pair[BMM_DEM_CT_STRONG].cont.src[ipart].n; ++icont) {
+      size_t const jpart = sdl->dem.pair[BMM_DEM_CT_STRONG].cont.src[ipart].itgt[icont];
 
       if (fprintf(stream, "%zu %g %g\n",
             (size_t) 0,

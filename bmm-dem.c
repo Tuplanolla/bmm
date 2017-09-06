@@ -52,10 +52,10 @@ static bool f(char const *const key, char const *const value,
   opts->part.y = 52.0e+8;
   opts->part.nu = 0.2;
 
-  opts->link.ktens = 1.0e+8;
-  opts->link.dktens = 2.0e+3;
-  opts->link.kshear = 2.0e+2;
-  opts->link.dkshear = 4.0e-3;
+  opts->cont.ktens = 1.0e+8;
+  opts->cont.dktens = 2.0e+3;
+  opts->cont.kshear = 2.0e+2;
+  opts->cont.dkshear = 4.0e-3;
 
   opts->comm.dt = 2.0e-5;
 
