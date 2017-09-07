@@ -23,7 +23,7 @@ static bool ind_wave(double const *const x, void *const cls) {
   struct bmm_dem_opts *const opts = cls;
 
   return x[1] > opts->box.x[1] / 2.0 +
-    opts->box.x[1] * 0.05 * sin(M_2PI * x[0] / (opts->box.x[0] / 2.0));
+    opts->box.x[1] * 0.02 * sin(M_2PI * x[0] / (opts->box.x[0] / 4.0));
 }
 
 __attribute__ ((__nonnull__ (1, 2)))
@@ -66,6 +66,8 @@ static bool f(char const *const key, char const *const value,
     if (strcmp(value, "beam") == 0) {
       opts->part.rnew[0] = 2.078e-3;
       opts->part.rnew[1] = opts->part.rnew[0] + 1.0e-9;
+      opts->cont.crlim[0] = 1.2;
+      opts->cont.crlim[1] = 1.6;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
@@ -130,9 +132,6 @@ static bool f(char const *const key, char const *const value,
       opts->script.mode[istage] = BMM_DEM_MODE_GLUE;
 
       istage = bmm_dem_script_addstage(opts);
-      opts->script.mode[istage] = BMM_DEM_MODE_PRESET1;
-
-      istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_SEPARATE;
       opts->script.tspan[istage] = 0.1e-3;
       opts->script.dt[istage] = dtstuff;
@@ -141,15 +140,10 @@ static bool f(char const *const key, char const *const value,
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CRUNCH;
-      opts->script.tspan[istage] = 4.0e-3;
-      opts->script.dt[istage] = dtstuff;
-      opts->script.params[istage].crunch.f[0] = 4.0e+5;
-      opts->script.params[istage].crunch.f[1] = -2.0e+5;
-
-      istage = bmm_dem_script_addstage(opts);
-      opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
-      opts->script.tspan[istage] = 4.0e-3;
-      opts->script.dt[istage] = dtstuff;
+      opts->script.tspan[istage] = 12.0e-3;
+      opts->script.dt[istage] = dtstuff * 0.75;
+      opts->script.params[istage].crunch.f[0] = 3.0e+5;
+      opts->script.params[istage].crunch.f[1] = -4.0e+5;
     } else if (strcmp(value, "mix") == 0) {
       double const mu = 2.0e-3;
 

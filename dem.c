@@ -397,21 +397,64 @@ void bmm_dem_remcont(struct bmm_dem *const dem,
 
 bool bmm_dem_yield_pair(struct bmm_dem *const dem,
     size_t const ipart, size_t const jpart, size_t const icont) {
-  double xdiffij[BMM_NDIM];
-  bmm_geom2d_cpdiff(xdiffij, dem->part.x[jpart], dem->part.x[ipart],
+  double xdiffji[BMM_NDIM];
+  bmm_geom2d_cpdiff(xdiffji, dem->part.x[ipart], dem->part.x[jpart],
       dem->opts.box.x, dem->opts.box.per);
 
-  double const d2 = bmm_geom2d_norm2(xdiffij);
+  double const d2 = bmm_geom2d_norm2(xdiffji);
+  double const d = sqrt(d2);
 
+  /*
   // TODO Do not use `rlim` but rather `f` and proper stress criteria.
   if (d2 > $(bmm_power, double)(dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].rlim[icont], 2)) {
     bmm_dem_remcont(dem, BMM_DEM_CT_STRONG, ipart, jpart, icont);
 
     return true;
   }
+  */
+
+  double xnormji[BMM_NDIM];
+  bmm_geom2d_scale(xnormji, xdiffji, 1.0 / d);
+
+  double xtangji[BMM_NDIM];
+  bmm_geom2d_rperp(xtangji, xnormji);
+
+  double fdiffij[BMM_NDIM];
+  bmm_geom2d_diff(fdiffij, dem->part.f[jpart], dem->part.f[ipart]);
+
+  double const fnormij = bmm_geom2d_dot(fdiffij, xnormji);
+  double const ftangij = $(bmm_abs, double)(bmm_geom2d_dot(fdiffij, xtangji));
+
+  // TODO Is this a valid assumption for the yield point cross section?
+  double const a = $(bmm_hmean2, double)(dem->part.r[ipart], dem->part.r[jpart]);
+
+  double const sigmaij = fnormij / a;
+  double const tauij = ftangij / a;
 
   switch (dem->yield.tag) {
+    case BMM_DEM_YIELD_RANKINE:
+      if (sigmaij >= dem->yield.params.rankine.sigmacrit) {
+        bmm_dem_remcont(dem, BMM_DEM_CT_STRONG, ipart, jpart, icont);
+
+        return true;
+      }
+
+      break;
+    case BMM_DEM_YIELD_TRESCA:
+      if (sigmaij >= dem->yield.params.tresca.taucrit) {
+        bmm_dem_remcont(dem, BMM_DEM_CT_STRONG, ipart, jpart, icont);
+
+        return true;
+      }
+
+      break;
     case BMM_DEM_YIELD_ZE:
+      if ($(bmm_power, double)(sigmaij / dem->yield.params.ze.sigmacrit, 2) +
+          $(bmm_power, double)(tauij / dem->yield.params.ze.taucrit, 2) >= 1.0) {
+        bmm_dem_remcont(dem, BMM_DEM_CT_STRONG, ipart, jpart, icont);
+
+        return true;
+      }
 
       break;
   }
@@ -1094,7 +1137,7 @@ void bmm_dem_correct(struct bmm_dem *const dem) {
   }
 }
 
-void bmm_dem_fault_pair(struct bmm_dem *const dem,
+bool bmm_dem_fault_pair(struct bmm_dem *const dem,
     size_t const ipart, size_t const jpart, size_t const icont) {
   bool const iind = dem->opts.script.params[dem->script.i].fault.
     ind(dem->part.x[ipart], &dem->opts);
@@ -1102,8 +1145,13 @@ void bmm_dem_fault_pair(struct bmm_dem *const dem,
   bool const jind = dem->opts.script.params[dem->script.i].fault.
     ind(dem->part.x[jpart], &dem->opts);
 
-  if (iind != jind)
+  if (iind != jind) {
     bmm_dem_remcont(dem, BMM_DEM_CT_STRONG, ipart, jpart, icont);
+
+    return true;
+  }
+
+  return false;
 }
 
 void bmm_dem_fault(struct bmm_dem *const dem) {
@@ -1111,7 +1159,8 @@ void bmm_dem_fault(struct bmm_dem *const dem) {
     for (size_t icont = 0; icont < dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].n; ++icont) {
       size_t const jpart = dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].itgt[icont];
 
-      bmm_dem_fault_pair(dem, ipart, jpart, icont);
+      if (bmm_dem_fault_pair(dem, ipart, jpart, icont))
+        --icont;
     }
 }
 
@@ -1495,8 +1544,8 @@ void bmm_dem_opts_def(struct bmm_dem_opts *const opts) {
   opts->cont.dktens = 1.0;
   opts->cont.kshear = 1.0;
   opts->cont.dkshear = 1.0;
-  opts->cont.crlim[0] = 1.2;
-  opts->cont.crlim[1] = 1.6;
+  opts->cont.crlim[0] = 1.1;
+  opts->cont.crlim[1] = 1.2;
   opts->cont.cphilim[0] = 1.2;
   opts->cont.cphilim[1] = 1.6;
 
@@ -1556,7 +1605,8 @@ void bmm_dem_def(struct bmm_dem *const dem,
   dem->pair[BMM_DEM_CT_WEAK].tang.tag = BMM_DEM_TANG_HW;
   dem->pair[BMM_DEM_CT_WEAK].torque.tag = BMM_DEM_TORQUE_SOFT;
   dem->pair[BMM_DEM_CT_WEAK].torque.tag = BMM_DEM_TORQUE_HARD;
-  dem->yield.tag = BMM_DEM_YIELD_ZE;
+  dem->yield.tag = BMM_DEM_YIELD_RANKINE;
+  dem->yield.tag = BMM_DEM_YIELD_TRESCA;
   dem->cont_dep.tag = BMM_DEM_LINK_SPRING;
   dem->cont_dep.tag = BMM_DEM_LINK_BEAM;
 
@@ -1598,6 +1648,17 @@ void bmm_dem_def(struct bmm_dem *const dem,
 
       break;
     case BMM_DEM_LINK_BEAM:
+
+      break;
+  }
+
+  switch (dem->yield.tag) {
+    case BMM_DEM_YIELD_RANKINE:
+      dem->yield.params.rankine.sigmacrit = 1.0e+8;
+
+      break;
+    case BMM_DEM_YIELD_TRESCA:
+      dem->yield.params.tresca.taucrit = 1.0e+8;
 
       break;
   }
@@ -2136,10 +2197,10 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
 
       break;
     case BMM_DEM_MODE_PRESET0:
+      dem->opts.comm.dt *= 1.0e+1;
       dem->amb.tag = BMM_DEM_AMB_FAXEN;
       dem->pair[BMM_DEM_CT_WEAK].norm.tag = BMM_DEM_NORM_BSHP;
       dem->pair[BMM_DEM_CT_WEAK].tang.tag = BMM_DEM_TANG_NONE;
-      dem->yield.tag = BMM_DEM_YIELD_NONE;
       dem->cont_dep.tag = BMM_DEM_LINK_SPRING;
 
       break;
@@ -2148,12 +2209,12 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
 
       break;
     case BMM_DEM_MODE_PRESET1:
+      dem->opts.comm.dt /= 1.0e+1;
       dem->amb.tag = BMM_DEM_AMB_NONE;
       dem->pair[BMM_DEM_CT_WEAK].norm.tag = BMM_DEM_NORM_BSHP;
       // TODO Reinstate this.
       dem->pair[BMM_DEM_CT_WEAK].tang.tag = BMM_DEM_TANG_CS;
       dem->pair[BMM_DEM_CT_WEAK].tang.tag = BMM_DEM_TANG_HW;
-      dem->yield.tag = BMM_DEM_YIELD_ZE;
       dem->cont_dep.tag = BMM_DEM_LINK_BEAM;
       // dem->opts.part.y = 52.0e+9;
 
@@ -2185,9 +2246,14 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
     case BMM_DEM_MODE_CRUNCH:
       dem->ext.tag = BMM_DEM_EXT_DRIVE;
 
-      for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-        if (dem->part.x[ipart][1] > dem->opts.box.x[1] * 0.9)
-          dem->part.role[ipart] = BMM_DEM_ROLE_DRIVEN;
+      static bool pristine = true;
+      if (pristine) {
+        pristine = false;
+
+        for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+          if (dem->part.x[ipart][1] > dem->opts.box.x[1] * 0.9)
+            dem->part.role[ipart] = BMM_DEM_ROLE_DRIVEN;
+      }
 
       break;
     case BMM_DEM_MODE_MEASURE:

@@ -497,6 +497,26 @@ struct bmm_dem {
   struct {
     /// Yield criterion.
     enum bmm_dem_yield tag;
+    /// Parameters.
+    union {
+      /// For `BMM_DEM_YIELD_RANKINE`.
+      struct {
+        /// Maximum normal stress.
+        double sigmacrit;
+      } rankine;
+      /// For `BMM_DEM_YIELD_TRESCA`.
+      struct {
+        /// Maximum shear stress.
+        double taucrit;
+      } tresca;
+      /// For `BMM_DEM_YIELD_ZE`.
+      struct {
+        /// Maximum normal stress.
+        double sigmacrit;
+        /// Maximum shear stress.
+        double taucrit;
+      } ze;
+    } params;
   } yield;
   /// Deprecated scheme selector.
   __attribute__ ((__deprecated__))
