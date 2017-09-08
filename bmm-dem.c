@@ -88,12 +88,10 @@ static bool f(char const *const key, char const *const value,
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_GRAVY;
       opts->script.tspan[istage] = 6.0e-3;
-      opts->script.dt[istage] = dtstuff;
+      opts->script.dt[istage] = dtstuff * 0.5;
       opts->script.params[istage].gravy.f = 3.0e+3;
     } else if (strcmp(value, "shear") == 0) {
       double mu = 1.75e-3;
-
-      mu = 2.0e-3;
 
       opts->part.rnew[0] = 2.0 * mu / (1.0 + sqrt(2.0));
       opts->part.rnew[1] = 4.0 * mu / (2.0 + sqrt(2.0));
@@ -143,7 +141,7 @@ static bool f(char const *const key, char const *const value,
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CRUNCH;
       opts->script.tspan[istage] = 12.0e-3;
-      opts->script.dt[istage] = dtstuff * 0.75;
+      opts->script.dt[istage] = dtstuff * 0.65;
       opts->script.params[istage].crunch.f[0] = 3.0e+5;
       opts->script.params[istage].crunch.f[1] = -4.0e+5;
     } else if (strcmp(value, "mix") == 0) {
@@ -178,8 +176,11 @@ static bool f(char const *const key, char const *const value,
       opts->script.tspan[istage] = 6.0e-3;
       opts->script.dt[istage] = dtstuff;
     } else if (strcmp(value, "pile") == 0) {
+      dtstuff = 1.02e-7;
+      opts->part.y = 52.0e+9;
+
       opts->part.rnew[0] = 2.078e-3;
-      opts->part.rnew[1] = opts->part.rnew[0] + 1.0e-9;
+      opts->part.rnew[1] = opts->part.rnew[0] * 1.07;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
@@ -195,9 +196,6 @@ static bool f(char const *const key, char const *const value,
       opts->script.tspan[istage] = 30.0e-3;
       opts->script.dt[istage] = dtstuff;
       opts->script.params[istage].gravy.f = 3.0e+4;
-
-      istage = bmm_dem_script_addstage(opts);
-      opts->script.mode[istage] = BMM_DEM_MODE_CLIP;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_LINK;

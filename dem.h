@@ -368,7 +368,7 @@ struct bmm_dem_pair {
       /// Rest distances.
       double drest[BMM_MCONTACT];
       /// Rest angles.
-      double chirest[BMM_MCONTACT][2];
+      double chirest[BMM_MCONTACT][BMM_NEND];
       /// Strains while sticking.
       // TODO This is redundant.
       double epsilon[BMM_MCONTACT];
