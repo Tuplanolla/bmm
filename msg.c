@@ -195,8 +195,8 @@ bool bmm_msg_spec_write(struct bmm_msg_spec const *const spec,
 
           presize = 0;
         } else {
-          size_t const flagsize =
-            $(bmm_clog, size_t)($(bmm_clog, size_t)(size, CHAR_BIT), 2);
+          size_t const flagsize = $(bmm_clog, size_t)($(bmm_clog, size_t)(size,
+                $(bmm_power, size_t)(2, CHAR_BIT)), 2);
 
           flags |= BMM_MSG_MASK_VAR;
           flags |= (unsigned char) flagsize & BMM_MSG_MASK_VARSIZE;

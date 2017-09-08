@@ -59,7 +59,7 @@ static bool f(char const *const key, char const *const value,
 
   opts->comm.dt = 2.0e-5;
 
-  double const dtstuff = 8.0e-7;
+  double dtstuff = 8.0e-7;
   size_t istage;
 
   if (strcmp(key, "script") == 0) {
@@ -91,7 +91,9 @@ static bool f(char const *const key, char const *const value,
       opts->script.dt[istage] = dtstuff;
       opts->script.params[istage].gravy.f = 3.0e+3;
     } else if (strcmp(value, "shear") == 0) {
-      double const mu = 2.0e-3;
+      double mu = 1.75e-3;
+
+      mu = 2.0e-3;
 
       opts->part.rnew[0] = 2.0 * mu / (1.0 + sqrt(2.0));
       opts->part.rnew[1] = 4.0 * mu / (2.0 + sqrt(2.0));
