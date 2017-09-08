@@ -66,8 +66,6 @@ static bool f(char const *const key, char const *const value,
     if (strcmp(value, "beam") == 0) {
       opts->part.rnew[0] = 2.078e-3;
       opts->part.rnew[1] = opts->part.rnew[0] + 1.0e-9;
-      opts->cont.crlim[0] = 1.2;
-      opts->cont.crlim[1] = 1.6;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_IDLE;

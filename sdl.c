@@ -449,6 +449,15 @@ static void bmm_sdl_draw(struct bmm_sdl const *const sdl) {
   (void) snprintf(strbuf, sizeof strbuf, "K (kinetic energy) = %g",
       bmm_dem_est_ekin(&sdl->dem));
   glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
+  (void) snprintf(strbuf, sizeof strbuf, "C (contact energy) = %g",
+      bmm_dem_est_econt(&sdl->dem, BMM_DEM_CT_STRONG) +
+      bmm_dem_est_econt(&sdl->dem, BMM_DEM_CT_WEAK));
+  glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
+  (void) snprintf(strbuf, sizeof strbuf, "E (total energy) = %g",
+      bmm_dem_est_ekin(&sdl->dem) +
+      bmm_dem_est_econt(&sdl->dem, BMM_DEM_CT_STRONG) +
+      bmm_dem_est_econt(&sdl->dem, BMM_DEM_CT_WEAK));
+  glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
   (void) snprintf(strbuf, sizeof strbuf, "t (now) = %g (%zu)",
       sdl->dem.time.t, sdl->dem.time.istep);
   glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);

@@ -326,14 +326,7 @@ size_t bmm_dem_addcont_unsafe(struct bmm_dem *const dem,
 
   dem->pair[ict].cont.src[ipart].chirest[icont][1] = chij;
 
-  double const cphilim = bmm_random_get(dem->rng, dem->opts.cont.cphilim);
-
-  dem->pair[ict].cont.src[ipart].philim[icont] = cphilim * M_2PI;
-
-  double const crlim = bmm_random_get(dem->rng, dem->opts.cont.crlim);
   double const drest = d * dem->opts.cont.cshcont;
-
-  dem->pair[ict].cont.src[ipart].rlim[icont] = crlim * drest;
 
   dem->pair[ict].cont.src[ipart].drest[icont] = drest;
   dem->pair[ict].cont.src[ipart].itgt[icont] = jpart;
@@ -499,20 +492,6 @@ void bmm_dem_analyze_pair(struct bmm_dem *const dem,
 }
 
 void bmm_dem_analyze(struct bmm_dem *const dem) {
-  // This happens:
-  // for all particles,
-  // for all directed neighbors of particle,
-  // search for neighbor in strong contacts,
-  // if found then contact is strong and needs yield analysis,
-  // otherwise search for neighbor in weak contacts,
-  // if found then contact is weak and needs overlap analysis (removal),
-  // otherwise contact is missing and needs overlap analysis (addition).
-  // After this analysis we can calculate forces optimally
-  // by leveraging the csr sparse matrix format for contacts:
-  // for all particles,
-  // sum ambient forces,
-  // for all strong and weak contacts,
-  // sum forces.
   switch (dem->cache.tag) {
     case BMM_DEM_CACHE_NONE:
       for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
@@ -1255,21 +1234,116 @@ static void bmm_dem_script_clip(struct bmm_dem *const dem) {
       dem->pair[ict].cont.src[ipart].n = 0;
 }
 
+// TODO Complete energy estimators.
+// Total Energy                      etotal
+//     = epotext + ekin + econt + eel + edrivnorm + edrivtang
+//     - eeldis - eyieldis - econtdis - efricdis
+//   External Potential Energy         epotext
+//     Driving Normal Force Energy       edrivnorm
+//     Driving Tangential Force Energy   edrivtang
+//   Kinetic Energy                    ekin = elin + erot
+//     Energy in Linear Motion           elin
+//     Energy in Rotations               erot
+//   Energy in Contact                 econt
+//   Elastic Energy                    eel
+//   Elastic Dissipation               eeldis
+//   Yielding Dissipation              eyieldis
+//   Contact Dissipation               econtdis
+//   Frictional Dissipation            efricdis
+
+/// The call `bmm_dem_est_epotext(dem)`
+/// returns the total external potential energy of the particles
+/// in the simulation `dem`.
+__attribute__ ((__nonnull__, __pure__))
+double bmm_dem_est_epotext(struct bmm_dem const *const dem) {
+  double e = 0.0;
+
+  switch (dem->ext.tag) {
+    case BMM_DEM_EXT_HARM:
+      break;
+    case BMM_DEM_EXT_GRAVY:
+      break;
+    case BMM_DEM_EXT_DRIVE:
+      break;
+  }
+
+  return e;
+}
+
+/// The call `bmm_dem_est_elin(dem)`
+/// returns the total kinetic energy of linear motion of the particles
+/// in the simulation `dem`.
+__attribute__ ((__nonnull__, __pure__))
+double bmm_dem_est_elin(struct bmm_dem const *const dem) {
+  double e = 0.0;
+
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+      e += dem->part.m[ipart] * $(bmm_power, double)(dem->part.v[ipart][idim], 2);
+
+  return (1.0 / 2.0) * e;
+}
+
+/// The call `bmm_dem_est_erot(dem)`
+/// returns the total kinetic energy of rotational motion of the particles
+/// in the simulation `dem`.
+__attribute__ ((__nonnull__, __pure__))
+double bmm_dem_est_erot(struct bmm_dem const *const dem) {
+  double e = 0.0;
+
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    e += dem->cache.j[ipart] * $(bmm_power, double)(dem->part.omega[ipart], 2);
+
+  return (1.0 / 2.0) * e;
+}
+
 /// The call `bmm_dem_est_ekin(dem)`
 /// returns the total kinetic energy of the particles
 /// in the simulation `dem`.
 __attribute__ ((__nonnull__, __pure__))
 double bmm_dem_est_ekin(struct bmm_dem const *const dem) {
+  return bmm_dem_est_elin(dem) + bmm_dem_est_erot(dem);
+}
+
+/// The call `bmm_dem_est_econt(dem, ict)`
+/// returns the total contact energy
+/// for the contact type `ict` of the particles
+/// in the simulation `dem`.
+__attribute__ ((__nonnull__, __pure__))
+double bmm_dem_est_econt(struct bmm_dem const *const dem,
+    enum bmm_dem_ct const ict) {
   double e = 0.0;
 
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
-    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-      e += dem->part.m[ipart] * $(bmm_power, double)(dem->part.v[ipart][idim], 2);
+  switch (dem->pair[ict].norm.tag) {
+    case BMM_DEM_NORM_DASHPOT:
+      break;
+    case BMM_DEM_NORM_BSHP:
+      for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+        for (size_t icont = 0; icont < dem->pair[ict].cont.src[ipart].n; ++icont) {
+          size_t const jpart = dem->pair[ict].cont.src[ipart].itgt[icont];
 
-    e += dem->cache.j[ipart] * $(bmm_power, double)(dem->part.omega[ipart], 2);
+          double xdiffji[BMM_NDIM];
+          bmm_geom2d_cpdiff(xdiffji, dem->part.x[ipart], dem->part.x[jpart],
+              dem->opts.box.x, dem->opts.box.per);
+
+          double const d2 = bmm_geom2d_norm2(xdiffji);
+          double const ri = dem->part.r[ipart];
+          double const rj = dem->part.r[jpart];
+          double const r = ri + rj;
+          double const d = sqrt(d2);
+          double const xi = r - d;
+          double const reff = $(bmm_resum2, double)(ri, rj);
+
+          // TODO Not like this.
+          e += (2.0 / 3.0) * (dem->opts.part.y /
+              (1.0 - $(bmm_power, double)(dem->opts.part.nu, 2))) *
+            $(bmm_power, double)(xi, 2) * sqrt(reff);
+        }
+
+      break;
   }
 
-  return (1.0 / 2.0) * e;
+  return e;
 }
 
 /// The call `bmm_dem_est_mass(dem)`
@@ -1541,10 +1615,6 @@ void bmm_dem_opts_def(struct bmm_dem_opts *const opts) {
   opts->cont.dktens = 1.0;
   opts->cont.kshear = 1.0;
   opts->cont.dkshear = 1.0;
-  opts->cont.crlim[0] = 1.1;
-  opts->cont.crlim[1] = 1.2;
-  opts->cont.cphilim[0] = 1.2;
-  opts->cont.cphilim[1] = 1.6;
 
   opts->script.n = 0;
 

@@ -259,12 +259,6 @@ struct bmm_dem_opts {
     double kshear;
     /// Shear spring constant derivative.
     double dkshear;
-    /// Limit length factors for tensile stress induced breaking
-    /// expressed as the width of the uniform distribution.
-    double crlim[BMM_NEND];
-    /// Limit angle factors for shear stress induced breaking
-    /// expressed as the width of the uniform distribution.
-    double cphilim[BMM_NEND];
   } cont;
   /// Script to follow.
   struct {
@@ -701,6 +695,7 @@ __attribute__ ((__nonnull__))
 void bmm_dem_def(struct bmm_dem *, struct bmm_dem_opts const *);
 
 double bmm_dem_est_ekin(struct bmm_dem const *);
+double bmm_dem_est_econt(struct bmm_dem const *, enum bmm_dem_ct);
 double bmm_dem_est_cor(struct bmm_dem const *);
 
 __attribute__ ((__nonnull__))
