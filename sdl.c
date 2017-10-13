@@ -274,6 +274,27 @@ static void bmm_sdl_draw(struct bmm_sdl const *const sdl) {
   double const w = sdl->dem.opts.box.x[0] / (double) ncx;
   double const h = sdl->dem.opts.box.x[1] / (double) ncy;
 
+  // Bidirectional mappings.
+  struct {
+    size_t n;
+    size_t itgt[BMM_MCONTACT];
+  } ind[BMM_MPART];
+  for (size_t ipart = 0; ipart < sdl->dem.part.n; ++ipart)
+    ind[ipart].n = 0;
+  for (size_t ipart = 0; ipart < sdl->dem.part.n; ++ipart)
+    for (size_t icont = 0; icont < sdl->dem.pair[BMM_DEM_CT_STRONG].cont.src[ipart].n; ++icont) {
+      size_t const jpart = sdl->dem.pair[BMM_DEM_CT_STRONG].cont.src[ipart].itgt[icont];
+
+      size_t const jcont = ind[jpart].n;
+      ind[jpart].itgt[jcont] = ipart;
+      ++ind[jpart].n;
+
+      // This makes them bidirectional.
+      size_t const kcont = ind[ipart].n;
+      ind[ipart].itgt[kcont] = jpart;
+      ++ind[ipart].n;
+    }
+
   // Particles.
   for (double off = -1; off < 2; ++off) {
     for (size_t ipart = 0; ipart < sdl->dem.part.n; ++ipart) {
@@ -295,9 +316,12 @@ static void bmm_sdl_draw(struct bmm_sdl const *const sdl) {
       blent[3] = 1.0f - (float) t;
       glColor4fv(blent);
 
+      /*
       glSkewedAnnulus((float) xoff, (float) y,
           (float) r, (float) (r * 0.25), (float) (r * 0.5),
           (float) a, ncorner);
+      */
+      glDisk((float) xoff, (float) y, (float) r, ncorner);
 
       // Cached ghosts.
       {
@@ -411,6 +435,125 @@ static void bmm_sdl_draw(struct bmm_sdl const *const sdl) {
         glVertex2dv(x0);
         glVertex2dv(dx);
       }
+      glEnd();
+    }
+
+    // Connected components (three deep).
+    if (false) {
+      GLfloat blent[4];
+      memcpy(blent, glYellow, sizeof glYellow);
+      blent[3] = 0.5f;
+      glColor4fv(blent);
+
+      glBegin(GL_TRIANGLES);
+      for (size_t ipart = 0; ipart < sdl->dem.part.n; ++ipart)
+        for (size_t icont = 0; icont < ind[ipart].n; ++icont) {
+          size_t const jpart = ind[ipart].itgt[icont];
+
+          for (size_t jcont = 0; jcont < ind[jpart].n; ++jcont) {
+            size_t const kpart = ind[jpart].itgt[jcont];
+
+            for (size_t kcont = 0; kcont < ind[kpart].n; ++kcont) {
+              size_t const lpart = ind[kpart].itgt[kcont];
+
+              if (lpart == ipart &&
+                  sdl->dem.part.x[ipart][0] < sdl->dem.part.x[jpart][0] &&
+                  sdl->dem.part.x[ipart][0] < sdl->dem.part.x[kpart][0]) {
+
+                double x0[BMM_NDIM];
+                double x1[BMM_NDIM];
+                double x2[BMM_NDIM];
+
+                (void) memcpy(x0, sdl->dem.part.x[ipart], sizeof x0);
+                (void) memcpy(x1, sdl->dem.part.x[jpart], sizeof x1);
+                (void) memcpy(x2, sdl->dem.part.x[kpart], sizeof x2);
+
+                double dx[BMM_NDIM];
+                dx[0] = x0[0] + $(bmm_swrap, double)(x1[0] - x0[0], sdl->dem.opts.box.x[0]);
+                dx[1] = x1[1];
+
+                double dy[BMM_NDIM];
+                dy[0] = x0[0] + $(bmm_swrap, double)(x2[0] - x0[0], sdl->dem.opts.box.x[0]);
+                dy[1] = x2[1];
+
+                x0[0] += off * sdl->dem.opts.box.x[0];
+                dx[0] += off * sdl->dem.opts.box.x[0];
+                dy[0] += off * sdl->dem.opts.box.x[0];
+
+                glVertex2dv(x0);
+                glVertex2dv(dx);
+                glVertex2dv(dy);
+              }
+            }
+          }
+        }
+      glEnd();
+    }
+
+    // Connected components (four deep).
+    {
+      GLfloat blent[4];
+      memcpy(blent, glYellow, sizeof glYellow);
+      blent[3] = 0.25f;
+      glColor4fv(blent);
+
+      glBegin(GL_QUADS);
+      for (size_t ipart = 0; ipart < sdl->dem.part.n; ++ipart)
+        for (size_t icont = 0; icont < ind[ipart].n; ++icont) {
+          size_t const jpart = ind[ipart].itgt[icont];
+
+          for (size_t jcont = 0; jcont < ind[jpart].n; ++jcont) {
+            size_t const kpart = ind[jpart].itgt[jcont];
+
+            for (size_t kcont = 0; kcont < ind[kpart].n; ++kcont) {
+              size_t const lpart = ind[kpart].itgt[kcont];
+
+              if (lpart != ipart &&
+                  lpart != jpart)
+                for (size_t lcont = 0; lcont < ind[lpart].n; ++lcont) {
+                  size_t const mpart = ind[lpart].itgt[lcont];
+
+                  if (mpart == ipart &&
+                      sdl->dem.part.x[ipart][0] < sdl->dem.part.x[jpart][0] &&
+                      sdl->dem.part.x[ipart][0] < sdl->dem.part.x[kpart][0] &&
+                      sdl->dem.part.x[ipart][0] < sdl->dem.part.x[lpart][0]) {
+
+                    double x0[BMM_NDIM];
+                    double x1[BMM_NDIM];
+                    double x2[BMM_NDIM];
+                    double x3[BMM_NDIM];
+
+                    (void) memcpy(x0, sdl->dem.part.x[ipart], sizeof x0);
+                    (void) memcpy(x1, sdl->dem.part.x[jpart], sizeof x1);
+                    (void) memcpy(x2, sdl->dem.part.x[kpart], sizeof x2);
+                    (void) memcpy(x3, sdl->dem.part.x[lpart], sizeof x3);
+
+                    double dx[BMM_NDIM];
+                    dx[0] = x0[0] + $(bmm_swrap, double)(x1[0] - x0[0], sdl->dem.opts.box.x[0]);
+                    dx[1] = x1[1];
+
+                    double dy[BMM_NDIM];
+                    dy[0] = x0[0] + $(bmm_swrap, double)(x2[0] - x0[0], sdl->dem.opts.box.x[0]);
+                    dy[1] = x2[1];
+
+                    double dz[BMM_NDIM];
+                    dz[0] = x0[0] + $(bmm_swrap, double)(x3[0] - x0[0], sdl->dem.opts.box.x[0]);
+                    dz[1] = x3[1];
+
+                    x0[0] += off * sdl->dem.opts.box.x[0];
+                    dx[0] += off * sdl->dem.opts.box.x[0];
+                    dy[0] += off * sdl->dem.opts.box.x[0];
+                    dz[0] += off * sdl->dem.opts.box.x[0];
+
+                    glVertex2dv(x0);
+                    glVertex2dv(dx);
+                    glVertex2dv(dy);
+                    glVertex2dv(dz);
+                  }
+                }
+            }
+          }
+        }
       glEnd();
     }
   }
