@@ -58,7 +58,8 @@ struct bmm_sdl {
   unsigned int fps;
   bool stale;
   bool active;
-  bool _pad0[2];
+  bool blend;
+  bool _pad0[1];
   size_t itarget;
   struct bmm_dem dem;
 };

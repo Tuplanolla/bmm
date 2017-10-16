@@ -75,7 +75,7 @@ inline void bmm_geom2d_addto(double *restrict const y,
     y[idim] += x[idim];
 }
 
-/// The call `bmm_geom2d_scaler(y, x, a)`
+/// The call `bmm_geom2d_scale(y, x, a)`
 /// sets the vector `y` to the vector `x` scaled by `a`.
 __attribute__ ((__nonnull__))
 inline void bmm_geom2d_scale(double *restrict const y,

@@ -129,6 +129,7 @@ void bmm_sdl_def(struct bmm_sdl *const sdl,
   sdl->itarget = SIZE_MAX;
   sdl->stale = true;
   sdl->active = true;
+  sdl->blend = true;
 
   struct bmm_dem_opts defopts;
   bmm_dem_opts_def(&defopts);
@@ -216,6 +217,7 @@ static void bmm_sdl_move(struct bmm_sdl *const sdl,
   sdl->rorigin[0] += x2 - xproj - wproj * 0.5;
   sdl->rorigin[1] += y2 - yproj - hproj * 0.5;
 }
+
 void bmm_dem_ijcellx(size_t *const pijcell,
     struct bmm_dem const *const dem, double *y) {
   for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
@@ -438,13 +440,82 @@ static void bmm_sdl_draw(struct bmm_sdl const *const sdl) {
       glEnd();
     }
 
-    // Connected components (three deep).
-    if (false) {
-      GLfloat blent[4];
-      memcpy(blent, glYellow, sizeof glYellow);
-      blent[3] = 0.5f;
-      glColor4fv(blent);
+    // Beams.
+    if (!sdl->blend) {
+      glBegin(GL_QUADS);
+      for (size_t ipart = 0; ipart < sdl->dem.part.n; ++ipart)
+        for (size_t icont = 0; icont < sdl->dem.pair[BMM_DEM_CT_STRONG].cont.src[ipart].n; ++icont) {
+          size_t const jpart = sdl->dem.pair[BMM_DEM_CT_STRONG].cont.src[ipart].itgt[icont];
 
+          double xdiffji[BMM_NDIM];
+          bmm_geom2d_cpdiff(xdiffji, sdl->dem.part.x[ipart], sdl->dem.part.x[jpart],
+              sdl->dem.opts.box.x, sdl->dem.opts.box.per);
+
+          double const d2 = bmm_geom2d_norm2(xdiffji);
+          double const ri = sdl->dem.part.r[ipart];
+          double const rj = sdl->dem.part.r[jpart];
+          double const d = sqrt(d2);
+
+          double xnormji[BMM_NDIM];
+          bmm_geom2d_scale(xnormji, xdiffji, 1.0 / d);
+
+          double xtangji[BMM_NDIM];
+          bmm_geom2d_rperp(xtangji, xnormji);
+
+          double x0[BMM_NDIM];
+          double x1[BMM_NDIM];
+          double x2[BMM_NDIM];
+          double x3[BMM_NDIM];
+          bmm_geom2d_scale(x0, xtangji, ri);
+          bmm_geom2d_scale(x1, x0, -1.0);
+          bmm_geom2d_scale(x2, xtangji, rj);
+          bmm_geom2d_scale(x3, x2, -1.0);
+
+          bmm_geom2d_addto(x0, sdl->dem.part.x[ipart]);
+          bmm_geom2d_addto(x1, sdl->dem.part.x[ipart]);
+          bmm_geom2d_addto(x2, sdl->dem.part.x[jpart]);
+          bmm_geom2d_addto(x3, sdl->dem.part.x[jpart]);
+
+          double dx[BMM_NDIM];
+          dx[0] = x0[0] + $(bmm_swrap, double)(x1[0] - x0[0], sdl->dem.opts.box.x[0]);
+          dx[1] = x1[1];
+
+          double dy[BMM_NDIM];
+          dy[0] = x0[0] + $(bmm_swrap, double)(x2[0] - x0[0], sdl->dem.opts.box.x[0]);
+          dy[1] = x2[1];
+
+          double dz[BMM_NDIM];
+          dz[0] = x0[0] + $(bmm_swrap, double)(x3[0] - x0[0], sdl->dem.opts.box.x[0]);
+          dz[1] = x3[1];
+
+          x0[0] += off * sdl->dem.opts.box.x[0];
+          dx[0] += off * sdl->dem.opts.box.x[0];
+          dy[0] += off * sdl->dem.opts.box.x[0];
+          dz[0] += off * sdl->dem.opts.box.x[0];
+
+          GLfloat blent[4];
+          memcpy(blent, sdl->dem.part.role[ipart] == BMM_DEM_ROLE_FREE ?
+              glYellow : glWhite, sizeof glBlack);
+          blent[3] = 0.5f;
+
+          GLfloat blunt[4];
+          memcpy(blunt, sdl->dem.part.role[jpart] == BMM_DEM_ROLE_FREE ?
+              glYellow : glWhite, sizeof glBlack);
+          blunt[3] = 0.5f;
+
+          glColor4fv(blent);
+          glVertex2dv(x0);
+          glColor4fv(blunt);
+          glVertex2dv(dy);
+          glVertex2dv(dz);
+          glColor4fv(blent);
+          glVertex2dv(dx);
+        }
+      glEnd();
+    }
+
+    // Connected components (three deep).
+    if (sdl->blend) {
       glBegin(GL_TRIANGLES);
       for (size_t ipart = 0; ipart < sdl->dem.part.n; ++ipart)
         for (size_t icont = 0; icont < ind[ipart].n; ++icont) {
@@ -480,77 +551,28 @@ static void bmm_sdl_draw(struct bmm_sdl const *const sdl) {
                 dx[0] += off * sdl->dem.opts.box.x[0];
                 dy[0] += off * sdl->dem.opts.box.x[0];
 
-                glVertex2dv(x0);
-                glVertex2dv(dx);
-                glVertex2dv(dy);
-              }
-            }
-          }
-        }
-      glEnd();
-    }
+                {
+                  double const x = sdl->dem.part.x[ipart][0];
+                  double const y = sdl->dem.part.x[ipart][1];
 
-    // Connected components (four deep).
-    {
-      GLfloat blent[4];
-      memcpy(blent, glYellow, sizeof glYellow);
-      blent[3] = 0.25f;
-      glColor4fv(blent);
+                  double const xoff = x + off * sdl->dem.opts.box.x[0];
 
-      glBegin(GL_QUADS);
-      for (size_t ipart = 0; ipart < sdl->dem.part.n; ++ipart)
-        for (size_t icont = 0; icont < ind[ipart].n; ++icont) {
-          size_t const jpart = ind[ipart].itgt[icont];
+                  GLfloat blent[4];
+                  memcpy(blent, sdl->dem.part.role[ipart] == BMM_DEM_ROLE_FREE ?
+                      glYellow : glWhite, sizeof glBlack);
+                  blent[3] = 1.0f;
+                  GLfloat nope[4];
+                  memcpy(nope, blent, sizeof glBlack);
+                  nope[3] = 0.0f;
+                  double t = fabs(xoff / sdl->dem.opts.box.x[0] - 0.5) - 0.5;
+                  blent[3] = 1.0f - (float) t;
+                  glColor4fv(blent);
 
-          for (size_t jcont = 0; jcont < ind[jpart].n; ++jcont) {
-            size_t const kpart = ind[jpart].itgt[jcont];
-
-            for (size_t kcont = 0; kcont < ind[kpart].n; ++kcont) {
-              size_t const lpart = ind[kpart].itgt[kcont];
-
-              if (lpart != ipart &&
-                  lpart != jpart)
-                for (size_t lcont = 0; lcont < ind[lpart].n; ++lcont) {
-                  size_t const mpart = ind[lpart].itgt[lcont];
-
-                  if (mpart == ipart &&
-                      sdl->dem.part.x[ipart][0] < sdl->dem.part.x[jpart][0] &&
-                      sdl->dem.part.x[ipart][0] < sdl->dem.part.x[kpart][0] &&
-                      sdl->dem.part.x[ipart][0] < sdl->dem.part.x[lpart][0]) {
-
-                    double x0[BMM_NDIM];
-                    double x1[BMM_NDIM];
-                    double x2[BMM_NDIM];
-                    double x3[BMM_NDIM];
-
-                    (void) memcpy(x0, sdl->dem.part.x[ipart], sizeof x0);
-                    (void) memcpy(x1, sdl->dem.part.x[jpart], sizeof x1);
-                    (void) memcpy(x2, sdl->dem.part.x[kpart], sizeof x2);
-                    (void) memcpy(x3, sdl->dem.part.x[lpart], sizeof x3);
-
-                    double dx[BMM_NDIM];
-                    dx[0] = x0[0] + $(bmm_swrap, double)(x1[0] - x0[0], sdl->dem.opts.box.x[0]);
-                    dx[1] = x1[1];
-
-                    double dy[BMM_NDIM];
-                    dy[0] = x0[0] + $(bmm_swrap, double)(x2[0] - x0[0], sdl->dem.opts.box.x[0]);
-                    dy[1] = x2[1];
-
-                    double dz[BMM_NDIM];
-                    dz[0] = x0[0] + $(bmm_swrap, double)(x3[0] - x0[0], sdl->dem.opts.box.x[0]);
-                    dz[1] = x3[1];
-
-                    x0[0] += off * sdl->dem.opts.box.x[0];
-                    dx[0] += off * sdl->dem.opts.box.x[0];
-                    dy[0] += off * sdl->dem.opts.box.x[0];
-                    dz[0] += off * sdl->dem.opts.box.x[0];
-
-                    glVertex2dv(x0);
-                    glVertex2dv(dx);
-                    glVertex2dv(dy);
-                    glVertex2dv(dz);
-                  }
+                  glVertex2dv(x0);
+                  glVertex2dv(dx);
+                  glVertex2dv(dy);
                 }
+              }
             }
           }
         }
@@ -633,7 +655,8 @@ static bool bmm_sdl_video(struct bmm_sdl *const sdl,
 
   glcontext = SDL_GL_CreateContext(window);
 
-  glEnable(GL_BLEND);
+  if (sdl->blend)
+    glEnable(GL_BLEND);
   // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE);
   glEnable(GL_CULL_FACE);
@@ -840,6 +863,13 @@ static bool bmm_sdl_work(struct bmm_sdl *const sdl) {
               break;
             case SDLK_3:
               sdl->itarget = (size_t) rand() % sdl->dem.part.n;
+              break;
+            case SDLK_b:
+              sdl->blend = !sdl->blend;
+              if (sdl->blend)
+                glEnable(GL_BLEND);
+              else
+                glDisable(GL_BLEND);
               break;
           }
           break;
