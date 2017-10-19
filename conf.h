@@ -34,10 +34,10 @@
 /// Maximum number of particles.
 #define BMM_MPART 1024
 
-/// Maximum number of contacts per particle.
+/// Maximum number of directed contacts per particle.
 #define BMM_MCONTACT 8
 
-/// Maximum number of links per particle.
+/// Maximum number of directed links per particle.
 #define BMM_MLINK 8
 
 /// Maximum number of neighbor cells per dimension.
@@ -54,7 +54,7 @@
 #define BMM_MSTAGE 16
 
 /// Maximum number of simulation steps.
-#define BMM_MSTEP 16777216
+#define BMM_MSTEP 2147483648
 
 /// Maximum number of histogram bins.
 #define BMM_MBIN 1024

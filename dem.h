@@ -358,14 +358,16 @@ struct bmm_dem_pair {
       /// Number of targets.
       size_t n;
       /// Target indices.
-      size_t itgt[BMM_MCONTACT / 2];
+      size_t itgt[BMM_MCONTACT];
       /// Rest distances.
-      double drest[BMM_MCONTACT / 2];
+      double drest[BMM_MCONTACT];
       /// Rest angles.
-      double chirest[BMM_MCONTACT / 2][BMM_NEND];
+      double chirest[BMM_MCONTACT][BMM_NEND];
+      /// Strength scale factor.
+      double strength[BMM_MCONTACT];
       /// Strains while sticking.
       // TODO This is redundant.
-      double epsilon[BMM_MCONTACT / 2];
+      double epsilon[BMM_MCONTACT];
       /// Limit length for tensile stress induced breaking.
       __attribute__ ((__deprecated__))
       double rlim[BMM_MLINK];

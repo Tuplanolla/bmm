@@ -326,6 +326,12 @@ size_t bmm_dem_addcont_unsafe(struct bmm_dem *const dem,
 
   dem->pair[ict].cont.src[ipart].chirest[icont][1] = chij;
 
+  double a = 0.3;
+  double v[2];
+  v[0] = 1.0 - a;
+  v[1] = 1.0 + a;
+  dem->pair[ict].cont.src[ipart].strength[icont] = bmm_random_get(dem->rng, v);
+
   double const drest = d * dem->opts.cont.cshcont;
 
   dem->pair[ict].cont.src[ipart].drest[icont] = drest;
@@ -425,8 +431,11 @@ bool bmm_dem_yield_pair(struct bmm_dem *const dem,
   // TODO Is this a valid assumption for the yield point cross section?
   double const a = $(bmm_hmean2, double)(dem->part.r[ipart], dem->part.r[jpart]);
 
-  double const sigmaij = fnormij / a;
-  double const tauij = ftangij / a;
+  // TODO Does this make sense here?
+  double const strength = dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].strength[icont];
+
+  double const sigmaij = fnormij / a / strength;
+  double const tauij = ftangij / a / strength;
 
   switch (dem->yield.tag) {
     case BMM_DEM_YIELD_RANKINE:
@@ -591,6 +600,9 @@ static void bmm_dem_copypart(struct bmm_dem *const dem,
       for (size_t iend = 0; iend < BMM_NEND; ++iend)
         dem->pair[ict].cont.src[ipart].chirest[icont][iend] =
           dem->pair[ict].cont.src[jpart].chirest[icont][iend];
+
+    for (size_t icont = 0; icont < dem->pair[ict].cont.src[jpart].n; ++icont)
+      dem->pair[ict].cont.src[ipart].strength[icont] = dem->pair[ict].cont.src[jpart].strength[icont];
 
     for (size_t icont = 0; icont < dem->pair[ict].cont.src[jpart].n; ++icont)
       dem->pair[ict].cont.src[ipart].rlim[icont] = dem->pair[ict].cont.src[jpart].rlim[icont];
