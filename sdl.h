@@ -59,7 +59,7 @@ struct bmm_sdl {
   bool stale;
   bool active;
   bool blend;
-  bool _pad0[1];
+  bool diag;
   size_t itarget;
   struct bmm_dem dem;
 };

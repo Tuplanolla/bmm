@@ -130,6 +130,7 @@ void bmm_sdl_def(struct bmm_sdl *const sdl,
   sdl->stale = true;
   sdl->active = true;
   sdl->blend = true;
+  sdl->diag = true;
 
   struct bmm_dem_opts defopts;
   bmm_dem_opts_def(&defopts);
@@ -326,7 +327,7 @@ static void bmm_sdl_draw(struct bmm_sdl const *const sdl) {
       glDisk((float) xoff, (float) y, (float) r, ncorner);
 
       // Cached ghosts.
-      {
+      if (sdl->blend) {
         double x0[BMM_NDIM];
         double x1[BMM_NDIM];
 
@@ -583,20 +584,24 @@ static void bmm_sdl_draw(struct bmm_sdl const *const sdl) {
   }
 
   // Staleness indicator.
-  glColor3fv(sdl->stale ? glRed : glGreen);
-  glDisk((float) (0.05 * sdl->dem.opts.box.x[0]),
-      (float) (0.05 * sdl->dem.opts.box.x[1]),
-      (float) (0.025 * sdl->dem.opts.box.x[0]), ncorner);
+  if (sdl->diag) {
+    glColor3fv(sdl->stale ? glRed : glGreen);
+    glDisk((float) (0.05 * sdl->dem.opts.box.x[0]),
+        (float) (0.05 * sdl->dem.opts.box.x[1]),
+        (float) (0.025 * sdl->dem.opts.box.x[0]), ncorner);
+  }
 
   // Cell boxes.
-  glColor3fv(glCyan);
-  for (size_t icellx = 0; icellx < ncx; ++icellx)
-    for (size_t icelly = 0; icelly < ncy; ++icelly) {
-      double const x = (double) icellx * w;
-      double const y = (double) icelly * h;
+  if (sdl->blend) {
+    glColor3fv(glCyan);
+    for (size_t icellx = 0; icellx < ncx; ++icellx)
+      for (size_t icelly = 0; icelly < ncy; ++icelly) {
+        double const x = (double) icellx * w;
+        double const y = (double) icelly * h;
 
-      glRectWire((float) x, (float) y, (float) w, (float) h);
-    }
+        glRectWire((float) x, (float) y, (float) w, (float) h);
+      }
+  }
 
   // Bounding box.
   glColor3fv(glWhite);
@@ -608,35 +613,37 @@ static void bmm_sdl_draw(struct bmm_sdl const *const sdl) {
   glOrtho(0.0, sdl->width, sdl->height, 0.0, -1.0, 1.0);
 
   // TODO These should come via messages.
-  char strbuf[BUFSIZ];
-  int ioff = 1;
-  (void) snprintf(strbuf, sizeof strbuf, "f (target vfps) = %u (%u)",
-      sdl->fps, bmm_sdl_tstep(sdl));
-  glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
-  (void) snprintf(strbuf, sizeof strbuf, "K (kinetic energy) = %g",
-      bmm_dem_est_ekin(&sdl->dem));
-  glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
-  (void) snprintf(strbuf, sizeof strbuf, "C (contact energy) = %g",
-      bmm_dem_est_econt(&sdl->dem, BMM_DEM_CT_STRONG) +
-      bmm_dem_est_econt(&sdl->dem, BMM_DEM_CT_WEAK));
-  glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
-  (void) snprintf(strbuf, sizeof strbuf, "E (total energy) = %g",
-      bmm_dem_est_ekin(&sdl->dem) +
-      bmm_dem_est_econt(&sdl->dem, BMM_DEM_CT_STRONG) +
-      bmm_dem_est_econt(&sdl->dem, BMM_DEM_CT_WEAK));
-  glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
-  (void) snprintf(strbuf, sizeof strbuf, "t (now) = %g (%zu)",
-      sdl->dem.time.t, sdl->dem.time.istep);
-  glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
-  (void) snprintf(strbuf, sizeof strbuf, "t (prev. cache refresh) = %g",
-      sdl->dem.cache.tprev);
-  glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
-  (void) snprintf(strbuf, sizeof strbuf, "e (coeff. of restit.) = %g",
-      bmm_dem_est_cor(&sdl->dem));
-  glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
-  (void) snprintf(strbuf, sizeof strbuf, "n (number of particles) = %zu",
-      sdl->dem.part.n);
-  glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
+  if (sdl->diag) {
+    char strbuf[BUFSIZ];
+    int ioff = 1;
+    (void) snprintf(strbuf, sizeof strbuf, "f (target vfps) = %u (%u)",
+        sdl->fps, bmm_sdl_tstep(sdl));
+    glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
+    (void) snprintf(strbuf, sizeof strbuf, "K (kinetic energy) = %g",
+        bmm_dem_est_ekin(&sdl->dem));
+    glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
+    (void) snprintf(strbuf, sizeof strbuf, "C (contact energy) = %g",
+        bmm_dem_est_econt(&sdl->dem, BMM_DEM_CT_STRONG) +
+        bmm_dem_est_econt(&sdl->dem, BMM_DEM_CT_WEAK));
+    glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
+    (void) snprintf(strbuf, sizeof strbuf, "E (total energy) = %g",
+        bmm_dem_est_ekin(&sdl->dem) +
+        bmm_dem_est_econt(&sdl->dem, BMM_DEM_CT_STRONG) +
+        bmm_dem_est_econt(&sdl->dem, BMM_DEM_CT_WEAK));
+    glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
+    (void) snprintf(strbuf, sizeof strbuf, "t (now) = %g (%zu)",
+        sdl->dem.time.t, sdl->dem.time.istep);
+    glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
+    (void) snprintf(strbuf, sizeof strbuf, "t (prev. cache refresh) = %g",
+        sdl->dem.cache.tprev);
+    glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
+    (void) snprintf(strbuf, sizeof strbuf, "e (coeff. of restit.) = %g",
+        bmm_dem_est_cor(&sdl->dem));
+    glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
+    (void) snprintf(strbuf, sizeof strbuf, "n (number of particles) = %zu",
+        sdl->dem.part.n);
+    glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
+  }
 
   SDL_GL_SwapWindow(window);
 }
@@ -872,6 +879,9 @@ static bool bmm_sdl_work(struct bmm_sdl *const sdl) {
                 glEnable(GL_BLEND);
               else
                 glDisable(GL_BLEND);
+              break;
+            case SDLK_d:
+              sdl->diag = !sdl->diag;
               break;
           }
           break;
