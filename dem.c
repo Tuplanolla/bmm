@@ -1421,7 +1421,259 @@ double bmm_dem_est_cor(struct bmm_dem const *const dem) {
   return e / (double) dem->part.n;
 }
 
-// TODO These procedures semisuck.
+static bool export_x(struct bmm_dem const *const dem) {
+  FILE *const stream = fopen("fragment-x.data", "w");
+  if (stream == NULL) {
+    BMM_TLE_STDS();
+
+    return false;
+  }
+
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    if (fprintf(stream, "(%g, %g)\n",
+          dem->part.x[ipart][0], dem->part.x[ipart][1]) < 0) {
+      BMM_TLE_STDS();
+
+      return false;
+    }
+
+  if (fclose(stream) != 0) {
+    BMM_TLE_STDS();
+
+    return false;
+  }
+
+  return true;
+}
+
+static bool export_r(struct bmm_dem const *const dem) {
+  FILE *const stream = fopen("fragment-r.data", "w");
+  if (stream == NULL) {
+    BMM_TLE_STDS();
+
+    return false;
+  }
+
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    if (fprintf(stream, "%g\n", dem->part.r[ipart]) < 0) {
+      BMM_TLE_STDS();
+
+      return false;
+    }
+
+  if (fclose(stream) != 0) {
+    BMM_TLE_STDS();
+
+    return false;
+  }
+
+  return true;
+}
+
+struct agraph {
+  struct {
+    size_t n;
+    size_t itgt[BMM_MCONTACT * 2];
+  } src[BMM_MPART];
+};
+
+struct acls {
+  struct agraph *agraph;
+  struct bmm_dem const *dem;
+  size_t ipart;
+};
+
+struct aface {
+  struct {
+    size_t n;
+    size_t ivert[BMM_MPART];
+    double circ;
+    double area;
+  } poly[BMM_MPART];
+};
+
+__attribute__ ((__nonnull__, __pure__))
+static int acompar(size_t const i, size_t const j, void *const cls) {
+  struct acls const *const acls = cls;
+  struct bmm_dem const *const dem = acls->dem;
+  struct agraph const *const agraph = acls->agraph;
+  size_t const ipart = acls->ipart;
+
+  double gammai;
+  {
+    size_t const jpart = agraph->src[ipart].itgt[i];
+
+    double xdiffij[BMM_NDIM];
+    bmm_geom2d_diff(xdiffij, dem->part.x[jpart], dem->part.x[ipart]);
+
+    gammai = $(bmm_swrap, double)(bmm_geom2d_dir(xdiffij), M_2PI);
+  }
+
+  double gammaj;
+  {
+    size_t const jpart = agraph->src[ipart].itgt[j];
+
+    double xdiffij[BMM_NDIM];
+    bmm_geom2d_diff(xdiffij, dem->part.x[jpart], dem->part.x[ipart]);
+
+    gammaj = $(bmm_swrap, double)(bmm_geom2d_dir(xdiffij), M_2PI);
+  }
+
+  return $(bmm_cmp, double)(gammai, gammaj);
+}
+
+__attribute__ ((__nonnull__))
+static void aswap(size_t const i, size_t const j, void *const cls) {
+  struct acls *const acls = cls;
+  struct bmm_dem const *const dem = acls->dem;
+  struct agraph *const agraph = acls->agraph;
+  size_t const ipart = acls->ipart;
+
+  size_t const tmp = agraph->src[ipart].itgt[i];
+  agraph->src[ipart].itgt[i] = agraph->src[ipart].itgt[j];
+  agraph->src[ipart].itgt[j] = tmp;
+}
+
+static bool export_p(struct bmm_dem const *const dem) {
+  FILE *const stream = fopen("fragment-p.data", "w");
+  if (stream == NULL) {
+    BMM_TLE_STDS();
+
+    return false;
+  }
+
+  // Bidirectionalization of the strong contact graph.
+  struct agraph agraph;
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    agraph.src[ipart].n = 0;
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    for (size_t icont = 0; icont < dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].n; ++icont) {
+      size_t const jpart = dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].itgt[icont];
+
+      double d[BMM_NDIM];
+      for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+        d[idim] = $(bmm_abs, double)
+          (dem->part.x[jpart][idim] - dem->part.x[ipart][idim]);
+
+      // No winding.
+      if (d[0] < dem->opts.box.x[0] / 2.0 &&
+          d[1] < dem->opts.box.x[1] / 2.0) {
+        size_t const jcont = agraph.src[jpart].n;
+        agraph.src[jpart].itgt[jcont] = ipart;
+        ++agraph.src[jpart].n;
+
+        // This makes them bidirectional.
+        size_t const kcont = agraph.src[ipart].n;
+        agraph.src[ipart].itgt[kcont] = jpart;
+        ++agraph.src[ipart].n;
+      }
+    }
+
+  // Angle ordering.
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
+    struct acls acls = {
+      .agraph = &agraph,
+      .dem = dem,
+      .ipart = ipart
+    };
+    bmm_hsort_cls(agraph.src[ipart].n, acompar, aswap, &acls);
+  }
+
+  // Elimination walk.
+  struct aface *const faces = malloc(sizeof *faces);
+  if (faces == NULL)
+    BMM_TLE_STDS();
+  size_t nface = 0;
+  // TODO This should be exhaustive by Euler's equation.
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
+    size_t kpart = ipart;
+
+    faces->poly[nface].n = 0;
+
+    faces->poly[nface].ivert[faces->poly[nface].n] = kpart;
+    ++faces->poly[nface].n;
+
+    size_t prev = SIZE_MAX;
+
+more: ;
+
+    if (agraph.src[kpart].n > 0) {
+      size_t iedge = 0;
+      if (prev != SIZE_MAX) {
+        for (size_t iarr = 0; iarr < agraph.src[kpart].n; ++iarr)
+          if (agraph.src[kpart].itgt[iarr] == prev) {
+            iedge = (iarr + 1) % agraph.src[kpart].n;
+
+            break;
+          }
+      }
+
+      size_t const jpart = agraph.src[kpart].itgt[iedge];
+      for (size_t iarr = iedge + 1; iarr < agraph.src[kpart].n; ++iarr)
+        agraph.src[kpart].itgt[iarr - 1] = agraph.src[kpart].itgt[iarr];
+      --agraph.src[kpart].n;
+
+      if (jpart != ipart) {
+        prev = kpart;
+        kpart = jpart;
+
+        faces->poly[nface].ivert[faces->poly[nface].n] = kpart;
+        ++faces->poly[nface].n;
+
+        goto more;
+      }
+    }
+
+    if (faces->poly[nface].n > 0)
+      ++nface;
+  }
+
+  // Face metrics.
+  for (size_t iface = 0; iface < nface; ++iface) {
+    faces->poly[iface].circ = 0.0;
+    faces->poly[iface].area = 0.0; // Not yet.
+
+    for (size_t ivert = 1; ivert < faces->poly[iface].n; ++ivert) {
+      size_t const ipart = faces->poly[iface].ivert[ivert - 1];
+      size_t const jpart = faces->poly[iface].ivert[ivert];
+
+      double xdiffij[BMM_NDIM];
+      bmm_geom2d_diff(xdiffij, dem->part.x[jpart], dem->part.x[ipart]);
+
+      faces->poly[iface].circ += bmm_geom2d_norm(xdiffij);
+    }
+  }
+
+  // Export.
+  for (size_t iface = 0; iface < nface; ++iface)
+    if (faces->poly[iface].circ >= 0.0) {
+      for (size_t ivert = 0; ivert < faces->poly[iface].n; ++ivert)
+        if (fprintf(stream, " %zu", faces->poly[iface].ivert[ivert]) < 0) {
+          BMM_TLE_STDS();
+
+          return false;
+        }
+
+      if (fprintf(stream, "\n") < 0) {
+        BMM_TLE_STDS();
+
+        return false;
+      }
+    }
+
+  free(faces);
+
+  if (fclose(stream) != 0) {
+    BMM_TLE_STDS();
+
+    return false;
+  }
+
+  return true;
+}
+
+// TODO These procedures semisuck, just like everything else here,
+// but I thought I should still let you know this.
 
 static double wkde_eval(double const *restrict const xarr,
     double const *restrict const warr,
@@ -2602,6 +2854,9 @@ bool bmm_dem_run(struct bmm_dem *const dem) {
 
   if (!rubbish(dem))
     BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Fucked up");
+
+  if (!export_x(dem) || !export_r(dem) || !export_p(dem))
+    BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Fucked up big");
 
   return run && report;
 }

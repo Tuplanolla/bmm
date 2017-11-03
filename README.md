@@ -29,10 +29,6 @@ as long as they use a compatible license.
 
 ## The Plan
 
-### The Goal
-
-Find $\\mu_{macro}(p, \\mu_{micro})$.
-
 ### Project Structure
 
 The project is divided into several programs with different purposes.
@@ -634,7 +630,8 @@ Implement the following visualization algorithm.
            in two directions is allowed may be changed).
            Only backtracking or periodic winding
            may cause saving the face to fail.
-        3. Eliminate faces that are too big (compare circumference or area).
+        3. Eliminate faces that are too big (compare circumference or area);
+           must eliminate negative areas for connected component analysis.
 2. Gather all face triangles as follows.
     1. Tessellate the faces.
 3. Gather all connected face polygons as follows.
@@ -649,8 +646,6 @@ Implement the following visualization algorithm.
         1. Walk counterclockwise.
         2. If the loop closes (found the starting node),
            try to save the face (should always succeed).
-4. Wonder what to do to edges without faces.
-5. Ponder what inverting the discarded faces would produce.
 
 #### Programming Conventions
 
