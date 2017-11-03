@@ -158,6 +158,8 @@ enum bmm_dem_yield {
   BMM_DEM_YIELD_NONE,
   /// Maximum normal stress criterion by Rankine.
   BMM_DEM_YIELD_RANKINE,
+  /// Maximum normal strain criterion by Venant.
+  BMM_DEM_YIELD_VENANT,
   /// Maximum shear stress criterion by Tresca.
   BMM_DEM_YIELD_TRESCA,
   /// Maximum distortion energy criterion by von Mises.
