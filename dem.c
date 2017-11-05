@@ -1474,6 +1474,7 @@ struct agraph {
   struct {
     size_t n;
     size_t itgt[BMM_MCONTACT * 2];
+    bool visited[BMM_MCONTACT * 2];
   } src[BMM_MPART];
 };
 
@@ -1486,10 +1487,11 @@ struct acls {
 struct aface {
   struct {
     size_t n;
-    size_t ivert[BMM_MPART];
+    size_t ivert[BMM_MPART * 2];
     double circ;
     double area;
-  } poly[BMM_MPART];
+  } poly[BMM_MPART * 4];
+  size_t lastseen[BMM_MPART];
 };
 
 __attribute__ ((__nonnull__, __pure__))
@@ -1519,7 +1521,7 @@ static int acompar(size_t const i, size_t const j, void *const cls) {
     gammaj = $(bmm_swrap, double)(bmm_geom2d_dir(xdiffij), M_2PI);
   }
 
-  return $(bmm_cmp, double)(gammai, gammaj);
+  return $(bmm_cmp, double)(gammaj, gammai);
 }
 
 __attribute__ ((__nonnull__))
@@ -1543,9 +1545,11 @@ static bool export_p(struct bmm_dem const *const dem) {
   }
 
   // Bidirectionalization of the strong contact graph.
-  struct agraph agraph;
+  struct agraph *const agraph = malloc(sizeof *agraph);
+  if (agraph == NULL)
+    BMM_TLE_STDS();
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    agraph.src[ipart].n = 0;
+    agraph->src[ipart].n = 0;
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     for (size_t icont = 0; icont < dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].n; ++icont) {
       size_t const jpart = dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].itgt[icont];
@@ -1558,80 +1562,176 @@ static bool export_p(struct bmm_dem const *const dem) {
       // No winding.
       if (d[0] < dem->opts.box.x[0] / 2.0 &&
           d[1] < dem->opts.box.x[1] / 2.0) {
-        size_t const jcont = agraph.src[jpart].n;
-        agraph.src[jpart].itgt[jcont] = ipart;
-        ++agraph.src[jpart].n;
+        size_t const jcont = agraph->src[jpart].n;
+        agraph->src[jpart].itgt[jcont] = ipart;
+        ++agraph->src[jpart].n;
 
         // This makes them bidirectional.
-        size_t const kcont = agraph.src[ipart].n;
-        agraph.src[ipart].itgt[kcont] = jpart;
-        ++agraph.src[ipart].n;
+        size_t const kcont = agraph->src[ipart].n;
+        agraph->src[ipart].itgt[kcont] = jpart;
+        ++agraph->src[ipart].n;
       }
     }
 
   // Angle ordering.
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
     struct acls acls = {
-      .agraph = &agraph,
+      .agraph = agraph,
       .dem = dem,
       .ipart = ipart
     };
-    bmm_hsort_cls(agraph.src[ipart].n, acompar, aswap, &acls);
+    bmm_hsort_cls(agraph->src[ipart].n, acompar, aswap, &acls);
   }
+
+  // Preparations.
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    for (size_t iarr = 0; iarr < agraph->src[ipart].n; ++iarr)
+      agraph->src[ipart].visited[iarr] = false;
 
   // Elimination walk.
   struct aface *const faces = malloc(sizeof *faces);
   if (faces == NULL)
     BMM_TLE_STDS();
   size_t nface = 0;
-  // TODO This should be exhaustive by Euler's equation.
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
-    size_t kpart = ipart;
+  size_t ipart = 0;
+  while (ipart < dem->part.n) {
+    if (nface >= nmembof(faces->poly)) {
+      fprintf(stderr, "Out of face.\n");
+      break;
+    }
 
     faces->poly[nface].n = 0;
 
-    faces->poly[nface].ivert[faces->poly[nface].n] = kpart;
+    faces->poly[nface].ivert[faces->poly[nface].n] = ipart;
     ++faces->poly[nface].n;
 
+    size_t narr = 0;
+    for (size_t iarr = 0; iarr < agraph->src[ipart].n; ++iarr)
+      if (!agraph->src[ipart].visited[iarr])
+        ++narr;
+    if (narr == 0) {
+      ++nface;
+
+      ++ipart;
+
+      continue;
+    }
+
     size_t prev = SIZE_MAX;
+    size_t kpart = ipart;
 
 more: ;
 
-    if (agraph.src[kpart].n > 0) {
-      size_t iedge = 0;
-      if (prev != SIZE_MAX) {
-        for (size_t iarr = 0; iarr < agraph.src[kpart].n; ++iarr)
-          if (agraph.src[kpart].itgt[iarr] == prev) {
-            iedge = (iarr + 1) % agraph.src[kpart].n;
+    size_t iback = 0;
+    if (prev != SIZE_MAX) {
+      for (size_t iarr = 0; iarr < agraph->src[kpart].n; ++iarr)
+        if (agraph->src[kpart].itgt[iarr] == prev) {
+          iback = iarr;
 
-            break;
-          }
-      }
+          break;
+        }
+    }
 
-      size_t const jpart = agraph.src[kpart].itgt[iedge];
-      for (size_t iarr = iedge + 1; iarr < agraph.src[kpart].n; ++iarr)
-        agraph.src[kpart].itgt[iarr - 1] = agraph.src[kpart].itgt[iarr];
-      --agraph.src[kpart].n;
+    size_t inext = 0;
+    for (size_t iarr = 0; iarr < agraph->src[kpart].n; ++iarr) {
+      size_t const off = (iback + 1 + iarr) % agraph->src[kpart].n;
+      if (!agraph->src[kpart].visited[off]) {
+        inext = off;
 
-      if (jpart != ipart) {
-        prev = kpart;
-        kpart = jpart;
-
-        faces->poly[nface].ivert[faces->poly[nface].n] = kpart;
-        ++faces->poly[nface].n;
-
-        goto more;
+        break;
       }
     }
 
-    if (faces->poly[nface].n > 0)
+    // fprintf(stderr, "Visited %zu -> %zu.\n", kpart, agraph->src[kpart].itgt[inext]);
+    size_t const jpart = agraph->src[kpart].itgt[inext];
+
+    agraph->src[kpart].visited[inext] = true;
+
+    if (jpart != ipart) {
+      prev = kpart;
+      kpart = jpart;
+
+      faces->poly[nface].ivert[faces->poly[nface].n] = kpart;
+      ++faces->poly[nface].n;
+
+      goto more;
+    } else {
       ++nface;
+
+      continue;
+    }
   }
+
+  // Split self-intersections.
+restart: ;
+  for (size_t iface = 0; iface < nface; ++iface) {
+    for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+      faces->lastseen[ipart] = SIZE_MAX;
+
+    /*
+    fprintf(stderr, "Before split face %zu:", iface);
+    for (size_t ivert = 0; ivert < faces->poly[iface].n; ++ivert)
+      fprintf(stderr, " %zu", faces->poly[iface].ivert[ivert]);
+    fprintf(stderr, ".\n");
+    */
+
+    for (size_t ivert = 0; ivert < faces->poly[iface].n; ++ivert) {
+      size_t const ipart = faces->poly[iface].ivert[ivert];
+      size_t const jvert = faces->lastseen[ipart];
+
+      if (jvert == ivert) {
+        fprintf(stderr, "Choked real bad.\n");
+        goto unstart;
+      }
+
+      if (jvert != SIZE_MAX) {
+        /*
+        fprintf(stderr, "Needs to split at %zu (%zu) to %zu (%zu).\n",
+            jvert, faces->poly[iface].ivert[jvert],
+            ivert, faces->poly[iface].ivert[ivert]);
+        */
+
+        if (nface >= nmembof(faces->poly)) {
+          fprintf(stderr, "Out of face again.\n");
+          goto unstart;
+        }
+
+        // Copy midsection to new head.
+        faces->poly[nface].n = 0;
+        for (size_t iarr = jvert; iarr < ivert; ++iarr) {
+          faces->poly[nface].ivert[faces->poly[nface].n] = faces->poly[iface].ivert[iarr];
+          ++faces->poly[nface].n;
+        }
+        ++nface;
+
+        // Move tail over midsection.
+        for (size_t iarr = ivert; iarr < faces->poly[iface].n; ++iarr)
+          faces->poly[iface].ivert[iarr - (ivert - jvert)] = faces->poly[iface].ivert[iarr];
+        faces->poly[iface].n = faces->poly[iface].n - (ivert - jvert);
+
+        /*
+        fprintf(stderr, "After split face %zu: ", iface);
+        for (size_t ivert = 0; ivert < faces->poly[iface].n; ++ivert)
+          fprintf(stderr, "%zu ", faces->poly[iface].ivert[ivert]);
+        fprintf(stderr, "end.\n");
+
+        fprintf(stderr, "After split face %zu: ", nface - 1);
+        for (size_t ivert = 0; ivert < faces->poly[nface - 1].n; ++ivert)
+          fprintf(stderr, "%zu ", faces->poly[nface - 1].ivert[ivert]);
+        fprintf(stderr, "end.\n");
+        */
+
+        goto restart;
+      } else
+        faces->lastseen[ipart] = ivert;
+    }
+  }
+unstart: ;
 
   // Face metrics.
   for (size_t iface = 0; iface < nface; ++iface) {
     faces->poly[iface].circ = 0.0;
-    faces->poly[iface].area = 0.0; // Not yet.
+    faces->poly[iface].area = 0.0;
 
     for (size_t ivert = 1; ivert < faces->poly[iface].n; ++ivert) {
       size_t const ipart = faces->poly[iface].ivert[ivert - 1];
@@ -1642,25 +1742,173 @@ more: ;
 
       faces->poly[iface].circ += bmm_geom2d_norm(xdiffij);
     }
+
+    for (size_t ilace = 0; ilace < faces->poly[iface].n; ++ilace) {
+      size_t const ivert = ilace % faces->poly[iface].n;
+      size_t const jvert = (ilace + 1) % faces->poly[iface].n;
+
+      size_t const ipart = faces->poly[iface].ivert[ivert];
+      size_t const jpart = faces->poly[iface].ivert[jvert];
+
+      faces->poly[iface].area +=
+        dem->part.x[ipart][0] * dem->part.x[jpart][1] -
+        dem->part.x[jpart][0] * dem->part.x[ipart][1];
+    }
+
+    faces->poly[iface].area /= 2.0;
+  }
+
+  // Filter.
+  for (size_t iface = 0; iface < nface; ++iface)
+    if (faces->poly[iface].area < -1.0e-12 ||
+        faces->poly[iface].circ > 8.0 * bmm_ival_midpoint(dem->opts.part.rnew)) {
+      // fprintf(stderr, "Remove face %zu.\n", iface);
+      --nface;
+      faces->poly[iface].n = faces->poly[nface].n;
+      faces->poly[iface].circ = faces->poly[nface].circ;
+      faces->poly[iface].area = faces->poly[nface].area;
+      for (size_t ivert = 0; ivert < faces->poly[nface].n; ++ivert)
+        faces->poly[iface].ivert[ivert] = faces->poly[nface].ivert[ivert];
+
+      --iface;
+    }
+
+  // Rebuild.
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    agraph->src[ipart].n = 0;
+  for (size_t iface = 0; iface < nface; ++iface)
+    for (size_t ivert = 0; ivert < faces->poly[iface].n; ++ivert) {
+      size_t const jvert = (ivert + 1) % faces->poly[iface].n;
+      size_t const ipart = faces->poly[iface].ivert[ivert];
+      size_t const jpart = faces->poly[iface].ivert[jvert];
+
+      size_t const icont = agraph->src[ipart].n;
+      agraph->src[ipart].itgt[icont] = jpart;
+      ++agraph->src[ipart].n;
+    }
+
+  // This is an exact copy of the previous part up there.
+
+  // Angle ordering.
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
+    struct acls acls = {
+      .agraph = agraph,
+      .dem = dem,
+      .ipart = ipart
+    };
+    bmm_hsort_cls(agraph->src[ipart].n, acompar, aswap, &acls);
+  }
+
+  // Preparations.
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    for (size_t iarr = 0; iarr < agraph->src[ipart].n; ++iarr)
+      agraph->src[ipart].visited[iarr] = false;
+
+  // Double edge removal.
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    for (size_t iarr = 0; iarr < agraph->src[ipart].n; ++iarr) {
+      size_t const jpart = agraph->src[ipart].itgt[iarr];
+
+      for (size_t jarr = 0; jarr < agraph->src[jpart].n; ++jarr)
+        if (agraph->src[jpart].itgt[jarr] == ipart) {
+          agraph->src[ipart].visited[iarr] = true;
+          agraph->src[jpart].visited[jarr] = true;
+
+          break;
+        }
+    }
+
+  // This is also an exact copy of the previous part up there.
+
+  // Connected components.
+  nface = 0;
+  ipart = 0;
+  while (ipart < dem->part.n) {
+    if (nface >= nmembof(faces->poly)) {
+      fprintf(stderr, "Out of face.\n");
+      break;
+    }
+
+    faces->poly[nface].n = 0;
+
+    faces->poly[nface].ivert[faces->poly[nface].n] = ipart;
+    ++faces->poly[nface].n;
+
+    size_t narr = 0;
+    for (size_t iarr = 0; iarr < agraph->src[ipart].n; ++iarr)
+      if (!agraph->src[ipart].visited[iarr])
+        ++narr;
+    if (narr == 0) {
+      ++nface;
+
+      ++ipart;
+
+      continue;
+    }
+
+    size_t prev = SIZE_MAX;
+    size_t kpart = ipart;
+
+morer: ;
+
+    size_t iback = 0;
+    if (prev != SIZE_MAX) {
+      for (size_t iarr = 0; iarr < agraph->src[kpart].n; ++iarr)
+        if (agraph->src[kpart].itgt[iarr] == prev) {
+          iback = iarr;
+
+          break;
+        }
+    }
+
+    size_t inext = 0;
+    for (size_t iarr = 0; iarr < agraph->src[kpart].n; ++iarr) {
+      size_t const off = (iback + 1 + iarr) % agraph->src[kpart].n;
+      if (!agraph->src[kpart].visited[off]) {
+        inext = off;
+
+        break;
+      }
+    }
+
+    // fprintf(stderr, "Visited %zu -> %zu.\n", kpart, agraph->src[kpart].itgt[inext]);
+    size_t const jpart = agraph->src[kpart].itgt[inext];
+
+    agraph->src[kpart].visited[inext] = true;
+
+    if (jpart != ipart) {
+      prev = kpart;
+      kpart = jpart;
+
+      faces->poly[nface].ivert[faces->poly[nface].n] = kpart;
+      ++faces->poly[nface].n;
+
+      goto morer;
+    } else {
+      ++nface;
+
+      continue;
+    }
   }
 
   // Export.
-  for (size_t iface = 0; iface < nface; ++iface)
-    if (faces->poly[iface].circ >= 0.0) {
-      for (size_t ivert = 0; ivert < faces->poly[iface].n; ++ivert)
-        if (fprintf(stream, " %zu", faces->poly[iface].ivert[ivert]) < 0) {
-          BMM_TLE_STDS();
-
-          return false;
-        }
-
-      if (fprintf(stream, "\n") < 0) {
+  for (size_t iface = 0; iface < nface; ++iface) {
+    for (size_t ivert = 0; ivert < faces->poly[iface].n; ++ivert)
+      if (fprintf(stream, "%s%zu", ivert == 0 ? "" : " ",
+            faces->poly[iface].ivert[ivert]) < 0) {
         BMM_TLE_STDS();
 
         return false;
       }
-    }
 
+    if (fprintf(stream, "\n") < 0) {
+      BMM_TLE_STDS();
+
+      return false;
+    }
+  }
+
+  free(agraph);
   free(faces);
 
   if (fclose(stream) != 0) {
