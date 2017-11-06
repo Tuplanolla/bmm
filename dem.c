@@ -1620,32 +1620,46 @@ static bool export_p(struct bmm_dem const *const dem) {
     size_t prev = SIZE_MAX;
     size_t kpart = ipart;
 
+    size_t initarr = 0;
+    for (size_t iarr = 0; iarr < agraph->src[kpart].n; ++iarr) {
+      if (!agraph->src[kpart].visited[iarr]) {
+        initarr = iarr;
+
+        break;
+      }
+    }
+
 more: ;
 
-    size_t iback = 0;
-    if (prev != SIZE_MAX) {
+    size_t inext;
+    if (prev == SIZE_MAX)
+      inext = initarr;
+    else {
+      size_t iback = 0;
+
       for (size_t iarr = 0; iarr < agraph->src[kpart].n; ++iarr)
         if (agraph->src[kpart].itgt[iarr] == prev) {
           iback = iarr;
 
           break;
         }
-    }
 
-    size_t inext = 0;
-    for (size_t iarr = 0; iarr < agraph->src[kpart].n; ++iarr) {
-      size_t const off = (iback + 1 + iarr) % agraph->src[kpart].n;
-      if (!agraph->src[kpart].visited[off]) {
-        inext = off;
+      inext = 0;
+      for (size_t iarr = 0; iarr < agraph->src[kpart].n; ++iarr) {
+        size_t const off = (iback + 1 + iarr) % agraph->src[kpart].n;
+        if (!agraph->src[kpart].visited[off]) {
+          inext = off;
 
-        break;
+          break;
+        }
       }
     }
 
     // fprintf(stderr, "Visited %zu -> %zu.\n", kpart, agraph->src[kpart].itgt[inext]);
     size_t const jpart = agraph->src[kpart].itgt[inext];
 
-    agraph->src[kpart].visited[inext] = true;
+    if (prev != SIZE_MAX)
+      agraph->src[kpart].visited[inext] = true;
 
     if (jpart != ipart) {
       prev = kpart;
@@ -1656,9 +1670,45 @@ more: ;
 
       goto more;
     } else {
-      ++nface;
+      size_t inextnext;
+      if (kpart == SIZE_MAX)
+        inextnext = initarr;
+      else {
+        size_t ibackback = 0;
 
-      continue;
+        for (size_t iarr = 0; iarr < agraph->src[jpart].n; ++iarr)
+          if (agraph->src[jpart].itgt[iarr] == kpart) {
+            ibackback = iarr;
+
+            break;
+          }
+
+        inextnext = 0;
+        for (size_t iarr = 0; iarr < agraph->src[jpart].n; ++iarr) {
+          size_t const off = (ibackback + 1 + iarr) % agraph->src[jpart].n;
+          if (!agraph->src[jpart].visited[off]) {
+            inextnext = off;
+
+            break;
+          }
+        }
+      }
+
+      if (inextnext != initarr) {
+        prev = kpart;
+        kpart = jpart;
+
+        faces->poly[nface].ivert[faces->poly[nface].n] = kpart;
+        ++faces->poly[nface].n;
+
+        goto more;
+      } else {
+        agraph->src[ipart].visited[initarr] = true;
+
+        ++nface;
+
+        continue;
+      }
     }
   }
 
@@ -1862,8 +1912,6 @@ harder: ;
   fprintf(stderr, "}\n");
   */
 
-  // This is also an exact copy of the previous part up there.
-
   // Connected components.
   nface = 0;
   ipart = 0;
@@ -1878,11 +1926,18 @@ harder: ;
     faces->poly[nface].ivert[faces->poly[nface].n] = ipart;
     ++faces->poly[nface].n;
 
+    double backdir = NAN;
+    size_t kpart = ipart;
+
+morer: ;
+
     size_t narr = 0;
-    for (size_t iarr = 0; iarr < agraph->src[ipart].n; ++iarr)
-      if (!agraph->src[ipart].visited[iarr])
+    for (size_t iarr = 0; iarr < agraph->src[kpart].n; ++iarr)
+      if (!agraph->src[kpart].visited[iarr])
         ++narr;
     if (narr == 0) {
+      // fprintf(stderr, "Face %zu done! ", nface);
+
       ++nface;
 
       ++ipart;
@@ -1890,49 +1945,71 @@ harder: ;
       continue;
     }
 
-    size_t prev = SIZE_MAX;
-    size_t kpart = ipart;
-
-morer: ;
-
-    size_t iback = 0;
-    if (prev != SIZE_MAX) {
+    size_t inext;
+    if (isnan(backdir)) {
       for (size_t iarr = 0; iarr < agraph->src[kpart].n; ++iarr)
-        if (agraph->src[kpart].itgt[iarr] == prev) {
-          iback = iarr;
+        if (!agraph->src[kpart].visited[iarr]) {
+          inext = iarr;
 
           break;
         }
-    }
 
-    size_t inext = 0;
-    for (size_t iarr = 0; iarr < agraph->src[kpart].n; ++iarr) {
-      size_t const off = (iback - 1 - iarr) % agraph->src[kpart].n;
-      if (!agraph->src[kpart].visited[off]) {
-        inext = off;
+      size_t const jpart = agraph->src[kpart].itgt[inext];
 
-        break;
+      double xdiffij[BMM_NDIM];
+      bmm_geom2d_diff(xdiffij, dem->part.x[jpart], dem->part.x[kpart]);
+
+      double const gammai = $(bmm_swrap, double)(bmm_geom2d_dir(xdiffij), M_2PI);
+
+      backdir = $(bmm_swrap, double)(gammai + M_PI, M_2PI);
+
+      // fprintf(stderr, "Set back to %g (%zu).\n", backdir, inext);
+    } else {
+      faces->poly[nface].ivert[faces->poly[nface].n] = kpart;
+      ++faces->poly[nface].n;
+
+      double cand = M_2PI;
+      for (size_t iarr = 0; iarr < agraph->src[kpart].n; ++iarr) {
+        size_t jpart = agraph->src[kpart].itgt[iarr];
+
+        double xdiffij[BMM_NDIM];
+        bmm_geom2d_diff(xdiffij, dem->part.x[jpart], dem->part.x[kpart]);
+
+        double const gammai = $(bmm_swrap, double)(bmm_geom2d_dir(xdiffij), M_2PI);
+
+        if (!agraph->src[kpart].visited[iarr]) {
+          // fprintf(stderr, "Unvisited angle from %zu to %zu of %g (%zu).\n", kpart, jpart, gammai, iarr);
+
+          double const epsilonster = 1.0e-6;
+          double const ncand = $(bmm_uwrap, double)(bmm_geom2d_dir(xdiffij) - backdir - epsilonster, M_2PI);
+          if (ncand < cand) {
+            cand = ncand;
+            inext = iarr;
+          }
+        }
+          // else fprintf(stderr, "Visited angle from %zu to %zu of %g (%zu).\n", kpart, jpart, gammai, iarr);
       }
+
+      size_t const jpart = agraph->src[kpart].itgt[inext];
+
+      double xdiffij[BMM_NDIM];
+      bmm_geom2d_diff(xdiffij, dem->part.x[jpart], dem->part.x[kpart]);
+
+      double const gammai = $(bmm_swrap, double)(bmm_geom2d_dir(xdiffij), M_2PI);
+
+      backdir = $(bmm_swrap, double)(gammai + M_PI, M_2PI);
+
+      // fprintf(stderr, "Set back to %g (%zu).\n", backdir, inext);
     }
 
-    // fprintf(stderr, "Visited %zu -> %zu.\n", kpart, agraph->src[kpart].itgt[inext]);
+    // fprintf(stderr, "Moved %zu -> %zu.\n", kpart, agraph->src[kpart].itgt[inext]);
     size_t const jpart = agraph->src[kpart].itgt[inext];
 
     agraph->src[kpart].visited[inext] = true;
 
-    if (jpart != ipart) {
-      prev = kpart;
-      kpart = jpart;
+    kpart = jpart;
 
-      faces->poly[nface].ivert[faces->poly[nface].n] = kpart;
-      ++faces->poly[nface].n;
-
-      goto morer;
-    } else {
-      ++nface;
-
-      continue;
-    }
+    goto morer;
   }
 
   // Nope, it's shit.
