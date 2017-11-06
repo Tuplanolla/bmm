@@ -1782,9 +1782,11 @@ unstart: ;
       size_t const ipart = faces->poly[iface].ivert[ivert];
       size_t const jpart = faces->poly[iface].ivert[jvert];
 
-      size_t const icont = agraph->src[ipart].n;
-      agraph->src[ipart].itgt[icont] = jpart;
-      ++agraph->src[ipart].n;
+      if (jpart != ipart) {
+        size_t const icont = agraph->src[ipart].n;
+        agraph->src[ipart].itgt[icont] = jpart;
+        ++agraph->src[ipart].n;
+      }
     }
 
   // This is an exact copy of the previous part up there.
@@ -1805,18 +1807,60 @@ unstart: ;
       agraph->src[ipart].visited[iarr] = false;
 
   // Double edge removal.
+harder: ;
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     for (size_t iarr = 0; iarr < agraph->src[ipart].n; ++iarr) {
       size_t const jpart = agraph->src[ipart].itgt[iarr];
 
       for (size_t jarr = 0; jarr < agraph->src[jpart].n; ++jarr)
         if (agraph->src[jpart].itgt[jarr] == ipart) {
-          agraph->src[ipart].visited[iarr] = true;
-          agraph->src[jpart].visited[jarr] = true;
+          if (!agraph->src[ipart].visited[iarr] &&
+              !agraph->src[jpart].visited[jarr]) {
+            // fprintf(stderr, "Double removed %zu -> %zu.\n", ipart, jpart);
+            agraph->src[ipart].visited[iarr] = true;
+            agraph->src[jpart].visited[jarr] = true;
 
-          break;
+            goto harder;
+          }
         }
     }
+
+  // Restore zero-area double edges.
+  for (size_t iface = 0; iface < nface; ++iface)
+    if (fabs(faces->poly[iface].area) < 1.0e-12) {
+      for (size_t ivert = 0; ivert < faces->poly[iface].n; ++ivert) {
+        size_t const jvert = (ivert + 1) % faces->poly[iface].n;
+        size_t const ipart = faces->poly[iface].ivert[ivert];
+        size_t const jpart = faces->poly[iface].ivert[jvert];
+
+        for (size_t iarr = 0; iarr < agraph->src[ipart].n; ++iarr)
+          if (agraph->src[ipart].itgt[iarr] == jpart) {
+            for (size_t jarr = 0; jarr < agraph->src[jpart].n; ++jarr)
+              if (agraph->src[jpart].itgt[jarr] == ipart) {
+                // fprintf(stderr, "Double restored %zu -> %zu.\n", ipart, jpart);
+
+                agraph->src[ipart].visited[iarr] = false;
+                agraph->src[jpart].visited[jarr] = false;
+
+                break;
+              }
+
+            break;
+          }
+      }
+    }
+
+  /*
+  fprintf(stderr, "digraph {\n");
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    for (size_t iarr = 0; iarr < agraph->src[ipart].n; ++iarr) {
+      size_t const jpart = agraph->src[ipart].itgt[iarr];
+
+      if (!agraph->src[ipart].visited[iarr])
+        fprintf(stderr, "%zu -> %zu\n", ipart, jpart);
+    }
+  fprintf(stderr, "}\n");
+  */
 
   // This is also an exact copy of the previous part up there.
 
@@ -1863,7 +1907,7 @@ morer: ;
 
     size_t inext = 0;
     for (size_t iarr = 0; iarr < agraph->src[kpart].n; ++iarr) {
-      size_t const off = (iback + 1 + iarr) % agraph->src[kpart].n;
+      size_t const off = (iback - 1 - iarr) % agraph->src[kpart].n;
       if (!agraph->src[kpart].visited[off]) {
         inext = off;
 
@@ -1890,6 +1934,8 @@ morer: ;
       continue;
     }
   }
+
+  // Nope, it's shit.
 
   // Export.
   for (size_t iface = 0; iface < nface; ++iface) {
