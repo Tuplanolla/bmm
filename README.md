@@ -608,47 +608,10 @@ Finish the Gnuplot adapter.
 
 Finish the realtime visualizer.
 
-Try other integrators.
-
 Consider `int` instead of `size_t` in critical parts
 since the undefinedness of overflows may allow some better optimizations.
 
 Annotate with `__attribute__ ((__flatten__, __hot__))`.
-
-Implement the following visualization algorithm.
-
-1. Gather all face polygons as follows.
-    1. Undirect the contact graph (duplicate directed edges).
-    2. Order edges by angle (cyclic order).
-    3. For each node in undirected graph.
-        1. Walk counterclockwise.
-        2. If the loop closes (found the starting node),
-           try to save the face (list of node indices or coordinates) and
-           delete the walked path from the graph;
-           otherwise (reached a dead end) backtrack
-           (whether traversing the same path
-           in two directions is allowed may be changed).
-           Only backtracking or periodic winding
-           may cause saving the face to fail.
-        3. Eliminate faces that are too big (compare circumference or area);
-           must eliminate negative areas for connected component analysis.
-2. Gather all face triangles as follows.
-    1. Tessellate the faces.
-3. Rebuild the original graph with oriented edges.
-    1. Start with an empty directed graph.
-    2. For each face in face graph or tessellated graph.
-        1. Add path edges to directed graph.
-4. Gather all connected face polygons as follows.
-    1. For each node in rebuilt graph.
-        1. For each edge in node.
-            1. If edge is bidirectional, remove it;
-               otherwise keep it.
-        2. If node is becomes empty, remove it;
-           otherwise keep it.
-    2. For each node in rebuilt and pruned graph.
-        1. Walk counterclockwise.
-        2. If the loop closes (found the starting node),
-           try to save the face (should always succeed).
 
 #### Programming Conventions
 

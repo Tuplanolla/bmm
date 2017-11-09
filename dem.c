@@ -1470,6 +1470,30 @@ static bool export_r(struct bmm_dem const *const dem) {
   return true;
 }
 
+static bool export_c(struct bmm_dem const *const dem) {
+  FILE *const stream = fopen("fragment-c.data", "w");
+  if (stream == NULL) {
+    BMM_TLE_STDS();
+
+    return false;
+  }
+
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    if (fprintf(stream, "%d\n", dem->part.role[ipart]) < 0) {
+      BMM_TLE_STDS();
+
+      return false;
+    }
+
+  if (fclose(stream) != 0) {
+    BMM_TLE_STDS();
+
+    return false;
+  }
+
+  return true;
+}
+
 struct agraph {
   struct {
     size_t n;
@@ -1536,6 +1560,63 @@ static void aswap(size_t const i, size_t const j, void *const cls) {
   agraph->src[ipart].itgt[j] = tmp;
 }
 
+static bool export_f(struct bmm_dem const *const dem) {
+  FILE *const stream = fopen("fragment-f.data", "w");
+  if (stream == NULL) {
+    BMM_TLE_STDS();
+
+    return false;
+  }
+
+  // Bidirectionalization of the strong contact graph.
+  // Following great programming conventions, I copied this from below.
+  struct agraph *const agraph = malloc(sizeof *agraph);
+  if (agraph == NULL)
+    BMM_TLE_STDS();
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    agraph->src[ipart].n = 0;
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    for (size_t icont = 0; icont < dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].n; ++icont) {
+      size_t const jpart = dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].itgt[icont];
+
+      double d[BMM_NDIM];
+      for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+        d[idim] = $(bmm_abs, double)
+          (dem->part.x[jpart][idim] - dem->part.x[ipart][idim]);
+
+      // No winding.
+      if (d[0] < dem->opts.box.x[0] / 2.0 &&
+          d[1] < dem->opts.box.x[1] / 2.0) {
+        size_t const jcont = agraph->src[jpart].n;
+        agraph->src[jpart].itgt[jcont] = ipart;
+        ++agraph->src[jpart].n;
+
+        // This makes them bidirectional.
+        size_t const kcont = agraph->src[ipart].n;
+        agraph->src[ipart].itgt[kcont] = jpart;
+        ++agraph->src[ipart].n;
+      }
+    }
+
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    if (agraph->src[ipart].n == 0)
+      if (fprintf(stream, "%zu\n", ipart) < 0) {
+        BMM_TLE_STDS();
+
+        return false;
+      }
+
+  free(agraph);
+
+  if (fclose(stream) != 0) {
+    BMM_TLE_STDS();
+
+    return false;
+  }
+
+  return true;
+}
+
 static bool export_p(struct bmm_dem const *const dem) {
   FILE *const stream = fopen("fragment-p.data", "w");
   if (stream == NULL) {
@@ -1581,6 +1662,10 @@ static bool export_p(struct bmm_dem const *const dem) {
       .ipart = ipart
     };
     bmm_hsort_cls(agraph->src[ipart].n, acompar, aswap, &acls);
+    /*
+    for (size_t iarr = 0; iarr < agraph->src[ipart].n / 2; ++iarr)
+      agraph->src[ipart].itgt[iarr] = agraph->src[ipart].itgt[agraph->src[ipart].n - 1 - iarr];
+    */
   }
 
   // Preparations.
@@ -1799,6 +1884,7 @@ unstart: ;
 
       size_t const ipart = faces->poly[iface].ivert[ivert];
       size_t const jpart = faces->poly[iface].ivert[jvert];
+      // fprintf(stderr, "Trilaterated %zu -> %zu.\n", ipart, jpart);
 
       faces->poly[iface].area +=
         dem->part.x[ipart][0] * dem->part.x[jpart][1] -
@@ -1806,13 +1892,20 @@ unstart: ;
     }
 
     faces->poly[iface].area /= 2.0;
+    // fprintf(stderr, "Face %zu with area %g.\n", iface, faces->poly[iface].area);
   }
 
   // Filter.
   for (size_t iface = 0; iface < nface; ++iface)
+    // This would be a useful feature,
+    // but with the current algorithm it loses edges
+    // that are surrounded by a hole and the outside.
+    /*
     if (faces->poly[iface].area < -1.0e-12 ||
         faces->poly[iface].circ > 8.0 * bmm_ival_midpoint(dem->opts.part.rnew)) {
-      // fprintf(stderr, "Remove face %zu.\n", iface);
+    */
+    if (faces->poly[iface].area < -1.0e-12) {
+      // fprintf(stderr, "Removed face %zu.\n", iface);
       --nface;
       faces->poly[iface].n = faces->poly[nface].n;
       faces->poly[iface].circ = faces->poly[nface].circ;
@@ -1838,18 +1931,6 @@ unstart: ;
         ++agraph->src[ipart].n;
       }
     }
-
-  // This is an exact copy of the previous part up there.
-
-  // Angle ordering.
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
-    struct acls acls = {
-      .agraph = agraph,
-      .dem = dem,
-      .ipart = ipart
-    };
-    bmm_hsort_cls(agraph->src[ipart].n, acompar, aswap, &acls);
-  }
 
   // Preparations.
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
@@ -1923,9 +2004,6 @@ harder: ;
 
     faces->poly[nface].n = 0;
 
-    faces->poly[nface].ivert[faces->poly[nface].n] = ipart;
-    ++faces->poly[nface].n;
-
     double backdir = NAN;
     size_t kpart = ipart;
 
@@ -1938,12 +2016,16 @@ morer: ;
     if (narr == 0) {
       // fprintf(stderr, "Face %zu done! ", nface);
 
-      ++nface;
+      if (faces->poly[nface].n != 0)
+        ++nface;
 
       ++ipart;
 
       continue;
     }
+
+    faces->poly[nface].ivert[faces->poly[nface].n] = kpart;
+    ++faces->poly[nface].n;
 
     size_t inext;
     if (isnan(backdir)) {
@@ -1965,9 +2047,6 @@ morer: ;
 
       // fprintf(stderr, "Set back to %g (%zu).\n", backdir, inext);
     } else {
-      faces->poly[nface].ivert[faces->poly[nface].n] = kpart;
-      ++faces->poly[nface].n;
-
       double cand = M_2PI;
       for (size_t iarr = 0; iarr < agraph->src[kpart].n; ++iarr) {
         size_t jpart = agraph->src[kpart].itgt[iarr];
@@ -2012,17 +2091,17 @@ morer: ;
     goto morer;
   }
 
-  // Nope, it's shit.
-
   // Export.
   for (size_t iface = 0; iface < nface; ++iface) {
-    for (size_t ivert = 0; ivert < faces->poly[iface].n; ++ivert)
-      if (fprintf(stream, "%s%zu", ivert == 0 ? "" : " ",
-            faces->poly[iface].ivert[ivert]) < 0) {
+    for (size_t ivert = 0; ivert < faces->poly[iface].n; ++ivert) {
+      size_t const ipart = faces->poly[iface].ivert[ivert];
+
+      if (fprintf(stream, "%s%zu", ivert == 0 ? "" : " ", ipart) < 0) {
         BMM_TLE_STDS();
 
         return false;
       }
+    }
 
     if (fprintf(stream, "\n") < 0) {
       BMM_TLE_STDS();
@@ -3213,10 +3292,26 @@ bool bmm_dem_trap_off(struct bmm_dem *const dem) {
 }
 
 bool bmm_dem_run(struct bmm_dem *const dem) {
+#define POST_DEBUG
+#ifndef POST_DEBUG
   bmm_dem_trap_on(dem);
 
   bool const run = bmm_dem_run_(dem);
   bool const report = bmm_dem_report(dem);
+
+  FILE *const stream = fopen("a.out", "w");
+  if (stream == NULL) {
+    BMM_TLE_STDS();
+    abort();
+  }
+  if (fwrite(dem, sizeof *dem, 1, stream) != 1) {
+    BMM_TLE_STDS();
+    abort();
+  }
+  if (fclose(stream) != 0) {
+    BMM_TLE_STDS();
+    abort();
+  }
 
   bmm_dem_trap_off(dem);
 
@@ -3225,8 +3320,29 @@ bool bmm_dem_run(struct bmm_dem *const dem) {
 
   if (!rubbish(dem))
     BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Fucked up");
+#else
+  bool const run = true;
+  bool const report = true;
+#endif
 
-  if (!export_x(dem) || !export_r(dem) || !export_p(dem))
+  gsl_rng *const rng = dem->rng;
+  FILE *const strim = fopen("a.out", "r");
+  if (strim == NULL) {
+    BMM_TLE_STDS();
+    abort();
+  }
+  if (fread(dem, sizeof *dem, 1, strim) != 1) {
+    BMM_TLE_STDS();
+    abort();
+  }
+  if (fclose(strim) != 0) {
+    BMM_TLE_STDS();
+    abort();
+  }
+  dem->rng = rng;
+
+  if (!export_x(dem) || !export_r(dem) || !export_c(dem) ||
+      !export_f(dem) || !export_p(dem))
     BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Fucked up big");
 
   return run && report;
