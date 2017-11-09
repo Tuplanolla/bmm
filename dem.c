@@ -3292,7 +3292,7 @@ bool bmm_dem_trap_off(struct bmm_dem *const dem) {
 }
 
 bool bmm_dem_run(struct bmm_dem *const dem) {
-#define POST_DEBUG
+// #define POST_DEBUG
 #ifndef POST_DEBUG
   bmm_dem_trap_on(dem);
 
@@ -3323,8 +3323,8 @@ bool bmm_dem_run(struct bmm_dem *const dem) {
 #else
   bool const run = true;
   bool const report = true;
-#endif
 
+  // Uh oh!
   gsl_rng *const rng = dem->rng;
   FILE *const strim = fopen("a.out", "r");
   if (strim == NULL) {
@@ -3340,6 +3340,7 @@ bool bmm_dem_run(struct bmm_dem *const dem) {
     abort();
   }
   dem->rng = rng;
+#endif
 
   if (!export_x(dem) || !export_r(dem) || !export_c(dem) ||
       !export_f(dem) || !export_p(dem))
