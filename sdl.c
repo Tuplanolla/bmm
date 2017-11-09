@@ -319,12 +319,12 @@ static void bmm_sdl_draw(struct bmm_sdl const *const sdl) {
       blent[3] = 1.0f - (float) t;
       glColor4fv(blent);
 
-      /*
-      glSkewedAnnulus((float) xoff, (float) y,
-          (float) r, (float) (r * 0.25), (float) (r * 0.5),
-          (float) a, ncorner);
-      */
-      glDisk((float) xoff, (float) y, (float) r, ncorner);
+      if (sdl->blend)
+        glSkewedAnnulus((float) xoff, (float) y,
+            (float) r, (float) (r * 0.25), (float) (r * 0.5),
+            (float) a, ncorner);
+      else
+        glDisk((float) xoff, (float) y, (float) r, ncorner);
 
       // Cached ghosts.
       if (sdl->blend) {
@@ -518,7 +518,7 @@ static void bmm_sdl_draw(struct bmm_sdl const *const sdl) {
     }
 
     // Connected components (three deep).
-    if (sdl->blend) {
+    if (false && sdl->blend) {
       glBegin(GL_TRIANGLES);
       for (size_t ipart = 0; ipart < sdl->dem.part.n; ++ipart)
         for (size_t icont = 0; icont < ind[ipart].n; ++icont) {
@@ -621,15 +621,6 @@ static void bmm_sdl_draw(struct bmm_sdl const *const sdl) {
     glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
     (void) snprintf(strbuf, sizeof strbuf, "K (kinetic energy) = %g",
         bmm_dem_est_ekin(&sdl->dem));
-    glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
-    (void) snprintf(strbuf, sizeof strbuf, "C (contact energy) = %g",
-        bmm_dem_est_econt(&sdl->dem, BMM_DEM_CT_STRONG) +
-        bmm_dem_est_econt(&sdl->dem, BMM_DEM_CT_WEAK));
-    glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
-    (void) snprintf(strbuf, sizeof strbuf, "E (total energy) = %g",
-        bmm_dem_est_ekin(&sdl->dem) +
-        bmm_dem_est_econt(&sdl->dem, BMM_DEM_CT_STRONG) +
-        bmm_dem_est_econt(&sdl->dem, BMM_DEM_CT_WEAK));
     glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
     (void) snprintf(strbuf, sizeof strbuf, "t (now) = %g (%zu)",
         sdl->dem.time.t, sdl->dem.time.istep);

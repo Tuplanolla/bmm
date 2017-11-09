@@ -32,13 +32,14 @@ static bool f(char const *const key, char const *const value,
   struct bmm_dem_opts *const opts = ptr;
 
   // TODO Refactor these at some point.
-  opts->box.x[0] = 0.1;
-  opts->box.x[1] = 0.1;
+  opts->box.x[1] = 0.05;
+  opts->box.x[0] = opts->box.x[1] * 2.0;
   opts->box.per[0] = true;
   opts->box.per[1] = false;
 
   for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-    opts->cache.ncell[idim] = 12;
+    opts->cache.ncell[idim] = 8;
+  opts->cache.ncell[0] = opts->cache.ncell[1] * 2 - 2;
 
   opts->cache.dcutoff = (double) INFINITY;
   for (size_t idim = 0; idim < BMM_NDIM; ++idim)
@@ -172,6 +173,44 @@ static bool f(char const *const key, char const *const value,
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
       opts->script.tspan[istage] = 6.0e-3;
+      opts->script.dt[istage] = dtstuff;
+    } else if (strcmp(value, "roll") == 0) {
+      dtstuff = 1.02e-7;
+      opts->part.y = 52.0e+9;
+
+      opts->part.rnew[0] = 2.078e-3;
+      opts->part.rnew[1] = opts->part.rnew[0] * 1.07;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
+      opts->script.tspan[istage] = 0.03e-3;
+      opts->script.dt[istage] = dtstuff;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_CREATE_PLANE;
+      opts->script.params[istage].test.eta = bmm_geom_ballmpd(BMM_NDIM);
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_CREATE_COUPLE;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_PRESET0;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_PRESET1;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_GRAVY;
+      opts->script.tspan[istage] = 3.0e-3;
+      opts->script.dt[istage] = dtstuff;
+      opts->script.params[istage].gravy.f = 3.0e+4;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_LINK;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
+      opts->script.tspan[istage] = 3.0e-3;
       opts->script.dt[istage] = dtstuff;
     } else if (strcmp(value, "pile") == 0) {
       dtstuff = 1.02e-7;

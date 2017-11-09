@@ -89,8 +89,8 @@ enum bmm_dem_norm {
   BMM_DEM_NORM_NONE,
   /// Ideal restitution model.
   BMM_DEM_NORM_IDEAL,
-  /// Linear dashpot model.
-  BMM_DEM_NORM_DASHPOT,
+  /// Linear dashpot model named after Kelvin and Voigt.
+  BMM_DEM_NORM_KV,
   /// Elastic model by Hertz.
   BMM_DEM_NORM_HERTZ,
   /// Viscoelastic model by Brilliantov, Spahn, Hertzsch and Poschel.
@@ -105,9 +105,6 @@ enum bmm_dem_tang {
   /// Linear model by Coulomb.
   // TODO This is `\\mu F` only.
   BMM_DEM_TANG_COULOMB,
-  /// Viscous model.
-  // TODO This is `\\gamma \\mu` only.
-  BMM_DEM_TANG_VISCOUS,
   /// Spring model by Cundall and Strack.
   BMM_DEM_TANG_CS,
   /// Power law model by Haff and Werner.
@@ -187,6 +184,7 @@ enum bmm_dem_mode {
   BMM_DEM_MODE_CREATE_HC,
   BMM_DEM_MODE_CREATE_HEX,
   BMM_DEM_MODE_CREATE_PILE,
+  BMM_DEM_MODE_CREATE_PLANE,
   BMM_DEM_MODE_CREATE_BEAM,
   /// Draw particles towards a harmonic force field zero along the x-axis.
   BMM_DEM_MODE_SEDIMENT,
@@ -384,7 +382,7 @@ struct bmm_dem_pair {
     enum bmm_dem_norm tag;
     /// Parameters.
     union {
-      /// For `BMM_DEM_NORM_DASHPOT`.
+      /// For `BMM_DEM_NORM_KV`.
       struct {
         /// Dashpot elasticity.
         double k;
@@ -587,6 +585,30 @@ struct bmm_dem {
     /// Previous message time.
     double tprev;
   } comm;
+  /// Estimator cache.
+  /// This is only used for performance optimization.
+  struct {
+    /// External potential energy.
+    double epotext;
+    /// Linear kinetic energy.
+    double eklin;
+    /// Rotational kinetic energy.
+    double ekrot;
+    /// Weak contact energy.
+    double ewcont;
+    /// Strong contact energy.
+    double escont;
+    /// Work done by cohesive pressure.
+    double edrivnorm;
+    /// Work done by driving force.
+    double edrivtang;
+    /// Energy dissipated in yielding.
+    double eyieldis;
+    /// Energy dissipated in viscous contact.
+    double econtdis;
+    /// Energy dissipated in friction.
+    double efricdis;
+  } est;
   /// Neighbor cache.
   /// This is only used for performance optimization.
   struct {
@@ -698,8 +720,8 @@ void bmm_dem_opts_def(struct bmm_dem_opts *);
 __attribute__ ((__nonnull__))
 void bmm_dem_def(struct bmm_dem *, struct bmm_dem_opts const *);
 
+double bmm_dem_est_epotext(struct bmm_dem const *);
 double bmm_dem_est_ekin(struct bmm_dem const *);
-double bmm_dem_est_econt(struct bmm_dem const *, enum bmm_dem_ct);
 double bmm_dem_est_cor(struct bmm_dem const *);
 
 __attribute__ ((__nonnull__))
