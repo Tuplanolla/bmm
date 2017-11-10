@@ -314,8 +314,8 @@ struct bmm_dem_opts {
       } sediment;
       /// For `BMM_DEM_MODE_GRAVY`.
       struct {
-        /// Gravitational force.
-        double f;
+        /// Gravitational acceleration.
+        double g;
       } gravy;
     } params[BMM_MSTAGE];
   } script;
@@ -463,8 +463,8 @@ struct bmm_dem {
       } harm;
       /// For `BMM_DEM_EXT_GRAVY`.
       struct {
-        /// Force.
-        double f;
+        /// Acceleration.
+        double g;
       } gravy;
     } params;
   } ext;
@@ -586,7 +586,7 @@ struct bmm_dem {
     double tprev;
   } comm;
   /// Estimator cache.
-  /// This is only used for performance optimization.
+  /// This is only used for programmer laziness.
   struct {
     /// External potential energy.
     double epotext;
@@ -608,6 +608,16 @@ struct bmm_dem {
     double econtdis;
     /// Energy dissipated in friction.
     double efricdis;
+    /// Resisting tangential force.
+    double fbacktang;
+    /// Resisting normal force.
+    double fbacknorm;
+    /// Effective macroscopic friction factor.
+    double mueff;
+    /// Effective driving velocity.
+    double vdriv;
+    /// Effective compression velocity.
+    double vcompr;
   } est;
   /// Neighbor cache.
   /// This is only used for performance optimization.
@@ -719,10 +729,6 @@ void bmm_dem_opts_def(struct bmm_dem_opts *);
 /// with the simulation options `opts`.
 __attribute__ ((__nonnull__))
 void bmm_dem_def(struct bmm_dem *, struct bmm_dem_opts const *);
-
-double bmm_dem_est_epotext(struct bmm_dem const *);
-double bmm_dem_est_ekin(struct bmm_dem const *);
-double bmm_dem_est_cor(struct bmm_dem const *);
 
 __attribute__ ((__nonnull__))
 bool bmm_dem_step(struct bmm_dem *);

@@ -27,152 +27,6 @@
 #include "sig.h"
 #include "tle.h"
 
-// TODO Complete energy estimators.
-
-__attribute__ ((__nonnull__, __pure__))
-double bmm_dem_est_epotext(struct bmm_dem const *const dem) {
-  double e = 0.0;
-
-  switch (dem->ext.tag) {
-    case BMM_DEM_EXT_HARM:
-      for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-        e += dem->ext.params.harm.k * $(bmm_power, double)
-          (dem->opts.box.x[1] / 2.0 - dem->part.x[ipart][1], 2);
-
-      break;
-    case BMM_DEM_EXT_GRAVY:
-      break;
-    case BMM_DEM_EXT_DRIVE:
-      break;
-  }
-
-  return (1.0 / 2.0) * e;
-}
-
-__attribute__ ((__nonnull__, __pure__))
-double bmm_dem_est_elin(struct bmm_dem const *const dem) {
-  double e = 0.0;
-
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-      e += dem->part.m[ipart] * $(bmm_power, double)(dem->part.v[ipart][idim], 2);
-
-  return (1.0 / 2.0) * e;
-}
-
-__attribute__ ((__nonnull__, __pure__))
-double bmm_dem_est_erot(struct bmm_dem const *const dem) {
-  double e = 0.0;
-
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    e += dem->cache.j[ipart] * $(bmm_power, double)(dem->part.omega[ipart], 2);
-
-  return (1.0 / 2.0) * e;
-}
-
-__attribute__ ((__nonnull__, __pure__))
-double bmm_dem_est_ekin(struct bmm_dem const *const dem) {
-  return bmm_dem_est_elin(dem) + bmm_dem_est_erot(dem);
-}
-
-__attribute__ ((__nonnull__, __pure__))
-double bmm_dem_est_ewcont(struct bmm_dem const *const dem) {
-  return dem->est.ewcont;
-}
-
-__attribute__ ((__nonnull__, __pure__))
-double bmm_dem_est_escont(struct bmm_dem const *const dem) {
-  return dem->est.escont;
-}
-
-__attribute__ ((__nonnull__, __pure__))
-double bmm_dem_est_edrivnorm(struct bmm_dem const *const dem) {
-  return dem->est.edrivnorm;
-}
-
-__attribute__ ((__nonnull__, __pure__))
-double bmm_dem_est_edrivtang(struct bmm_dem const *const dem) {
-  return dem->est.edrivtang;
-}
-
-__attribute__ ((__nonnull__, __pure__))
-double bmm_dem_est_eyieldis(struct bmm_dem const *const dem) {
-  return dem->est.eyieldis;
-}
-
-__attribute__ ((__nonnull__, __pure__))
-double bmm_dem_est_econtdis(struct bmm_dem const *const dem) {
-  return dem->est.econtdis;
-}
-
-__attribute__ ((__nonnull__, __pure__))
-double bmm_dem_est_efricdis(struct bmm_dem const *const dem) {
-  return dem->est.efricdis;
-}
-
-/// The call `bmm_dem_est_mass(dem)`
-/// returns the total mass of the particles
-/// in the simulation `dem`.
-__attribute__ ((__nonnull__, __pure__))
-double bmm_dem_est_mass(struct bmm_dem *const dem) {
-  double m = 0.0;
-
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    m += dem->part.m[ipart];
-
-  return m;
-}
-
-/// The call `bmm_dem_est_center(pxcenter, dem)`
-/// sets `pxcenter` to the center of the bounding box
-/// in the simulation `dem`.
-__attribute__ ((__nonnull__))
-void bmm_dem_est_center(double *const pxcenter,
-    struct bmm_dem *const dem) {
-  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-    pxcenter[idim] = dem->opts.box.x[idim] / 2.0;
-}
-
-/// The call `bmm_dem_est_com(pxcom, dem)`
-/// sets `pxcom` to the center of mass of the particles
-/// in the simulation `dem`.
-__attribute__ ((__nonnull__))
-void bmm_dem_est_com(double *const pxcom,
-    struct bmm_dem *const dem) {
-  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-    pxcom[idim] = 0.0;
-
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-      pxcom[idim] += dem->part.m[ipart] * dem->part.x[ipart][idim];
-
-  double const m = bmm_dem_est_mass(dem);
-
-  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-    pxcom[idim] /= m;
-}
-
-/// The call `bmm_dem_est_cor(dem)`
-/// returns the mean coefficient of restitution of the particles
-/// in the simulation `dem`.
-/// The result only applies to the linear dashpot model and
-/// even then it is a bit wrong.
-__attribute__ ((__deprecated__, __nonnull__, __pure__))
-double bmm_dem_est_cor(struct bmm_dem const *const dem) {
-  double e = 0.0;
-
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
-    double const mred =
-      dem->part.m[ipart] * dem->part.m[ipart] /
-      (dem->part.m[ipart] + dem->part.m[ipart]);
-    e += exp(-M_PI * dem->pair[BMM_DEM_CT_WEAK].norm.params.dashpot.gamma / (2.0 * mred) /
-        sqrt(dem->pair[BMM_DEM_CT_WEAK].norm.params.dashpot.k / mred -
-          $(bmm_power, double)(dem->pair[BMM_DEM_CT_WEAK].norm.params.dashpot.gamma / (2.0 * mred), 2)));
-  }
-
-  return e / (double) dem->part.n;
-}
-
 size_t bmm_dem_script_addstage(struct bmm_dem_opts *const opts) {
   size_t const istage = opts->script.n;
 
@@ -1082,8 +936,7 @@ void bmm_dem_force_external(struct bmm_dem *const dem, size_t const ipart) {
 
       break;
     case BMM_DEM_EXT_GRAVY:
-      // TODO This is not how gravity works!
-      dem->part.f[ipart][1] += dem->ext.params.gravy.f;
+      dem->part.f[ipart][1] += dem->part.m[ipart] * dem->ext.params.gravy.g;
 
       break;
     case BMM_DEM_EXT_DRIVE:
@@ -1116,6 +969,18 @@ void bmm_dem_force(struct bmm_dem *const dem) {
   dem->est.eyieldis = 0.0;
   dem->est.econtdis = 0.0;
   dem->est.efricdis = 0.0;
+  dem->est.fbacktang = 0.0;
+  dem->est.fbacknorm = 0.0;
+  dem->est.mueff = 0.0;
+  dem->est.vdriv = NAN;
+  dem->est.vcompr = NAN;
+
+  // This goes for the previous frame, so this is not the right spot.
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    if (dem->part.role[ipart] == BMM_DEM_ROLE_DRIVEN) {
+      dem->est.vdriv += dem->part.v[ipart][0];
+      dem->est.vcompr += dem->part.v[ipart][1];
+    }
 
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     bmm_dem_force_ambient(dem, ipart);
@@ -1134,6 +999,16 @@ void bmm_dem_force(struct bmm_dem *const dem) {
       bmm_dem_force_weak(dem, ipart, jpart, icont);
     }
 
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    if (dem->part.role[ipart] == BMM_DEM_ROLE_DRIVEN) {
+      dem->est.fbacktang += dem->part.f[ipart][0];
+      dem->est.fbacknorm += dem->part.f[ipart][1];
+    }
+
+  if (dem->est.fbacknorm != 0.0)
+    dem->est.mueff = $(bmm_abs, double)
+      (dem->est.fbacktang / dem->est.fbacknorm);
+
   // TODO This still sucks.
   switch (dem->ext.tag) {
     case BMM_DEM_EXT_DRIVE:
@@ -1144,11 +1019,8 @@ void bmm_dem_force(struct bmm_dem *const dem) {
 
       break;
   }
-
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     bmm_dem_force_external(dem, ipart);
-
-  // TODO Calculate force feedback from the residuals.
 }
 
 void bmm_dem_accel(struct bmm_dem *const dem) {
@@ -1419,21 +1291,23 @@ static void bmm_dem_script_clip(struct bmm_dem *const dem) {
       dem->pair[ict].cont.src[ipart].n = 0;
 }
 
-bool extra_crap(struct bmm_dem const *const dem) {
-  double const epotext = bmm_dem_est_epotext(dem);
-  double const ekin = bmm_dem_est_ekin(dem);
-  double const ewcont = bmm_dem_est_ewcont(dem);
-  double const escont = bmm_dem_est_escont(dem);
-  double const edrivnorm = bmm_dem_est_edrivnorm(dem);
-  double const edrivtang = bmm_dem_est_edrivtang(dem);
-  double const eyieldis = bmm_dem_est_eyieldis(dem);
-  double const econtdis = bmm_dem_est_econtdis(dem);
-  double const efricdis = bmm_dem_est_efricdis(dem);
-  double const pos = epotext + ekin + ewcont + escont + edrivnorm + edrivtang;
+static bool extra_crap(struct bmm_dem const *const dem) {
+  double const epotext = dem->est.epotext;
+  double const eklin = dem->est.eklin;
+  double const ekrot = dem->est.ekrot;
+  double const ewcont = dem->est.ewcont;
+  double const escont = dem->est.escont;
+  double const edrivnorm = dem->est.edrivnorm;
+  double const edrivtang = dem->est.edrivtang;
+  double const eyieldis = dem->est.eyieldis;
+  double const econtdis = dem->est.econtdis;
+  double const efricdis = dem->est.efricdis;
+  double const pos = epotext + eklin + ekrot + ewcont + escont + edrivnorm + edrivtang;
   double const neg = eyieldis + econtdis + efricdis;
   if (fprintf(stderr,
         "epotext = %g, "
-        "ekin = %g, "
+        "eklin = %g, "
+        "ekrot = %g, "
         "ewcont = %g, "
         "escont = %g, "
         "edrivnorm = %g, "
@@ -1444,7 +1318,7 @@ bool extra_crap(struct bmm_dem const *const dem) {
         "sum(+) = %g, "
         "sum(-) = %g, "
         "sum(?) = %g\n",
-        epotext, ekin, ewcont, escont, edrivnorm, edrivtang,
+        epotext, eklin, ekrot, ewcont, escont, edrivnorm, edrivtang,
         eyieldis, econtdis, efricdis,
         pos, neg, pos - neg) < 0) {
     BMM_TLE_STDS();
@@ -2061,7 +1935,7 @@ morer: ;
     faces->poly[nface].ivert[faces->poly[nface].n] = kpart;
     ++faces->poly[nface].n;
 
-    size_t inext;
+    size_t inext = SIZE_MAX;
     if (isnan(backdir)) {
       for (size_t iarr = 0; iarr < agraph->src[kpart].n; ++iarr)
         if (!agraph->src[kpart].visited[iarr]) {
@@ -2331,6 +2205,131 @@ bool bmm_dem_est_raddist(double *const pr, double *const pg,
   return true;
 }
 
+// TODO Complete energy estimators.
+
+__attribute__ ((__nonnull__, __pure__))
+double bmm_dem_est_epotext(struct bmm_dem const *const dem) {
+  double e = 0.0;
+
+  switch (dem->ext.tag) {
+    case BMM_DEM_EXT_HARM:
+      for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+        e += dem->ext.params.harm.k * $(bmm_power, double)
+          (dem->opts.box.x[1] / 2.0 - dem->part.x[ipart][1], 2);
+
+      break;
+    case BMM_DEM_EXT_GRAVY:
+      break;
+    case BMM_DEM_EXT_DRIVE:
+      break;
+  }
+
+  return (1.0 / 2.0) * e;
+}
+
+__attribute__ ((__nonnull__, __pure__))
+double bmm_dem_est_eklin(struct bmm_dem const *const dem) {
+  double e = 0.0;
+
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+      e += dem->part.m[ipart] * $(bmm_power, double)(dem->part.v[ipart][idim], 2);
+
+  return (1.0 / 2.0) * e;
+}
+
+__attribute__ ((__nonnull__, __pure__))
+double bmm_dem_est_ekrot(struct bmm_dem const *const dem) {
+  double e = 0.0;
+
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    e += dem->cache.j[ipart] * $(bmm_power, double)(dem->part.omega[ipart], 2);
+
+  return (1.0 / 2.0) * e;
+}
+
+__attribute__ ((__nonnull__))
+double bmm_dem_est_vdc(double *const pv, struct bmm_dem const *const dem) {
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+    pv[idim] = 0.0;
+
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    if (dem->part.role[ipart] == BMM_DEM_ROLE_DRIVEN)
+      for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+        pv[idim] += dem->part.v[ipart][idim];
+
+  size_t ndrive = 0;
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    if (dem->part.role[ipart] == BMM_DEM_ROLE_DRIVEN)
+      ++ndrive;
+
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+    pv[idim] /= (double) ndrive;
+}
+
+/// The call `bmm_dem_est_mass(dem)`
+/// returns the total mass of the particles
+/// in the simulation `dem`.
+__attribute__ ((__nonnull__, __pure__))
+double bmm_dem_est_mass(struct bmm_dem *const dem) {
+  double m = 0.0;
+
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    m += dem->part.m[ipart];
+
+  return m;
+}
+
+/// The call `bmm_dem_est_center(pxcenter, dem)`
+/// sets `pxcenter` to the center of the bounding box
+/// in the simulation `dem`.
+__attribute__ ((__nonnull__))
+void bmm_dem_est_center(double *const pxcenter,
+    struct bmm_dem *const dem) {
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+    pxcenter[idim] = dem->opts.box.x[idim] / 2.0;
+}
+
+/// The call `bmm_dem_est_com(pxcom, dem)`
+/// sets `pxcom` to the center of mass of the particles
+/// in the simulation `dem`.
+__attribute__ ((__nonnull__))
+void bmm_dem_est_com(double *const pxcom,
+    struct bmm_dem *const dem) {
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+    pxcom[idim] = 0.0;
+
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+      pxcom[idim] += dem->part.m[ipart] * dem->part.x[ipart][idim];
+
+  double const m = bmm_dem_est_mass(dem);
+
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+    pxcom[idim] /= m;
+}
+
+/// The call `bmm_dem_est_cor(dem)`
+/// returns the mean coefficient of restitution of the particles
+/// in the simulation `dem`.
+/// The result only applies to the linear dashpot model and
+/// even then it is a bit wrong.
+__attribute__ ((__deprecated__, __nonnull__, __pure__))
+double bmm_dem_est_cor(struct bmm_dem const *const dem) {
+  double e = 0.0;
+
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
+    double const mred =
+      dem->part.m[ipart] * dem->part.m[ipart] /
+      (dem->part.m[ipart] + dem->part.m[ipart]);
+    e += exp(-M_PI * dem->pair[BMM_DEM_CT_WEAK].norm.params.dashpot.gamma / (2.0 * mred) /
+        sqrt(dem->pair[BMM_DEM_CT_WEAK].norm.params.dashpot.k / mred -
+          $(bmm_power, double)(dem->pair[BMM_DEM_CT_WEAK].norm.params.dashpot.gamma / (2.0 * mred), 2)));
+  }
+
+  return e / (double) dem->part.n;
+}
+
 void bmm_dem_opts_def(struct bmm_dem_opts *const opts) {
   // This is here just to help Valgrind and cover up my mistakes.
   (void) memset(opts, 0, sizeof *opts);
@@ -2512,6 +2511,8 @@ size_t bmm_dem_sniff_size(struct bmm_dem const *const dem,
       return sizeof dem->cache + sizeof dem->pair;
     case BMM_MSG_NUM_PARTS:
       return sizeof dem->part.n + sizeof dem->part;
+    case BMM_MSG_NUM_EST:
+      return sizeof dem->est;
   }
 
   dynamic_assert(false, "Unsupported message number");
@@ -2530,6 +2531,8 @@ bool bmm_dem_puts_stuff(struct bmm_dem const *const dem,
     case BMM_MSG_NUM_PARTS:
       return msg_write(&dem->part.n, sizeof dem->part.n, NULL) &&
         msg_write(&dem->part, sizeof dem->part, NULL);
+    case BMM_MSG_NUM_EST:
+      return msg_write(&dem->est, sizeof dem->est, NULL);
   }
 
   dynamic_assert(false, "Unsupported message number");
@@ -3053,8 +3056,8 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
       break;
     case BMM_DEM_MODE_GRAVY:
       dem->ext.tag = BMM_DEM_EXT_GRAVY;
-      dem->ext.params.gravy.f =
-        -dem->opts.script.params[dem->script.i].gravy.f;
+      dem->ext.params.gravy.g =
+        -dem->opts.script.params[dem->script.i].gravy.g;
 
       break;
     case BMM_DEM_MODE_SEDIMENT:
@@ -3177,8 +3180,11 @@ bool bmm_dem_comm(struct bmm_dem *const dem) {
     if (!bmm_dem_puts(dem, BMM_MSG_NUM_PARTS))
       return false;
 
-    if (!extra_crap(dem))
+    if (!bmm_dem_puts(dem, BMM_MSG_NUM_EST))
       return false;
+
+    // if (!extra_crap(dem))
+    //   return false;
   }
 
   return true;
@@ -3198,24 +3204,15 @@ static bool pregarbage(struct bmm_dem const *const dem) {
 }
 
 static bool garbage(struct bmm_dem const *const dem) {
-  for (size_t ipart = 0; ipart < 1; ++ipart)
-    if (fprintf(stream, "%g %g %g %g\n",
-          dem->time.t,
-          dem->part.x[ipart][0],
-          dem->part.v[ipart][0],
-          dem->part.a[ipart][0]) < 0) {
-    /*
-    if (fprintf(stream, "%g %g %g %g %g\n",
-          dem->time.t,
-          dem->part.x[ipart][0],
-          dem->part.v[ipart][0],
-          dem->part.a[ipart][0],
-          dem->part.b[ipart][0]) < 0) {
-    */
-      BMM_TLE_STDS();
+  if (fprintf(stream, "%g %g %g %g\n",
+        dem->time.t,
+        dem->est.epotext,
+        dem->est.mueff,
+        dem->est.vdriv) < 0) {
+    BMM_TLE_STDS();
 
-      return false;
-    }
+    return false;
+  }
 
   return true;
 }
@@ -3332,6 +3329,14 @@ static bool bmm_dem_run_(struct bmm_dem *const dem) {
 
     if (!bmm_dem_script_ongoing(dem))
       return true;
+
+    dem->est.epotext = bmm_dem_est_epotext(dem);
+    dem->est.eklin = bmm_dem_est_eklin(dem);
+    dem->est.ekrot = bmm_dem_est_ekrot(dem);
+    double v[BMM_NDIM];
+    bmm_dem_est_vdc(v, dem);
+    dem->est.vdriv = v[0];
+    dem->est.vcompr = v[1];
 
     if (!bmm_dem_comm(dem))
       return false;

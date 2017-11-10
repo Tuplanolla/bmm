@@ -88,7 +88,7 @@ static bool f(char const *const key, char const *const value,
       opts->script.mode[istage] = BMM_DEM_MODE_GRAVY;
       opts->script.tspan[istage] = 6.0e-3;
       opts->script.dt[istage] = dtstuff * 0.5;
-      opts->script.params[istage].gravy.f = 3.0e+3;
+      opts->script.params[istage].gravy.g = 3.0e+3;
     } else if (strcmp(value, "shear") == 0) {
       double mu = 1.75e-3;
 
@@ -203,7 +203,7 @@ static bool f(char const *const key, char const *const value,
       opts->script.mode[istage] = BMM_DEM_MODE_GRAVY;
       opts->script.tspan[istage] = 3.0e-3;
       opts->script.dt[istage] = dtstuff;
-      opts->script.params[istage].gravy.f = 3.0e+4;
+      opts->script.params[istage].gravy.g = 3.0e+4;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_LINK;
@@ -232,7 +232,7 @@ static bool f(char const *const key, char const *const value,
       opts->script.mode[istage] = BMM_DEM_MODE_GRAVY;
       opts->script.tspan[istage] = 30.0e-3;
       opts->script.dt[istage] = dtstuff;
-      opts->script.params[istage].gravy.f = 3.0e+4;
+      opts->script.params[istage].gravy.g = 3.0e+4;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_LINK;

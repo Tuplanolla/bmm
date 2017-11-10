@@ -65,6 +65,8 @@ enum bmm_io_read bmm_dem_gets_stuff(struct bmm_dem *const dem,
       }
 
       return msg_read(&dem->part, sizeof dem->part, NULL);
+    case BMM_MSG_NUM_EST:
+      return msg_read(&dem->est, sizeof dem->est, NULL);
   }
 
   dynamic_assert(false, "Unsupported message number");
@@ -616,23 +618,40 @@ static void bmm_sdl_draw(struct bmm_sdl const *const sdl) {
   if (sdl->diag) {
     char strbuf[BUFSIZ];
     int ioff = 1;
+    /*
     (void) snprintf(strbuf, sizeof strbuf, "f (target vfps) = %u (%u)",
         sdl->fps, bmm_sdl_tstep(sdl));
-    glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
-    (void) snprintf(strbuf, sizeof strbuf, "K (kinetic energy) = %g",
-        bmm_dem_est_ekin(&sdl->dem));
     glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
     (void) snprintf(strbuf, sizeof strbuf, "t (now) = %g (%zu)",
         sdl->dem.time.t, sdl->dem.time.istep);
     glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
     (void) snprintf(strbuf, sizeof strbuf, "t (prev. cache refresh) = %g",
         sdl->dem.cache.tprev);
-    glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
-    (void) snprintf(strbuf, sizeof strbuf, "e (coeff. of restit.) = %g",
-        bmm_dem_est_cor(&sdl->dem));
+    */
     glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
     (void) snprintf(strbuf, sizeof strbuf, "n (number of particles) = %zu",
         sdl->dem.part.n);
+    glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
+    (void) snprintf(strbuf, sizeof strbuf, "V (ext. pot. energy) = %g",
+        sdl->dem.est.epotext);
+    glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
+    (void) snprintf(strbuf, sizeof strbuf, "K (kin. energy) = %g",
+        sdl->dem.est.eklin + sdl->dem.est.ekrot);
+    glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
+    (void) snprintf(strbuf, sizeof strbuf, "E (total energy) = %g",
+        sdl->dem.est.epotext + sdl->dem.est.eklin +
+        sdl->dem.est.ekrot + sdl->dem.est.ewcont +
+        sdl->dem.est.escont + sdl->dem.est.edrivnorm +
+        sdl->dem.est.edrivtang);
+    glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
+    (void) snprintf(strbuf, sizeof strbuf, "mu (eff. friction factor) = %g",
+        sdl->dem.est.mueff);
+    glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
+    (void) snprintf(strbuf, sizeof strbuf, "F (force feedback) = (%g, %g)",
+        sdl->dem.est.fbacktang, sdl->dem.est.fbacknorm);
+    glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
+    (void) snprintf(strbuf, sizeof strbuf, "v (driving velocity) = (%g, %g)",
+        sdl->dem.est.vdriv, sdl->dem.est.vcompr);
     glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
   }
 
