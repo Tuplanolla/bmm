@@ -27,6 +27,25 @@
 #include "sig.h"
 #include "tle.h"
 
+__attribute__ ((__nonnull__))
+double bmm_dem_est_vdc(double *const pv, struct bmm_dem const *const dem) {
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+    pv[idim] = 0.0;
+
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    if (dem->part.role[ipart] == BMM_DEM_ROLE_DRIVEN)
+      for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+        pv[idim] += dem->part.v[ipart][idim];
+
+  size_t ndrive = 0;
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    if (dem->part.role[ipart] == BMM_DEM_ROLE_DRIVEN)
+      ++ndrive;
+
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+    pv[idim] /= (double) ndrive;
+}
+
 size_t bmm_dem_script_addstage(struct bmm_dem_opts *const opts) {
   size_t const istage = opts->script.n;
 
@@ -943,7 +962,7 @@ void bmm_dem_force_external(struct bmm_dem *const dem, size_t const ipart) {
       if (dem->part.role[ipart] == BMM_DEM_ROLE_DRIVEN)
         for (size_t idim = 0; idim < BMM_NDIM; ++idim)
           dem->part.f[ipart][idim] +=
-            dem->opts.script.params[dem->script.i].crunch.f[idim] /
+            dem->script.state.crunch.f[idim] /
             (double) dem->script.state.crunch.ndrive;
 
       break;
@@ -951,6 +970,8 @@ void bmm_dem_force_external(struct bmm_dem *const dem, size_t const ipart) {
 }
 
 void bmm_dem_force(struct bmm_dem *const dem) {
+  double const dt = dem->opts.script.dt[dem->script.i];
+
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
     for (size_t idim = 0; idim < BMM_NDIM; ++idim)
       dem->part.f[ipart][idim] = 0.0;
@@ -969,18 +990,17 @@ void bmm_dem_force(struct bmm_dem *const dem) {
   dem->est.eyieldis = 0.0;
   dem->est.econtdis = 0.0;
   dem->est.efricdis = 0.0;
-  dem->est.fbacktang = 0.0;
-  dem->est.fbacknorm = 0.0;
+  dem->est.fback[0] = 0.0;
+  dem->est.fback[1] = 0.0;
   dem->est.mueff = 0.0;
-  dem->est.vdriv = NAN;
-  dem->est.vcompr = NAN;
+  dem->est.vdriv[0] = NAN;
+  dem->est.vdriv[1] = NAN;
 
-  // This goes for the previous frame, so this is not the right spot.
+  // This goes for the previous frame, so this is not exactly the right spot.
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    if (dem->part.role[ipart] == BMM_DEM_ROLE_DRIVEN) {
-      dem->est.vdriv += dem->part.v[ipart][0];
-      dem->est.vcompr += dem->part.v[ipart][1];
-    }
+    if (dem->part.role[ipart] == BMM_DEM_ROLE_DRIVEN)
+      for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+        dem->est.vdriv[idim] += dem->part.v[ipart][idim];
 
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     bmm_dem_force_ambient(dem, ipart);
@@ -1000,14 +1020,22 @@ void bmm_dem_force(struct bmm_dem *const dem) {
     }
 
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    if (dem->part.role[ipart] == BMM_DEM_ROLE_DRIVEN) {
-      dem->est.fbacktang += dem->part.f[ipart][0];
-      dem->est.fbacknorm += dem->part.f[ipart][1];
-    }
+    if (dem->part.role[ipart] == BMM_DEM_ROLE_DRIVEN)
+      for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+        dem->est.fback[idim] += dem->part.f[ipart][idim];
 
-  if (dem->est.fbacknorm != 0.0)
-    dem->est.mueff = $(bmm_abs, double)
-      (dem->est.fbacktang / dem->est.fbacknorm);
+  if (dem->est.fback[1] != 0.0)
+    dem->est.mueff = $(bmm_abs, double)(dem->est.fback[0] / dem->est.fback[1]);
+
+  double v[BMM_NDIM];
+  bmm_dem_est_vdc(dem->est.vdriv, dem);
+
+  dem->script.state.crunch.f[0] +=
+    copysign(dem->opts.script.params[dem->script.i].crunch.fadjust[0] * dt,
+        dem->opts.script.params[dem->script.i].crunch.v - dem->est.vdriv[0]);
+
+  // TODO Not like this.
+  dem->script.state.crunch.f[1] = dem->opts.script.params[dem->script.i].crunch.p;
 
   // TODO This still sucks.
   switch (dem->ext.tag) {
@@ -1317,10 +1345,13 @@ static bool extra_crap(struct bmm_dem const *const dem) {
         "efricdis = %g, "
         "sum(+) = %g, "
         "sum(-) = %g, "
+        "force = %g, "
         "sum(?) = %g\n",
         epotext, eklin, ekrot, ewcont, escont, edrivnorm, edrivtang,
         eyieldis, econtdis, efricdis,
-        pos, neg, pos - neg) < 0) {
+        pos, neg,
+        dem->script.state.crunch.f[0],
+        pos - neg) < 0) {
     BMM_TLE_STDS();
 
     return false;
@@ -2248,25 +2279,6 @@ double bmm_dem_est_ekrot(struct bmm_dem const *const dem) {
   return (1.0 / 2.0) * e;
 }
 
-__attribute__ ((__nonnull__))
-double bmm_dem_est_vdc(double *const pv, struct bmm_dem const *const dem) {
-  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-    pv[idim] = 0.0;
-
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    if (dem->part.role[ipart] == BMM_DEM_ROLE_DRIVEN)
-      for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-        pv[idim] += dem->part.v[ipart][idim];
-
-  size_t ndrive = 0;
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    if (dem->part.role[ipart] == BMM_DEM_ROLE_DRIVEN)
-      ++ndrive;
-
-  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-    pv[idim] /= (double) ndrive;
-}
-
 /// The call `bmm_dem_est_mass(dem)`
 /// returns the total mass of the particles
 /// in the simulation `dem`.
@@ -3123,6 +3135,9 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
         for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
           if (dem->part.x[ipart][1] > dem->opts.box.x[1] * 0.9)
             dem->part.role[ipart] = BMM_DEM_ROLE_DRIVEN;
+
+        for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+          dem->script.state.crunch.f[idim] = 0.0;
       }
 
       break;
@@ -3149,6 +3164,43 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
 
   dem->time.t += dem->opts.script.dt[dem->script.i];
   ++dem->time.istep;
+
+  return true;
+}
+
+static FILE *stream;
+
+static bool pregarbage(struct bmm_dem const *const dem) {
+  stream = fopen("garbage.data", "w");
+  if (stream == NULL) {
+    BMM_TLE_STDS();
+
+    return false;
+  }
+
+  return true;
+}
+
+static bool garbage(struct bmm_dem const *const dem) {
+  if (fprintf(stream, "%g %g %g %g\n",
+        dem->time.t,
+        dem->est.epotext,
+        dem->est.mueff,
+        dem->est.vdriv[0]) < 0) {
+    BMM_TLE_STDS();
+
+    return false;
+  }
+
+  return true;
+}
+
+static bool postgarbage(struct bmm_dem const *const dem) {
+  if (fclose(stream) != 0) {
+    BMM_TLE_STDS();
+
+    return false;
+  }
 
   return true;
 }
@@ -3180,48 +3232,18 @@ bool bmm_dem_comm(struct bmm_dem *const dem) {
     if (!bmm_dem_puts(dem, BMM_MSG_NUM_PARTS))
       return false;
 
+    dem->est.epotext = bmm_dem_est_epotext(dem);
+    dem->est.eklin = bmm_dem_est_eklin(dem);
+    dem->est.ekrot = bmm_dem_est_ekrot(dem);
+
     if (!bmm_dem_puts(dem, BMM_MSG_NUM_EST))
       return false;
 
+    if (!garbage(dem))
+      BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Fucked up");
+
     // if (!extra_crap(dem))
     //   return false;
-  }
-
-  return true;
-}
-
-static FILE *stream;
-
-static bool pregarbage(struct bmm_dem const *const dem) {
-  stream = fopen("garbage.data", "w");
-  if (stream == NULL) {
-    BMM_TLE_STDS();
-
-    return false;
-  }
-
-  return true;
-}
-
-static bool garbage(struct bmm_dem const *const dem) {
-  if (fprintf(stream, "%g %g %g %g\n",
-        dem->time.t,
-        dem->est.epotext,
-        dem->est.mueff,
-        dem->est.vdriv) < 0) {
-    BMM_TLE_STDS();
-
-    return false;
-  }
-
-  return true;
-}
-
-static bool postgarbage(struct bmm_dem const *const dem) {
-  if (fclose(stream) != 0) {
-    BMM_TLE_STDS();
-
-    return false;
   }
 
   return true;
@@ -3330,19 +3352,8 @@ static bool bmm_dem_run_(struct bmm_dem *const dem) {
     if (!bmm_dem_script_ongoing(dem))
       return true;
 
-    dem->est.epotext = bmm_dem_est_epotext(dem);
-    dem->est.eklin = bmm_dem_est_eklin(dem);
-    dem->est.ekrot = bmm_dem_est_ekrot(dem);
-    double v[BMM_NDIM];
-    bmm_dem_est_vdc(v, dem);
-    dem->est.vdriv = v[0];
-    dem->est.vcompr = v[1];
-
     if (!bmm_dem_comm(dem))
       return false;
-
-    if (!garbage(dem))
-      BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Fucked up");
 
     if (!bmm_dem_step(dem))
       return false;

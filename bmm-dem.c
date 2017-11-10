@@ -53,8 +53,8 @@ static bool f(char const *const key, char const *const value,
   opts->part.y = 52.0e+8;
   opts->part.nu = 0.2;
 
-  opts->cont.ktens = 1.0e+8;
-  opts->cont.dktens = 2.0e+3;
+  opts->cont.ktens = 4.0e+8;
+  opts->cont.dktens = 4.0e+3;
   opts->cont.kshear = 2.0e+2;
   opts->cont.dkshear = 4.0e-3;
 
@@ -141,8 +141,10 @@ static bool f(char const *const key, char const *const value,
       opts->script.mode[istage] = BMM_DEM_MODE_CRUNCH;
       opts->script.tspan[istage] = 12.0e-3;
       opts->script.dt[istage] = dtstuff * 0.65;
-      opts->script.params[istage].crunch.f[0] = 3.0e+5;
-      opts->script.params[istage].crunch.f[1] = -4.0e+5;
+      opts->script.params[istage].crunch.v = 20.0;
+      opts->script.params[istage].crunch.fadjust[0] =
+        opts->script.params[istage].crunch.fadjust[1] = 8.0e+9;
+      opts->script.params[istage].crunch.p = -6.0e+5;
     } else if (strcmp(value, "mix") == 0) {
       double const mu = 2.0e-3;
 

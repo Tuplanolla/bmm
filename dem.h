@@ -291,11 +291,11 @@ struct bmm_dem_opts {
       /// For `BMM_DEM_MODE_CRUNCH`.
       struct {
         /// Driving velocity target.
-        double v[BMM_NDIM];
+        double v;
         /// Force increment.
-        double fadjust;
-        /// Force target.
-        double f[BMM_NDIM];
+        double fadjust[BMM_NDIM];
+        /// Pressure target.
+        double p;
       } crunch;
       /// For `BMM_DEM_MODE_FAULT`.
       struct {
@@ -608,16 +608,12 @@ struct bmm_dem {
     double econtdis;
     /// Energy dissipated in friction.
     double efricdis;
-    /// Resisting tangential force.
-    double fbacktang;
-    /// Resisting normal force.
-    double fbacknorm;
+    /// Resisting force.
+    double fback[BMM_NDIM];
+    /// Driving velocity.
+    double vdriv[BMM_NDIM];
     /// Effective macroscopic friction factor.
     double mueff;
-    /// Effective driving velocity.
-    double vdriv;
-    /// Effective compression velocity.
-    double vcompr;
   } est;
   /// Neighbor cache.
   /// This is only used for performance optimization.

@@ -648,10 +648,10 @@ static void bmm_sdl_draw(struct bmm_sdl const *const sdl) {
         sdl->dem.est.mueff);
     glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
     (void) snprintf(strbuf, sizeof strbuf, "F (force feedback) = (%g, %g)",
-        sdl->dem.est.fbacktang, sdl->dem.est.fbacknorm);
+        sdl->dem.est.fback[0], sdl->dem.est.fback[1]);
     glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
     (void) snprintf(strbuf, sizeof strbuf, "v (driving velocity) = (%g, %g)",
-        sdl->dem.est.vdriv, sdl->dem.est.vcompr);
+        sdl->dem.est.vdriv[0], sdl->dem.est.vdriv[1]);
     glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
   }
 
