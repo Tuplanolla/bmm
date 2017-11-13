@@ -251,14 +251,6 @@ struct bmm_dem_opts {
     double ccrcont;
     /// Link length expansion factor.
     double cshcont;
-    /// Tensile spring constant.
-    double ktens;
-    /// Tensile spring constant derivative.
-    double dktens;
-    /// Shear spring constant.
-    double kshear;
-    /// Shear spring constant derivative.
-    double dkshear;
   } cont;
   /// Script to follow.
   struct {
@@ -361,8 +353,6 @@ struct bmm_dem_pair {
       size_t itgt[BMM_MCONTACT];
       /// Rest distances.
       double drest[BMM_MCONTACT];
-      /// Rest angles.
-      double chirest[BMM_MCONTACT][BMM_NEND];
       /// Strength scale factor.
       double strength[BMM_MCONTACT];
       /// Strains while sticking.
@@ -412,7 +402,7 @@ struct bmm_dem_pair {
       /// For `BMM_DEM_TANG_CS`.
       struct {
         /// Cundall--Strack elasticity.
-        double kappa;
+        double k;
         /// Coulomb friction parameter.
         double mu;
       } cs;
@@ -514,11 +504,6 @@ struct bmm_dem {
       } ze;
     } params;
   } yield;
-  /// Deprecated scheme selector.
-  __attribute__ ((__deprecated__))
-  struct {
-    enum bmm_dem_link tag;
-  } cont_dep;
   /// Timekeeping.
   struct {
     /// Time.

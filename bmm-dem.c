@@ -53,11 +53,6 @@ static bool f(char const *const key, char const *const value,
   opts->part.y = 52.0e+8;
   opts->part.nu = 0.2;
 
-  opts->cont.ktens = 4.0e+8;
-  opts->cont.dktens = 4.0e+3;
-  opts->cont.kshear = 2.0e+2;
-  opts->cont.dkshear = 4.0e-3;
-
   opts->comm.dt = 2.0e-5;
 
   double dtstuff = 8.0e-7;
