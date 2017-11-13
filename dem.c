@@ -736,7 +736,7 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
   double ftang = 0.0;
 
   {
-    // TODO By these signs, I think my n--t coordinate system is fucked.
+    // TODO By these signs, I think my n--t coordinate system is broken.
     double const vtangij = bmm_geom2d_dot(vdiffij, xtangji) +
       ri * dem->part.omega[ipart] + rj * dem->part.omega[jpart];
     double const dt = dem->opts.script.dt[dem->script.i];
@@ -752,15 +752,18 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
       case BMM_DEM_TANG_CS:
         // TODO Always the case?
         {
-          double const epsilon = vtangij * dt;
-          if (ipart < jpart)
-            dem->pair[ict].cont.src[ipart].epsilon[icont] += epsilon;
-          else
-            dem->pair[ict].cont.src[jpart].epsilon[icont] += epsilon;
+          double epsilon = vtangij * dt;
+          dem->pair[ict].cont.src[ipart].epsilon[icont] += epsilon;
+          epsilon = dem->pair[ict].cont.src[ipart].epsilon[icont];
+          // if (ipart == 0) fprintf(stderr, "epsilon = %g\n", epsilon);
 
-          ftang = copysign($(bmm_min, double)(
-                dem->pair[ict].tang.params.cs.k * $(bmm_abs, double)(epsilon),
-                dem->pair[ict].tang.params.cs.mu * $(bmm_abs, double)(fnorm)), vtangij);
+          // No load?
+          if (ict == BMM_DEM_CT_WEAK)
+            ftang = copysign($(bmm_min, double)(
+                  dem->pair[ict].tang.params.cs.k * $(bmm_abs, double)(epsilon),
+                  dem->pair[ict].tang.params.cs.mu * $(bmm_abs, double)(fnorm)), vtangij);
+          else
+            ftang = copysign(dem->pair[ict].tang.params.cs.k * $(bmm_abs, double)(epsilon), vtangij);
         }
 
         break;
@@ -2242,7 +2245,7 @@ void bmm_dem_opts_def(struct bmm_dem_opts *const opts) {
   opts->part.rnew[0] = 1.0;
   opts->part.rnew[1] = 1.0;
 
-  opts->cont.ccrcont = 1.0;
+  opts->cont.ccrcont = 1.2;
   opts->cont.cshcont = 1.0;
 
   opts->script.n = 0;
@@ -2335,7 +2338,7 @@ void bmm_dem_def(struct bmm_dem *const dem,
 
   switch (dem->pair[BMM_DEM_CT_STRONG].norm.tag) {
     case BMM_DEM_NORM_KV:
-      dem->pair[BMM_DEM_CT_STRONG].norm.params.dashpot.k = 8.0e+7;
+      dem->pair[BMM_DEM_CT_STRONG].norm.params.dashpot.k = 2.0e+8;
       dem->pair[BMM_DEM_CT_STRONG].norm.params.dashpot.gamma = 4.0e+3;
 
       break;
@@ -2952,6 +2955,8 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
 
       bmm_dem_script_balance(dem);
 
+      dem->yield.tag = BMM_DEM_YIELD_NONE;
+
       break;
     case BMM_DEM_MODE_GRAVY:
       dem->ext.tag = BMM_DEM_EXT_GRAVY;
@@ -3125,7 +3130,7 @@ bool bmm_dem_comm(struct bmm_dem *const dem) {
       return false;
 
     if (!garbage(dem))
-      BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Fucked up");
+      BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Nope");
 
     // if (!extra_crap(dem))
     //   return false;
@@ -3219,7 +3224,7 @@ static bool bmm_dem_run_(struct bmm_dem *const dem) {
   }
 
   if (!pregarbage(dem))
-    BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Fucked up");
+    BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Nope");
 
   for ever {
     int signum;
@@ -3312,10 +3317,10 @@ bool bmm_dem_run(struct bmm_dem *const dem) {
   bmm_dem_trap_off(dem);
 
   if (!postgarbage(dem))
-    BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Fucked up");
+    BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Nope");
 
   if (!rubbish(dem))
-    BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Fucked up");
+    BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Nope");
 #else
   bool const run = true;
   bool const report = true;
@@ -3340,7 +3345,7 @@ bool bmm_dem_run(struct bmm_dem *const dem) {
 
   if (!export_x(dem) || !export_r(dem) || !export_c(dem) ||
       !export_f(dem) || !export_p(dem))
-    BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Fucked up big");
+    BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Big nope");
 
   return run && report;
 }
