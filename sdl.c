@@ -618,7 +618,6 @@ static void bmm_sdl_draw(struct bmm_sdl const *const sdl) {
   if (sdl->diag) {
     char strbuf[BUFSIZ];
     int ioff = 1;
-    /*
     (void) snprintf(strbuf, sizeof strbuf, "f (target vfps) = %u (%u)",
         sdl->fps, bmm_sdl_tstep(sdl));
     glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
@@ -627,7 +626,6 @@ static void bmm_sdl_draw(struct bmm_sdl const *const sdl) {
     glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
     (void) snprintf(strbuf, sizeof strbuf, "t (prev. cache refresh) = %g",
         sdl->dem.cache.tprev);
-    */
     glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
     (void) snprintf(strbuf, sizeof strbuf, "n (number of particles) = %zu",
         sdl->dem.part.n);

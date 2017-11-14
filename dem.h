@@ -96,9 +96,7 @@ enum bmm_dem_norm {
   /// Viscoelastic model by Brilliantov, Spahn, Hertzsch and Poschel.
   BMM_DEM_NORM_BSHP,
   /// Piecewise model by Walton and Braun.
-  BMM_DEM_NORM_WB,
-  /// Ideal spring model.
-  BMM_DEM_NORM_SPRING
+  BMM_DEM_NORM_WB
 };
 
 /// Tangential force schemes.
