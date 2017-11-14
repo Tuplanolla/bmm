@@ -96,7 +96,9 @@ enum bmm_dem_norm {
   /// Viscoelastic model by Brilliantov, Spahn, Hertzsch and Poschel.
   BMM_DEM_NORM_BSHP,
   /// Piecewise model by Walton and Braun.
-  BMM_DEM_NORM_WB
+  BMM_DEM_NORM_WB,
+  /// Ideal spring model.
+  BMM_DEM_NORM_SPRING
 };
 
 /// Tangential force schemes.
@@ -140,7 +142,7 @@ enum bmm_dem_torque {
 
 /// Bonding criteria.
 enum bmm_dem_bond {
-  BMM_DEM_BOND_NONSENSE
+  BMM_DEM_BOND_NONE
 };
 
 /// Yield criteria.
@@ -237,14 +239,6 @@ struct bmm_dem_opts {
     /// Particle sizes expressed as the width of the uniform distribution.
     double rnew[2];
   } part;
-  /// Links between particles.
-  __attribute__ ((__deprecated__))
-  struct {
-    /// Link length creation factor.
-    double ccrcont;
-    /// Link length expansion factor.
-    double cshcont;
-  } cont;
   /// Script to follow.
   struct {
     /// Number of stages.
@@ -354,6 +348,8 @@ struct bmm_dem_pair {
       double epsilon[BMM_MCONTACT];
     } src[BMM_MPART];
   } cont;
+  /// Only contact or more.
+  bool cohesive;
   /// Normal forces.
   struct {
     /// Force scheme.
@@ -471,8 +467,11 @@ struct bmm_dem {
   /// Weak-to-strong bonding criteria.
   struct {
     /// Bonding criterion.
-    // TODO Put contact creation parameters here.
     enum bmm_dem_bond tag;
+    /// Link length creation factor.
+    double ccrcont;
+    /// Link length expansion factor.
+    double cshcont;
   } bond;
   /// Strong-to-weak yield criteria.
   struct {

@@ -347,7 +347,7 @@ size_t bmm_dem_addcont_unsafe(struct bmm_dem *const dem,
   v[1] = 1.0 + a;
   dem->pair[ict].cont.src[ipart].strength[icont] = bmm_random_get(dem->rng, v);
 
-  double const drest = d * dem->opts.cont.cshcont;
+  double const drest = d * dem->bond.cshcont;
 
   dem->pair[ict].cont.src[ipart].drest[icont] = drest;
   dem->pair[ict].cont.src[ipart].itgt[icont] = jpart;
@@ -672,7 +672,7 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
   double const rj = dem->part.r[jpart];
   double const r = ri + rj;
   double const r2 = $(bmm_power, double)(r, 2);
-  if (ict == BMM_DEM_CT_WEAK)
+  if (!dem->pair[ict].cohesive)
     if (d2 > r2)
       return;
 
@@ -1179,7 +1179,7 @@ bool bmm_dem_link_pair(struct bmm_dem *const dem,
   double const r = dem->part.r[ipart] + dem->part.r[jpart];
   double const r2 = $(bmm_power, double)(r, 2);
 
-  if (d2 > r2 * dem->opts.cont.ccrcont)
+  if (d2 > r2 * dem->bond.ccrcont)
     return true;
 
   size_t const icont = bmm_dem_search_cont(dem, BMM_DEM_CT_WEAK, ipart, jpart);
@@ -2306,9 +2306,6 @@ void bmm_dem_opts_def(struct bmm_dem_opts *const opts) {
   opts->part.rnew[0] = 1.0;
   opts->part.rnew[1] = 1.0;
 
-  opts->cont.ccrcont = 1.2;
-  opts->cont.cshcont = 1.0;
-
   opts->script.n = 0;
 
   opts->comm.dt = 1.0;
@@ -2351,6 +2348,9 @@ void bmm_dem_def(struct bmm_dem *const dem,
 
   dem->trap.remask = 0;
 
+  dem->bond.ccrcont = 1.2;
+  dem->bond.cshcont = 1.0;
+
   dem->integ.tag = BMM_DEM_INTEG_EULER;
   dem->integ.tag = BMM_DEM_INTEG_TAYLOR;
   dem->integ.tag = BMM_DEM_INTEG_VELVET;
@@ -2358,12 +2358,14 @@ void bmm_dem_def(struct bmm_dem *const dem,
   dem->cache.tag = BMM_DEM_CACHE_NEIGH;
   dem->ext.tag = BMM_DEM_EXT_NONE;
   dem->amb.tag = BMM_DEM_AMB_FAXEN;
+  dem->pair[BMM_DEM_CT_WEAK].cohesive = false;
   dem->pair[BMM_DEM_CT_WEAK].norm.tag = BMM_DEM_NORM_KV;
   dem->pair[BMM_DEM_CT_WEAK].norm.tag = BMM_DEM_NORM_BSHP;
   dem->pair[BMM_DEM_CT_WEAK].tang.tag = BMM_DEM_TANG_HW;
   dem->pair[BMM_DEM_CT_WEAK].tang.tag = BMM_DEM_TANG_CS;
   dem->pair[BMM_DEM_CT_WEAK].torque.tag = BMM_DEM_TORQUE_SOFT;
   dem->pair[BMM_DEM_CT_WEAK].torque.tag = BMM_DEM_TORQUE_HARD;
+  dem->pair[BMM_DEM_CT_STRONG].cohesive = true;
   dem->pair[BMM_DEM_CT_STRONG].norm.tag = BMM_DEM_NORM_KV;
   dem->pair[BMM_DEM_CT_STRONG].tang.tag = BMM_DEM_TANG_CS;
   dem->pair[BMM_DEM_CT_STRONG].tang.tag = BMM_DEM_TANG_BEAM;
