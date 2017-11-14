@@ -354,6 +354,9 @@ size_t bmm_dem_addcont_unsafe(struct bmm_dem *const dem,
 
   dem->pair[ict].cont.src[ipart].epsilon[icont] = 0.0;
 
+  dem->pair[ict].cont.src[ipart].chirest[icont][BMM_DEM_END_TAIL] = chii;
+  dem->pair[ict].cont.src[ipart].chirest[icont][BMM_DEM_END_HEAD] = chij;
+
   // TODO Really?
   // dem->cache.stale = true;
 
@@ -379,9 +382,8 @@ static void bmm_dem_copycont(struct bmm_dem *const dem,
 
   dem->pair[ict].cont.src[ipart].drest[icont] = dem->pair[ict].cont.src[ipart].drest[jcont];
 
-  dem->pair[ict].cont.src[ipart].rlim[icont] = dem->pair[ict].cont.src[ipart].rlim[jcont];
-
-  dem->pair[ict].cont.src[ipart].philim[icont] = dem->pair[ict].cont.src[ipart].philim[jcont];
+  for (size_t iend = 0; iend < BMM_NEND; ++iend)
+    dem->pair[ict].cont.src[ipart].chirest[icont][iend] = dem->pair[ict].cont.src[ipart].chirest[jcont][iend];
 
   dem->pair[ict].cont.src[ipart].epsilon[icont] = dem->pair[ict].cont.src[ipart].epsilon[jcont];
 }
@@ -417,15 +419,6 @@ bool bmm_dem_yield_pair(struct bmm_dem *const dem,
 
   double const d2 = bmm_geom2d_norm2(xdiffji);
   double const d = sqrt(d2);
-
-  /*
-  // TODO Do not use `rlim` but rather `f` and proper stress criteria.
-  if (d2 > $(bmm_power, double)(dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].rlim[icont], 2)) {
-    bmm_dem_remcont(dem, BMM_DEM_CT_STRONG, ipart, jpart, icont);
-
-    return true;
-  }
-  */
 
   double xnormji[BMM_NDIM];
   bmm_geom2d_scale(xnormji, xdiffji, 1.0 / d);
@@ -608,13 +601,14 @@ static void bmm_dem_copypart(struct bmm_dem *const dem,
       dem->pair[ict].cont.src[ipart].drest[icont] = dem->pair[ict].cont.src[jpart].drest[icont];
 
     for (size_t icont = 0; icont < dem->pair[ict].cont.src[jpart].n; ++icont)
+      for (size_t iend = 0; iend < BMM_NEND; ++iend)
+        dem->pair[ict].cont.src[ipart].chirest[icont][iend] = dem->pair[ict].cont.src[jpart].chirest[icont][iend];
+
+    for (size_t icont = 0; icont < dem->pair[ict].cont.src[jpart].n; ++icont)
       dem->pair[ict].cont.src[ipart].strength[icont] = dem->pair[ict].cont.src[jpart].strength[icont];
 
     for (size_t icont = 0; icont < dem->pair[ict].cont.src[jpart].n; ++icont)
-      dem->pair[ict].cont.src[ipart].rlim[icont] = dem->pair[ict].cont.src[jpart].rlim[icont];
-
-    for (size_t icont = 0; icont < dem->pair[ict].cont.src[jpart].n; ++icont)
-      dem->pair[ict].cont.src[ipart].philim[icont] = dem->pair[ict].cont.src[jpart].philim[icont];
+      dem->pair[ict].cont.src[ipart].epsilon[icont] = dem->pair[ict].cont.src[jpart].epsilon[icont];
   }
 }
 
@@ -757,16 +751,83 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
           epsilon = dem->pair[ict].cont.src[ipart].epsilon[icont];
           // if (ipart == 0) fprintf(stderr, "epsilon = %g\n", epsilon);
 
-          // No load?
-          if (ict == BMM_DEM_CT_WEAK)
-            ftang = copysign($(bmm_min, double)(
-                  dem->pair[ict].tang.params.cs.k * $(bmm_abs, double)(epsilon),
-                  dem->pair[ict].tang.params.cs.mu * $(bmm_abs, double)(fnorm)), vtangij);
-          else
-            ftang = copysign(dem->pair[ict].tang.params.cs.k * $(bmm_abs, double)(epsilon), vtangij);
+          ftang = copysign($(bmm_min, double)(
+                dem->pair[ict].tang.params.cs.k * $(bmm_abs, double)(epsilon),
+                dem->pair[ict].tang.params.cs.mu * $(bmm_abs, double)(fnorm)), vtangij);
         }
 
         break;
+    case BMM_DEM_TANG_BEAM:
+      {
+        // Actually, torques second.
+
+        double xdiffij[BMM_NDIM];
+        bmm_geom2d_cpdiff(xdiffij, dem->part.x[jpart], dem->part.x[ipart],
+            dem->opts.box.x, dem->opts.box.per);
+
+        double const d = bmm_geom2d_norm(xdiffij);
+        double const ri = dem->part.r[ipart];
+        double const rj = dem->part.r[jpart];
+        double const r = ri + rj;
+        double const r2 = $(bmm_power, double)(r, 2);
+
+        double xnormij[BMM_NDIM];
+        bmm_geom2d_scale(xnormij, xdiffij, 1.0 / d);
+
+        double xtangij[BMM_NDIM];
+        bmm_geom2d_rperp(xtangij, xnormij);
+
+        double vdiffij[BMM_NDIM];
+        bmm_geom2d_diff(vdiffij, dem->part.v[jpart], dem->part.v[ipart]);
+
+        double taui = 0.0;
+        double tauj = 0.0;
+
+        double const gammaij = $(bmm_swrap, double)(bmm_geom2d_dir(xdiffij), M_2PI);
+        double const gammaji = $(bmm_swrap, double)(gammaij + M_PI, M_2PI);
+        double const phii = $(bmm_swrap, double)(dem->part.phi[ipart], M_2PI);
+        double const phij = $(bmm_swrap, double)(dem->part.phi[jpart], M_2PI);
+        double const chii = $(bmm_swrap, double)(gammaij - phii, M_2PI);
+        double const chij = $(bmm_swrap, double)(gammaji - phij, M_2PI);
+
+        double const dchii = $(bmm_swrap, double)(dem->pair[ict].cont.src[ipart].chirest[icont][BMM_DEM_END_TAIL] - chii, M_2PI);
+        double const dchij = $(bmm_swrap, double)(dem->pair[ict].cont.src[ipart].chirest[icont][BMM_DEM_END_HEAD] - chij, M_2PI);
+
+        // TODO Derive these on paper too.
+        double const vrotij = -bmm_geom2d_dot(vdiffij, xtangij);
+        double const omegai = dem->part.omega[ipart] + vrotij / d;
+        double const omegaj = dem->part.omega[jpart] + vrotij / d;
+
+        taui = -(dem->pair[ict].tang.params.beam.k * dchii +
+            dem->pair[ict].tang.params.beam.dk * omegai);
+        tauj = -(dem->pair[ict].tang.params.beam.k * dchij +
+            dem->pair[ict].tang.params.beam.dk * omegaj);
+
+        dem->part.tau[ipart] += taui;
+        dem->part.tau[jpart] += tauj;
+
+        // Now tangential forces third.
+
+        double ftang = 0.0;
+
+        {
+          ftang = (taui + tauj) / d;
+        }
+
+        double ftangij[BMM_NDIM];
+        bmm_geom2d_scale(ftangij, xtangij, ftang);
+
+        double ftangji[BMM_NDIM];
+        bmm_geom2d_scale(ftangji, ftangij, -1.0);
+
+        bmm_geom2d_addto(dem->part.f[ipart], ftangij);
+        bmm_geom2d_addto(dem->part.f[jpart], ftangji);
+
+        // Note this!
+        return;
+      }
+
+      break;
     }
 
     // TODO Check this energy.
@@ -2305,6 +2366,7 @@ void bmm_dem_def(struct bmm_dem *const dem,
   dem->pair[BMM_DEM_CT_WEAK].torque.tag = BMM_DEM_TORQUE_HARD;
   dem->pair[BMM_DEM_CT_STRONG].norm.tag = BMM_DEM_NORM_KV;
   dem->pair[BMM_DEM_CT_STRONG].tang.tag = BMM_DEM_TANG_CS;
+  dem->pair[BMM_DEM_CT_STRONG].tang.tag = BMM_DEM_TANG_BEAM;
   dem->pair[BMM_DEM_CT_STRONG].torque.tag = BMM_DEM_TORQUE_HARD;
   dem->yield.tag = BMM_DEM_YIELD_RANKINE;
   dem->yield.tag = BMM_DEM_YIELD_TRESCA;
@@ -2357,6 +2419,11 @@ void bmm_dem_def(struct bmm_dem *const dem,
     case BMM_DEM_TANG_CS:
       dem->pair[BMM_DEM_CT_STRONG].tang.params.cs.k = 2.0e+6;
       dem->pair[BMM_DEM_CT_STRONG].tang.params.cs.mu = 0.85;
+
+      break;
+    case BMM_DEM_TANG_BEAM:
+      dem->pair[BMM_DEM_CT_STRONG].tang.params.beam.k = 2.0e+2;
+      dem->pair[BMM_DEM_CT_STRONG].tang.params.beam.dk = 4.0e-3;
 
       break;
   }

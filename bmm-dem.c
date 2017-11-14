@@ -83,7 +83,7 @@ static bool f(char const *const key, char const *const value,
       opts->script.mode[istage] = BMM_DEM_MODE_GRAVY;
       opts->script.tspan[istage] = 6.0e-3;
       opts->script.dt[istage] = dtstuff * 0.5;
-      opts->script.params[istage].gravy.g = 3.0e+3;
+      opts->script.params[istage].gravy.g = 3.0e+4;
     } else if (strcmp(value, "shear") == 0) {
       double mu = 1.75e-3;
 

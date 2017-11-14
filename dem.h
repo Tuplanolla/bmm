@@ -113,7 +113,17 @@ enum bmm_dem_tang {
   // TODO This is strange.
   BMM_DEM_TANG_BSHP,
   /// Piecewise model by Walton and Braun.
-  BMM_DEM_TANG_WB
+  BMM_DEM_TANG_WB,
+  /// Ideal beam model.
+  BMM_DEM_TANG_BEAM,
+  /// Bending beam model by Euler and Bernoulli.
+  BMM_DEM_TANG_EB,
+  /// Bending and shear beam model.
+  BMM_DEM_TANG_SHEAR,
+  /// Bending and rotary beam model by Rayleigh.
+  BMM_DEM_TANG_RAYLEIGH,
+  /// Bending, shear and rotary beam model by Timoshenko.
+  BMM_DEM_TANG_TIMO
 };
 
 /// Torque mediation schemes.
@@ -126,23 +136,6 @@ enum bmm_dem_torque {
   BMM_DEM_TORQUE_AVERAGE,
   /// Simplified compromise.
   BMM_DEM_TORQUE_HALFWAY
-};
-
-/// Link force schemes.
-enum bmm_dem_link {
-  BMM_DEM_LINK_NONE,
-  /// Ideal spring model.
-  BMM_DEM_LINK_SPRING,
-  /// Ideal beam model.
-  BMM_DEM_LINK_BEAM,
-  /// Bending beam model by Euler and Bernoulli.
-  BMM_DEM_LINK_EB,
-  /// Bending and shear beam model.
-  BMM_DEM_LINK_SHEAR,
-  /// Bending and rotary beam model by Rayleigh.
-  BMM_DEM_LINK_RAYLEIGH,
-  /// Bending, shear and rotary beam model by Timoshenko.
-  BMM_DEM_LINK_TIMO
 };
 
 /// Bonding criteria.
@@ -353,17 +346,12 @@ struct bmm_dem_pair {
       size_t itgt[BMM_MCONTACT];
       /// Rest distances.
       double drest[BMM_MCONTACT];
+      /// Rest angle.
+      double chirest[BMM_MLINK][BMM_NEND];
       /// Strength scale factor.
       double strength[BMM_MCONTACT];
       /// Strains while sticking.
-      // TODO This is redundant.
       double epsilon[BMM_MCONTACT];
-      /// Limit length for tensile stress induced breaking.
-      __attribute__ ((__deprecated__))
-      double rlim[BMM_MLINK];
-      /// Limit angle for shear stress induced breaking.
-      __attribute__ ((__deprecated__))
-      double philim[BMM_MLINK];
     } src[BMM_MPART];
   } cont;
   /// Normal forces.
@@ -406,6 +394,13 @@ struct bmm_dem_pair {
         /// Coulomb friction parameter.
         double mu;
       } cs;
+      /// For `BMM_DEM_TANG_BEAM`.
+      struct {
+        /// Stiffness.
+        double k;
+        /// Damping.
+        double dk;
+      } beam;
     } params;
   } tang;
   /// Torques.
