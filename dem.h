@@ -342,8 +342,6 @@ struct bmm_dem_pair {
       double chirest[BMM_MLINK][BMM_NEND];
       /// Strength scale factor.
       double strength[BMM_MCONTACT];
-      /// Strains while sticking.
-      double epsilon[BMM_MCONTACT];
     } src[BMM_MPART];
   } cont;
   /// Only contact or more.
