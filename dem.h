@@ -579,10 +579,10 @@ struct bmm_dem {
     double edrivtang;
     /// Energy dissipated in yielding.
     double eyieldis;
-    /// Energy dissipated in viscous contact.
-    double econtdis;
-    /// Energy dissipated in friction.
-    double efricdis;
+    /// Energy dissipated in weak contact.
+    double ewcontdis;
+    /// Energy dissipated in strong contact.
+    double escontdis;
     /// Resisting force.
     double fback[BMM_NDIM];
     /// Driving velocity.

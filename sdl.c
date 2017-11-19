@@ -614,6 +614,23 @@ static void bmm_sdl_draw(struct bmm_sdl const *const sdl) {
   glLoadIdentity();
   glOrtho(0.0, sdl->width, sdl->height, 0.0, -1.0, 1.0);
 
+  struct bmm_dem const *const dem = &sdl->dem;
+
+  // TODO This is all wrong, but I know why.
+  double const epotext = dem->est.epotext;
+  double const eklin = dem->est.eklin;
+  double const ekrot = dem->est.ekrot;
+  double const ewcont = dem->est.ewcont;
+  double const escont = dem->est.escont;
+  double const edrivnorm = dem->est.edrivnorm;
+  double const edrivtang = dem->est.edrivtang;
+  double const eyieldis = dem->est.eyieldis;
+  double const ewcontdis = dem->est.ewcontdis;
+  double const escontdis = dem->est.escontdis;
+  double const pos = epotext + eklin + ekrot + ewcont + escont + edrivnorm + edrivtang;
+  double const neg = eyieldis + ewcontdis + escontdis;
+  double const eee = pos + neg;
+
   // TODO These should come via messages.
   if (sdl->diag) {
     char strbuf[BUFSIZ];
@@ -630,17 +647,11 @@ static void bmm_sdl_draw(struct bmm_sdl const *const sdl) {
     (void) snprintf(strbuf, sizeof strbuf, "n (number of particles) = %zu",
         sdl->dem.part.n);
     glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
-    (void) snprintf(strbuf, sizeof strbuf, "V (ext. pot. energy) = %g",
-        sdl->dem.est.epotext);
-    glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
-    (void) snprintf(strbuf, sizeof strbuf, "K (kin. energy) = %g",
-        sdl->dem.est.eklin + sdl->dem.est.ekrot);
+    (void) snprintf(strbuf, sizeof strbuf, "dE (energy balance) = %g",
+        pos);
     glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
     (void) snprintf(strbuf, sizeof strbuf, "E (total energy) = %g",
-        sdl->dem.est.epotext + sdl->dem.est.eklin +
-        sdl->dem.est.ekrot + sdl->dem.est.ewcont +
-        sdl->dem.est.escont + sdl->dem.est.edrivnorm +
-        sdl->dem.est.edrivtang);
+        eee);
     glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
     (void) snprintf(strbuf, sizeof strbuf, "mu (eff. friction factor) = %g",
         sdl->dem.est.mueff);
