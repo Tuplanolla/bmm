@@ -732,6 +732,8 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
   // Normal forces first.
 
   double fnorm = 0.0;
+  double fnormcons = 0.0;
+  double fnormdiss = 0.0;
 
   {
     double const xi = r - d;
@@ -739,8 +741,6 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
     double const reff = $(bmm_resum2, double)(ri, rj);
     double const dt = dem->opts.script.dt[dem->script.i];
     double const dx = vnormij * dt;
-    double conservative = 0.0;
-    double dissipative = 0.0;
 
     switch (dem->pair[ict].norm.tag) {
       case BMM_DEM_NORM_KV:
@@ -748,8 +748,8 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
           fnorm = dem->pair[ict].norm.params.dashpot.k * xi +
             dem->pair[ict].norm.params.dashpot.gamma * vnormij;
 
-          conservative = dem->pair[ict].norm.params.dashpot.k * xi * dx;
-          dissipative = fabs(dem->pair[ict].norm.params.dashpot.gamma * vnormij * dx);
+          fnormcons = dem->pair[ict].norm.params.dashpot.k * xi;
+          fnormdiss = dem->pair[ict].norm.params.dashpot.gamma * vnormij;
         } else {
           fnorm = $(bmm_max, double)(0.0,
               dem->pair[ict].norm.params.dashpot.k * xi +
@@ -757,11 +757,11 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
 
           if (0.0 > dem->pair[ict].norm.params.dashpot.k * xi +
               dem->pair[ict].norm.params.dashpot.gamma * vnormij) {
-            conservative = 0.0;
-            dissipative = 0.0;
+            fnormcons = 0.0;
+            fnormdiss = 0.0;
           } else {
-            conservative = dem->pair[ict].norm.params.dashpot.k * xi * dx;
-            dissipative = fabs(dem->pair[ict].norm.params.dashpot.gamma * vnormij * dx);
+            fnormcons = dem->pair[ict].norm.params.dashpot.k * xi;
+            fnormdiss = dem->pair[ict].norm.params.dashpot.gamma * vnormij;
           }
         }
 
@@ -776,8 +776,8 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
 
             fnorm = more * (xi + dem->pair[ict].norm.params.viscoel.a * vnormij);
 
-            conservative = more * xi * dx;
-            dissipative = fabs(more * dem->pair[ict].norm.params.viscoel.a * vnormij * dx);
+            fnormcons = more * xi;
+            fnormdiss = more * dem->pair[ict].norm.params.viscoel.a * vnormij;
           } else {
             double const more = mat * sqrt(reff * xi);
 
@@ -785,11 +785,11 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
                 more * (xi + dem->pair[ict].norm.params.viscoel.a * vnormij));
 
             if (0.0 > more * (xi + dem->pair[ict].norm.params.viscoel.a * vnormij)) {
-              conservative = 0.0;
-              dissipative = 0.0;
+              fnormcons = 0.0;
+              fnormdiss = 0.0;
             } else {
-              conservative = more * xi * dx;
-              dissipative = fabs(more * dem->pair[ict].norm.params.viscoel.a * vnormij * dx);
+              fnormcons = more * xi;
+              fnormdiss = more * dem->pair[ict].norm.params.viscoel.a * vnormij;
             }
           }
         }
@@ -798,11 +798,11 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
     }
 
     if (ict == BMM_DEM_CT_WEAK) {
-      dem->est.ewcont += conservative;
-      dem->est.ewcontdis += dissipative;
+      dem->est.ewcont += dx * fnormcons;
+      dem->est.ewcontdis += $(bmm_abs, double)(dx * fnormdiss);
     } else {
-      dem->est.escont += conservative;
-      dem->est.escontdis += dissipative;
+      dem->est.escont += dx * fnormcons;
+      dem->est.escontdis += $(bmm_abs, double)(dx * fnormdiss);
     }
   }
 
@@ -815,6 +815,8 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
   // Tangential forces second.
 
   double ftang = 0.0;
+  double ftangcons = 0.0;
+  double ftangdiss = 0.0;
 
   {
     // TODO By these signs, I think my n--t coordinate system is broken.
@@ -822,8 +824,6 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
       ri * dem->part.omega[ipart] + rj * dem->part.omega[jpart];
     double const dt = dem->opts.script.dt[dem->script.i];
     double const dx = vtangij * dt;
-    double conservative = 0.0;
-    double dissipative = 0.0;
 
     switch (dem->pair[ict].tang.tag) {
       case BMM_DEM_TANG_HW:
@@ -831,8 +831,8 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
               dem->pair[ict].tang.params.hw.gamma * $(bmm_abs, double)(vtangij),
               dem->pair[ict].tang.params.hw.mu * $(bmm_abs, double)(fnorm)), vtangij);
 
-        conservative = 0.0;
-        dissipative = fabs(ftang * dx);
+        ftangcons = 0.0;
+        ftangdiss = ftang;
 
         break;
       case BMM_DEM_TANG_CS:
@@ -858,13 +858,13 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
 
           if (dem->pair[ict].tang.params.cs.k * $(bmm_abs, double)(zeta) <
                 dem->pair[ict].tang.params.cs.mu * $(bmm_abs, double)(fnorm)) {
-            conservative = copysign(
-                dem->pair[ict].tang.params.cs.k * $(bmm_abs, double)(zeta), vtangij) * dx;
-            dissipative = 0.0;
+            ftangcons = copysign(
+                dem->pair[ict].tang.params.cs.k * $(bmm_abs, double)(zeta), vtangij);
+            ftangdiss = 0.0;
           } else {
-            conservative = 0.0;
-            dissipative = fabs(dem->pair[ict].tang.params.cs.mu *
-                $(bmm_abs, double)(fnorm) * dx);
+            ftangcons = 0.0;
+            ftangdiss = copysign(dem->pair[ict].tang.params.cs.mu *
+                $(bmm_abs, double)(fnorm), vtangij);
           }
         }
 
@@ -924,8 +924,8 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
 
           double const constang = -(constaui + constauj) / d;
           double const disstang = -(disstaui + disstauj) / d;
-          conservative = constang * dx;
-          dissipative = fabs(disstang * dx);
+          ftangcons = constang;
+          ftangdiss = disstang;
 
           ftang = -(taui + tauj) / d;
 
@@ -943,11 +943,11 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
     }
 
     if (ict == BMM_DEM_CT_WEAK) {
-      dem->est.ewcont += conservative;
-      dem->est.ewcontdis += dissipative;
+      dem->est.ewcont += dx * ftangcons;
+      dem->est.ewcontdis += $(bmm_abs, double)(dx * ftangdiss);
     } else {
-      dem->est.escont += conservative;
-      dem->est.escontdis += dissipative;
+      dem->est.escont += dx * ftangcons;
+      dem->est.escontdis += $(bmm_abs, double)(dx * ftangdiss);
     }
   }
 
@@ -2463,11 +2463,11 @@ void bmm_dem_def(struct bmm_dem *const dem,
 
   // TODO Energy is conserved without tangential forces or with HW (N2464),
   // but weak CS links cause energy increase
-  dem->pair[BMM_DEM_CT_WEAK].tang.tag = BMM_DEM_TANG_CS;
   dem->pair[BMM_DEM_CT_WEAK].tang.tag = BMM_DEM_TANG_NONE;
+  dem->pair[BMM_DEM_CT_WEAK].tang.tag = BMM_DEM_TANG_CS;
   // and strong beam links cause energy decrease.
-  dem->pair[BMM_DEM_CT_STRONG].tang.tag = BMM_DEM_TANG_BEAM;
   dem->pair[BMM_DEM_CT_STRONG].tang.tag = BMM_DEM_TANG_NONE;
+  dem->pair[BMM_DEM_CT_STRONG].tang.tag = BMM_DEM_TANG_BEAM;
 
   switch (dem->amb.tag) {
     case BMM_DEM_AMB_FAXEN:

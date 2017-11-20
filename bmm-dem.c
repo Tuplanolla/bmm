@@ -87,6 +87,8 @@ static bool f(char const *const key, char const *const value,
     } else if (strcmp(value, "shear") == 0) {
       double mu = 1.75e-3;
       dtstuff = 8.0e-8;
+      // This time step should be sufficient for (N2464).
+      // dtstuff = 4.0e-9;
 
       opts->part.rnew[0] = 2.0 * mu / (1.0 + sqrt(2.0));
       opts->part.rnew[1] = 4.0 * mu / (2.0 + sqrt(2.0));
