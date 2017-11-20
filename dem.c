@@ -46,6 +46,51 @@ double bmm_dem_est_vdc(double *const pv, struct bmm_dem const *const dem) {
     pv[idim] /= (double) ndrive;
 }
 
+__attribute__ ((__nonnull__, __pure__))
+double bmm_dem_est_epotext(struct bmm_dem const *const dem) {
+  double e = 0.0;
+
+  switch (dem->ext.tag) {
+    case BMM_DEM_EXT_HARM:
+      for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+        e += (1.0 / 2.0) * dem->ext.params.harm.k * $(bmm_power, double)
+          (dem->opts.box.x[1] / 2.0 - dem->part.x[ipart][1], 2);
+
+      break;
+    case BMM_DEM_EXT_GRAVY:
+      for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+        e += dem->ext.params.gravy.g * dem->part.m[ipart] *
+          (dem->opts.box.x[1] / 2.0 - dem->part.x[ipart][1]);
+
+      break;
+    case BMM_DEM_EXT_DRIVE:
+      break;
+  }
+
+  return e;
+}
+
+__attribute__ ((__nonnull__, __pure__))
+double bmm_dem_est_eklin(struct bmm_dem const *const dem) {
+  double e = 0.0;
+
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+      e += dem->part.m[ipart] * $(bmm_power, double)(dem->part.v[ipart][idim], 2);
+
+  return (1.0 / 2.0) * e;
+}
+
+__attribute__ ((__nonnull__, __pure__))
+double bmm_dem_est_ekrot(struct bmm_dem const *const dem) {
+  double e = 0.0;
+
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    e += dem->cache.j[ipart] * $(bmm_power, double)(dem->part.omega[ipart], 2);
+
+  return (1.0 / 2.0) * e;
+}
+
 size_t bmm_dem_script_addstage(struct bmm_dem_opts *const opts) {
   size_t const istage = opts->script.n;
 
@@ -587,7 +632,7 @@ static void bmm_dem_copypart(struct bmm_dem *const dem,
 
   dem->part.tau[ipart] = dem->part.tau[jpart];
 
-  for (size_t ict = 0; ict < BMM_NCT; ++ict) {
+  for (enum bmm_dem_ct ict = 0; ict < BMM_NCT; ++ict) {
     dem->pair[ict].cont.src[ipart].n = dem->pair[ict].cont.src[jpart].n;
 
     for (size_t icont = 0; icont < dem->pair[ict].cont.src[jpart].n; ++icont)
@@ -695,31 +740,57 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
 
     switch (dem->pair[ict].norm.tag) {
       case BMM_DEM_NORM_KV:
-        fnorm = dem->pair[ict].norm.params.dashpot.k * xi +
-          dem->pair[ict].norm.params.dashpot.gamma * vnormij;
+        if (dem->pair[ict].cohesive) {
+          fnorm = dem->pair[ict].norm.params.dashpot.k * xi +
+            dem->pair[ict].norm.params.dashpot.gamma * vnormij;
 
-        conservative = (1.0 / 2.0) * dem->pair[ict].norm.params.dashpot.k *
-          $(bmm_power, double)(xi, 2);
+          conservative = dem->pair[ict].norm.params.dashpot.k * xi * dx;
+          dissipative = fabs(dem->pair[ict].norm.params.dashpot.gamma * vnormij * dx);
+        } else {
+          fnorm = $(bmm_max, double)(0.0,
+              dem->pair[ict].norm.params.dashpot.k * xi +
+              dem->pair[ict].norm.params.dashpot.gamma * vnormij);
+
+          conservative = $(bmm_max, double)(0.0,
+              dem->pair[ict].norm.params.dashpot.k * xi +
+              0.0) * dx;
+          dissipative = fabs($(bmm_max, double)(0.0,
+              0.0 +
+              dem->pair[ict].norm.params.dashpot.gamma * vnormij) * dx);
+        }
 
         break;
       case BMM_DEM_NORM_BSHP:
         {
           double const mat = (2.0 / 3.0) * (dem->opts.part.y /
               (1.0 - $(bmm_power, double)(dem->opts.part.nu, 2)));
-          double const more = mat * sqrt(reff * xi);
 
-          fnorm = more * (xi + dem->pair[ict].norm.params.viscoel.a * vnormij);
+          if (dem->pair[ict].cohesive) {
+            double const more = mat * sqrt(reff * xi);
 
-          conservative = (2.0 / 5.0) * $(bmm_power, double)(xi, 2) * more;
+            fnorm = more * (xi + dem->pair[ict].norm.params.viscoel.a * vnormij);
+
+            conservative = more * xi * dx;
+            dissipative = fabs(more * dem->pair[ict].norm.params.viscoel.a * vnormij * dx);
+          } else {
+            double const more = mat * sqrt(reff * xi);
+
+            fnorm = $(bmm_max, double)(0.0,
+                more * (xi + dem->pair[ict].norm.params.viscoel.a * vnormij));
+
+            if (0.0 > more * (xi + dem->pair[ict].norm.params.viscoel.a * vnormij)) {
+              conservative = 0.0;
+              dissipative = 0.0;
+            } else {
+              conservative = more * xi * dx;
+              dissipative = fabs(more * dem->pair[ict].norm.params.viscoel.a * vnormij * dx);
+            }
+          }
         }
 
         break;
     }
 
-    if (!dem->pair[ict].cohesive)
-      fnorm = $(bmm_max, double)(0.0, fnorm);
-
-    dissipative = dx * fabs(fnorm) - conservative;
     if (ict == BMM_DEM_CT_WEAK) {
       dem->est.ewcont += conservative;
       dem->est.ewcontdis += dissipative;
@@ -755,6 +826,7 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
               dem->pair[ict].tang.params.hw.mu * $(bmm_abs, double)(fnorm)), vtangij);
 
         conservative = 0.0;
+        dissipative = fabs(ftang * dx);
 
         break;
       case BMM_DEM_TANG_CS:
@@ -778,8 +850,16 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
                 dem->pair[ict].tang.params.cs.k * $(bmm_abs, double)(zeta),
                 dem->pair[ict].tang.params.cs.mu * $(bmm_abs, double)(fnorm)), vtangij);
 
-          conservative = (1.0 / 2.0) * dem->pair[ict].tang.params.cs.k *
-            $(bmm_power, double)(zeta, 2);
+          if (dem->pair[ict].tang.params.cs.k * $(bmm_abs, double)(zeta) <
+                dem->pair[ict].tang.params.cs.mu * $(bmm_abs, double)(fnorm)) {
+            conservative = copysign(
+                dem->pair[ict].tang.params.cs.k * $(bmm_abs, double)(zeta), vtangij) * dx;
+            dissipative = 0.0;
+          } else {
+            conservative = 0.0;
+            dissipative = fabs(dem->pair[ict].tang.params.cs.mu *
+                $(bmm_abs, double)(fnorm) * dx);
+          }
         }
 
         break;
@@ -792,8 +872,6 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
               dem->opts.box.x, dem->opts.box.per);
 
           double const d = bmm_geom2d_norm(xdiffij);
-          double const ri = dem->part.r[ipart];
-          double const rj = dem->part.r[jpart];
           double const r = ri + rj;
           double const r2 = $(bmm_power, double)(r, 2);
 
@@ -824,32 +902,26 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
           double const omegai = dem->part.omega[ipart] + vrotij / d;
           double const omegaj = dem->part.omega[jpart] + vrotij / d;
 
-          double zeta = dem->part.r[ipart] * dchii;
+          double const constaui = -dem->pair[ict].tang.params.beam.k * dchii;
+          double const constauj = -dem->pair[ict].tang.params.beam.k * dchij;
 
-          taui = -(dem->pair[ict].tang.params.beam.k * dchii +
-              dem->pair[ict].tang.params.beam.dk * omegai);
-          tauj = -(dem->pair[ict].tang.params.beam.k * dchij +
-              dem->pair[ict].tang.params.beam.dk * omegaj);
+          double const disstaui = -dem->pair[ict].tang.params.beam.dk * omegai;
+          double const disstauj = -dem->pair[ict].tang.params.beam.dk * omegaj;
 
-          // TODO Maybe not a good idea.
-          /*
-          if (dem->part.role[ipart] == BMM_DEM_ROLE_DRIVEN &&
-              dem->part.role[jpart] == BMM_DEM_ROLE_DRIVEN) {
-            taui *= 1.0e+1;
-            tauj *= 1.0e+1;
-          }
-          */
+          taui = constaui + disstaui;
+          tauj = constauj + disstauj;
 
           dem->part.tau[ipart] += taui;
           dem->part.tau[jpart] += tauj;
 
           // Now tangential forces third.
 
-          double ftang = 0.0;
+          double const constang = -(constaui + constauj) / d;
+          double const disstang = -(disstaui + disstauj) / d;
+          conservative = constang * dx;
+          dissipative = fabs(disstang * dx);
 
-          {
-            ftang = (taui + tauj) / d;
-          }
+          ftang = -(taui + tauj) / d;
 
           double ftangij[BMM_NDIM];
           bmm_geom2d_scale(ftangij, xtangij, ftang);
@@ -857,29 +929,13 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
           double ftangji[BMM_NDIM];
           bmm_geom2d_scale(ftangji, ftangij, -1.0);
 
-          bmm_geom2d_addto(dem->part.f[ipart], ftangij);
-          bmm_geom2d_addto(dem->part.f[jpart], ftangji);
-
-          conservative = (1.0 / 2.0) * dem->pair[ict].tang.params.beam.k *
-            $(bmm_power, double)(zeta, 2);
-
-          dissipative = fabs(dx * ftang) - conservative;
-          if (ict == BMM_DEM_CT_WEAK) {
-            dem->est.ewcont += conservative;
-            dem->est.ewcontdis += dissipative;
-          } else {
-            dem->est.escont += conservative;
-            dem->est.escontdis += dissipative;
-          }
-
-          // Note this!
-          return;
+          bmm_geom2d_addto(dem->part.f[ipart], ftangji);
+          bmm_geom2d_addto(dem->part.f[jpart], ftangij);
         }
 
-      break;
+        break;
     }
 
-    dissipative = fabs(dx * ftang) - conservative;
     if (ict == BMM_DEM_CT_WEAK) {
       dem->est.ewcont += conservative;
       dem->est.ewcontdis += dissipative;
@@ -887,6 +943,12 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
       dem->est.escont += conservative;
       dem->est.escontdis += dissipative;
     }
+  }
+
+  switch (dem->pair[ict].tang.tag) {
+    case BMM_DEM_TANG_BEAM:
+      // Already did this.
+      return;
   }
 
   double ftangji[BMM_NDIM];
@@ -968,8 +1030,8 @@ void bmm_dem_force_external(struct bmm_dem *const dem, size_t const ipart) {
 
         double const dx = dem->part.v[ipart][0] * dt;
         double const dy = dem->part.v[ipart][1] * dt;
-        dem->est.edrivtang += fabs(dx * f[0]);
-        dem->est.edrivnorm += fabs(dy * f[1]);
+        dem->est.edrivtang += dx * f[0];
+        dem->est.edrivnorm += dy * f[1];
 
         for (size_t idim = 0; idim < BMM_NDIM; ++idim)
           dem->part.f[ipart][idim] += f[idim];
@@ -989,33 +1051,31 @@ void bmm_dem_force(struct bmm_dem *const dem) {
     dem->part.tau[ipart] = 0.0;
   }
 
-  // Estimators appeared.
+  // This goes for the previous frame, so this is not exactly the right spot.
   dem->est.epotext = 0.0;
   dem->est.eklin = 0.0;
   dem->est.ekrot = 0.0;
-  dem->est.ewcont = 0.0;
-  dem->est.escont = 0.0;
-  dem->est.edrivtang = 0.0;
-  dem->est.edrivnorm = 0.0;
+  // dem->est.ewcont = 0.0;
+  // dem->est.escont = 0.0;
+  // dem->est.edrivtang = 0.0;
+  // dem->est.edrivnorm = 0.0;
   dem->est.eyieldis = 0.0; // Not okay.
-  dem->est.ewcontdis = 0.0;
-  dem->est.escontdis = 0.0;
+  // dem->est.ewcontdis = 0.0;
+  // dem->est.escontdis = 0.0;
   dem->est.fback[0] = 0.0;
   dem->est.fback[1] = 0.0;
-  dem->est.mueff = 0.0;
+  dem->est.mueff = NAN;
   dem->est.vdriv[0] = NAN;
   dem->est.vdriv[1] = NAN;
 
-  // This goes for the previous frame, so this is not exactly the right spot.
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    if (dem->part.role[ipart] == BMM_DEM_ROLE_DRIVEN)
-      for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-        dem->est.vdriv[idim] += dem->part.v[ipart][idim];
+  dem->est.epotext += bmm_dem_est_epotext(dem);
+  dem->est.eklin += bmm_dem_est_eklin(dem);
+  dem->est.ekrot += bmm_dem_est_ekrot(dem);
 
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     bmm_dem_force_ambient(dem, ipart);
 
-  for (size_t ict = 0; ict < BMM_NCT; ++ict)
+  for (enum bmm_dem_ct ict = 0; ict < BMM_NCT; ++ict)
     for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
       for (size_t icont = 0; icont < dem->pair[ict].cont.src[ipart].n; ++icont) {
         size_t const jpart = dem->pair[ict].cont.src[ipart].itgt[icont];
@@ -1031,7 +1091,6 @@ void bmm_dem_force(struct bmm_dem *const dem) {
   if (dem->est.fback[1] != 0.0)
     dem->est.mueff = $(bmm_abs, double)(dem->est.fback[0] / dem->est.fback[1]);
 
-  double v[BMM_NDIM];
   bmm_dem_est_vdc(dem->est.vdriv, dem);
 
   dem->script.state.crunch.f[0] +=
@@ -1058,15 +1117,16 @@ void bmm_dem_force(struct bmm_dem *const dem) {
 }
 
 void bmm_dem_accel(struct bmm_dem *const dem) {
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
-    double const m = dem->part.m[ipart];
-    double const j = dem->cache.j[ipart];
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    if (dem->part.role[ipart] != BMM_DEM_ROLE_FIXED) {
+      double const m = dem->part.m[ipart];
+      double const j = dem->cache.j[ipart];
 
-    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-      dem->part.a[ipart][idim] = dem->part.f[ipart][idim] / m;
+      for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+        dem->part.a[ipart][idim] = dem->part.f[ipart][idim] / m;
 
-    dem->part.alpha[ipart] = dem->part.tau[ipart] / j;
-  }
+      dem->part.alpha[ipart] = dem->part.tau[ipart] / j;
+    }
 }
 
 void bmm_dem_integ_euler(struct bmm_dem *const dem) {
@@ -1075,24 +1135,23 @@ void bmm_dem_integ_euler(struct bmm_dem *const dem) {
   if (dt == 0.0)
     return;
 
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    if (dem->part.role[ipart] != BMM_DEM_ROLE_FIXED) {
-      for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
-        dem->part.x[ipart][idim] +=
-          (1.0 / (double) BMM_FACT(1)) * dem->part.v[ipart][idim] * dt;
-        dem->part.v[ipart][idim] +=
-          (1.0 / (double) BMM_FACT(1)) * dem->part.a[ipart][idim] * dt;
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
+    for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
+      dem->part.x[ipart][idim] +=
+        (1.0 / (double) BMM_FACT(1)) * dem->part.v[ipart][idim] * dt;
+      dem->part.v[ipart][idim] +=
+        (1.0 / (double) BMM_FACT(1)) * dem->part.a[ipart][idim] * dt;
 
-        if (dem->opts.box.per[idim])
-          dem->part.x[ipart][idim] = $(bmm_uwrap, double)(dem->part.x[ipart][idim],
-              dem->opts.box.x[idim]);
-      }
-
-      dem->part.phi[ipart] +=
-        (1.0 / (double) BMM_FACT(1)) * dem->part.omega[ipart] * dt;
-      dem->part.omega[ipart] +=
-        (1.0 / (double) BMM_FACT(1)) * dem->part.alpha[ipart] * dt;
+      if (dem->opts.box.per[idim])
+        dem->part.x[ipart][idim] = $(bmm_uwrap, double)(dem->part.x[ipart][idim],
+            dem->opts.box.x[idim]);
     }
+
+    dem->part.phi[ipart] +=
+      (1.0 / (double) BMM_FACT(1)) * dem->part.omega[ipart] * dt;
+    dem->part.omega[ipart] +=
+      (1.0 / (double) BMM_FACT(1)) * dem->part.alpha[ipart] * dt;
+  }
 }
 
 void bmm_dem_integ_taylor(struct bmm_dem *const dem) {
@@ -1103,26 +1162,25 @@ void bmm_dem_integ_taylor(struct bmm_dem *const dem) {
 
   double const dt2 = $(bmm_power, double)(dt, 2);
 
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    if (dem->part.role[ipart] != BMM_DEM_ROLE_FIXED) {
-      for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
-        dem->part.x[ipart][idim] +=
-          (1.0 / (double) BMM_FACT(1)) * dem->part.v[ipart][idim] * dt +
-          (1.0 / (double) BMM_FACT(2)) * dem->part.a[ipart][idim] * dt2;
-        dem->part.v[ipart][idim] +=
-          (1.0 / (double) BMM_FACT(1)) * dem->part.a[ipart][idim] * dt;
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
+    for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
+      dem->part.x[ipart][idim] +=
+        (1.0 / (double) BMM_FACT(1)) * dem->part.v[ipart][idim] * dt +
+        (1.0 / (double) BMM_FACT(2)) * dem->part.a[ipart][idim] * dt2;
+      dem->part.v[ipart][idim] +=
+        (1.0 / (double) BMM_FACT(1)) * dem->part.a[ipart][idim] * dt;
 
-        if (dem->opts.box.per[idim])
-          dem->part.x[ipart][idim] = $(bmm_uwrap, double)(dem->part.x[ipart][idim],
-              dem->opts.box.x[idim]);
-      }
-
-      dem->part.phi[ipart] +=
-        (1.0 / (double) BMM_FACT(1)) * dem->part.omega[ipart] * dt +
-        (1.0 / (double) BMM_FACT(2)) * dem->part.alpha[ipart] * dt2;
-      dem->part.omega[ipart] +=
-        (1.0 / (double) BMM_FACT(1)) * dem->part.alpha[ipart] * dt;
+      if (dem->opts.box.per[idim])
+        dem->part.x[ipart][idim] = $(bmm_uwrap, double)(dem->part.x[ipart][idim],
+            dem->opts.box.x[idim]);
     }
+
+    dem->part.phi[ipart] +=
+      (1.0 / (double) BMM_FACT(1)) * dem->part.omega[ipart] * dt +
+      (1.0 / (double) BMM_FACT(2)) * dem->part.alpha[ipart] * dt2;
+    dem->part.omega[ipart] +=
+      (1.0 / (double) BMM_FACT(1)) * dem->part.alpha[ipart] * dt;
+  }
 }
 
 void bmm_dem_integ_vel(struct bmm_dem *const dem) {
@@ -1133,26 +1191,25 @@ void bmm_dem_integ_vel(struct bmm_dem *const dem) {
 
   double const dt2 = $(bmm_power, double)(dt, 2);
 
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    if (dem->part.role[ipart] != BMM_DEM_ROLE_FIXED) {
-      for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
-        dem->part.x[ipart][idim] +=
-          (1.0 / (double) BMM_FACT(1)) * dem->part.v[ipart][idim] * dt +
-          (1.0 / (double) BMM_FACT(2)) * dem->part.a[ipart][idim] * dt2;
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
+    for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
+      dem->part.x[ipart][idim] +=
+        (1.0 / (double) BMM_FACT(1)) * dem->part.v[ipart][idim] * dt +
+        (1.0 / (double) BMM_FACT(2)) * dem->part.a[ipart][idim] * dt2;
 
-        if (dem->opts.box.per[idim])
-          dem->part.x[ipart][idim] = $(bmm_uwrap, double)(dem->part.x[ipart][idim],
-              dem->opts.box.x[idim]);
+      if (dem->opts.box.per[idim])
+        dem->part.x[ipart][idim] = $(bmm_uwrap, double)(dem->part.x[ipart][idim],
+            dem->opts.box.x[idim]);
 
-        dem->integ.params.velvet.a[ipart][idim] = dem->part.a[ipart][idim];
-      }
-
-      dem->part.phi[ipart] +=
-        (1.0 / (double) BMM_FACT(1)) * dem->part.omega[ipart] * dt +
-        (1.0 / (double) BMM_FACT(2)) * dem->part.alpha[ipart] * dt2;
-
-      dem->integ.params.velvet.alpha[ipart] = dem->part.alpha[ipart];
+      dem->integ.params.velvet.a[ipart][idim] = dem->part.a[ipart][idim];
     }
+
+    dem->part.phi[ipart] +=
+      (1.0 / (double) BMM_FACT(1)) * dem->part.omega[ipart] * dt +
+      (1.0 / (double) BMM_FACT(2)) * dem->part.alpha[ipart] * dt2;
+
+    dem->integ.params.velvet.alpha[ipart] = dem->part.alpha[ipart];
+  }
 }
 
 void bmm_dem_integ_vet(struct bmm_dem *const dem) {
@@ -1161,15 +1218,14 @@ void bmm_dem_integ_vet(struct bmm_dem *const dem) {
   if (dt == 0.0)
     return;
 
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    if (dem->part.role[ipart] != BMM_DEM_ROLE_FIXED) {
-      for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-        dem->part.v[ipart][idim] += (1.0 / (double) BMM_FACT(2)) *
-          (dem->integ.params.velvet.a[ipart][idim] + dem->part.a[ipart][idim]) * dt;
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
+    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+      dem->part.v[ipart][idim] += (1.0 / (double) BMM_FACT(2)) *
+        (dem->integ.params.velvet.a[ipart][idim] + dem->part.a[ipart][idim]) * dt;
 
-      dem->part.omega[ipart] += (1.0 / (double) BMM_FACT(2)) *
-        (dem->integ.params.velvet.alpha[ipart] + dem->part.alpha[ipart]) * dt;
-    }
+    dem->part.omega[ipart] += (1.0 / (double) BMM_FACT(2)) *
+      (dem->integ.params.velvet.alpha[ipart] + dem->part.alpha[ipart]) * dt;
+  }
 }
 
 void bmm_dem_stab(struct bmm_dem *const dem) {
@@ -1321,12 +1377,11 @@ static void bmm_dem_script_clip(struct bmm_dem *const dem) {
 
   // TODO See (N583).
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    for (size_t ict = 0; ict < BMM_NCT; ++ict)
+    for (enum bmm_dem_ct ict = 0; ict < BMM_NCT; ++ict)
       dem->pair[ict].cont.src[ipart].n = 0;
 }
 
 static double extra_crap(struct bmm_dem const *const dem) {
-  // TODO This is all wrong, but I know why.
   double const epotext = dem->est.epotext;
   double const eklin = dem->est.eklin;
   double const ekrot = dem->est.ekrot;
@@ -1337,9 +1392,10 @@ static double extra_crap(struct bmm_dem const *const dem) {
   double const eyieldis = dem->est.eyieldis;
   double const ewcontdis = dem->est.ewcontdis;
   double const escontdis = dem->est.escontdis;
-  double const pos = epotext + eklin + ekrot + ewcont + escont + edrivnorm + edrivtang;
-  double const neg = eyieldis + ewcontdis + escontdis;
-  double const eee = pos + neg;
+  double const pos = epotext + eklin + ekrot + ewcont + escont
+    + eyieldis + ewcontdis + escontdis;
+  double const neg = edrivnorm + edrivtang;
+  double const eee = pos - neg;
   if (fprintf(stderr,
         "epotext = %g, "
         "eklin = %g, "
@@ -1357,7 +1413,6 @@ static double extra_crap(struct bmm_dem const *const dem) {
         epotext, eklin, ekrot, ewcont, escont, edrivnorm, edrivtang,
         /* eyieldis, */ ewcontdis, escontdis,
         pos, neg,
-        dem->script.state.crunch.f[0],
         eee) < 0) {
     BMM_TLE_STDS();
 
@@ -2243,49 +2298,6 @@ bool bmm_dem_est_raddist(double *const pr, double *const pg,
   return true;
 }
 
-// TODO Complete energy estimators.
-
-__attribute__ ((__nonnull__, __pure__))
-double bmm_dem_est_epotext(struct bmm_dem const *const dem) {
-  double e = 0.0;
-
-  switch (dem->ext.tag) {
-    case BMM_DEM_EXT_HARM:
-      for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-        e += dem->ext.params.harm.k * $(bmm_power, double)
-          (dem->opts.box.x[1] / 2.0 - dem->part.x[ipart][1], 2);
-
-      break;
-    case BMM_DEM_EXT_GRAVY:
-      break;
-    case BMM_DEM_EXT_DRIVE:
-      break;
-  }
-
-  return (1.0 / 2.0) * e;
-}
-
-__attribute__ ((__nonnull__, __pure__))
-double bmm_dem_est_eklin(struct bmm_dem const *const dem) {
-  double e = 0.0;
-
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-      e += dem->part.m[ipart] * $(bmm_power, double)(dem->part.v[ipart][idim], 2);
-
-  return (1.0 / 2.0) * e;
-}
-
-__attribute__ ((__nonnull__, __pure__))
-double bmm_dem_est_ekrot(struct bmm_dem const *const dem) {
-  double e = 0.0;
-
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    e += dem->cache.j[ipart] * $(bmm_power, double)(dem->part.omega[ipart], 2);
-
-  return (1.0 / 2.0) * e;
-}
-
 /// The call `bmm_dem_est_mass(dem)`
 /// returns the total mass of the particles
 /// in the simulation `dem`.
@@ -2436,11 +2448,11 @@ void bmm_dem_def(struct bmm_dem *const dem,
   dem->pair[BMM_DEM_CT_WEAK].torque.tag = BMM_DEM_TORQUE_HARD;
   dem->pair[BMM_DEM_CT_STRONG].cohesive = true;
   dem->pair[BMM_DEM_CT_STRONG].norm.tag = BMM_DEM_NORM_KV;
-  dem->pair[BMM_DEM_CT_STRONG].tang.tag = BMM_DEM_TANG_CS;
   dem->pair[BMM_DEM_CT_STRONG].tang.tag = BMM_DEM_TANG_BEAM;
   dem->pair[BMM_DEM_CT_STRONG].torque.tag = BMM_DEM_TORQUE_HARD;
   dem->yield.tag = BMM_DEM_YIELD_RANKINE;
   dem->yield.tag = BMM_DEM_YIELD_TRESCA;
+  dem->yield.tag = BMM_DEM_YIELD_NONE; // !
 
   dem->amb.params.creeping.mu = 1.0e-3;
 
@@ -2509,6 +2521,23 @@ void bmm_dem_def(struct bmm_dem *const dem,
 
       break;
   }
+
+  // Estimators appeared.
+  dem->est.epotext = 0.0;
+  dem->est.eklin = 0.0;
+  dem->est.ekrot = 0.0;
+  dem->est.ewcont = 0.0;
+  dem->est.escont = 0.0;
+  dem->est.edrivtang = 0.0;
+  dem->est.edrivnorm = 0.0;
+  dem->est.eyieldis = 0.0;
+  dem->est.ewcontdis = 0.0;
+  dem->est.escontdis = 0.0;
+  dem->est.fback[0] = 0.0;
+  dem->est.fback[1] = 0.0;
+  dem->est.mueff = NAN;
+  dem->est.vdriv[0] = NAN;
+  dem->est.vdriv[1] = NAN;
 
   dem->time.t = 0.0;
   dem->time.istep = 0;
@@ -2814,6 +2843,8 @@ static bool bmm_dem_script_create_testplane(struct bmm_dem *const dem) {
       if (ipart == SIZE_MAX)
         return false;
 
+      dem->part.role[ipart] = BMM_DEM_ROLE_FIXED;
+
       dem->part.r[ipart] = r;
       dem->part.m[ipart] = dem->opts.part.rho * v;
 
@@ -2825,8 +2856,6 @@ static bool bmm_dem_script_create_testplane(struct bmm_dem *const dem) {
       if (x[0] + 2.0 * rspace >= dem->opts.box.x[0] + 2.0 * rspace) {
         break;
       }
-
-      dem->part.role[ipart] = BMM_DEM_ROLE_FIXED;
 
       vnow = vnext;
     } else
@@ -2890,6 +2919,8 @@ static bool bmm_dem_script_create_testbeam(struct bmm_dem *const dem) {
 
       if (dem->part.x[ipart][0] < 4.0 * rspace)
         dem->part.role[ipart] = BMM_DEM_ROLE_FIXED;
+      // This one is funny.
+      // else dem->part.v[ipart][0] = 1.0e+2;
 
       vnow = vnext;
     } else
@@ -3126,6 +3157,10 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
       dem->pair[BMM_DEM_CT_WEAK].norm.tag = BMM_DEM_NORM_BSHP;
       dem->pair[BMM_DEM_CT_WEAK].tang.tag = BMM_DEM_TANG_HW;
       dem->pair[BMM_DEM_CT_WEAK].tang.tag = BMM_DEM_TANG_CS;
+
+      // TODO Energy is conserved without tangential forces.
+      dem->pair[BMM_DEM_CT_WEAK].tang.tag = BMM_DEM_TANG_NONE;
+      dem->pair[BMM_DEM_CT_STRONG].tang.tag = BMM_DEM_TANG_NONE;
       // dem->opts.part.y = 52.0e+9;
 
       break;
@@ -3149,8 +3184,19 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
     case BMM_DEM_MODE_GLUE:
       for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
         // TODO Parametrize the glue layer thickness.
-        if (dem->part.x[ipart][1] < dem->opts.box.x[1] * 0.1)
+        if (dem->part.x[ipart][1] < dem->opts.box.x[1] * 0.1) {
           dem->part.role[ipart] = BMM_DEM_ROLE_FIXED;
+
+          for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+            dem->part.a[ipart][idim] = 0.0;
+
+          dem->part.alpha[ipart] = 0.0;
+
+          for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+            dem->part.v[ipart][idim] = 0.0;
+
+          dem->part.omega[ipart] = 0.0;
+        }
 
       break;
     case BMM_DEM_MODE_CRUNCH:
@@ -3210,9 +3256,24 @@ static bool pregarbage(struct bmm_dem const *const dem) {
 }
 
 static bool garbage(struct bmm_dem const *const dem) {
+  double const epotext = dem->est.epotext;
+  double const eklin = dem->est.eklin;
+  double const ekrot = dem->est.ekrot;
+  double const ewcont = dem->est.ewcont;
+  double const escont = dem->est.escont;
+  double const edrivnorm = dem->est.edrivnorm;
+  double const edrivtang = dem->est.edrivtang;
+  double const eyieldis = dem->est.eyieldis;
+  double const ewcontdis = dem->est.ewcontdis;
+  double const escontdis = dem->est.escontdis;
+  double const pos = epotext + eklin + ekrot + ewcont + escont
+    + eyieldis + ewcontdis + escontdis;
+  double const neg = edrivnorm + edrivtang;
+  double const eee = pos - neg;
+
   if (fprintf(stream, "%g %g %g %g\n",
         dem->time.t,
-        dem->est.epotext,
+        eee,
         dem->est.mueff,
         dem->est.vdriv[0]) < 0) {
     BMM_TLE_STDS();
@@ -3260,17 +3321,13 @@ bool bmm_dem_comm(struct bmm_dem *const dem) {
     if (!bmm_dem_puts(dem, BMM_MSG_NUM_PARTS))
       return false;
 
-    dem->est.epotext += bmm_dem_est_epotext(dem);
-    dem->est.eklin += bmm_dem_est_eklin(dem);
-    dem->est.ekrot += bmm_dem_est_ekrot(dem);
-
     if (!bmm_dem_puts(dem, BMM_MSG_NUM_EST))
       return false;
 
     if (!garbage(dem))
       BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Nope");
 
-    // (void) extra_crap(dem);
+    (void) extra_crap(dem);
   }
 
   return true;

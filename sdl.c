@@ -616,7 +616,6 @@ static void bmm_sdl_draw(struct bmm_sdl const *const sdl) {
 
   struct bmm_dem const *const dem = &sdl->dem;
 
-  // TODO This is all wrong, but I know why.
   double const epotext = dem->est.epotext;
   double const eklin = dem->est.eklin;
   double const ekrot = dem->est.ekrot;
@@ -627,9 +626,10 @@ static void bmm_sdl_draw(struct bmm_sdl const *const sdl) {
   double const eyieldis = dem->est.eyieldis;
   double const ewcontdis = dem->est.ewcontdis;
   double const escontdis = dem->est.escontdis;
-  double const pos = epotext + eklin + ekrot + ewcont + escont + edrivnorm + edrivtang;
-  double const neg = eyieldis + ewcontdis + escontdis;
-  double const eee = pos + neg;
+  double const pos = epotext + eklin + ekrot + ewcont + escont
+    + eyieldis + ewcontdis + escontdis;
+  double const neg = edrivnorm + edrivtang;
+  double const eee = pos - neg;
 
   // TODO These should come via messages.
   if (sdl->diag) {
@@ -647,10 +647,10 @@ static void bmm_sdl_draw(struct bmm_sdl const *const sdl) {
     (void) snprintf(strbuf, sizeof strbuf, "n (number of particles) = %zu",
         sdl->dem.part.n);
     glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
-    (void) snprintf(strbuf, sizeof strbuf, "dE (energy balance) = %g",
-        pos);
+    (void) snprintf(strbuf, sizeof strbuf, "W (work in) = %g",
+        neg);
     glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
-    (void) snprintf(strbuf, sizeof strbuf, "E (total energy) = %g",
+    (void) snprintf(strbuf, sizeof strbuf, "E (energy balance) = %g",
         eee);
     glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
     (void) snprintf(strbuf, sizeof strbuf, "mu (eff. friction factor) = %g",

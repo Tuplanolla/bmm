@@ -86,6 +86,7 @@ static bool f(char const *const key, char const *const value,
       opts->script.params[istage].gravy.g = 3.0e+4;
     } else if (strcmp(value, "shear") == 0) {
       double mu = 1.75e-3;
+      dtstuff = 8.0e-8;
 
       opts->part.rnew[0] = 2.0 * mu / (1.0 + sqrt(2.0));
       opts->part.rnew[1] = 4.0 * mu / (2.0 + sqrt(2.0));
@@ -127,7 +128,7 @@ static bool f(char const *const key, char const *const value,
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_SEPARATE;
-      opts->script.tspan[istage] = 0.1e-3;
+      opts->script.tspan[istage] = 0.02e-3;
       opts->script.dt[istage] = dtstuff;
       opts->script.params[istage].separate.xgap[0] = 0.0;
       opts->script.params[istage].separate.xgap[1] = mu;
@@ -172,7 +173,7 @@ static bool f(char const *const key, char const *const value,
       opts->script.tspan[istage] = 6.0e-3;
       opts->script.dt[istage] = dtstuff;
     } else if (strcmp(value, "roll") == 0) {
-      dtstuff = 1.02e-7;
+      dtstuff = 2.0e-7;
       opts->part.y = 52.0e+9;
 
       opts->part.rnew[0] = 2.078e-3;
