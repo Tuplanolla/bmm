@@ -454,7 +454,7 @@ struct bmm_dem {
       /// For `BMM_DEM_AMB_CREEPING`.
       struct {
         /// Dynamic viscosity of compressible solution.
-        double mu;
+        double eta;
       } creeping;
     } params;
   } amb;
@@ -563,6 +563,8 @@ struct bmm_dem {
   /// Estimator cache.
   /// This is only used for programmer laziness.
   struct {
+    /// Ambient energy loss.
+    double eambdis;
     /// External potential energy.
     double epotext;
     /// Linear kinetic energy.
