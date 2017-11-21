@@ -264,6 +264,8 @@ static bool f(char const *const key, char const *const value,
       opts->script.tspan[istage] = 3.0e-3;
       opts->script.dt[istage] = dtstuff;
     } else if (strcmp(value, "triplet") == 0) {
+      dtstuff = 2.0e-8;
+
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
       opts->script.tspan[istage] = 0.06e-3;
@@ -274,7 +276,7 @@ static bool f(char const *const key, char const *const value,
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
-      opts->script.tspan[istage] = 1.0e-3;
+      opts->script.tspan[istage] = 0.6e-3;
       opts->script.dt[istage] = dtstuff;
 
       istage = bmm_dem_script_addstage(opts);

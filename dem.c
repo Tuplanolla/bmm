@@ -379,12 +379,12 @@ size_t bmm_dem_addcont_unsafe(struct bmm_dem *const dem,
   double const r = dem->part.r[ipart] + dem->part.r[jpart];
 
   // TODO Excessive wrapping!
-  double const gammaij = $(bmm_swrap, double)(bmm_geom2d_dir(xdiffij), M_2PI);
-  double const gammaji = $(bmm_swrap, double)(gammaij + M_PI, M_2PI);
+  double const lambdaij = $(bmm_swrap, double)(bmm_geom2d_dir(xdiffij), M_2PI);
+  double const lambdaji = $(bmm_swrap, double)(lambdaij + M_PI, M_2PI);
   double const phii = $(bmm_swrap, double)(dem->part.phi[ipart], M_2PI);
   double const phij = $(bmm_swrap, double)(dem->part.phi[jpart], M_2PI);
-  double const chii = $(bmm_swrap, double)(gammaij - phii, M_2PI);
-  double const chij = $(bmm_swrap, double)(gammaji - phij, M_2PI);
+  double const chii = $(bmm_swrap, double)(lambdaij - phii, M_2PI);
+  double const chij = $(bmm_swrap, double)(lambdaji - phij, M_2PI);
 
   double a = 0.3;
   double v[2];
@@ -847,17 +847,17 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
           bmm_geom2d_cpdiff(xdiffij, dem->part.x[jpart], dem->part.x[ipart],
               dem->opts.box.x, dem->opts.box.per);
 
-          double const gammaij = $(bmm_swrap, double)(bmm_geom2d_dir(xdiffij), M_2PI);
-          double const gammaji = $(bmm_swrap, double)(gammaij + M_PI, M_2PI);
+          double const lambdaij = $(bmm_swrap, double)(bmm_geom2d_dir(xdiffij), M_2PI);
+          double const lambdaji = $(bmm_swrap, double)(lambdaij + M_PI, M_2PI);
           double const phii = $(bmm_swrap, double)(dem->part.phi[ipart], M_2PI);
           double const phij = $(bmm_swrap, double)(dem->part.phi[jpart], M_2PI);
-          double const chii = $(bmm_swrap, double)(gammaij - phii, M_2PI);
-          double const chij = $(bmm_swrap, double)(gammaji - phij, M_2PI);
+          double const chii = $(bmm_swrap, double)(lambdaij - phii, M_2PI);
+          double const chij = $(bmm_swrap, double)(lambdaji - phij, M_2PI);
 
-          double const dchii = $(bmm_swrap, double)(dem->pair[ict].cont.src[ipart].chirest[icont][BMM_DEM_END_TAIL] - chii, M_2PI);
-          double const dchij = $(bmm_swrap, double)(dem->pair[ict].cont.src[ipart].chirest[icont][BMM_DEM_END_HEAD] - chij, M_2PI);
+          double const lambdai = $(bmm_swrap, double)(dem->pair[ict].cont.src[ipart].chirest[icont][BMM_DEM_END_TAIL] - chii, M_2PI);
+          double const lambdaj = $(bmm_swrap, double)(dem->pair[ict].cont.src[ipart].chirest[icont][BMM_DEM_END_HEAD] - chij, M_2PI);
 
-          double zeta = dem->part.r[ipart] * dchii + dem->part.r[jpart] * dchij;
+          double zeta = dem->part.r[ipart] * lambdai + dem->part.r[jpart] * lambdaj;
 
           ftang = copysign($(bmm_min, double)(
                 dem->pair[ict].tang.params.cs.k * $(bmm_abs, double)(zeta),
@@ -900,26 +900,24 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
           double taui = 0.0;
           double tauj = 0.0;
 
-          double const gammaij = $(bmm_swrap, double)(bmm_geom2d_dir(xdiffij), M_2PI);
-          double const gammaji = $(bmm_swrap, double)(gammaij + M_PI, M_2PI);
+          double const lambdaij = $(bmm_swrap, double)(bmm_geom2d_dir(xdiffij), M_2PI);
+          double const lambdaji = $(bmm_swrap, double)(lambdaij + M_PI, M_2PI);
           double const phii = $(bmm_swrap, double)(dem->part.phi[ipart], M_2PI);
           double const phij = $(bmm_swrap, double)(dem->part.phi[jpart], M_2PI);
-          double const chii = $(bmm_swrap, double)(gammaij - phii, M_2PI);
-          double const chij = $(bmm_swrap, double)(gammaji - phij, M_2PI);
+          double const chii = $(bmm_swrap, double)(lambdaij - phii, M_2PI);
+          double const chij = $(bmm_swrap, double)(lambdaji - phij, M_2PI);
 
-          double const dchii = $(bmm_swrap, double)(dem->pair[ict].cont.src[ipart].chirest[icont][BMM_DEM_END_TAIL] - chii, M_2PI);
-          double const dchij = $(bmm_swrap, double)(dem->pair[ict].cont.src[ipart].chirest[icont][BMM_DEM_END_HEAD] - chij, M_2PI);
+          double const lambdai = $(bmm_swrap, double)(dem->pair[ict].cont.src[ipart].chirest[icont][BMM_DEM_END_TAIL] - chii, M_2PI);
+          double const lambdaj = $(bmm_swrap, double)(dem->pair[ict].cont.src[ipart].chirest[icont][BMM_DEM_END_HEAD] - chij, M_2PI);
 
-          // TODO Derive these on paper too.
-          double const vrotij = -bmm_geom2d_dot(vdiffij, xtangij);
-          double const omegai = dem->part.omega[ipart] + vrotij / d;
-          double const omegaj = dem->part.omega[jpart] + vrotij / d;
+          double const nomegai = dem->part.omega[ipart] + vtangij / d;
+          double const nomegaj = dem->part.omega[jpart] + vtangij / d;
 
-          double const constaui = -dem->pair[ict].tang.params.beam.k * dchii;
-          double const constauj = -dem->pair[ict].tang.params.beam.k * dchij;
+          double const constaui = -dem->pair[ict].tang.params.beam.k * lambdai;
+          double const constauj = -dem->pair[ict].tang.params.beam.k * lambdaj;
 
-          double const disstaui = -dem->pair[ict].tang.params.beam.dk * omegai;
-          double const disstauj = -dem->pair[ict].tang.params.beam.dk * omegaj;
+          double const disstaui = -dem->pair[ict].tang.params.beam.dk * nomegai;
+          double const disstauj = -dem->pair[ict].tang.params.beam.dk * nomegaj;
 
           taui = constaui + disstaui;
           tauj = constauj + disstauj;
@@ -927,24 +925,23 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
           dem->part.tau[ipart] += taui;
           dem->part.tau[jpart] += tauj;
 
-          // Now tangential forces third.
-
-          double const constang = -(constaui + constauj) / d;
-          double const disstang = -(disstaui + disstauj) / d;
-          ftangcons = constang;
-          ftangdiss = disstang;
-
-          ftang = -(taui + tauj) / d;
-
-          double ftangij[BMM_NDIM];
-          bmm_geom2d_scale(ftangij, xtangij, ftang);
-
-          double ftangji[BMM_NDIM];
-          bmm_geom2d_scale(ftangji, ftangij, -1.0);
-
-          bmm_geom2d_addto(dem->part.f[ipart], ftangji);
-          bmm_geom2d_addto(dem->part.f[jpart], ftangij);
+          if (ict == BMM_DEM_CT_WEAK) {
+            dem->est.ewcont += -nomegai * dt * constaui;
+            dem->est.ewcont += -nomegaj * dt * constauj;
+            dem->est.ewcontdis += $(bmm_abs, double)(nomegai * dt * disstaui);
+            dem->est.ewcontdis += $(bmm_abs, double)(nomegaj * dt * disstauj);
+          } else {
+            // It is this in disguise.
+            // dem->est.escont += -(ri * nomegai * dt) * (constaui / ri);
+            dem->est.escont += -nomegai * dt * constaui;
+            dem->est.escont += -nomegaj * dt * constauj;
+            dem->est.escontdis += $(bmm_abs, double)(nomegai * dt * disstaui);
+            dem->est.escontdis += $(bmm_abs, double)(nomegaj * dt * disstauj);
+          }
         }
+
+        // Note this and the discrepancy caused to `echeck`!
+        return;
 
         break;
     }
@@ -959,12 +956,6 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
   }
 
   dem->est.echeck += fnorm * dxnorm + ftang * dxtang;
-
-  switch (dem->pair[ict].tang.tag) {
-    case BMM_DEM_TANG_BEAM:
-      // Already did this.
-      return;
-  }
 
   double ftangji[BMM_NDIM];
   bmm_geom2d_scale(ftangji, xtangji, ftang);
@@ -2538,6 +2529,8 @@ void bmm_dem_def(struct bmm_dem *const dem,
     case BMM_DEM_TANG_BEAM:
       dem->pair[BMM_DEM_CT_STRONG].tang.params.beam.k = 2.0e+2;
       dem->pair[BMM_DEM_CT_STRONG].tang.params.beam.dk = 4.0e-2;
+      // TODO This raises suspicion.
+      // dem->pair[BMM_DEM_CT_STRONG].tang.params.beam.dk = 0.0e-2;
 
       break;
   }
