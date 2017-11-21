@@ -563,6 +563,8 @@ struct bmm_dem {
   /// Estimator cache.
   /// This is only used for programmer laziness.
   struct {
+    /// Energy for sanity check.
+    double echeck;
     /// Ambient energy loss.
     double eambdis;
     /// External potential energy.

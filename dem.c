@@ -687,6 +687,9 @@ void bmm_dem_force_creeping(struct bmm_dem *const dem,
   double const dt = dem->opts.script.dt[dem->script.i];
   dem->est.eambdis += fabs(f * v * dt);
   dem->est.eambdis += fabs((tau / dem->part.r[ipart]) * v * dt);
+
+  dem->est.echeck += fabs(f * v * dt);
+  dem->est.echeck += fabs((tau / dem->part.r[ipart]) * v * dt);
 }
 
 // TODO Flatten these to allow loop-invariant code motion.
@@ -729,6 +732,9 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
   double vdiffij[BMM_NDIM];
   bmm_geom2d_diff(vdiffij, dem->part.v[jpart], dem->part.v[ipart]);
 
+  double dxnorm = 0.0;
+  double dxtang = 0.0;
+
   // Normal forces first.
 
   double fnorm = 0.0;
@@ -740,7 +746,7 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
     double const vnormij = bmm_geom2d_dot(vdiffij, xnormji);
     double const reff = $(bmm_resum2, double)(ri, rj);
     double const dt = dem->opts.script.dt[dem->script.i];
-    double const dx = vnormij * dt;
+    dxnorm = vnormij * dt;
 
     switch (dem->pair[ict].norm.tag) {
       case BMM_DEM_NORM_KV:
@@ -798,11 +804,11 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
     }
 
     if (ict == BMM_DEM_CT_WEAK) {
-      dem->est.ewcont += dx * fnormcons;
-      dem->est.ewcontdis += $(bmm_abs, double)(dx * fnormdiss);
+      dem->est.ewcont += dxnorm * fnormcons;
+      dem->est.ewcontdis += $(bmm_abs, double)(dxnorm * fnormdiss);
     } else {
-      dem->est.escont += dx * fnormcons;
-      dem->est.escontdis += $(bmm_abs, double)(dx * fnormdiss);
+      dem->est.escont += dxnorm * fnormcons;
+      dem->est.escontdis += $(bmm_abs, double)(dxnorm * fnormdiss);
     }
   }
 
@@ -823,7 +829,7 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
     double const vtangij = bmm_geom2d_dot(vdiffij, xtangji) +
       ri * dem->part.omega[ipart] + rj * dem->part.omega[jpart];
     double const dt = dem->opts.script.dt[dem->script.i];
-    double const dx = vtangij * dt;
+    dxtang = vtangij * dt;
 
     switch (dem->pair[ict].tang.tag) {
       case BMM_DEM_TANG_HW:
@@ -849,8 +855,9 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
           double const chij = $(bmm_swrap, double)(gammaji - phij, M_2PI);
 
           double const dchii = $(bmm_swrap, double)(dem->pair[ict].cont.src[ipart].chirest[icont][BMM_DEM_END_TAIL] - chii, M_2PI);
+          double const dchij = $(bmm_swrap, double)(dem->pair[ict].cont.src[ipart].chirest[icont][BMM_DEM_END_HEAD] - chij, M_2PI);
 
-          double zeta = dem->part.r[ipart] * dchii;
+          double zeta = dem->part.r[ipart] * dchii + dem->part.r[jpart] * dchij;
 
           ftang = copysign($(bmm_min, double)(
                 dem->pair[ict].tang.params.cs.k * $(bmm_abs, double)(zeta),
@@ -943,13 +950,15 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
     }
 
     if (ict == BMM_DEM_CT_WEAK) {
-      dem->est.ewcont += dx * ftangcons;
-      dem->est.ewcontdis += $(bmm_abs, double)(dx * ftangdiss);
+      dem->est.ewcont += dxtang * ftangcons;
+      dem->est.ewcontdis += $(bmm_abs, double)(dxtang * ftangdiss);
     } else {
-      dem->est.escont += dx * ftangcons;
-      dem->est.escontdis += $(bmm_abs, double)(dx * ftangdiss);
+      dem->est.escont += dxtang * ftangcons;
+      dem->est.escontdis += $(bmm_abs, double)(dxtang * ftangdiss);
     }
   }
+
+  dem->est.echeck += fnorm * dxnorm + ftang * dxtang;
 
   switch (dem->pair[ict].tang.tag) {
     case BMM_DEM_TANG_BEAM:
@@ -1024,7 +1033,13 @@ void bmm_dem_force_external(struct bmm_dem *const dem, size_t const ipart) {
 
       break;
     case BMM_DEM_EXT_GRAVY:
-      dem->part.f[ipart][1] += dem->part.m[ipart] * dem->ext.params.gravy.g;
+      {
+        dem->part.f[ipart][1] += dem->part.m[ipart] * dem->ext.params.gravy.g;
+
+        double const dy = dem->part.v[ipart][1] * dt;
+
+        dem->est.echeck -= dy * dem->part.m[ipart] * dem->ext.params.gravy.g;
+      }
 
       break;
     case BMM_DEM_EXT_DRIVE:
@@ -1041,6 +1056,9 @@ void bmm_dem_force_external(struct bmm_dem *const dem, size_t const ipart) {
 
         for (size_t idim = 0; idim < BMM_NDIM; ++idim)
           dem->part.f[ipart][idim] += f[idim];
+
+        dem->est.echeck -= dx * f[0];
+        dem->est.echeck -= dy * f[1];
       }
 
       break;
@@ -1058,6 +1076,7 @@ void bmm_dem_force(struct bmm_dem *const dem) {
   }
 
   // This goes for the previous frame, so this is not exactly the right spot.
+  // dem->est.echeck = 0.0;
   // dem->est.eambdis = 0.0;
   dem->est.epotext = 0.0;
   dem->est.eklin = 0.0;
@@ -1104,7 +1123,7 @@ void bmm_dem_force(struct bmm_dem *const dem) {
     copysign(dem->opts.script.params[dem->script.i].crunch.fadjust[0] * dt,
         dem->opts.script.params[dem->script.i].crunch.v - dem->est.vdriv[0]);
 
-  // TODO Not like this.
+  // TODO Could stabilize the upper surface here.
   dem->script.state.crunch.f[1] = dem->opts.script.params[dem->script.i].crunch.p;
 
   // TODO This still sucks.
@@ -1119,8 +1138,6 @@ void bmm_dem_force(struct bmm_dem *const dem) {
   }
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     bmm_dem_force_external(dem, ipart);
-
-  // TODO Could stabilize the upper surface here.
 }
 
 void bmm_dem_accel(struct bmm_dem *const dem) {
@@ -1389,6 +1406,7 @@ static void bmm_dem_script_clip(struct bmm_dem *const dem) {
 }
 
 static double extra_crap(struct bmm_dem const *const dem) {
+  double const echeck = dem->est.echeck;
   double const eambdis = dem->est.eambdis;
   double const epotext = dem->est.epotext;
   double const eklin = dem->est.eklin;
@@ -1405,6 +1423,7 @@ static double extra_crap(struct bmm_dem const *const dem) {
   double const neg = edrivnorm + edrivtang;
   double const eee = pos - neg;
   if (fprintf(stderr,
+        "echeck = %g, "
         "eambdis = %g, "
         "epotext = %g, "
         "eklin = %g, "
@@ -1419,6 +1438,7 @@ static double extra_crap(struct bmm_dem const *const dem) {
         "sum(+) = %g, "
         "sum(-) = %g, "
         "sum(?) = %g\n",
+        echeck + epotext + eklin + ekrot,
         eambdis, epotext, eklin, ekrot, ewcont, escont, edrivnorm, edrivtang,
         /* eyieldis, */ ewcontdis, escontdis,
         pos, neg,
@@ -2458,14 +2478,15 @@ void bmm_dem_def(struct bmm_dem *const dem,
   dem->pair[BMM_DEM_CT_STRONG].torque.tag = BMM_DEM_TORQUE_HARD;
   dem->yield.tag = BMM_DEM_YIELD_RANKINE;
   dem->yield.tag = BMM_DEM_YIELD_TRESCA;
+  dem->yield.tag = BMM_DEM_YIELD_ZE;
   // TODO See (N2464).
-  dem->yield.tag = BMM_DEM_YIELD_NONE; // !
+  dem->yield.tag = BMM_DEM_YIELD_NONE;
 
-  // TODO Energy is conserved without tangential forces or with HW (N2464),
-  // but weak CS links cause energy increase
+  // TODO These (N2464) are challenging for energy conservation
+  // with a big time step.
   dem->pair[BMM_DEM_CT_WEAK].tang.tag = BMM_DEM_TANG_NONE;
   dem->pair[BMM_DEM_CT_WEAK].tang.tag = BMM_DEM_TANG_CS;
-  // and strong beam links cause energy decrease.
+  // TODO This still appears broken.
   dem->pair[BMM_DEM_CT_STRONG].tang.tag = BMM_DEM_TANG_NONE;
   dem->pair[BMM_DEM_CT_STRONG].tang.tag = BMM_DEM_TANG_BEAM;
 
@@ -2530,9 +2551,15 @@ void bmm_dem_def(struct bmm_dem *const dem,
       dem->yield.params.tresca.taucrit = 2.0e+5;
 
       break;
+    case BMM_DEM_YIELD_ZE:
+      dem->yield.params.ze.sigmacrit = 2.0e+4;
+      dem->yield.params.ze.taucrit = 2.0e+5;
+
+      break;
   }
 
   // Estimators appeared.
+  dem->est.echeck = 0.0;
   dem->est.eambdis = 0.0;
   dem->est.epotext = 0.0;
   dem->est.eklin = 0.0;
@@ -3268,6 +3295,7 @@ static bool pregarbage(struct bmm_dem const *const dem) {
 }
 
 static bool garbage(struct bmm_dem const *const dem) {
+  double const echeck = dem->est.echeck;
   double const eambdis = dem->est.eambdis;
   double const epotext = dem->est.epotext;
   double const eklin = dem->est.eklin;
