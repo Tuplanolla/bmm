@@ -91,6 +91,103 @@ double bmm_dem_est_ekrot(struct bmm_dem const *const dem) {
   return (1.0 / 2.0) * e;
 }
 
+__attribute__ ((__nonnull__, __pure__))
+double bmm_dem_est_econt_one(struct bmm_dem const *const dem,
+    enum bmm_dem_ct const ict, size_t const ipart, size_t const icont, size_t const jpart) {
+  double e = 0.0;
+
+  double xdiffij[BMM_NDIM];
+  bmm_geom2d_cpdiff(xdiffij, dem->part.x[jpart], dem->part.x[ipart],
+      dem->opts.box.x, dem->opts.box.per);
+
+  double const d2 = bmm_geom2d_norm2(xdiffij);
+  if (d2 == 0.0)
+    return e;
+
+  double const ri = dem->part.r[ipart];
+  double const rj = dem->part.r[jpart];
+  double const r = ri + rj;
+  double const r2 = $(bmm_power, double)(r, 2);
+  if (!dem->pair[ict].cohesive)
+    if (d2 > r2)
+      return e;
+
+  double const d = sqrt(d2);
+
+  double xnormji[BMM_NDIM];
+  bmm_geom2d_scale(xnormji, xdiffij, -1.0 / d);
+
+  double xtangji[BMM_NDIM];
+  bmm_geom2d_rperp(xtangji, xnormji);
+
+  double vdiffij[BMM_NDIM];
+  bmm_geom2d_diff(vdiffij, dem->part.v[jpart], dem->part.v[ipart]);
+
+  double const xi = r - d;
+  double const vnormij = bmm_geom2d_dot(vdiffij, xnormji);
+  double const reff = $(bmm_resum2, double)(ri, rj);
+  double const dt = dem->opts.script.dt[dem->script.i];
+
+  switch (dem->pair[ict].norm.tag) {
+    case BMM_DEM_NORM_KV:
+      if (dem->pair[ict].cohesive)
+        e += (1.0 / 2.0) * dem->pair[ict].norm.params.dashpot.k * $(bmm_power, double)(xi, 2);
+      else {
+        if (0.0 > dem->pair[ict].norm.params.dashpot.k * xi +
+            dem->pair[ict].norm.params.dashpot.gamma * vnormij) {
+        } else
+          e += (1.0 / 2.0) * dem->pair[ict].norm.params.dashpot.k * $(bmm_power, double)(xi, 2);
+      }
+
+      break;
+    case BMM_DEM_NORM_BSHP:
+      {
+        double const mat = (2.0 / 3.0) * (dem->opts.part.y /
+            (1.0 - $(bmm_power, double)(dem->opts.part.nu, 2)));
+
+        double const more = mat * sqrt(reff * xi);
+
+        if (dem->pair[ict].cohesive) {
+          e += (2.0 / 5.0) * more * $(bmm_power, double)(xi, 2);
+        } else {
+          if (0.0 > more * (xi + dem->pair[ict].norm.params.viscoel.a * vnormij)) {
+          } else
+            e += (2.0 / 5.0) * more * $(bmm_power, double)(xi, 2);
+        }
+      }
+
+      break;
+  }
+
+  switch (dem->pair[ict].tang.tag) {
+    case BMM_DEM_TANG_HW:
+
+      break;
+    case BMM_DEM_TANG_BEAM:
+      {
+        double const lambdaij = $(bmm_swrap, double)(bmm_geom2d_dir(xdiffij), M_2PI);
+        double const lambdaji = $(bmm_swrap, double)(lambdaij + M_PI, M_2PI);
+        double const phii = $(bmm_swrap, double)(dem->part.phi[ipart], M_2PI);
+        double const phij = $(bmm_swrap, double)(dem->part.phi[jpart], M_2PI);
+        double const chii = $(bmm_swrap, double)(lambdaij - phii, M_2PI);
+        double const chij = $(bmm_swrap, double)(lambdaji - phij, M_2PI);
+
+        double const betai = $(bmm_swrap, double)(dem->pair[ict].cont.src[ipart].chirest[icont][BMM_DEM_END_TAIL] - chii, M_2PI);
+        double const betaj = $(bmm_swrap, double)(dem->pair[ict].cont.src[ipart].chirest[icont][BMM_DEM_END_HEAD] - chij, M_2PI);
+
+        double zetai = dem->part.r[ipart] * betai;
+        double zetaj = dem->part.r[jpart] * betaj;
+
+        e += (1.0 / 2.0) * dem->pair[ict].tang.params.beam.k * $(bmm_power, double)(zetai, 2);
+        e += (1.0 / 2.0) * dem->pair[ict].tang.params.beam.k * $(bmm_power, double)(zetaj, 2);
+      }
+
+      break;
+  }
+
+  return e;
+}
+
 // Conservative part only.
 __attribute__ ((__nonnull__, __pure__))
 double bmm_dem_est_econt(struct bmm_dem const *const dem,
@@ -101,94 +198,7 @@ double bmm_dem_est_econt(struct bmm_dem const *const dem,
     for (size_t icont = 0; icont < dem->pair[ict].cont.src[ipart].n; ++icont) {
       size_t const jpart = dem->pair[ict].cont.src[ipart].itgt[icont];
 
-      double xdiffij[BMM_NDIM];
-      bmm_geom2d_cpdiff(xdiffij, dem->part.x[jpart], dem->part.x[ipart],
-          dem->opts.box.x, dem->opts.box.per);
-
-      double const d2 = bmm_geom2d_norm2(xdiffij);
-      if (d2 == 0.0)
-        continue;
-
-      double const ri = dem->part.r[ipart];
-      double const rj = dem->part.r[jpart];
-      double const r = ri + rj;
-      double const r2 = $(bmm_power, double)(r, 2);
-      if (!dem->pair[ict].cohesive)
-        if (d2 > r2)
-          continue;
-
-      double const d = sqrt(d2);
-
-      double xnormji[BMM_NDIM];
-      bmm_geom2d_scale(xnormji, xdiffij, -1.0 / d);
-
-      double xtangji[BMM_NDIM];
-      bmm_geom2d_rperp(xtangji, xnormji);
-
-      double vdiffij[BMM_NDIM];
-      bmm_geom2d_diff(vdiffij, dem->part.v[jpart], dem->part.v[ipart]);
-
-      double const xi = r - d;
-      double const vnormij = bmm_geom2d_dot(vdiffij, xnormji);
-      double const reff = $(bmm_resum2, double)(ri, rj);
-      double const dt = dem->opts.script.dt[dem->script.i];
-
-      switch (dem->pair[ict].norm.tag) {
-        case BMM_DEM_NORM_KV:
-          if (dem->pair[ict].cohesive)
-            e += (1.0 / 2.0) * dem->pair[ict].norm.params.dashpot.k * $(bmm_power, double)(xi, 2);
-          else {
-            if (0.0 > dem->pair[ict].norm.params.dashpot.k * xi +
-                dem->pair[ict].norm.params.dashpot.gamma * vnormij) {
-            } else
-              e += (1.0 / 2.0) * dem->pair[ict].norm.params.dashpot.k * $(bmm_power, double)(xi, 2);
-          }
-
-          break;
-        case BMM_DEM_NORM_BSHP:
-          {
-            double const mat = (2.0 / 3.0) * (dem->opts.part.y /
-                (1.0 - $(bmm_power, double)(dem->opts.part.nu, 2)));
-
-            double const more = mat * sqrt(reff * xi);
-
-            if (dem->pair[ict].cohesive) {
-              e += (2.0 / 5.0) * more * $(bmm_power, double)(xi, 2);
-            } else {
-              if (0.0 > more * (xi + dem->pair[ict].norm.params.viscoel.a * vnormij)) {
-              } else
-                e += (2.0 / 5.0) * more * $(bmm_power, double)(xi, 2);
-            }
-          }
-
-          break;
-      }
-
-      switch (dem->pair[ict].tang.tag) {
-        case BMM_DEM_TANG_HW:
-
-          break;
-        case BMM_DEM_TANG_BEAM:
-          {
-            double const lambdaij = $(bmm_swrap, double)(bmm_geom2d_dir(xdiffij), M_2PI);
-            double const lambdaji = $(bmm_swrap, double)(lambdaij + M_PI, M_2PI);
-            double const phii = $(bmm_swrap, double)(dem->part.phi[ipart], M_2PI);
-            double const phij = $(bmm_swrap, double)(dem->part.phi[jpart], M_2PI);
-            double const chii = $(bmm_swrap, double)(lambdaij - phii, M_2PI);
-            double const chij = $(bmm_swrap, double)(lambdaji - phij, M_2PI);
-
-            double const betai = $(bmm_swrap, double)(dem->pair[ict].cont.src[ipart].chirest[icont][BMM_DEM_END_TAIL] - chii, M_2PI);
-            double const betaj = $(bmm_swrap, double)(dem->pair[ict].cont.src[ipart].chirest[icont][BMM_DEM_END_HEAD] - chij, M_2PI);
-
-            double zetai = dem->part.r[ipart] * betai;
-            double zetaj = dem->part.r[jpart] * betaj;
-
-            e += (1.0 / 2.0) * dem->pair[ict].tang.params.beam.k * $(bmm_power, double)(zetai, 2);
-            e += (1.0 / 2.0) * dem->pair[ict].tang.params.beam.k * $(bmm_power, double)(zetaj, 2);
-          }
-
-          break;
-      }
+      e += bmm_dem_est_econt_one(dem, ict, ipart, icont, jpart);
     }
 
   return e;
@@ -503,6 +513,8 @@ size_t bmm_dem_addcont_unsafe(struct bmm_dem *const dem,
   dem->pair[ict].cont.src[ipart].chirest[icont][BMM_DEM_END_TAIL] = chii;
   dem->pair[ict].cont.src[ipart].chirest[icont][BMM_DEM_END_HEAD] = chij;
 
+  dem->est.ebond += bmm_dem_est_econt_one(dem, ict, ipart, icont, jpart);
+
   // TODO Really?
   // dem->cache.stale = true;
 
@@ -549,10 +561,15 @@ void bmm_dem_remcont(struct bmm_dem *const dem,
     enum bmm_dem_ct const ict, size_t const ipart, size_t const jpart, size_t const icont) {
   // TODO Does this ever fail?
   // dynamic_assert(ipart < jpart, "Yes");
-  if (ipart < jpart)
+  if (ipart < jpart) {
+    dem->est.eyieldis -= bmm_dem_est_econt_one(dem, ict, ipart, icont, jpart);
+
     bmm_dem_remcont_unsafe(dem, ict, ipart, icont);
-  else
+  } else {
+    dem->est.eyieldis -= bmm_dem_est_econt_one(dem, ict, jpart, icont, ipart);
+
     bmm_dem_remcont_unsafe(dem, ict, jpart, icont);
+  }
 }
 
 bool bmm_dem_yield_pair(struct bmm_dem *const dem,
@@ -1200,7 +1217,8 @@ void bmm_dem_force(struct bmm_dem *const dem) {
   // dem->est.escont = 0.0;
   // dem->est.edrivtang = 0.0;
   // dem->est.edrivnorm = 0.0;
-  dem->est.eyieldis = 0.0; // Not okay.
+  // dem->est.ebond = 0.0;
+  // dem->est.eyieldis = 0.0;
   // dem->est.ewcontdis = 0.0;
   // dem->est.escontdis = 0.0;
   dem->est.fback[0] = 0.0;
@@ -1534,11 +1552,12 @@ static double extra_crap(struct bmm_dem const *const dem) {
   double const escont = dem->est.escont;
   double const edrivnorm = dem->est.edrivnorm;
   double const edrivtang = dem->est.edrivtang;
+  double const ebond = dem->est.ebond;
   double const eyieldis = dem->est.eyieldis;
   double const ewcontdis = dem->est.ewcontdis;
   double const escontdis = dem->est.escontdis;
   double const pos = eambdis + epotext + eklin + ekrot + ewcont + escont
-    + eyieldis + ewcontdis + escontdis;
+    + ebond + eyieldis + ewcontdis + escontdis;
   double const neg = edrivnorm + edrivtang;
   double const eee = pos - neg;
   if (fprintf(stderr,
@@ -1553,7 +1572,8 @@ static double extra_crap(struct bmm_dem const *const dem) {
         "escont = %g, "
         "edrivnorm = %g, "
         "edrivtang = %g, "
-        /* "eyieldis = %g, " */
+        "ebond = %g, "
+        "eyieldis = %g, "
         "ewcontdis = %g, "
         "escontdis = %g, "
         "sum(+) = %g, "
@@ -1561,7 +1581,7 @@ static double extra_crap(struct bmm_dem const *const dem) {
         "sum(?) = %g\n",
         echeck + epotext + eklin + ekrot,
         eambdis, epotext, eklin, ekrot, ewcont_d, escont_d, ewcont, escont, edrivnorm, edrivtang,
-        /* eyieldis, */ ewcontdis, escontdis,
+        ebond, eyieldis, ewcontdis, escontdis,
         pos, neg,
         eee) < 0) {
     BMM_TLE_STDS();
@@ -2600,16 +2620,6 @@ void bmm_dem_def(struct bmm_dem *const dem,
   dem->yield.tag = BMM_DEM_YIELD_RANKINE;
   dem->yield.tag = BMM_DEM_YIELD_TRESCA;
   dem->yield.tag = BMM_DEM_YIELD_ZE;
-  // TODO See (N2464).
-  dem->yield.tag = BMM_DEM_YIELD_NONE;
-
-  // TODO These (N2464) are challenging for energy conservation
-  // with a big time step.
-  dem->pair[BMM_DEM_CT_WEAK].tang.tag = BMM_DEM_TANG_NONE;
-  dem->pair[BMM_DEM_CT_WEAK].tang.tag = BMM_DEM_TANG_CS;
-  // TODO This still appears broken.
-  dem->pair[BMM_DEM_CT_STRONG].tang.tag = BMM_DEM_TANG_NONE;
-  dem->pair[BMM_DEM_CT_STRONG].tang.tag = BMM_DEM_TANG_BEAM;
 
   switch (dem->amb.tag) {
     case BMM_DEM_AMB_FAXEN:
@@ -2677,6 +2687,9 @@ void bmm_dem_def(struct bmm_dem *const dem,
     case BMM_DEM_YIELD_ZE:
       dem->yield.params.ze.sigmacrit = 2.0e+4;
       dem->yield.params.ze.taucrit = 2.0e+5;
+      // This is ideal for `beam` tests.
+      dem->yield.params.ze.sigmacrit = 6.0e+4;
+      dem->yield.params.ze.taucrit = 6.0e+5;
 
       break;
   }
@@ -2693,6 +2706,7 @@ void bmm_dem_def(struct bmm_dem *const dem,
   dem->est.escont = 0.0;
   dem->est.edrivtang = 0.0;
   dem->est.edrivnorm = 0.0;
+  dem->est.ebond = 0.0;
   dem->est.eyieldis = 0.0;
   dem->est.ewcontdis = 0.0;
   dem->est.escontdis = 0.0;
@@ -3429,11 +3443,12 @@ static bool garbage(struct bmm_dem const *const dem) {
   double const escont = dem->est.escont;
   double const edrivnorm = dem->est.edrivnorm;
   double const edrivtang = dem->est.edrivtang;
+  double const ebond = dem->est.ebond;
   double const eyieldis = dem->est.eyieldis;
   double const ewcontdis = dem->est.ewcontdis;
   double const escontdis = dem->est.escontdis;
   double const pos = eambdis + epotext + eklin + ekrot + ewcont + escont
-    + eyieldis + ewcontdis + escontdis;
+    + ebond + eyieldis + ewcontdis + escontdis;
   double const neg = edrivnorm + edrivtang;
   double const eee = pos - neg;
 
@@ -3493,7 +3508,7 @@ bool bmm_dem_comm(struct bmm_dem *const dem) {
     if (!garbage(dem))
       BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Nope");
 
-    (void) extra_crap(dem);
+    // (void) extra_crap(dem);
   }
 
   return true;

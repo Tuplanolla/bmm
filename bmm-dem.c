@@ -60,6 +60,8 @@ static bool f(char const *const key, char const *const value,
 
   if (strcmp(key, "script") == 0) {
     if (strcmp(value, "beam") == 0) {
+      dtstuff = 8.0e-7;
+
       opts->part.rnew[0] = 2.078e-3;
       opts->part.rnew[1] = opts->part.rnew[0] + 1.0e-9;
 
@@ -75,6 +77,16 @@ static bool f(char const *const key, char const *const value,
       opts->script.params[istage].test.slices = 42.0;
       // opts->script.params[istage].test.layers = 16.0;
       // opts->script.params[istage].test.slices = 16.0;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_LINK;
+
+      // See (N2464).
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_GRAVY;
+      opts->script.tspan[istage] = 7.0e-3;
+      opts->script.dt[istage] = dtstuff * 0.5;
+      opts->script.params[istage].gravy.g = 3.0e+4;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_LINK;
@@ -117,14 +129,29 @@ static bool f(char const *const key, char const *const value,
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_PRESET1;
 
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
+      opts->script.tspan[istage] = 0.1e-3;
+      opts->script.dt[istage] = dtstuff;
+
       // TODO See (N2464).
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_LINK;
 
       istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
+      opts->script.tspan[istage] = 0.1e-3;
+      opts->script.dt[istage] = dtstuff;
+
+      istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_FAULT;
       opts->script.params[istage].fault.ind = ind_straight;
       opts->script.params[istage].fault.ind = ind_wave;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
+      opts->script.tspan[istage] = 0.1e-3;
+      opts->script.dt[istage] = dtstuff;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_GLUE;
@@ -139,19 +166,13 @@ static bool f(char const *const key, char const *const value,
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CRUNCH;
       // TODO See (N2464).
-      opts->script.tspan[istage] = 2.0e-3;
+      opts->script.tspan[istage] = 4.0e-3;
       // opts->script.tspan[istage] = 20.0e-3;
       opts->script.dt[istage] = dtstuff * 0.65;
       opts->script.params[istage].crunch.v = 20.0;
       opts->script.params[istage].crunch.fadjust[0] =
         opts->script.params[istage].crunch.fadjust[1] = 8.0e+9;
       opts->script.params[istage].crunch.p = -4.0e+5;
-
-      // TODO See (N2464).
-      istage = bmm_dem_script_addstage(opts);
-      opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
-      opts->script.tspan[istage] = 8.03e-3;
-      opts->script.dt[istage] = dtstuff;
     } else if (strcmp(value, "mix") == 0) {
       double const mu = 2.0e-3;
 

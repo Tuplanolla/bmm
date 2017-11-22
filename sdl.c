@@ -625,11 +625,12 @@ static void bmm_sdl_draw(struct bmm_sdl const *const sdl) {
   double const escont = dem->est.escont;
   double const edrivnorm = dem->est.edrivnorm;
   double const edrivtang = dem->est.edrivtang;
+  double const ebond = dem->est.ebond;
   double const eyieldis = dem->est.eyieldis;
   double const ewcontdis = dem->est.ewcontdis;
   double const escontdis = dem->est.escontdis;
   double const pos = eambdis + epotext + eklin + ekrot + ewcont + escont
-    + eyieldis + ewcontdis + escontdis;
+    + ebond + eyieldis + ewcontdis + escontdis;
   double const neg = edrivnorm + edrivtang;
   double const eee = pos - neg;
 

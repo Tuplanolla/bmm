@@ -567,7 +567,9 @@ struct bmm_dem {
     double echeck;
     /// Ambient energy loss.
     double eambdis;
-    /// The `_d` prefix implies (path-independent) direct measurements.
+    /// The `_d` prefix implies (path-independent) direct measurements;
+    /// they are more accurate than integrated measurements,
+    /// with the exception that bonding and yielding makes them bogus.
     /// External potential energy.
     double epotext_d;
     /// Linear kinetic energy.
@@ -586,6 +588,8 @@ struct bmm_dem {
     double edrivnorm;
     /// Work done by driving force.
     double edrivtang;
+    /// Energy forced into bonding.
+    double ebond;
     /// Energy dissipated in yielding.
     double eyieldis;
     /// Energy dissipated in weak contact.
