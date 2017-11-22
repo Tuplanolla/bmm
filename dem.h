@@ -568,11 +568,15 @@ struct bmm_dem {
     /// Ambient energy loss.
     double eambdis;
     /// External potential energy.
-    double epotext;
+    double epotext_d;
     /// Linear kinetic energy.
-    double eklin;
+    double eklin_d;
     /// Rotational kinetic energy.
-    double ekrot;
+    double ekrot_d;
+    /// Weak contact energy.
+    double ewcont_d;
+    /// Strong contact energy.
+    double escont_d;
     /// Weak contact energy.
     double ewcont;
     /// Strong contact energy.

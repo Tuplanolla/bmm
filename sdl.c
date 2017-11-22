@@ -618,11 +618,11 @@ static void bmm_sdl_draw(struct bmm_sdl const *const sdl) {
 
   double const echeck = dem->est.echeck;
   double const eambdis = dem->est.eambdis;
-  double const epotext = dem->est.epotext;
-  double const eklin = dem->est.eklin;
-  double const ekrot = dem->est.ekrot;
-  double const ewcont = dem->est.ewcont;
-  double const escont = dem->est.escont;
+  double const epotext = dem->est.epotext_d;
+  double const eklin = dem->est.eklin_d;
+  double const ekrot = dem->est.ekrot_d;
+  double const ewcont = dem->est.ewcont_d;
+  double const escont = dem->est.escont_d;
   double const edrivnorm = dem->est.edrivnorm;
   double const edrivtang = dem->est.edrivtang;
   double const eyieldis = dem->est.eyieldis;
