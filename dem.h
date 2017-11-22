@@ -567,6 +567,7 @@ struct bmm_dem {
     double echeck;
     /// Ambient energy loss.
     double eambdis;
+    /// The `_d` prefix implies (path-independent) direct measurements.
     /// External potential energy.
     double epotext_d;
     /// Linear kinetic energy.

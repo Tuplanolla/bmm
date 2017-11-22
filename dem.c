@@ -1007,30 +1007,17 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
           double zetai = dem->part.r[ipart] * betai;
           double zetaj = dem->part.r[jpart] * betaj;
 
-          double const vtangi = vtangij - rj * dem->part.omega[jpart];
-          double const vtangj = vtangij - ri * dem->part.omega[ipart];
+          // Nice!
+          double const dpsii = -ri * ((xdiffij[0] * vdiffij[1] - xdiffij[1] * vdiffij[0]) /
+            $(bmm_power, double)(d, 2) - dem->part.omega[ipart]);
+          double const dpsij = -rj * ((xdiffij[0] * vdiffij[1] - xdiffij[1] * vdiffij[0]) /
+            $(bmm_power, double)(d, 2) - dem->part.omega[jpart]);
 
           double const ftangconsi = dem->pair[ict].tang.params.beam.k * zetai;
           double const ftangconsj = dem->pair[ict].tang.params.beam.k * zetaj;
 
-          double const ftangdissi = dem->pair[ict].tang.params.beam.dk * vtangi;
-          double const ftangdissj = dem->pair[ict].tang.params.beam.dk * vtangj;
-
-          // This gets it right.
-          /*
-          taui = (ftangconsi + ftangdissi) * ri;
-          tauj = (ftangconsj + ftangdissj) * rj;
-
-          ftang = (taui + tauj) / d;
-          */
-
-          // This gets it almost right.
-          /*
-          taui = (ftangconsi + ftangdissi) * ri;
-          tauj = (ftangconsj + ftangdissj) * rj;
-
-          ftang = ftangconsi + ftangdissi + ftangconsj + ftangdissj;
-          */
+          double const ftangdissi = dem->pair[ict].tang.params.beam.dk * dpsii;
+          double const ftangdissj = dem->pair[ict].tang.params.beam.dk * dpsij;
 
           taui = (ftangconsi + ftangdissi) * ri;
           tauj = (ftangconsj + ftangdissj) * rj;
@@ -1046,17 +1033,16 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
           bmm_geom2d_addto(dem->part.f[ipart], ftangji);
           bmm_geom2d_diffto(dem->part.f[jpart], ftangji);
 
-          // Otherwise good, but these are wrong.
           if (ict == BMM_DEM_CT_WEAK) {
-            dem->est.ewcont += (vtangi * dt) * ftangconsi;
-            dem->est.ewcont += (vtangj * dt) * ftangconsj;
-            dem->est.ewcontdis += $(bmm_abs, double)((vtangi * dt) * ftangdissi);
-            dem->est.ewcontdis += $(bmm_abs, double)((vtangj * dt) * ftangdissj);
+            dem->est.ewcont += (dpsii * dt) * ftangconsi;
+            dem->est.ewcont += (dpsij * dt) * ftangconsj;
+            dem->est.ewcontdis += $(bmm_abs, double)((dpsii * dt) * ftangdissi);
+            dem->est.ewcontdis += $(bmm_abs, double)((dpsij * dt) * ftangdissj);
           } else {
-            dem->est.escont += (vtangi * dt) * ftangconsi;
-            dem->est.escont += (vtangj * dt) * ftangconsj;
-            dem->est.escontdis += $(bmm_abs, double)((vtangi * dt) * ftangdissi);
-            dem->est.escontdis += $(bmm_abs, double)((vtangj * dt) * ftangdissj);
+            dem->est.escont += (dpsii * dt) * ftangconsi;
+            dem->est.escont += (dpsij * dt) * ftangconsj;
+            dem->est.escontdis += $(bmm_abs, double)((dpsii * dt) * ftangdissi);
+            dem->est.escontdis += $(bmm_abs, double)((dpsij * dt) * ftangdissj);
           }
 
           /*
@@ -1542,8 +1528,10 @@ static double extra_crap(struct bmm_dem const *const dem) {
   double const epotext = dem->est.epotext_d;
   double const eklin = dem->est.eklin_d;
   double const ekrot = dem->est.ekrot_d;
-  double const ewcont = dem->est.ewcont_d;
-  double const escont = dem->est.escont_d;
+  double const ewcont_d = dem->est.ewcont_d;
+  double const escont_d = dem->est.escont_d;
+  double const ewcont = dem->est.ewcont;
+  double const escont = dem->est.escont;
   double const edrivnorm = dem->est.edrivnorm;
   double const edrivtang = dem->est.edrivtang;
   double const eyieldis = dem->est.eyieldis;
@@ -1559,6 +1547,8 @@ static double extra_crap(struct bmm_dem const *const dem) {
         "epotext = %g, "
         "eklin = %g, "
         "ekrot = %g, "
+        "ewcont_d = %g, "
+        "escont_d = %g, "
         "ewcont = %g, "
         "escont = %g, "
         "edrivnorm = %g, "
@@ -1570,7 +1560,7 @@ static double extra_crap(struct bmm_dem const *const dem) {
         "sum(-) = %g, "
         "sum(?) = %g\n",
         echeck + epotext + eklin + ekrot,
-        eambdis, epotext, eklin, ekrot, ewcont, escont, edrivnorm, edrivtang,
+        eambdis, epotext, eklin, ekrot, ewcont_d, escont_d, ewcont, escont, edrivnorm, edrivtang,
         /* eyieldis, */ ewcontdis, escontdis,
         pos, neg,
         eee) < 0) {
@@ -2669,9 +2659,8 @@ void bmm_dem_def(struct bmm_dem *const dem,
     case BMM_DEM_TANG_BEAM:
       dem->pair[BMM_DEM_CT_STRONG].tang.params.beam.k = 8.0e+6;
       dem->pair[BMM_DEM_CT_STRONG].tang.params.beam.dk = 4.0e+2;
-      // TODO This raises suspicion.
-      dem->pair[BMM_DEM_CT_STRONG].tang.params.beam.dk = 4.0e+1;
-      dem->pair[BMM_DEM_CT_STRONG].tang.params.beam.dk = 0.0e+1;
+      // This is ideal for `triplet` tests.
+      // dem->pair[BMM_DEM_CT_STRONG].tang.params.beam.dk = 4.0e+1;
 
       break;
   }
