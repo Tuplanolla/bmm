@@ -128,15 +128,25 @@ double bmm_dem_est_econt_one(struct bmm_dem const *const dem,
   double const reff = $(bmm_resum2, double)(ri, rj);
   double const dt = dem->opts.script.dt[dem->script.i];
 
+  double fnorm = 0.0;
+
   switch (dem->pair[ict].norm.tag) {
     case BMM_DEM_NORM_KV:
-      if (dem->pair[ict].cohesive)
+      if (dem->pair[ict].cohesive) {
+        fnorm = dem->pair[ict].norm.params.dashpot.k * xi +
+          dem->pair[ict].norm.params.dashpot.gamma * vnormij;
+
         e += (1.0 / 2.0) * dem->pair[ict].norm.params.dashpot.k * $(bmm_power, double)(xi, 2);
-      else {
+      } else {
+        fnorm = $(bmm_max, double)(0.0,
+            dem->pair[ict].norm.params.dashpot.k * xi +
+            dem->pair[ict].norm.params.dashpot.gamma * vnormij);
+
         if (0.0 > dem->pair[ict].norm.params.dashpot.k * xi +
             dem->pair[ict].norm.params.dashpot.gamma * vnormij) {
-        } else
+        } else {
           e += (1.0 / 2.0) * dem->pair[ict].norm.params.dashpot.k * $(bmm_power, double)(xi, 2);
+        }
       }
 
       break;
@@ -148,11 +158,17 @@ double bmm_dem_est_econt_one(struct bmm_dem const *const dem,
         double const more = mat * sqrt(reff * xi);
 
         if (dem->pair[ict].cohesive) {
+          fnorm = more * (xi + dem->pair[ict].norm.params.viscoel.a * vnormij);
+
           e += (2.0 / 5.0) * more * $(bmm_power, double)(xi, 2);
         } else {
+          fnorm = $(bmm_max, double)(0.0,
+              more * (xi + dem->pair[ict].norm.params.viscoel.a * vnormij));
+
           if (0.0 > more * (xi + dem->pair[ict].norm.params.viscoel.a * vnormij)) {
-          } else
+          } else {
             e += (2.0 / 5.0) * more * $(bmm_power, double)(xi, 2);
+          }
         }
       }
 
@@ -161,6 +177,30 @@ double bmm_dem_est_econt_one(struct bmm_dem const *const dem,
 
   switch (dem->pair[ict].tang.tag) {
     case BMM_DEM_TANG_HW:
+
+      break;
+    case BMM_DEM_TANG_CS:
+      {
+        double const lambdaij = $(bmm_swrap, double)(bmm_geom2d_dir(xdiffij), M_2PI);
+        double const lambdaji = $(bmm_swrap, double)(lambdaij + M_PI, M_2PI);
+        double const phii = $(bmm_swrap, double)(dem->part.phi[ipart], M_2PI);
+        double const phij = $(bmm_swrap, double)(dem->part.phi[jpart], M_2PI);
+        double const chii = $(bmm_swrap, double)(lambdaij - phii, M_2PI);
+        double const chij = $(bmm_swrap, double)(lambdaji - phij, M_2PI);
+
+        double const betai = $(bmm_swrap, double)(dem->pair[ict].cont.src[ipart].chirest[icont][BMM_DEM_END_TAIL] - chii, M_2PI);
+        double const betaj = $(bmm_swrap, double)(dem->pair[ict].cont.src[ipart].chirest[icont][BMM_DEM_END_HEAD] - chij, M_2PI);
+
+        double zetai = dem->part.r[ipart] * betai;
+        double zetaj = dem->part.r[jpart] * betaj;
+        double zeta = zetai + zetaj;
+
+        if (dem->pair[ict].tang.params.cs.k * $(bmm_abs, double)(zeta) <
+            dem->pair[ict].tang.params.cs.mu * $(bmm_abs, double)(fnorm)) {
+          e += (1.0 / 2.0) * dem->pair[ict].tang.params.cs.k * $(bmm_power, double)(zeta, 2);
+        } else {
+        }
+      }
 
       break;
     case BMM_DEM_TANG_BEAM:
