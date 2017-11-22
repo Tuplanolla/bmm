@@ -910,14 +910,14 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
           double const lambdai = $(bmm_swrap, double)(dem->pair[ict].cont.src[ipart].chirest[icont][BMM_DEM_END_TAIL] - chii, M_2PI);
           double const lambdaj = $(bmm_swrap, double)(dem->pair[ict].cont.src[ipart].chirest[icont][BMM_DEM_END_HEAD] - chij, M_2PI);
 
-          double const nomegai = dem->part.omega[ipart] + vtangij / d;
-          double const nomegaj = dem->part.omega[jpart] + vtangij / d;
+          double const omegai = dem->part.omega[ipart];
+          double const omegaj = dem->part.omega[jpart];
 
           double const constaui = -dem->pair[ict].tang.params.beam.k * lambdai;
           double const constauj = -dem->pair[ict].tang.params.beam.k * lambdaj;
 
-          double const disstaui = -dem->pair[ict].tang.params.beam.dk * nomegai;
-          double const disstauj = -dem->pair[ict].tang.params.beam.dk * nomegaj;
+          double const disstaui = -dem->pair[ict].tang.params.beam.dk * omegai;
+          double const disstauj = -dem->pair[ict].tang.params.beam.dk * omegaj;
 
           taui = constaui + disstaui;
           tauj = constauj + disstauj;
@@ -926,17 +926,17 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
           dem->part.tau[jpart] += tauj;
 
           if (ict == BMM_DEM_CT_WEAK) {
-            dem->est.ewcont += -nomegai * dt * constaui;
-            dem->est.ewcont += -nomegaj * dt * constauj;
-            dem->est.ewcontdis += $(bmm_abs, double)(nomegai * dt * disstaui);
-            dem->est.ewcontdis += $(bmm_abs, double)(nomegaj * dt * disstauj);
+            dem->est.ewcont += -omegai * dt * constaui;
+            dem->est.ewcont += -omegaj * dt * constauj;
+            dem->est.ewcontdis += $(bmm_abs, double)(omegai * dt * disstaui);
+            dem->est.ewcontdis += $(bmm_abs, double)(omegaj * dt * disstauj);
           } else {
             // It is this in disguise.
-            // dem->est.escont += -(ri * nomegai * dt) * (constaui / ri);
-            dem->est.escont += -nomegai * dt * constaui;
-            dem->est.escont += -nomegaj * dt * constauj;
-            dem->est.escontdis += $(bmm_abs, double)(nomegai * dt * disstaui);
-            dem->est.escontdis += $(bmm_abs, double)(nomegaj * dt * disstauj);
+            // dem->est.escont += -(ri * omegai * dt) * (constaui / ri);
+            dem->est.escont += -omegai * dt * constaui;
+            dem->est.escont += -omegaj * dt * constauj;
+            dem->est.escontdis += $(bmm_abs, double)(omegai * dt * disstaui);
+            dem->est.escontdis += $(bmm_abs, double)(omegaj * dt * disstauj);
           }
         }
 
@@ -2530,7 +2530,7 @@ void bmm_dem_def(struct bmm_dem *const dem,
       dem->pair[BMM_DEM_CT_STRONG].tang.params.beam.k = 2.0e+2;
       dem->pair[BMM_DEM_CT_STRONG].tang.params.beam.dk = 4.0e-2;
       // TODO This raises suspicion.
-      // dem->pair[BMM_DEM_CT_STRONG].tang.params.beam.dk = 0.0e-2;
+      dem->pair[BMM_DEM_CT_STRONG].tang.params.beam.dk = 0.0e-2;
 
       break;
   }
