@@ -319,6 +319,8 @@ static void bmm_sdl_draw(struct bmm_sdl const *const sdl) {
       nope[3] = 0.0f;
       double t = fabs(xoff / sdl->dem.opts.box.x[0] - 0.5) - 0.5;
       blent[3] = 1.0f - (float) t;
+      // Visualize windings.
+      // blent[2] = bmm_fp_lerp(sdl->dem.part.phi[ipart], -M_PI, M_PI, 0.0, 1.0);
       glColor4fv(blent);
 
       if (sdl->blend)

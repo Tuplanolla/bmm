@@ -553,7 +553,12 @@ size_t bmm_dem_addcont_unsafe(struct bmm_dem *const dem,
   dem->pair[ict].cont.src[ipart].chirest[icont][BMM_DEM_END_TAIL] = chii;
   dem->pair[ict].cont.src[ipart].chirest[icont][BMM_DEM_END_HEAD] = chij;
 
-  dem->est.ebond += bmm_dem_est_econt_one(dem, ict, ipart, icont, jpart);
+  double const e = bmm_dem_est_econt_one(dem, ict, ipart, icont, jpart);
+  dem->est.ebond -= e;
+  if (ict == BMM_DEM_CT_WEAK)
+    dem->est.ewcont += e;
+  else
+    dem->est.escont += e;
 
   // TODO Really?
   // dem->cache.stale = true;
@@ -585,7 +590,9 @@ static void bmm_dem_copycont(struct bmm_dem *const dem,
 }
 
 void bmm_dem_remcont_unsafe(struct bmm_dem *const dem,
-    enum bmm_dem_ct const ict, size_t const ipart, size_t const icont) {
+    enum bmm_dem_ct const ict, size_t const ipart, size_t const icont, size_t const jpart) {
+  // fprintf(stderr, "Remove contact %zu out of %zu from %zu to %zu.\n", icont, dem->pair[ict].cont.src[ipart].n, ipart, jpart);
+
   --dem->pair[ict].cont.src[ipart].n;
 
   size_t const jcont = dem->pair[ict].cont.src[ipart].n;
@@ -598,18 +605,20 @@ void bmm_dem_remcont_unsafe(struct bmm_dem *const dem,
 }
 
 void bmm_dem_remcont(struct bmm_dem *const dem,
-    enum bmm_dem_ct const ict, size_t const ipart, size_t const jpart, size_t const icont) {
+    enum bmm_dem_ct const ict, size_t apart, size_t bpart, size_t const icont) {
   // TODO Does this ever fail?
   // dynamic_assert(ipart < jpart, "Yes");
-  if (ipart < jpart) {
-    dem->est.eyieldis -= bmm_dem_est_econt_one(dem, ict, ipart, icont, jpart);
+  size_t const ipart = $(bmm_min, size_t)(apart, bpart);
+  size_t const jpart = $(bmm_max, size_t)(apart, bpart);
 
-    bmm_dem_remcont_unsafe(dem, ict, ipart, icont);
-  } else {
-    dem->est.eyieldis -= bmm_dem_est_econt_one(dem, ict, jpart, icont, ipart);
+  double const e = bmm_dem_est_econt_one(dem, ict, ipart, icont, jpart);
+  dem->est.eyieldis += e;
+  if (ict == BMM_DEM_CT_WEAK)
+    dem->est.ewcont -= e;
+  else
+    dem->est.escont -= e;
 
-    bmm_dem_remcont_unsafe(dem, ict, jpart, icont);
-  }
+  bmm_dem_remcont_unsafe(dem, ict, ipart, icont, jpart);
 }
 
 bool bmm_dem_yield_pair(struct bmm_dem *const dem,
@@ -1600,6 +1609,7 @@ static double extra_crap(struct bmm_dem const *const dem) {
     + ebond + eyieldis + ewcontdis + escontdis;
   double const neg = edrivnorm + edrivtang;
   double const eee = pos - neg;
+  /*
   if (fprintf(stderr,
         "echeck = %g, "
         "eambdis = %g, "
@@ -1624,6 +1634,17 @@ static double extra_crap(struct bmm_dem const *const dem) {
         ebond, eyieldis, ewcontdis, escontdis,
         pos, neg,
         eee) < 0) {
+    BMM_TLE_STDS();
+
+    return NAN;
+  }
+  */
+  if (fprintf(stderr,
+        "%g %g %g %g\n",
+        dem->time.t,
+        eklin + ekrot + epotext + ewcont + escont,
+        edrivnorm + edrivtang,
+        eambdis + ewcontdis + escontdis) < 0) {
     BMM_TLE_STDS();
 
     return NAN;
@@ -2728,8 +2749,8 @@ void bmm_dem_def(struct bmm_dem *const dem,
       dem->yield.params.ze.sigmacrit = 2.0e+4;
       dem->yield.params.ze.taucrit = 2.0e+5;
       // This is ideal for `beam` tests.
-      dem->yield.params.ze.sigmacrit = 6.0e+4;
-      dem->yield.params.ze.taucrit = 6.0e+5;
+      dem->yield.params.ze.sigmacrit = 5.0e+4;
+      dem->yield.params.ze.taucrit = 5.0e+5;
 
       break;
   }

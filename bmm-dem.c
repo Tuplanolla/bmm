@@ -166,7 +166,7 @@ static bool f(char const *const key, char const *const value,
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CRUNCH;
       // TODO See (N2464).
-      opts->script.tspan[istage] = 4.0e-3;
+      opts->script.tspan[istage] = 8.0e-3;
       // opts->script.tspan[istage] = 20.0e-3;
       opts->script.dt[istage] = dtstuff * 0.65;
       opts->script.params[istage].crunch.v = 20.0;
