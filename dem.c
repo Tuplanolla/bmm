@@ -1029,17 +1029,17 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
 
           ftang = copysign($(bmm_min, double)(
                 dem->pair[ict].tang.params.cs.k * $(bmm_abs, double)(zeta),
-                dem->pair[ict].tang.params.cs.mu * $(bmm_abs, double)(fnorm)), vtangij);
+                dem->pair[ict].tang.params.cs.mu * $(bmm_abs, double)(fnorm)), zeta);
 
           if (dem->pair[ict].tang.params.cs.k * $(bmm_abs, double)(zeta) <
                 dem->pair[ict].tang.params.cs.mu * $(bmm_abs, double)(fnorm)) {
             ftangcons = copysign(
-                dem->pair[ict].tang.params.cs.k * $(bmm_abs, double)(zeta), vtangij);
+                dem->pair[ict].tang.params.cs.k * $(bmm_abs, double)(zeta), zeta);
             ftangdiss = 0.0;
           } else {
             ftangcons = 0.0;
             ftangdiss = copysign(dem->pair[ict].tang.params.cs.mu *
-                $(bmm_abs, double)(fnorm), vtangij);
+                $(bmm_abs, double)(fnorm), zeta);
           }
         }
 
@@ -2707,7 +2707,7 @@ void bmm_dem_def(struct bmm_dem *const dem,
 
       break;
     case BMM_DEM_TANG_CS:
-      dem->pair[BMM_DEM_CT_WEAK].tang.params.cs.k = 1.0e+9;
+      dem->pair[BMM_DEM_CT_WEAK].tang.params.cs.k = 1.0e+6;
       dem->pair[BMM_DEM_CT_WEAK].tang.params.cs.mu = 0.85;
 
       break;
@@ -3052,12 +3052,10 @@ static bool bmm_dem_script_create_testpile(struct bmm_dem *const dem) {
 
 __attribute__ ((__nonnull__))
 static bool bmm_dem_script_create_testplane(struct bmm_dem *const dem) {
-  double const etahc = bmm_geom_ballvol(0.5, BMM_NDIM);
   double const vhc = $(bmm_prod, double)(dem->opts.box.x, BMM_NDIM);
-  double const eta = dem->opts.script.params[dem->script.i].test.eta;
-  double const v = vhc * (etahc / eta);
+  double const v = vhc;
 
-  double const vlim = vhc * eta;
+  double const vlim = vhc;
   double const rspace = bmm_ival_midpoint(dem->opts.part.rnew);
   // double const rspace = dem->opts.part.rnew[1];
   double const dspace = (sqrt(3.0) / 2.0) * rspace;

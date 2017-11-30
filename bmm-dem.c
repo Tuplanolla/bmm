@@ -218,7 +218,6 @@ static bool f(char const *const key, char const *const value,
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CREATE_PLANE;
-      opts->script.params[istage].test.eta = bmm_geom_ballmpd(BMM_NDIM);
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CREATE_COUPLE;
@@ -247,7 +246,7 @@ static bool f(char const *const key, char const *const value,
       opts->part.y = 52.0e+9;
 
       opts->part.rnew[0] = 2.078e-3;
-      opts->part.rnew[1] = opts->part.rnew[0] * 1.07;
+      opts->part.rnew[1] = opts->part.rnew[0] * 1.37;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
@@ -257,6 +256,13 @@ static bool f(char const *const key, char const *const value,
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CREATE_PILE;
       opts->script.params[istage].test.eta = bmm_geom_ballmpd(BMM_NDIM);
+      /*
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_CREATE_HC;
+      opts->script.params[istage].create.eta = 0.5;
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_CREATE_PLANE;
+      */
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_GRAVY;
