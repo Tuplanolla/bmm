@@ -185,14 +185,14 @@ double bmm_dem_est_econt_one(struct bmm_dem const *const dem,
         double const lambdaji = $(bmm_swrap, double)(lambdaij + M_PI, M_2PI);
         double const phii = dem->part.phi[ipart];
         double const phij = dem->part.phi[jpart];
-        double const chii = lambdaij - phii;
-        double const chij = lambdaji - phij;
+        double const psii = phii - lambdaij;
+        double const psij = phij - lambdaji;
 
-        double const betai = $(bmm_swrap, double)(dem->pair[ict].cont.src[ipart].chirest[icont][BMM_DEM_END_TAIL] - chii, M_2PI);
-        double const betaj = $(bmm_swrap, double)(dem->pair[ict].cont.src[ipart].chirest[icont][BMM_DEM_END_HEAD] - chij, M_2PI);
+        double const dpsii = $(bmm_swrap, double)(psii - dem->pair[ict].cont.src[ipart].psirest[icont][BMM_DEM_END_TAIL], M_2PI);
+        double const dpsij = $(bmm_swrap, double)(psij - dem->pair[ict].cont.src[ipart].psirest[icont][BMM_DEM_END_HEAD], M_2PI);
 
-        double zetai = dem->part.r[ipart] * betai;
-        double zetaj = dem->part.r[jpart] * betaj;
+        double zetai = dem->part.r[ipart] * dpsii;
+        double zetaj = dem->part.r[jpart] * dpsij;
         double zeta = zetai + zetaj;
 
         if (dem->pair[ict].tang.params.cs.k * $(bmm_abs, double)(zeta) <
@@ -209,14 +209,14 @@ double bmm_dem_est_econt_one(struct bmm_dem const *const dem,
         double const lambdaji = $(bmm_swrap, double)(lambdaij + M_PI, M_2PI);
         double const phii = dem->part.phi[ipart];
         double const phij = dem->part.phi[jpart];
-        double const chii = lambdaij - phii;
-        double const chij = lambdaji - phij;
+        double const psii = phii - lambdaij;
+        double const psij = phij - lambdaji;
 
-        double const betai = $(bmm_swrap, double)(dem->pair[ict].cont.src[ipart].chirest[icont][BMM_DEM_END_TAIL] - chii, M_2PI);
-        double const betaj = $(bmm_swrap, double)(dem->pair[ict].cont.src[ipart].chirest[icont][BMM_DEM_END_HEAD] - chij, M_2PI);
+        double const dpsii = $(bmm_swrap, double)(psii - dem->pair[ict].cont.src[ipart].psirest[icont][BMM_DEM_END_TAIL], M_2PI);
+        double const dpsij = $(bmm_swrap, double)(psij - dem->pair[ict].cont.src[ipart].psirest[icont][BMM_DEM_END_HEAD], M_2PI);
 
-        double zetai = dem->part.r[ipart] * betai;
-        double zetaj = dem->part.r[jpart] * betaj;
+        double zetai = dem->part.r[ipart] * dpsii;
+        double zetaj = dem->part.r[jpart] * dpsij;
 
         e += (1.0 / 2.0) * dem->pair[ict].tang.params.beam.k * $(bmm_power, double)(zetai, 2);
         e += (1.0 / 2.0) * dem->pair[ict].tang.params.beam.k * $(bmm_power, double)(zetaj, 2);
@@ -535,8 +535,8 @@ size_t bmm_dem_addcont_unsafe(struct bmm_dem *const dem,
   double const lambdaji = $(bmm_swrap, double)(lambdaij + M_PI, M_2PI);
   double const phii = dem->part.phi[ipart];
   double const phij = dem->part.phi[jpart];
-  double const chii = lambdaij - phii;
-  double const chij = lambdaji - phij;
+  double const psii = phii - lambdaij;
+  double const psij = phij - lambdaji;
 
   double a = 0.3;
   double v[2];
@@ -549,8 +549,8 @@ size_t bmm_dem_addcont_unsafe(struct bmm_dem *const dem,
   dem->pair[ict].cont.src[ipart].drest[icont] = drest;
   dem->pair[ict].cont.src[ipart].itgt[icont] = jpart;
 
-  dem->pair[ict].cont.src[ipart].chirest[icont][BMM_DEM_END_TAIL] = chii;
-  dem->pair[ict].cont.src[ipart].chirest[icont][BMM_DEM_END_HEAD] = chij;
+  dem->pair[ict].cont.src[ipart].psirest[icont][BMM_DEM_END_TAIL] = psii;
+  dem->pair[ict].cont.src[ipart].psirest[icont][BMM_DEM_END_HEAD] = psij;
 
   double const e = bmm_dem_est_econt_one(dem, ict, ipart, icont, jpart);
   dem->est.ebond -= e;
@@ -585,7 +585,7 @@ static void bmm_dem_copycont(struct bmm_dem *const dem,
   dem->pair[ict].cont.src[ipart].drest[icont] = dem->pair[ict].cont.src[ipart].drest[jcont];
 
   for (size_t iend = 0; iend < BMM_NEND; ++iend)
-    dem->pair[ict].cont.src[ipart].chirest[icont][iend] = dem->pair[ict].cont.src[ipart].chirest[jcont][iend];
+    dem->pair[ict].cont.src[ipart].psirest[icont][iend] = dem->pair[ict].cont.src[ipart].psirest[jcont][iend];
 }
 
 void bmm_dem_remcont_unsafe(struct bmm_dem *const dem,
@@ -811,7 +811,7 @@ static void bmm_dem_copypart(struct bmm_dem *const dem,
 
     for (size_t icont = 0; icont < dem->pair[ict].cont.src[jpart].n; ++icont)
       for (size_t iend = 0; iend < BMM_NEND; ++iend)
-        dem->pair[ict].cont.src[ipart].chirest[icont][iend] = dem->pair[ict].cont.src[jpart].chirest[icont][iend];
+        dem->pair[ict].cont.src[ipart].psirest[icont][iend] = dem->pair[ict].cont.src[jpart].psirest[icont][iend];
 
     for (size_t icont = 0; icont < dem->pair[ict].cont.src[jpart].n; ++icont)
       dem->pair[ict].cont.src[ipart].strength[icont] = dem->pair[ict].cont.src[jpart].strength[icont];
@@ -1017,14 +1017,14 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
           double const lambdaji = $(bmm_swrap, double)(lambdaij + M_PI, M_2PI);
           double const phii = dem->part.phi[ipart];
           double const phij = dem->part.phi[jpart];
-          double const chii = lambdaij - phii;
-          double const chij = lambdaji - phij;
+          double const psii = phii - lambdaij;
+          double const psij = phij - lambdaji;
 
-          double const betai = $(bmm_swrap, double)(dem->pair[ict].cont.src[ipart].chirest[icont][BMM_DEM_END_TAIL] - chii, M_2PI);
-          double const betaj = $(bmm_swrap, double)(dem->pair[ict].cont.src[ipart].chirest[icont][BMM_DEM_END_HEAD] - chij, M_2PI);
+          double const dpsii = $(bmm_swrap, double)(psii - dem->pair[ict].cont.src[ipart].psirest[icont][BMM_DEM_END_TAIL], M_2PI);
+          double const dpsij = $(bmm_swrap, double)(psij - dem->pair[ict].cont.src[ipart].psirest[icont][BMM_DEM_END_HEAD], M_2PI);
 
-          double zetai = dem->part.r[ipart] * betai;
-          double zetaj = dem->part.r[jpart] * betaj;
+          double zetai = dem->part.r[ipart] * dpsii;
+          double zetaj = dem->part.r[jpart] * dpsij;
           double zeta = zetai + zetaj;
 
           ftang = copysign($(bmm_min, double)(
@@ -1063,14 +1063,14 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
           double const lambdaji = $(bmm_swrap, double)(lambdaij + M_PI, M_2PI);
           double const phii = dem->part.phi[ipart];
           double const phij = dem->part.phi[jpart];
-          double const chii = lambdaij - phii;
-          double const chij = lambdaji - phij;
+          double const psii = phii - lambdaij;
+          double const psij = phij - lambdaji;
 
-          double const betai = $(bmm_swrap, double)(dem->pair[ict].cont.src[ipart].chirest[icont][BMM_DEM_END_TAIL] - chii, M_2PI);
-          double const betaj = $(bmm_swrap, double)(dem->pair[ict].cont.src[ipart].chirest[icont][BMM_DEM_END_HEAD] - chij, M_2PI);
+          double const dpsii = $(bmm_swrap, double)(psii - dem->pair[ict].cont.src[ipart].psirest[icont][BMM_DEM_END_TAIL], M_2PI);
+          double const dpsij = $(bmm_swrap, double)(psij - dem->pair[ict].cont.src[ipart].psirest[icont][BMM_DEM_END_HEAD], M_2PI);
 
-          double zetai = dem->part.r[ipart] * betai;
-          double zetaj = dem->part.r[jpart] * betaj;
+          double zetai = dem->part.r[ipart] * dpsii;
+          double zetaj = dem->part.r[jpart] * dpsij;
 
           // Nice!
           double const dpsii = -ri * ((xdiffij[0] * vdiffij[1] - xdiffij[1] * vdiffij[0]) /
