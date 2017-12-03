@@ -1098,11 +1098,9 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
           double zetai = dem->part.r[ipart] * dpsii;
           double zetaj = dem->part.r[jpart] * dpsij;
 
-          // Nice!
-          double const dzetai = -ri * ((xdiffij[0] * vdiffij[1] - xdiffij[1] * vdiffij[0]) /
-            $(bmm_power, double)(d, 2) - dem->part.omega[ipart]);
-          double const dzetaj = -rj * ((xdiffij[0] * vdiffij[1] - xdiffij[1] * vdiffij[0]) /
-            $(bmm_power, double)(d, 2) - dem->part.omega[jpart]);
+          double const proj = -bmm_geom2d_dot(xtangji, vdiffij) / d;
+          double const dzetai = ri * (dem->part.omega[ipart] - proj);
+          double const dzetaj = rj * (dem->part.omega[jpart] - proj);
 
           double const ftangconsi = dem->pair[ict].tang.params.beam.k * zetai;
           double const ftangconsj = dem->pair[ict].tang.params.beam.k * zetaj;
