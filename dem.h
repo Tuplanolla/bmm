@@ -339,7 +339,7 @@ struct bmm_dem_pair {
       /// Rest distances.
       double drest[BMM_MCONTACT];
       /// Rest angle.
-      double chirest[BMM_MLINK][BMM_NEND];
+      double psirest[BMM_MLINK][BMM_NEND];
       /// Strength scale factor.
       double strength[BMM_MCONTACT];
     } src[BMM_MPART];
@@ -756,6 +756,9 @@ bool bmm_dem_run(struct bmm_dem *);
 /// handles signals with the simulation options `opts`.
 __attribute__ ((__nonnull__))
 bool bmm_dem_run_with(struct bmm_dem_opts const *);
+
+__attribute__ ((__nonnull__))
+void bmm_dem_opts_set_rnew(struct bmm_dem_opts *, double const *);
 
 // TODO These are questionable to expose.
 

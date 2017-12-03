@@ -27,8 +27,33 @@
 #include "sig.h"
 #include "tle.h"
 
+void bmm_dem_opts_set_rnew(struct bmm_dem_opts *const opts,
+    double const *const rnew) {
+  double const leeway = 4.0;
+
+  opts->part.rnew[0] = rnew[0];
+  opts->part.rnew[1] = rnew[1];
+
+  opts->cache.dcutoff = leeway * rnew[1];
+
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+    opts->cache.ncell[idim] = $(bmm_max, size_t)(3,
+      (size_t) (opts->box.x[idim] / opts->cache.dcutoff)) +
+      (opts->box.per[idim] ? 0 : 2);
+
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
+    dynamic_assert(opts->box.x[idim] / (double) opts->cache.ncell[idim] >
+        2.0 * opts->part.rnew[1],
+        "Neighbor cells too small");
+
+    dynamic_assert(opts->cache.dcutoff <= opts->box.x[idim] /
+        (double) ((opts->cache.ncell[idim] - (opts->box.per[idim] ? 0 : 2))),
+        "Neighbor cells too small");
+  }
+}
+
 __attribute__ ((__nonnull__))
-double bmm_dem_est_vdc(double *const pv, struct bmm_dem const *const dem) {
+void bmm_dem_est_vdc(double *const pv, struct bmm_dem const *const dem) {
   for (size_t idim = 0; idim < BMM_NDIM; ++idim)
     pv[idim] = 0.0;
 
@@ -642,10 +667,11 @@ bool bmm_dem_yield_pair(struct bmm_dem *const dem,
   double const ftangij = $(bmm_abs, double)(bmm_geom2d_dot(fdiffij, xtangji));
 
   // TODO Is this a valid assumption for the yield point cross section?
-  double const a = $(bmm_hmean2, double)(dem->part.r[ipart], dem->part.r[jpart]);
+  double const a = 2.0 *
+    $(bmm_hmean2, double)(dem->part.r[ipart], dem->part.r[jpart]);
 
   // TODO Does this make sense here?
-  double const strength = 1.0e+3 * dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].strength[icont];
+  double const strength = dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].strength[icont];
 
   double const sigmaij = fnormij / a / strength;
   double const tauij = ftangij / a / strength;
@@ -1073,16 +1099,16 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
           double zetaj = dem->part.r[jpart] * dpsij;
 
           // Nice!
-          double const dpsii = -ri * ((xdiffij[0] * vdiffij[1] - xdiffij[1] * vdiffij[0]) /
+          double const dzetai = -ri * ((xdiffij[0] * vdiffij[1] - xdiffij[1] * vdiffij[0]) /
             $(bmm_power, double)(d, 2) - dem->part.omega[ipart]);
-          double const dpsij = -rj * ((xdiffij[0] * vdiffij[1] - xdiffij[1] * vdiffij[0]) /
+          double const dzetaj = -rj * ((xdiffij[0] * vdiffij[1] - xdiffij[1] * vdiffij[0]) /
             $(bmm_power, double)(d, 2) - dem->part.omega[jpart]);
 
           double const ftangconsi = dem->pair[ict].tang.params.beam.k * zetai;
           double const ftangconsj = dem->pair[ict].tang.params.beam.k * zetaj;
 
-          double const ftangdissi = dem->pair[ict].tang.params.beam.dk * dpsii;
-          double const ftangdissj = dem->pair[ict].tang.params.beam.dk * dpsij;
+          double const ftangdissi = dem->pair[ict].tang.params.beam.dk * dzetai;
+          double const ftangdissj = dem->pair[ict].tang.params.beam.dk * dzetaj;
 
           taui = (ftangconsi + ftangdissi) * ri;
           tauj = (ftangconsj + ftangdissj) * rj;
@@ -1099,15 +1125,15 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
           bmm_geom2d_diffto(dem->part.f[jpart], ftangji);
 
           if (ict == BMM_DEM_CT_WEAK) {
-            dem->est.ewcont += (dpsii * dt) * ftangconsi;
-            dem->est.ewcont += (dpsij * dt) * ftangconsj;
-            dem->est.ewcontdis += $(bmm_abs, double)((dpsii * dt) * ftangdissi);
-            dem->est.ewcontdis += $(bmm_abs, double)((dpsij * dt) * ftangdissj);
+            dem->est.ewcont += (dzetai * dt) * ftangconsi;
+            dem->est.ewcont += (dzetaj * dt) * ftangconsj;
+            dem->est.ewcontdis += $(bmm_abs, double)((dzetai * dt) * ftangdissi);
+            dem->est.ewcontdis += $(bmm_abs, double)((dzetaj * dt) * ftangdissj);
           } else {
-            dem->est.escont += (dpsii * dt) * ftangconsi;
-            dem->est.escont += (dpsij * dt) * ftangconsj;
-            dem->est.escontdis += $(bmm_abs, double)((dpsii * dt) * ftangdissi);
-            dem->est.escontdis += $(bmm_abs, double)((dpsij * dt) * ftangdissj);
+            dem->est.escont += (dzetai * dt) * ftangconsi;
+            dem->est.escont += (dzetaj * dt) * ftangconsj;
+            dem->est.escontdis += $(bmm_abs, double)((dzetai * dt) * ftangdissi);
+            dem->est.escontdis += $(bmm_abs, double)((dzetaj * dt) * ftangdissj);
           }
 
           /*
@@ -1271,9 +1297,9 @@ void bmm_dem_force(struct bmm_dem *const dem) {
   // dem->est.escontdis = 0.0;
   dem->est.fback[0] = 0.0;
   dem->est.fback[1] = 0.0;
-  dem->est.mueff = NAN;
-  dem->est.vdriv[0] = NAN;
-  dem->est.vdriv[1] = NAN;
+  dem->est.mueff = (double) NAN;
+  dem->est.vdriv[0] = (double) NAN;
+  dem->est.vdriv[1] = (double) NAN;
 
   dem->est.epotext_d += bmm_dem_est_epotext(dem);
   dem->est.eklin_d += bmm_dem_est_eklin(dem);
@@ -1635,7 +1661,7 @@ static double extra_crap(struct bmm_dem const *const dem) {
         eee) < 0) {
     BMM_TLE_STDS();
 
-    return NAN;
+    return (double) NAN;
   }
   */
   if (fprintf(stderr,
@@ -1646,7 +1672,7 @@ static double extra_crap(struct bmm_dem const *const dem) {
         eambdis + ewcontdis + escontdis) < 0) {
     BMM_TLE_STDS();
 
-    return NAN;
+    return (double) NAN;
   }
 
   return eee;
@@ -2235,7 +2261,7 @@ harder: ;
 
     faces->poly[nface].n = 0;
 
-    double backdir = NAN;
+    double backdir = (double) NAN;
     size_t kpart = ipart;
 
 morer: ;
@@ -2570,27 +2596,6 @@ void bmm_dem_est_com(double *const pxcom,
     pxcom[idim] /= m;
 }
 
-/// The call `bmm_dem_est_cor(dem)`
-/// returns the mean coefficient of restitution of the particles
-/// in the simulation `dem`.
-/// The result only applies to the linear dashpot model and
-/// even then it is a bit wrong.
-__attribute__ ((__deprecated__, __nonnull__, __pure__))
-double bmm_dem_est_cor(struct bmm_dem const *const dem) {
-  double e = 0.0;
-
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
-    double const mred =
-      dem->part.m[ipart] * dem->part.m[ipart] /
-      (dem->part.m[ipart] + dem->part.m[ipart]);
-    e += exp(-M_PI * dem->pair[BMM_DEM_CT_WEAK].norm.params.dashpot.gamma / (2.0 * mred) /
-        sqrt(dem->pair[BMM_DEM_CT_WEAK].norm.params.dashpot.k / mred -
-          $(bmm_power, double)(dem->pair[BMM_DEM_CT_WEAK].norm.params.dashpot.gamma / (2.0 * mred), 2)));
-  }
-
-  return e / (double) dem->part.n;
-}
-
 void bmm_dem_opts_def(struct bmm_dem_opts *const opts) {
   // This is here just to help Valgrind and cover up my mistakes.
   (void) memset(opts, 0, sizeof *opts);
@@ -2625,29 +2630,10 @@ void bmm_dem_opts_def(struct bmm_dem_opts *const opts) {
   opts->comm.flap = true;
   opts->comm.flup = true;
 
-  for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
+  opts->cache.dcutoff = 1.0 / 5.0;
+
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
     opts->cache.ncell[idim] = 5;
-
-    // TODO Use this somewhere.
-    /*
-    dynamic_assert(opts->box.x[idim] / (double) (opts->cache.ncell[idim] * 2) >
-        opts->part.rnew[1],
-        "Neighbor cells too small");
-    */
-  }
-
-  opts->cache.dcutoff = (double) INFINITY;
-  for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
-    opts->cache.dcutoff = fmin(opts->cache.dcutoff,
-        opts->box.x[idim] / (double) (opts->cache.ncell[idim] - 2));
-
-    // TODO Use this somewhere.
-    /*
-    dynamic_assert(opts->cache.dcutoff <= opts->box.x[idim] /
-        (double) ((opts->cache.ncell[idim] - 2) * 2),
-        "Neighbor cells too small");
-    */
-  }
 }
 
 void bmm_dem_def(struct bmm_dem *const dem,
@@ -2737,19 +2723,19 @@ void bmm_dem_def(struct bmm_dem *const dem,
 
   switch (dem->yield.tag) {
     case BMM_DEM_YIELD_RANKINE:
-      dem->yield.params.rankine.sigmacrit = 2.0e+5;
+      dem->yield.params.rankine.sigmacrit = 1.0e+8;
 
       break;
     case BMM_DEM_YIELD_TRESCA:
-      dem->yield.params.tresca.taucrit = 2.0e+5;
+      dem->yield.params.tresca.taucrit = 1.0e+8;
 
       break;
     case BMM_DEM_YIELD_ZE:
-      dem->yield.params.ze.sigmacrit = 2.0e+4;
-      dem->yield.params.ze.taucrit = 2.0e+5;
+      dem->yield.params.ze.sigmacrit = 1.0e+7;
+      dem->yield.params.ze.taucrit = 1.0e+8;
       // This is ideal for `beam` tests.
-      dem->yield.params.ze.sigmacrit = 5.0e+4;
-      dem->yield.params.ze.taucrit = 5.0e+5;
+      dem->yield.params.ze.sigmacrit = 3.0e+7;
+      dem->yield.params.ze.taucrit = 3.0e+8;
 
       break;
   }
@@ -2772,9 +2758,9 @@ void bmm_dem_def(struct bmm_dem *const dem,
   dem->est.escontdis = 0.0;
   dem->est.fback[0] = 0.0;
   dem->est.fback[1] = 0.0;
-  dem->est.mueff = NAN;
-  dem->est.vdriv[0] = NAN;
-  dem->est.vdriv[1] = NAN;
+  dem->est.mueff = (double) NAN;
+  dem->est.vdriv[0] = (double) NAN;
+  dem->est.vdriv[1] = (double) NAN;
 
   dem->time.t = 0.0;
   dem->time.istep = 0;

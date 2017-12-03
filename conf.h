@@ -32,7 +32,7 @@
 #define BMM_MCHARID 64
 
 /// Maximum number of particles.
-#define BMM_MPART 1024
+#define BMM_MPART 4096
 
 /// Maximum number of directed contacts per particle.
 #define BMM_MCONTACT 8

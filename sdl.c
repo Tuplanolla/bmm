@@ -445,6 +445,15 @@ static void bmm_sdl_draw(struct bmm_sdl const *const sdl) {
         glVertex2dv(dx);
       }
       glEnd();
+
+      // Cutoff radius.
+      if (false) {
+        blent[3] /= 8.0f;
+        glColor4fv(blent);
+
+        glDisk(sdl->dem.part.x[ipart][0], sdl->dem.part.x[ipart][1],
+            sdl->dem.opts.cache.dcutoff, ncorner);
+      }
     }
 
     // Beams.
