@@ -126,18 +126,6 @@ enum bmm_dem_tang {
   BMM_DEM_TANG_TIMO
 };
 
-/// Torque mediation schemes.
-enum bmm_dem_torque {
-  /// Undeformed radii.
-  BMM_DEM_TORQUE_HARD,
-  /// Deformed radii.
-  BMM_DEM_TORQUE_SOFT,
-  /// Averaged compromise.
-  BMM_DEM_TORQUE_AVERAGE,
-  /// Simplified compromise.
-  BMM_DEM_TORQUE_HALFWAY
-};
-
 /// Bonding criteria.
 enum bmm_dem_bond {
   BMM_DEM_BOND_NONE
@@ -395,11 +383,6 @@ struct bmm_dem_pair {
       } beam;
     } params;
   } tang;
-  /// Torques.
-  struct {
-    /// Torque mediation scheme.
-    enum bmm_dem_torque tag;
-  } torque;
 };
 
 struct bmm_dem {

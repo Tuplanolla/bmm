@@ -1013,6 +1013,8 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
   // Tangential forces second.
 
   double ftang = 0.0;
+  double taui = 0.0;
+  double tauj = 0.0;
   double ftangcons = 0.0;
   double ftangdiss = 0.0;
 
@@ -1031,6 +1033,9 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
 
         ftangcons = 0.0;
         ftangdiss = ftang;
+
+        taui = ri * ftang;
+        tauj = rj * ftang;
 
         break;
       case BMM_DEM_TANG_CS:
@@ -1067,13 +1072,14 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
             ftangdiss = copysign(dem->pair[ict].tang.params.cs.mu *
                 $(bmm_abs, double)(fnorm), zeta);
           }
+
+          taui = ri * ftang;
+          tauj = rj * ftang;
         }
 
         break;
       case BMM_DEM_TANG_BEAM:
         {
-          // Actually, torques second.
-
           double xdiffij[BMM_NDIM];
           bmm_geom2d_cpdiff(xdiffij, dem->part.x[jpart], dem->part.x[ipart],
               dem->opts.box.x, dem->opts.box.per);
@@ -1081,9 +1087,6 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
           double const d = bmm_geom2d_norm(xdiffij);
           double const r = ri + rj;
           double const r2 = $(bmm_power, double)(r, 2);
-
-          double taui = 0.0;
-          double tauj = 0.0;
 
           double const lambdaij = bmm_geom2d_dir(xdiffij);
           double const lambdaji = $(bmm_swrap, double)(lambdaij + M_PI, M_2PI);
@@ -1108,19 +1111,13 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
           double const ftangdissi = dem->pair[ict].tang.params.beam.dk * dzetai;
           double const ftangdissj = dem->pair[ict].tang.params.beam.dk * dzetaj;
 
-          taui = (ftangconsi + ftangdissi) * ri;
-          tauj = (ftangconsj + ftangdissj) * rj;
+          double const ftangi = ftangconsi + ftangdissi;
+          double const ftangj = ftangconsj + ftangdissj;
+
+          taui = ri * ftangi;
+          tauj = rj * ftangj;
 
           ftang = (taui + tauj) / d;
-
-          dem->part.tau[ipart] -= taui;
-          dem->part.tau[jpart] -= tauj;
-
-          double ftangji[BMM_NDIM];
-          bmm_geom2d_scale(ftangji, xtangji, ftang);
-
-          bmm_geom2d_addto(dem->part.f[ipart], ftangji);
-          bmm_geom2d_diffto(dem->part.f[jpart], ftangji);
 
           if (ict == BMM_DEM_CT_WEAK) {
             dem->est.ewcont += (dzetai * dt) * ftangconsi;
@@ -1133,26 +1130,7 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
             dem->est.escontdis += $(bmm_abs, double)((dzetai * dt) * ftangdissi);
             dem->est.escontdis += $(bmm_abs, double)((dzetaj * dt) * ftangdissj);
           }
-
-          /*
-          fprintf(stderr,
-              // "ipart = %zu, jpart = %zu, "
-              // "zetai = %g, zetaj = %g, "
-              // "vtangi = %g, vtangj = %g, "
-              // "taui = %g, tauj = %g, "
-              // "ftang = %g\n",
-              "%zu %zu "
-              "%g %g "
-              "%g %g "
-              "%g %g "
-              "%g\n",
-              ipart, jpart, zetai, zetaj, vtangi, vtangj, taui, tauj, ftang);
-          // plot 'tri.data' u 0 : 3 w l t 'zetai', '' u 0 : 4 w l t 'zetaj', '' u 0 : 5 w l t 'vtangi', '' u 0 : 6 w l t 'vtangj', '' u 0 : 7 w l t 'taui', '' u 0 : 8 w l t 'tauj', '' u 0 : 9 w l t 'ftang'
-          */
         }
-
-        // Note this and the discrepancy caused to `echeck`!
-        return;
 
         break;
     }
@@ -1166,60 +1144,14 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
     }
   }
 
-  dem->est.echeck += fnorm * dxnorm + ftang * dxtang;
+  // This goes wrong.
+  // dem->est.echeck += fnorm * dxnorm + ftang * dxtang;
 
   double ftangji[BMM_NDIM];
   bmm_geom2d_scale(ftangji, xtangji, ftang);
 
   bmm_geom2d_addto(dem->part.f[ipart], ftangji);
   bmm_geom2d_diffto(dem->part.f[jpart], ftangji);
-
-  // Torques third.
-
-  double taui = 0.0;
-  double tauj = 0.0;
-
-  {
-    // TODO This warrants a sanity check.
-    double const ri2 = $(bmm_power, double)(ri, 2);
-    double const rj2 = $(bmm_power, double)(rj, 2);
-    double const bij = (1.0 / 2.0) * (1.0 - (rj2 - ri2) / d2);
-    double const bji = 1.0 - bij;
-    double const sij = bij * d;
-    double const sji = bji * d;
-    double const sij2 = $(bmm_power, double)(sij, 2);
-    double const sji2 = $(bmm_power, double)(sji, 2);
-    double const cij = 2.0 * sqrt(ri2 - sij2);
-    double const cd2sij = cij / (2.0 * sij);
-    double const cd2sji = cij / (2.0 * sji);
-    double const aij = (1.0 / 2.0) * (ri + (sij / cd2sij) * asinh(cd2sij));
-    double const aji = (1.0 / 2.0) * (rj + (sji / cd2sji) * asinh(cd2sji));
-    double const aijt = (1.0 / 2.0) * (ri + sij);
-    double const ajit = (1.0 / 2.0) * (ri + sji);
-
-    switch (dem->pair[ict].torque.tag) {
-      case BMM_DEM_TORQUE_HARD:
-        taui = ri * ftang;
-        tauj = rj * ftang;
-
-        break;
-      case BMM_DEM_TORQUE_SOFT:
-        taui = sij * ftang;
-        tauj = sji * ftang;
-
-        break;
-      case BMM_DEM_TORQUE_AVERAGE:
-        taui = aij * ftang;
-        tauj = aji * ftang;
-
-        break;
-      case BMM_DEM_TORQUE_HALFWAY:
-        taui = aijt * ftang;
-        tauj = ajit * ftang;
-
-        break;
-    }
-  }
 
   dem->part.tau[ipart] -= taui;
   dem->part.tau[jpart] -= tauj;
@@ -2656,11 +2588,9 @@ void bmm_dem_def(struct bmm_dem *const dem,
   dem->pair[BMM_DEM_CT_WEAK].cohesive = false;
   dem->pair[BMM_DEM_CT_WEAK].norm.tag = BMM_DEM_NORM_BSHP;
   dem->pair[BMM_DEM_CT_WEAK].tang.tag = BMM_DEM_TANG_CS;
-  dem->pair[BMM_DEM_CT_WEAK].torque.tag = BMM_DEM_TORQUE_HARD;
   dem->pair[BMM_DEM_CT_STRONG].cohesive = true;
   dem->pair[BMM_DEM_CT_STRONG].norm.tag = BMM_DEM_NORM_KV;
   dem->pair[BMM_DEM_CT_STRONG].tang.tag = BMM_DEM_TANG_BEAM;
-  dem->pair[BMM_DEM_CT_STRONG].torque.tag = BMM_DEM_TORQUE_HARD;
   dem->yield.tag = BMM_DEM_YIELD_RANKINE;
   dem->yield.tag = BMM_DEM_YIELD_TRESCA;
   dem->yield.tag = BMM_DEM_YIELD_ZE;
@@ -2714,7 +2644,8 @@ void bmm_dem_def(struct bmm_dem *const dem,
       dem->pair[BMM_DEM_CT_STRONG].tang.params.beam.k = 8.0e+6;
       dem->pair[BMM_DEM_CT_STRONG].tang.params.beam.dk = 4.0e+2;
       // This is ideal for `triplet` tests.
-      // dem->pair[BMM_DEM_CT_STRONG].tang.params.beam.dk = 4.0e+1;
+      dem->pair[BMM_DEM_CT_STRONG].tang.params.beam.dk = 4.0e+1;
+      dem->pair[BMM_DEM_CT_STRONG].tang.params.beam.dk = 0.0e+1;
 
       break;
   }
@@ -2729,11 +2660,11 @@ void bmm_dem_def(struct bmm_dem *const dem,
 
       break;
     case BMM_DEM_YIELD_ZE:
-      dem->yield.params.ze.sigmacrit = 1.0e+7;
-      dem->yield.params.ze.taucrit = 1.0e+8;
+      dem->yield.params.ze.sigmacrit = 2.0e+7;
+      dem->yield.params.ze.taucrit = 8.0e+7;
       // This is ideal for `beam` tests.
-      dem->yield.params.ze.sigmacrit = 3.0e+7;
-      dem->yield.params.ze.taucrit = 3.0e+8;
+      // dem->yield.params.ze.sigmacrit = 3.0e+7;
+      // dem->yield.params.ze.taucrit = 3.0e+8;
 
       break;
   }
