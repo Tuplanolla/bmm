@@ -139,17 +139,17 @@ double bmm_dem_est_econt_one(struct bmm_dem const *const dem,
 
   double const d = sqrt(d2);
 
-  double xnormji[BMM_NDIM];
-  bmm_geom2d_scale(xnormji, xdiffij, -1.0 / d);
+  double xnormij[BMM_NDIM];
+  bmm_geom2d_scale(xnormij, xdiffij, 1.0 / d);
 
-  double xtangji[BMM_NDIM];
-  bmm_geom2d_rperp(xtangji, xnormji);
+  double xtangij[BMM_NDIM];
+  bmm_geom2d_rperp(xtangij, xnormij);
 
   double vdiffij[BMM_NDIM];
   bmm_geom2d_diff(vdiffij, dem->part.v[jpart], dem->part.v[ipart]);
 
   double const xi = r - d;
-  double const vnormij = bmm_geom2d_dot(vdiffij, xnormji);
+  double const vnormij = -bmm_geom2d_dot(vdiffij, xnormij);
   double const reff = $(bmm_resum2, double)(ri, rj);
   double const dt = dem->opts.script.dt[dem->script.i];
 
@@ -647,24 +647,24 @@ void bmm_dem_remcont(struct bmm_dem *const dem,
 
 bool bmm_dem_yield_pair(struct bmm_dem *const dem,
     size_t const ipart, size_t const jpart, size_t const icont) {
-  double xdiffji[BMM_NDIM];
-  bmm_geom2d_cpdiff(xdiffji, dem->part.x[ipart], dem->part.x[jpart],
+  double xdiffij[BMM_NDIM];
+  bmm_geom2d_cpdiff(xdiffij, dem->part.x[jpart], dem->part.x[ipart],
       dem->opts.box.x, dem->opts.box.per);
 
-  double const d2 = bmm_geom2d_norm2(xdiffji);
+  double const d2 = bmm_geom2d_norm2(xdiffij);
   double const d = sqrt(d2);
 
-  double xnormji[BMM_NDIM];
-  bmm_geom2d_scale(xnormji, xdiffji, 1.0 / d);
+  double xnormij[BMM_NDIM];
+  bmm_geom2d_scale(xnormij, xdiffij, 1.0 / d);
 
-  double xtangji[BMM_NDIM];
-  bmm_geom2d_rperp(xtangji, xnormji);
+  double xtangij[BMM_NDIM];
+  bmm_geom2d_rperp(xtangij, xnormij);
 
   double fdiffij[BMM_NDIM];
   bmm_geom2d_diff(fdiffij, dem->part.f[jpart], dem->part.f[ipart]);
 
-  double const fnormij = bmm_geom2d_dot(fdiffij, xnormji);
-  double const ftangij = $(bmm_abs, double)(bmm_geom2d_dot(fdiffij, xtangji));
+  double const fnormij = -bmm_geom2d_dot(fdiffij, xnormij);
+  double const ftangij = $(bmm_abs, double)(bmm_geom2d_dot(fdiffij, xtangij));
 
   // TODO Is this a valid assumption for the yield point cross section?
   double const a = 2.0 *
@@ -720,11 +720,11 @@ void bmm_dem_analyze_pair(struct bmm_dem *const dem,
   if (icont != SIZE_MAX)
     (void) bmm_dem_yield_pair(dem, ipart, jpart, icont);
   else {
-    double xdiffji[BMM_NDIM];
-    bmm_geom2d_cpdiff(xdiffji, dem->part.x[ipart], dem->part.x[jpart],
+    double xdiffij[BMM_NDIM];
+    bmm_geom2d_cpdiff(xdiffij, dem->part.x[jpart], dem->part.x[ipart],
         dem->opts.box.x, dem->opts.box.per);
 
-    double const d2 = bmm_geom2d_norm2(xdiffji);
+    double const d2 = bmm_geom2d_norm2(xdiffij);
     double const r2 = $(bmm_power, double)(dem->part.r[ipart] + dem->part.r[jpart], 2);
     bool const overlap = d2 <= r2;
 
@@ -896,11 +896,11 @@ void bmm_dem_force_ambient(struct bmm_dem *const dem, size_t const ipart) {
 void bmm_dem_force_unified(struct bmm_dem *const dem,
     size_t const ipart, size_t const jpart, size_t const icont,
     enum bmm_dem_ct const ict) {
-  double xdiffji[BMM_NDIM];
-  bmm_geom2d_cpdiff(xdiffji, dem->part.x[ipart], dem->part.x[jpart],
+  double xdiffij[BMM_NDIM];
+  bmm_geom2d_cpdiff(xdiffij, dem->part.x[jpart], dem->part.x[ipart],
       dem->opts.box.x, dem->opts.box.per);
 
-  double const d2 = bmm_geom2d_norm2(xdiffji);
+  double const d2 = bmm_geom2d_norm2(xdiffij);
   if (d2 == 0.0)
     return;
 
@@ -914,11 +914,11 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
 
   double const d = sqrt(d2);
 
-  double xnormji[BMM_NDIM];
-  bmm_geom2d_scale(xnormji, xdiffji, 1.0 / d);
+  double xnormij[BMM_NDIM];
+  bmm_geom2d_scale(xnormij, xdiffij, 1.0 / d);
 
-  double xtangji[BMM_NDIM];
-  bmm_geom2d_rperp(xtangji, xnormji);
+  double xtangij[BMM_NDIM];
+  bmm_geom2d_rperp(xtangij, xnormij);
 
   double vdiffij[BMM_NDIM];
   bmm_geom2d_diff(vdiffij, dem->part.v[jpart], dem->part.v[ipart]);
@@ -934,7 +934,7 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
 
   {
     double const xi = r - d;
-    double const vnormij = bmm_geom2d_dot(vdiffij, xnormji);
+    double const vnormij = -bmm_geom2d_dot(vdiffij, xnormij);
     double const reff = $(bmm_resum2, double)(ri, rj);
     double const dt = dem->opts.script.dt[dem->script.i];
     dxnorm = vnormij * dt;
@@ -1001,11 +1001,11 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
     }
   }
 
-  double fnormji[BMM_NDIM];
-  bmm_geom2d_scale(fnormji, xnormji, fnorm);
+  double fnormij[BMM_NDIM];
+  bmm_geom2d_scale(fnormij, xnormij, -fnorm);
 
-  bmm_geom2d_addto(dem->part.f[ipart], fnormji);
-  bmm_geom2d_diffto(dem->part.f[jpart], fnormji);
+  bmm_geom2d_addto(dem->part.f[ipart], fnormij);
+  bmm_geom2d_diffto(dem->part.f[jpart], fnormij);
 
   // Tangential forces second.
 
@@ -1016,8 +1016,7 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
   double ftangdiss = 0.0;
 
   {
-    // TODO By these signs, I think my n--t coordinate system is broken.
-    double const vtangij = bmm_geom2d_dot(vdiffij, xtangji) +
+    double const vtangij = -bmm_geom2d_dot(vdiffij, xtangij) +
       ri * dem->part.omega[ipart] + rj * dem->part.omega[jpart];
     double const dt = dem->opts.script.dt[dem->script.i];
     dxtang = vtangij * dt;
@@ -1098,7 +1097,7 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
           double zetai = dem->part.r[ipart] * dpsii;
           double zetaj = dem->part.r[jpart] * dpsij;
 
-          double const proj = -bmm_geom2d_dot(xtangji, vdiffij) / d;
+          double const proj = bmm_geom2d_dot(xtangij, vdiffij) / d;
           double const dzetai = ri * (dem->part.omega[ipart] - proj);
           double const dzetaj = rj * (dem->part.omega[jpart] - proj);
 
@@ -1141,11 +1140,11 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
     }
   }
 
-  double ftangji[BMM_NDIM];
-  bmm_geom2d_scale(ftangji, xtangji, ftang);
+  double ftangij[BMM_NDIM];
+  bmm_geom2d_scale(ftangij, xtangij, -ftang);
 
-  bmm_geom2d_addto(dem->part.f[ipart], ftangji);
-  bmm_geom2d_diffto(dem->part.f[jpart], ftangji);
+  bmm_geom2d_addto(dem->part.f[ipart], ftangij);
+  bmm_geom2d_diffto(dem->part.f[jpart], ftangij);
 
   dem->part.tau[ipart] -= taui;
   dem->part.tau[jpart] -= tauj;
@@ -2579,7 +2578,7 @@ void bmm_dem_def(struct bmm_dem *const dem,
   dem->yield.tag = BMM_DEM_YIELD_RANKINE;
   dem->yield.tag = BMM_DEM_YIELD_TRESCA;
   dem->yield.tag = BMM_DEM_YIELD_ZE;
-  dem->yield.tag = BMM_DEM_YIELD_NONE;
+  // dem->yield.tag = BMM_DEM_YIELD_NONE;
 
   switch (dem->amb.tag) {
     case BMM_DEM_AMB_FAXEN:
@@ -2630,8 +2629,8 @@ void bmm_dem_def(struct bmm_dem *const dem,
       dem->pair[BMM_DEM_CT_STRONG].tang.params.beam.k = 8.0e+6;
       dem->pair[BMM_DEM_CT_STRONG].tang.params.beam.dk = 4.0e+2;
       // This is ideal for `triplet` tests.
-      dem->pair[BMM_DEM_CT_STRONG].tang.params.beam.dk = 4.0e+1;
-      dem->pair[BMM_DEM_CT_STRONG].tang.params.beam.dk = 0.0e+1;
+      // dem->pair[BMM_DEM_CT_STRONG].tang.params.beam.dk = 4.0e+1;
+      // dem->pair[BMM_DEM_CT_STRONG].tang.params.beam.dk = 0.0e+1;
 
       break;
   }
