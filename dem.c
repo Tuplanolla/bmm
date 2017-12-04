@@ -881,9 +881,6 @@ void bmm_dem_force_creeping(struct bmm_dem *const dem,
   double const dt = dem->opts.script.dt[dem->script.i];
   dem->est.eambdis += fabs(f * v * dt);
   dem->est.eambdis += fabs((tau / dem->part.r[ipart]) * v * dt);
-
-  dem->est.echeck += fabs(f * v * dt);
-  dem->est.echeck += fabs((tau / dem->part.r[ipart]) * v * dt);
 }
 
 // TODO Flatten these to allow loop-invariant code motion.
@@ -1144,9 +1141,6 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
     }
   }
 
-  // This goes wrong.
-  // dem->est.echeck += fnorm * dxnorm + ftang * dxtang;
-
   double ftangji[BMM_NDIM];
   bmm_geom2d_scale(ftangji, xtangji, ftang);
 
@@ -1171,8 +1165,6 @@ void bmm_dem_force_external(struct bmm_dem *const dem, size_t const ipart) {
         dem->part.f[ipart][1] += dem->part.m[ipart] * dem->ext.params.gravy.g;
 
         double const dy = dem->part.v[ipart][1] * dt;
-
-        dem->est.echeck -= dy * dem->part.m[ipart] * dem->ext.params.gravy.g;
       }
 
       break;
@@ -1190,9 +1182,6 @@ void bmm_dem_force_external(struct bmm_dem *const dem, size_t const ipart) {
 
         for (size_t idim = 0; idim < BMM_NDIM; ++idim)
           dem->part.f[ipart][idim] += f[idim];
-
-        dem->est.echeck -= dx * f[0];
-        dem->est.echeck -= dy * f[1];
       }
 
       break;
@@ -1210,7 +1199,6 @@ void bmm_dem_force(struct bmm_dem *const dem) {
   }
 
   // This goes for the previous frame, so this is not exactly the right spot.
-  // dem->est.echeck = 0.0;
   // dem->est.eambdis = 0.0;
   dem->est.epotext_d = 0.0;
   dem->est.eklin_d = 0.0;
@@ -1545,7 +1533,6 @@ static void bmm_dem_script_clip(struct bmm_dem *const dem) {
 }
 
 static double extra_crap(struct bmm_dem const *const dem) {
-  double const echeck = dem->est.echeck;
   double const eambdis = dem->est.eambdis;
   double const epotext = dem->est.epotext_d;
   double const eklin = dem->est.eklin_d;
@@ -1566,7 +1553,6 @@ static double extra_crap(struct bmm_dem const *const dem) {
   double const eee = pos - neg;
   /*
   if (fprintf(stderr,
-        "echeck = %g, "
         "eambdis = %g, "
         "epotext = %g, "
         "eklin = %g, "
@@ -1584,7 +1570,6 @@ static double extra_crap(struct bmm_dem const *const dem) {
         "sum(+) = %g, "
         "sum(-) = %g, "
         "sum(?) = %g\n",
-        echeck + epotext + eklin + ekrot,
         eambdis, epotext, eklin, ekrot, ewcont_d, escont_d, ewcont, escont, edrivnorm, edrivtang,
         ebond, eyieldis, ewcontdis, escontdis,
         pos, neg,
@@ -2594,6 +2579,7 @@ void bmm_dem_def(struct bmm_dem *const dem,
   dem->yield.tag = BMM_DEM_YIELD_RANKINE;
   dem->yield.tag = BMM_DEM_YIELD_TRESCA;
   dem->yield.tag = BMM_DEM_YIELD_ZE;
+  dem->yield.tag = BMM_DEM_YIELD_NONE;
 
   switch (dem->amb.tag) {
     case BMM_DEM_AMB_FAXEN:
@@ -2670,7 +2656,6 @@ void bmm_dem_def(struct bmm_dem *const dem,
   }
 
   // Estimators appeared.
-  dem->est.echeck = 0.0;
   dem->est.eambdis = 0.0;
   dem->est.epotext_d = 0.0;
   dem->est.eklin_d = 0.0;
@@ -3136,18 +3121,18 @@ __attribute__ ((__nonnull__))
 static bool bmm_dem_script_create_couple(struct bmm_dem *const dem) {
   size_t jpart;
 
+  double const scale = dem->opts.box.x[0];
+
   jpart = bmm_dem_addpart(dem);
   if (jpart == SIZE_MAX)
     return false;
 
-  double const scale = dem->opts.box.x[0];
-
-  dem->part.r[jpart] = 0.03 * scale;
+  dem->part.r[jpart] = 0.015 * scale;
   dem->part.m[jpart] = dem->opts.part.rho * bmm_geom_ballvol(dem->part.r[jpart], BMM_NDIM);
   dem->part.x[jpart][0] += 0.45 * scale;
   dem->part.x[jpart][1] += 0.25 * scale;
-  dem->part.v[jpart][0] += 3.0e+1 * scale;
-  dem->part.omega[jpart] += 3.0e+4;
+  dem->part.v[jpart][0] += 6.0e+1 * scale;
+  dem->part.omega[jpart] += 0.0e+4;
 
   jpart = bmm_dem_addpart(dem);
   if (jpart == SIZE_MAX)
@@ -3407,7 +3392,6 @@ static bool pregarbage(struct bmm_dem const *const dem) {
 }
 
 static bool garbage(struct bmm_dem const *const dem) {
-  double const echeck = dem->est.echeck;
   double const eambdis = dem->est.eambdis;
   double const epotext = dem->est.epotext_d;
   double const eklin = dem->est.eklin_d;

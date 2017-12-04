@@ -627,7 +627,6 @@ static void bmm_sdl_draw(struct bmm_sdl const *const sdl) {
 
   struct bmm_dem const *const dem = &sdl->dem;
 
-  double const echeck = dem->est.echeck;
   double const eambdis = dem->est.eambdis;
   double const epotext = dem->est.epotext_d;
   double const eklin = dem->est.eklin_d;
