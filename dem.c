@@ -563,11 +563,8 @@ size_t bmm_dem_addcont_unsafe(struct bmm_dem *const dem,
   double const psii = phii - lambdaij;
   double const psij = phij - lambdaji;
 
-  double a = 0.3;
-  double v[2];
-  v[0] = 1.0 - a;
-  v[1] = 1.0 + a;
-  dem->pair[ict].cont.src[ipart].strength[icont] = bmm_random_get(dem->rng, v);
+  dem->pair[ict].cont.src[ipart].strength[icont] = bmm_random_get(dem->rng,
+      dem->opts.part.strnew);
 
   double const drest = d * dem->bond.cshcont;
 
@@ -670,11 +667,10 @@ bool bmm_dem_yield_pair(struct bmm_dem *const dem,
   double const a = 2.0 *
     $(bmm_hmean2, double)(dem->part.r[ipart], dem->part.r[jpart]);
 
-  // TODO Does this make sense here?
   double const strength = dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].strength[icont];
 
-  double const sigmaij = fnormij / a / strength;
-  double const tauij = ftangij / a / strength;
+  double const sigmaij = fnormij / (a * strength);
+  double const tauij = ftangij / (a * strength);
 
   switch (dem->yield.tag) {
     case BMM_DEM_YIELD_RANKINE:
@@ -2408,7 +2404,8 @@ bool bmm_dem_est_raddist(double *const pr, double *const pg,
     return false;
   }
 
-// #define FUCK_WEIGHTS
+// If you desperately want wrong results...
+// #define NO_WEIGHTS
 
   size_t i = 0;
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
@@ -2424,7 +2421,7 @@ bool bmm_dem_est_raddist(double *const pr, double *const pg,
               dem->opts.box.x, dem->opts.box.per);
 
           r[i] = d;
-#ifdef FUCK_WEIGHTS
+#ifdef NO_WEIGHTS
           w[i] = 1.0;
 #else
           w[i] = d == 0.0 ? 0.0 : v0 / v;
@@ -2535,6 +2532,8 @@ void bmm_dem_opts_def(struct bmm_dem_opts *const opts) {
   opts->part.nu = 0.5;
   opts->part.rnew[0] = 1.0;
   opts->part.rnew[1] = 1.0;
+  opts->part.strnew[0] = 1.0;
+  opts->part.strnew[1] = 1.0;
 
   opts->script.n = 0;
 
@@ -3529,6 +3528,40 @@ static bool rubbish(struct bmm_dem const *const dem) {
   return true;
 }
 
+static bool trash(struct bmm_dem const *const dem) {
+  FILE *const stream = fopen("trash.data", "w");
+  if (stream == NULL) {
+    BMM_TLE_STDS();
+
+    return false;
+  }
+
+  size_t nbin = 256;
+
+  for (size_t ibin = 0; ibin < nbin; ++ibin) {
+    double const x = bmm_fp_lerp((double) ibin,
+        (double) 0, (double) (nbin - 1),
+        0.0, dem->opts.part.rnew[1] * dem->opts.part.strnew[1] * 1.1);
+
+    if (fprintf(stream, "%g %g\n",
+          x, bmm_fp_proddist(x,
+            dem->opts.part.rnew[0], dem->opts.part.rnew[1],
+            dem->opts.part.strnew[0], dem->opts.part.strnew[1])) < 0) {
+      BMM_TLE_STDS();
+
+      return false;
+    }
+  }
+
+  if (fclose(stream) != 0) {
+    BMM_TLE_STDS();
+
+    return false;
+  }
+
+  return true;
+}
+
 static double abserr(size_t const i, double const z, void const *const cls) {
   double const *const t = cls;
 
@@ -3651,6 +3684,9 @@ bool bmm_dem_run(struct bmm_dem *const dem) {
     BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Nope");
 
   if (!rubbish(dem))
+    BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Nope");
+
+  if (!trash(dem))
     BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Nope");
 #else
   bool const run = true;

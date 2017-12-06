@@ -37,6 +37,10 @@ static bool f(char const *const key, char const *const value,
   opts->box.per[0] = true;
   opts->box.per[1] = false;
 
+  double a = 0.3;
+  opts->part.strnew[0] = 1.0 - a;
+  opts->part.strnew[1] = 1.0 + a;
+
   // Now in SI base units!
   opts->part.rho = 2.7e+3;
   // TODO For granite this should be closer to `e+9`,

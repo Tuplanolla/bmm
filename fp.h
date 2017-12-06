@@ -166,4 +166,57 @@ inline size_t bmm_fp_iclerp(double const x,
   return n;
 }
 
+/// The call `bmm_fp_sumdist(x, a, b, c, d)`
+/// calculates the value of the sum distribution
+/// of two uniform distributions from `a` to `b` and from `c` to `d` at `x`.
+__attribute__ ((__const__, __pure__))
+inline double bmm_fp_sumdist(double const x,
+    double const a, double const b,
+    double const c, double const d) {
+  double const ad = a + d;
+  double const bc = b + c;
+
+  if (ad < bc)
+    return bmm_fp_sumdist(x, c, d, a, b);
+
+  double const ac = a + c;
+  double const bd = b + d;
+
+  double const ba = b - a;
+  double const dc = d - c;
+  double const badc = ba * dc;
+
+  return ac < x && x < bc ? (x - ac) / badc :
+    bc < x && x < ad ? ba / badc :
+    ad < x && x < bd ? -(x - bd) / badc :
+    0.0;
+}
+
+/// The call `bmm_fp_proddist(x, a, b, c, d)`
+/// calculates the value of the product distribution
+/// of two uniform distributions from `a` to `b` and from `c` to `d` at `x`.
+__attribute__ ((__const__, __pure__))
+inline double bmm_fp_proddist(double const x,
+    double const a, double const b,
+    double const c, double const d) {
+  double const ad = a * d;
+  double const bc = b * c;
+
+  if (ad < bc)
+    return bmm_fp_proddist(x, c, d, a, b);
+
+  double const ac = a * c;
+  double const bd = b * d;
+
+  double const ba = b - a;
+  double const dc = d - c;
+  double const badc = ba * dc;
+
+  return ac < x && x < bc ? (log(x) - log(ac)) / badc :
+    bc < x && x < ad ? (log(b) - log(a)) / badc :
+    ad < x && x < bd ? log(bd / x) / badc :
+    0.0;
+}
+
+
 #endif

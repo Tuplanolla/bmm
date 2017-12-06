@@ -32,3 +32,7 @@ extern inline double bmm_fp_min(double const *, size_t);
 extern inline double bmm_fp_max(double const *, size_t);
 
 extern inline size_t bmm_fp_iclerp(double, double, double, size_t, size_t);
+
+extern inline double bmm_fp_sumdist(double, double, double, double, double);
+
+extern inline double bmm_fp_proddist(double, double, double, double, double);

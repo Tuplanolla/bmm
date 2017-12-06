@@ -224,6 +224,8 @@ struct bmm_dem_opts {
     double nu;
     /// Particle sizes expressed as the width of the uniform distribution.
     double rnew[2];
+    /// Link strengths expressed as the width of the uniform distribution.
+    double strnew[2];
   } part;
   /// Script to follow.
   struct {
