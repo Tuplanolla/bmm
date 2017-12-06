@@ -220,10 +220,18 @@ double bmm_dem_est_econt_one(struct bmm_dem const *const dem,
         double zetaj = dem->part.r[jpart] * dpsij;
         double zeta = zetai + zetaj;
 
-        if (dem->pair[ict].tang.params.cs.k * $(bmm_abs, double)(zeta) <
-            dem->pair[ict].tang.params.cs.mu * $(bmm_abs, double)(fnorm)) {
-          e += (1.0 / 2.0) * dem->pair[ict].tang.params.cs.k * $(bmm_power, double)(zeta, 2);
+        double const proj = bmm_geom2d_dot(xtangij, vdiffij) / d;
+        double const dzetai = ri * (dem->part.omega[ipart] - proj);
+        double const dzetaj = rj * (dem->part.omega[jpart] - proj);
+        double const dzeta = dzetai + dzetaj;
+
+        double const dyn = dem->pair[ict].tang.params.cs.mu * $(bmm_abs, double)(fnorm);
+        double const stat = dem->pair[ict].tang.params.cs.k * $(bmm_abs, double)(zeta);
+
+        if (dyn <= stat) {
         } else {
+          e += (1.0 / 2.0) * dem->pair[ict].tang.params.cs.k *
+            $(bmm_power, double)(zeta, 2);
         }
       }
 
@@ -1050,19 +1058,22 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
           double zetaj = dem->part.r[jpart] * dpsij;
           double zeta = zetai + zetaj;
 
-          ftang = copysign($(bmm_min, double)(
-                dem->pair[ict].tang.params.cs.k * $(bmm_abs, double)(zeta),
-                dem->pair[ict].tang.params.cs.mu * $(bmm_abs, double)(fnorm)), zeta);
+          double const proj = bmm_geom2d_dot(xtangij, vdiffij) / d;
+          double const dzetai = ri * (dem->part.omega[ipart] - proj);
+          double const dzetaj = rj * (dem->part.omega[jpart] - proj);
+          double const dzeta = dzetai + dzetaj;
 
-          if (dem->pair[ict].tang.params.cs.k * $(bmm_abs, double)(zeta) <
-                dem->pair[ict].tang.params.cs.mu * $(bmm_abs, double)(fnorm)) {
-            ftangcons = copysign(
-                dem->pair[ict].tang.params.cs.k * $(bmm_abs, double)(zeta), zeta);
-            ftangdiss = 0.0;
-          } else {
+          double const dyn = dem->pair[ict].tang.params.cs.mu * $(bmm_abs, double)(fnorm);
+          double const stat = dem->pair[ict].tang.params.cs.k * $(bmm_abs, double)(zeta);
+
+          ftang = dyn <= stat ? copysign(dyn, dzeta) : copysign(stat, zeta);
+
+          if (dyn <= stat) {
             ftangcons = 0.0;
-            ftangdiss = copysign(dem->pair[ict].tang.params.cs.mu *
-                $(bmm_abs, double)(fnorm), zeta);
+            ftangdiss = copysign(dyn, dzeta);
+          } else {
+            ftangcons = copysign(stat, zeta);
+            ftangdiss = 0.0;
           }
 
           taui = ri * ftang;
