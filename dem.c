@@ -177,7 +177,7 @@ double bmm_dem_est_econt_one(struct bmm_dem const *const dem,
       break;
     case BMM_DEM_NORM_BSHP:
       {
-        double const mat = (2.0 / 3.0) * (dem->opts.part.y /
+        double const mat = (2.0 / 3.0) * (dem->opts.part.ycomp /
             (1.0 - $(bmm_power, double)(dem->opts.part.nu, 2)));
 
         double const more = mat * sqrt(reff * xi);
@@ -969,7 +969,7 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
         break;
       case BMM_DEM_NORM_BSHP:
         {
-          double const mat = (2.0 / 3.0) * (dem->opts.part.y /
+          double const mat = (2.0 / 3.0) * (dem->opts.part.ycomp /
               (1.0 - $(bmm_power, double)(dem->opts.part.nu, 2)));
 
           double const more = mat * sqrt(reff * xi);
@@ -2539,7 +2539,8 @@ void bmm_dem_opts_def(struct bmm_dem_opts *const opts) {
 
   opts->time.istab = 1000;
 
-  opts->part.y = 1.0;
+  opts->part.ytens = 1.0;
+  opts->part.ycomp = 1.0;
   opts->part.nu = 0.5;
   opts->part.rnew[0] = 1.0;
   opts->part.rnew[1] = 1.0;
@@ -3306,7 +3307,6 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
       dem->opts.comm.dt /= 1.0e+1;
       dem->amb.tag = BMM_DEM_AMB_NONE;
       dem->pair[BMM_DEM_CT_WEAK].tang.tag = what_it_was;
-      // dem->opts.part.y = 52.0e+9;
 
       break;
     case BMM_DEM_MODE_LINK:

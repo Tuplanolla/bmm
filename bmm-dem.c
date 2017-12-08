@@ -37,7 +37,7 @@ static bool f(char const *const key, char const *const value,
   opts->box.per[0] = true;
   opts->box.per[1] = false;
 
-  double a = 0.3;
+  double a = 0.25;
   opts->part.strnew[0] = 1.0 - a;
   opts->part.strnew[1] = 1.0 + a;
 
@@ -45,7 +45,8 @@ static bool f(char const *const key, char const *const value,
   opts->part.rho = 2.7e+3;
   // TODO For granite this should be closer to `e+9`,
   // but that explodes with this large `dt`.
-  opts->part.y = 52.0e+8;
+  opts->part.ytens = 17.0e+8;
+  opts->part.ycomp = 49.0e+8;
   opts->part.nu = 0.2;
 
   opts->comm.dt = 2.0e-5;
@@ -60,7 +61,7 @@ static bool f(char const *const key, char const *const value,
       // This time step should be sufficient for (N2464).
       // dtstuff = 4.0e-9;
 
-      opts->part.y = 8.0e+8;
+      opts->part.ycomp = opts->part.ytens = 8.0e+8;
       opts->part.nu = 0.2;
 
       double const rnew[] = {
@@ -279,7 +280,6 @@ static bool f(char const *const key, char const *const value,
       opts->script.dt[istage] = dtstuff;
     } else if (strcmp(value, "roll") == 0) {
       dtstuff = 2.0e-7;
-      opts->part.y = 52.0e+9;
 
       double const rnew[] = {
         2.078e-3,
@@ -319,7 +319,6 @@ static bool f(char const *const key, char const *const value,
       opts->script.dt[istage] = dtstuff;
     } else if (strcmp(value, "pile") == 0) {
       dtstuff = 2.0e-8;
-      opts->part.y = 52.0e+9;
 
       double const rnew[] = {
         2.078e-3,

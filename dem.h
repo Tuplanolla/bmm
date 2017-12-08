@@ -218,8 +218,10 @@ struct bmm_dem_opts {
   struct {
     /// Mass density.
     double rho;
-    /// Young's modulus.
-    double y;
+    /// Tensile Young's modulus.
+    double ytens;
+    /// Compressive Young's modulus.
+    double ycomp;
     /// Poisson's ratio.
     double nu;
     /// Particle sizes expressed as the width of the uniform distribution.
