@@ -176,7 +176,7 @@ inline double bmm_fp_sumdist(double const x,
   double const ad = a + d;
   double const bc = b + c;
 
-  if (ad < bc)
+  if (ad <= bc)
     return bmm_fp_sumdist(x, c, d, a, b);
 
   double const ac = a + c;
@@ -186,9 +186,9 @@ inline double bmm_fp_sumdist(double const x,
   double const dc = d - c;
   double const badc = ba * dc;
 
-  return ac < x && x < bc ? (x - ac) / badc :
-    bc < x && x < ad ? ba / badc :
-    ad < x && x < bd ? -(x - bd) / badc :
+  return ac <= x && x <= bc ? (x - ac) / badc :
+    bc <= x && x <= ad ? ba / badc :
+    ad <= x && x <= bd ? -(x - bd) / badc :
     0.0;
 }
 
@@ -202,7 +202,7 @@ inline double bmm_fp_proddist(double const x,
   double const ad = a * d;
   double const bc = b * c;
 
-  if (ad < bc)
+  if (ad <= bc)
     return bmm_fp_proddist(x, c, d, a, b);
 
   double const ac = a * c;
@@ -212,9 +212,9 @@ inline double bmm_fp_proddist(double const x,
   double const dc = d - c;
   double const badc = ba * dc;
 
-  return ac < x && x < bc ? (log(x) - log(ac)) / badc :
-    bc < x && x < ad ? (log(b) - log(a)) / badc :
-    ad < x && x < bd ? (log(bd) - log(x)) / badc :
+  return ac <= x && x <= bc ? (log(x) - log(ac)) / badc :
+    bc <= x && x <= ad ? (log(b) - log(a)) / badc :
+    ad <= x && x <= bd ? (log(bd) - log(x)) / badc :
     0.0;
 }
 
