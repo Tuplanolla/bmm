@@ -214,7 +214,7 @@ inline double bmm_fp_proddist(double const x,
 
   return ac < x && x < bc ? (log(x) - log(ac)) / badc :
     bc < x && x < ad ? (log(b) - log(a)) / badc :
-    ad < x && x < bd ? log(bd / x) / badc :
+    ad < x && x < bd ? (log(bd) - log(x)) / badc :
     0.0;
 }
 
