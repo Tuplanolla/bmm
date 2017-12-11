@@ -176,7 +176,7 @@ inline double bmm_fp_sumdist(double const x,
   double const ad = a + d;
   double const bc = b + c;
 
-  if (ad <= bc)
+  if (ad < bc)
     return bmm_fp_sumdist(x, c, d, a, b);
 
   double const ac = a + c;
@@ -202,7 +202,7 @@ inline double bmm_fp_proddist(double const x,
   double const ad = a * d;
   double const bc = b * c;
 
-  if (ad <= bc)
+  if (ad < bc)
     return bmm_fp_proddist(x, c, d, a, b);
 
   double const ac = a * c;
