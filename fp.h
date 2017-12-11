@@ -218,5 +218,4 @@ inline double bmm_fp_proddist(double const x,
     0.0;
 }
 
-
 #endif
