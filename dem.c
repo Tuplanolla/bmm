@@ -671,18 +671,17 @@ bool bmm_dem_yield_pair(struct bmm_dem *const dem,
   double const fnormij = -bmm_geom2d_dot(fdiffij, xnormij);
   double const ftangij = $(bmm_abs, double)(bmm_geom2d_dot(fdiffij, xtangij));
 
-  // TODO Is this a valid assumption for the yield point cross section?
-  double const a = 2.0 *
-    $(bmm_hmean2, double)(dem->part.r[ipart], dem->part.r[jpart]);
-
   double const strength = dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].strength[icont];
 
-  double const sigmaij = fnormij / (a * strength);
-  double const tauij = ftangij / (a * strength);
+  double const a = M_PI * $(bmm_power, double)(strength *
+      $(bmm_min, double)(dem->part.r[ipart], dem->part.r[jpart]), 2);
+
+  double const sigmanormij = fnormij / a;
+  double const sigmatangij = ftangij / a;
 
   switch (dem->yield.tag) {
     case BMM_DEM_YIELD_RANKINE:
-      if (sigmaij >= dem->yield.params.rankine.sigmacrit) {
+      if (sigmanormij > dem->yield.params.rankine.sigmacrit) {
         bmm_dem_remcont(dem, BMM_DEM_CT_STRONG, ipart, jpart, icont);
 
         return true;
@@ -690,7 +689,7 @@ bool bmm_dem_yield_pair(struct bmm_dem *const dem,
 
       break;
     case BMM_DEM_YIELD_TRESCA:
-      if (sigmaij >= dem->yield.params.tresca.taucrit) {
+      if (sigmatangij > dem->yield.params.tresca.taucrit) {
         bmm_dem_remcont(dem, BMM_DEM_CT_STRONG, ipart, jpart, icont);
 
         return true;
@@ -698,8 +697,8 @@ bool bmm_dem_yield_pair(struct bmm_dem *const dem,
 
       break;
     case BMM_DEM_YIELD_ZE:
-      if ($(bmm_power, double)(sigmaij / dem->yield.params.ze.sigmacrit, 2) +
-          $(bmm_power, double)(tauij / dem->yield.params.ze.taucrit, 2) >= 1.0) {
+      if ($(bmm_power, double)(sigmanormij / dem->yield.params.ze.sigmacrit, 2) +
+          $(bmm_power, double)(sigmatangij / dem->yield.params.ze.taucrit, 2) > 1.0) {
         bmm_dem_remcont(dem, BMM_DEM_CT_STRONG, ipart, jpart, icont);
 
         return true;
@@ -776,7 +775,7 @@ size_t bmm_dem_addpart(struct bmm_dem *const dem) {
   dem->part.role[ipart] = BMM_DEM_ROLE_FREE;
   dem->part.r[ipart] = 1.0;
   dem->part.m[ipart] = 1.0;
-  dem->part.jred[ipart] = bmm_geom_ballprmoi(BMM_NDIM);
+  dem->part.jred[ipart] = bmm_geom_ballprmoi(BMM_NDIM + 1);
 
   for (size_t idim = 0; idim < BMM_NDIM; ++idim)
     dem->part.x[ipart][idim] = 0.0;
@@ -2656,8 +2655,8 @@ void bmm_dem_def(struct bmm_dem *const dem,
 
       break;
     case BMM_DEM_YIELD_ZE:
-      dem->yield.params.ze.sigmacrit = 2.0e+7;
-      dem->yield.params.ze.taucrit = 8.0e+7;
+      dem->yield.params.ze.sigmacrit = 2.0e+10;
+      dem->yield.params.ze.taucrit = 2.0e+10;
       // This is ideal for `beam` tests.
       // dem->yield.params.ze.sigmacrit = 3.0e+7;
       // dem->yield.params.ze.taucrit = 3.0e+8;
