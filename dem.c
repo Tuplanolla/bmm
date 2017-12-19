@@ -1465,6 +1465,88 @@ void bmm_dem_integ_man(struct bmm_dem *const dem) {
   }
 }
 
+void bmm_dem_integ_kura(struct bmm_dem *const dem) {
+  double const dt = dem->opts.script.dt[dem->script.i];
+
+  if (dt == 0.0)
+    return;
+
+  double const dt2 = $(bmm_power, double)(dt, 2);
+
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
+    for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
+      dem->integ.params.beeman.xo[ipart][idim] = dem->part.x[ipart][idim];
+      dem->integ.params.beeman.vo[ipart][idim] = dem->part.v[ipart][idim];
+      dem->integ.params.beeman.aoo[ipart][idim] = dem->integ.params.beeman.ao[ipart][idim];
+      dem->integ.params.beeman.ao[ipart][idim] = dem->part.a[ipart][idim];
+
+      dem->part.x[ipart][idim] = dem->part.x[ipart][idim] +
+        dem->part.v[ipart][idim] * dt +
+        (1.0 / 2.0) * (1.0 / 4.0) * (5.0 * dem->part.a[ipart][idim] -
+            dem->integ.params.beeman.aoo[ipart][idim]) * dt2;
+
+      if (dem->opts.box.per[idim])
+        dem->part.x[ipart][idim] = $(bmm_uwrap, double)(dem->part.x[ipart][idim],
+            dem->opts.box.x[idim]);
+
+      dem->part.v[ipart][idim] = dem->part.v[ipart][idim] +
+        (1.0 / 2.0) * (3.0 * dem->part.a[ipart][idim] -
+            dem->integ.params.beeman.aoo[ipart][idim]) * dt;
+    }
+
+    dem->integ.params.beeman.phio[ipart] = dem->part.phi[ipart];
+    dem->integ.params.beeman.omegao[ipart] = dem->part.omega[ipart];
+    dem->integ.params.beeman.alphaoo[ipart] = dem->integ.params.beeman.alphao[ipart];
+    dem->integ.params.beeman.alphao[ipart] = dem->part.alpha[ipart];
+
+    dem->part.phi[ipart] = dem->part.phi[ipart] +
+      dem->part.omega[ipart] * dt +
+      (1.0 / 2.0) * (1.0 / 3.0) * (4.0 * dem->part.alpha[ipart] -
+          dem->integ.params.beeman.alphaoo[ipart]) * dt2;
+
+    dem->part.omega[ipart] = dem->part.omega[ipart] +
+      (1.0 / 2.0) * (3.0 * dem->part.alpha[ipart] -
+          dem->integ.params.beeman.alphaoo[ipart]) * dt;
+  }
+}
+
+void bmm_dem_integ_ev(struct bmm_dem *const dem) {
+  double const dt = dem->opts.script.dt[dem->script.i];
+
+  if (dt == 0.0)
+    return;
+
+  double const dt2 = $(bmm_power, double)(dt, 2);
+
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
+    for (size_t idim = 0; idim < BMM_NDIM; ++idim) {
+      dem->part.x[ipart][idim] = dem->integ.params.beeman.xo[ipart][idim] +
+        dem->integ.params.beeman.vo[ipart][idim] * dt +
+        (1.0 / 2.0) * (1.0 / 4.0) * (dem->part.a[ipart][idim] +
+            3.0 * dem->integ.params.beeman.ao[ipart][idim]) * dt2;
+
+      if (dem->opts.box.per[idim])
+        dem->part.x[ipart][idim] = $(bmm_uwrap, double)(dem->part.x[ipart][idim],
+            dem->opts.box.x[idim]);
+
+      dem->part.v[ipart][idim] = dem->integ.params.beeman.vo[ipart][idim] +
+        (1.0 / 8.0) * (3.0 * dem->part.a[ipart][idim] +
+            6.0 * dem->integ.params.beeman.ao[ipart][idim] -
+            dem->integ.params.beeman.aoo[ipart][idim]) * dt;
+    }
+
+    dem->part.phi[ipart] = dem->integ.params.beeman.phio[ipart] +
+      dem->integ.params.beeman.omegao[ipart] * dt +
+      (1.0 / 2.0) * (1.0 / 3.0) * (dem->part.alpha[ipart] +
+          2.0 * dem->integ.params.beeman.alphao[ipart]) * dt2;
+
+    dem->part.omega[ipart] = dem->integ.params.beeman.omegao[ipart] +
+      (1.0 / 6.0) * (2.0 * dem->part.alpha[ipart] +
+          5.0 * dem->integ.params.beeman.alphao[ipart] -
+          dem->integ.params.beeman.alphaoo[ipart]) * dt;
+  }
+}
+
 void bmm_dem_stab(struct bmm_dem *const dem) {
   // We could reset windings here,
   // but that would interfere with beam models,
@@ -1479,6 +1561,10 @@ void bmm_dem_predict(struct bmm_dem *const dem) {
       break;
     case BMM_DEM_INTEG_BEEMAN:
       bmm_dem_integ_bee(dem);
+
+      break;
+    case BMM_DEM_INTEG_KURAEV:
+      bmm_dem_integ_kura(dem);
 
       break;
   }
@@ -1500,6 +1586,10 @@ void bmm_dem_correct(struct bmm_dem *const dem) {
       break;
     case BMM_DEM_INTEG_BEEMAN:
       bmm_dem_integ_man(dem);
+
+      break;
+    case BMM_DEM_INTEG_KURAEV:
+      bmm_dem_integ_ev(dem);
 
       break;
   }
@@ -2663,8 +2753,9 @@ void bmm_dem_def(struct bmm_dem *const dem,
 
   dem->integ.tag = BMM_DEM_INTEG_TAYLOR;
   dem->integ.tag = BMM_DEM_INTEG_VELVET;
-  dem->integ.tag = BMM_DEM_INTEG_EULER;
   dem->integ.tag = BMM_DEM_INTEG_BEEMAN;
+  dem->integ.tag = BMM_DEM_INTEG_KURAEV;
+  dem->integ.tag = BMM_DEM_INTEG_EULER;
   dem->cache.tag = BMM_DEM_CACHE_NONE;
   dem->cache.tag = BMM_DEM_CACHE_NEIGH;
   dem->ext.tag = BMM_DEM_EXT_NONE;

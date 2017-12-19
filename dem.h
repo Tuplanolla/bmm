@@ -61,7 +61,9 @@ enum bmm_dem_integ {
   /// Velocity Verlet (not leapfrog) scheme.
   BMM_DEM_INTEG_VELVET,
   /// Beeman (modified) scheme.
-  BMM_DEM_INTEG_BEEMAN
+  BMM_DEM_INTEG_BEEMAN,
+  /// Kuraev (modified) scheme.
+  BMM_DEM_INTEG_KURAEV
 };
 
 /// External force schemes.
