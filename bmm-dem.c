@@ -119,7 +119,7 @@ static bool f(char const *const key, char const *const value,
       opts->script.params[istage].crunch.p = -4.0e+5;
     } else if (strcmp(value, "shear") == 0) {
       double mu = 1.75e-3;
-      dtstuff = 8.0e-7;
+      dtstuff = 2.0e-7;
       // This time step should be sufficient for (N2464).
       // dtstuff = 4.0e-9;
 
@@ -147,7 +147,7 @@ static bool f(char const *const key, char const *const value,
       opts->script.dt[istage] = dtstuff;
       opts->script.params[istage].sediment.kcohes = 3.0e+4;
 
-      dtstuff = 4.0e-7;
+      dtstuff = 2.0e-7;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_SEDIMENT;

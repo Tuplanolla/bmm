@@ -59,7 +59,9 @@ enum bmm_dem_integ {
   /// Forward scheme using Taylor expansions.
   BMM_DEM_INTEG_TAYLOR,
   /// Velocity Verlet (not leapfrog) scheme.
-  BMM_DEM_INTEG_VELVET
+  BMM_DEM_INTEG_VELVET,
+  /// Beeman (modified) scheme.
+  BMM_DEM_INTEG_BEEMAN
 };
 
 /// External force schemes.
@@ -406,11 +408,30 @@ struct bmm_dem {
     union {
       /// For `BMM_DEM_INTEG_VELVET`.
       struct {
-        /// Accelerations.
-        double a[BMM_MPART][BMM_NDIM];
-        /// Angular accelerations.
-        double alpha[BMM_MPART];
+        /// Old accelerations.
+        double ao[BMM_MPART][BMM_NDIM];
+        /// Old angular accelerations.
+        double alphao[BMM_MPART];
       } velvet;
+      /// For `BMM_DEM_INTEG_BEEMAN`.
+      struct {
+        /// Old displacements.
+        double xo[BMM_MPART][BMM_NDIM];
+        /// Old velocities.
+        double vo[BMM_MPART][BMM_NDIM];
+        /// Old accelerations.
+        double ao[BMM_MPART][BMM_NDIM];
+        /// Very old accelerations.
+        double aoo[BMM_MPART][BMM_NDIM];
+        /// Old angular displacements.
+        double phio[BMM_MPART];
+        /// Old angular velocities.
+        double omegao[BMM_MPART];
+        /// Old angular accelerations.
+        double alphao[BMM_MPART];
+        /// Very old angular accelerations.
+        double alphaoo[BMM_MPART];
+      } beeman;
     } params;
   } integ;
   /// External forces.
