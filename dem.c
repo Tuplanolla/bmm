@@ -1716,6 +1716,27 @@ static void bmm_dem_script_clip(struct bmm_dem *const dem) {
       dem->pair[ict].cont.src[ipart].n = 0;
 }
 
+__attribute__ ((__nonnull__))
+double bmm_dem_bulkmod(struct bmm_dem const *const dem) {
+  return dem->opts.part.ycomp / (3.0 * (1.0 - 2.0 * dem->opts.part.nu));
+}
+
+__attribute__ ((__nonnull__))
+double bmm_dem_shearmod(struct bmm_dem const *const dem) {
+  return dem->opts.part.ycomp / (2.0 * (1.0 + dem->opts.part.nu));
+}
+
+__attribute__ ((__nonnull__))
+double bmm_dem_pwavec(struct bmm_dem const *const dem) {
+  return sqrt((bmm_dem_bulkmod(dem) +
+        (4.0 / 3.0) * bmm_dem_shearmod(dem)) / dem->opts.part.rho);
+}
+
+__attribute__ ((__nonnull__))
+double bmm_dem_swavec(struct bmm_dem const *const dem) {
+  return sqrt(bmm_dem_shearmod(dem) / dem->opts.part.rho);
+}
+
 static double extra_crap(struct bmm_dem const *const dem) {
   double const eambdis = dem->est.eambdis;
   double const epotext = dem->est.epotext_d;
@@ -3699,7 +3720,7 @@ static bool rubbish(struct bmm_dem const *const dem) {
 
   double const sk = -(rho / 2.0) * a;
 
-  if (fprintf(stderr, "s / k = %g\n", sk) < 0) {
+  if (fprintf(stderr, "S / k = %g\n", sk) < 0) {
     BMM_TLE_STDS();
 
     return false;
@@ -3711,6 +3732,20 @@ static bool rubbish(struct bmm_dem const *const dem) {
   free(r);
 
   if (fclose(stream) != 0) {
+    BMM_TLE_STDS();
+
+    return false;
+  }
+
+  // TODO This is lost here, too.
+
+  if (fprintf(stderr, "c^P = %g\n", bmm_dem_pwavec(dem)) < 0) {
+    BMM_TLE_STDS();
+
+    return false;
+  }
+
+  if (fprintf(stderr, "c^S = %g\n", bmm_dem_swavec(dem)) < 0) {
     BMM_TLE_STDS();
 
     return false;

@@ -42,12 +42,12 @@ static bool f(char const *const key, char const *const value,
   opts->part.strnew[1] = 1.0 + a;
 
   // Now in SI base units!
-  opts->part.rho = 2.7e+3;
+  opts->part.rho = 2.65e+3;
   // TODO For granite this should be closer to `e+9`,
   // but that explodes with this large `dt`.
   opts->part.ytens = 17.0e+8;
-  opts->part.ycomp = 49.0e+8;
-  opts->part.nu = 0.2;
+  opts->part.ycomp = 51.0e+8;
+  opts->part.nu = 0.215;
 
   opts->comm.dt = 2.0e-5;
 
