@@ -640,8 +640,8 @@ static void bmm_sdl_draw(struct bmm_sdl const *const sdl) {
   double const ewcontdis = dem->est.ewcontdis;
   double const escontdis = dem->est.escontdis;
   double const pos = eambdis + epotext + eklin + ekrot + ewcont + escont
-    + ebond + eyieldis + ewcontdis + escontdis;
-  double const neg = edrivnorm + edrivtang;
+    + eyieldis + ewcontdis + escontdis;
+  double const neg = edrivnorm + edrivtang + ebond;
   double const eee = pos - neg;
 
   // TODO These should come via messages.

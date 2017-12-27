@@ -583,7 +583,7 @@ size_t bmm_dem_addcont_unsafe(struct bmm_dem *const dem,
   dem->pair[ict].cont.src[ipart].psirest[icont][BMM_DEM_END_HEAD] = psij;
 
   double const e = bmm_dem_est_econt_one(dem, ict, ipart, icont, jpart);
-  dem->est.ebond -= e;
+  dem->est.ebond += e;
   if (ict == BMM_DEM_CT_WEAK)
     dem->est.ewcont += e;
   else
@@ -1753,8 +1753,8 @@ static double extra_crap(struct bmm_dem const *const dem) {
   double const ewcontdis = dem->est.ewcontdis;
   double const escontdis = dem->est.escontdis;
   double const pos = eambdis + epotext + eklin + ekrot + ewcont + escont
-    + ebond + eyieldis + ewcontdis + escontdis;
-  double const neg = edrivnorm + edrivtang;
+    + eyieldis + ewcontdis + escontdis;
+  double const neg = edrivnorm + edrivtang + ebond;
   double const eee = pos - neg;
   /*
   if (fprintf(stderr,
@@ -2622,7 +2622,6 @@ bool bmm_dem_est_raddist(double *const pr, double *const pg,
     if (bmm_dem_inside(dem, ipart))
       for (size_t jpart = ipart + 1; jpart < dem->part.n; ++jpart)
         if (bmm_dem_inside(dem, jpart)) {
-
           double const d = bmm_geom2d_cpdist(dem->part.x[ipart],
               dem->part.x[jpart], dem->opts.box.x, dem->opts.box.per);
 
@@ -3615,8 +3614,8 @@ static bool garbage(struct bmm_dem const *const dem) {
   double const ewcontdis = dem->est.ewcontdis;
   double const escontdis = dem->est.escontdis;
   double const pos = eambdis + epotext + eklin + ekrot + ewcont + escont
-    + ebond + eyieldis + ewcontdis + escontdis;
-  double const neg = edrivnorm + edrivtang;
+    + eyieldis + ewcontdis + escontdis;
+  double const neg = edrivnorm + edrivtang + ebond;
   double const eee = pos - neg;
 
   if (fprintf(stream, "%g %g %g %g\n",
