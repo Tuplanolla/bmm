@@ -62,13 +62,8 @@ void bmm_dem_est_vdc(double *const pv, struct bmm_dem const *const dem) {
       for (size_t idim = 0; idim < BMM_NDIM; ++idim)
         pv[idim] += dem->part.v[ipart][idim];
 
-  size_t ndrive = 0;
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    if (dem->part.role[ipart] == BMM_DEM_ROLE_DRIVEN)
-      ++ndrive;
-
   for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-    pv[idim] /= (double) ndrive;
+    pv[idim] /= (double) dem->script.state.crunch.ndrive;
 }
 
 __attribute__ ((__nonnull__, __pure__))
@@ -1230,6 +1225,7 @@ void bmm_dem_force(struct bmm_dem *const dem) {
   dem->est.fback[0] = 0.0;
   dem->est.fback[1] = 0.0;
   dem->est.mueff = (double) NAN;
+  dem->est.mueffb = (double) NAN;
   dem->est.vdriv[0] = (double) NAN;
   dem->est.vdriv[1] = (double) NAN;
 
@@ -1255,8 +1251,13 @@ void bmm_dem_force(struct bmm_dem *const dem) {
       for (size_t idim = 0; idim < BMM_NDIM; ++idim)
         dem->est.fback[idim] += dem->part.f[ipart][idim];
 
+  if (dem->script.state.crunch.f[1] != 0.0)
+    dem->est.mueff = $(bmm_abs, double)(dem->script.state.crunch.f[0] /
+        dem->script.state.crunch.f[1]);
+
   if (dem->est.fback[1] != 0.0)
-    dem->est.mueff = $(bmm_abs, double)(dem->est.fback[0] / dem->est.fback[1]);
+    dem->est.mueffb = $(bmm_abs, double)(dem->est.fback[0] /
+        dem->est.fback[1]);
 
   bmm_dem_est_vdc(dem->est.vdriv, dem);
 
@@ -1267,16 +1268,6 @@ void bmm_dem_force(struct bmm_dem *const dem) {
   // TODO Could stabilize the upper surface here.
   dem->script.state.crunch.f[1] = dem->opts.script.params[dem->script.i].crunch.p;
 
-  // TODO This still sucks.
-  switch (dem->ext.tag) {
-    case BMM_DEM_EXT_DRIVE:
-      dem->script.state.crunch.ndrive = 0;
-      for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-        if (dem->part.role[ipart] == BMM_DEM_ROLE_DRIVEN)
-          ++dem->script.state.crunch.ndrive;
-
-      break;
-  }
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     bmm_dem_force_external(dem, ipart);
 }
@@ -2883,6 +2874,7 @@ void bmm_dem_def(struct bmm_dem *const dem,
   dem->est.fback[0] = 0.0;
   dem->est.fback[1] = 0.0;
   dem->est.mueff = (double) NAN;
+  dem->est.mueffb = (double) NAN;
   dem->est.vdriv[0] = (double) NAN;
   dem->est.vdriv[1] = (double) NAN;
 
@@ -3551,9 +3543,13 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
       if (pristine) {
         pristine = false;
 
+        dem->script.state.crunch.ndrive = 0;
         for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-          if (dem->part.x[ipart][1] > dem->opts.box.x[1] * 0.9)
+          if (dem->part.x[ipart][1] > dem->opts.box.x[1] * 0.9) {
             dem->part.role[ipart] = BMM_DEM_ROLE_DRIVEN;
+
+            ++dem->script.state.crunch.ndrive;
+          }
 
         for (size_t idim = 0; idim < BMM_NDIM; ++idim)
           dem->script.state.crunch.f[idim] = 0.0;
@@ -3618,10 +3614,11 @@ static bool garbage(struct bmm_dem const *const dem) {
   double const neg = edrivnorm + edrivtang + ebond;
   double const eee = pos - neg;
 
-  if (fprintf(stream, "%g %g %g %g\n",
+  if (fprintf(stream, "%g %g %g %g %g\n",
         dem->time.t,
         eee,
         dem->est.mueff,
+        dem->est.mueffb,
         dem->est.vdriv[0]) < 0) {
     BMM_TLE_STDS();
 

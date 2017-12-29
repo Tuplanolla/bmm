@@ -610,6 +610,8 @@ struct bmm_dem {
     double vdriv[BMM_NDIM];
     /// Effective macroscopic friction factor.
     double mueff;
+    /// Effective macroscopic friction factor (from feedback).
+    double mueffb;
   } est;
   /// Neighbor cache.
   /// This is only used for performance optimization.
