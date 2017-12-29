@@ -1,12 +1,11 @@
 # Brittle Matter Matters
 
-This repository contains a simplified implementation
-of discrete element method as applied to brittle surface contact.
+This repository contains an implementation
+of a force-based discrete element method
+as applied to shearing brittle surfaces.
 While the code seems to produce correct results and run reasonably fast,
-it is primarily intended for pedagogical purposes.
-Clarity and conciseness of the presentation are favored
-over numerical stability and performance tricks.
-If you would prefer something with the opposite design goals, see
+it was originally intended to accomplish a single task.
+If you would prefer something that is actually useful, see
 
 * [University of Oslo][uio]'s [ESyS-Particle][esys-particle] under OSL-3.0,
 * [Yade Project][yade-dem]'s [Yade][yade] under GPL-2.0 or
@@ -16,7 +15,7 @@ If you would prefer something with the opposite design goals, see
 
 Brittle Matter Matters was written by Sampsa "Tuplanolla" Kiiskinen
 to support his master's thesis on complex material physics.
-The project was written between 2017-03-09 and 2017-08-31.
+The project was written between 2017-03-09 and 2018-01-11.
 
 ## License
 
@@ -27,7 +26,7 @@ resides in the same directory as this file.
 In short, copies and derivative works are permitted
 as long as they use a compatible license.
 
-## The Plan
+## Notes and Other Nonsense
 
 ### Project Structure
 
@@ -262,13 +261,13 @@ Also
 * RasMol
 
 are chemist-oriented.
-We shall review
+Of the two
 
 * VMD
 * OVITO
 
-next.
-Also take a look at GLE.
+the former is too limited and
+the latter does not support bonds without hacks.
 
 ### File Format Choices
 
@@ -402,37 +401,11 @@ However lots of memory and system time may be used.
 
 These things need better explanations.
 
-### Implementation Details
-
-Here be notes.
-
-#### Error Messages
-
-Since printing error messages taints library procedures and
-`errno` and `strerror` cannot carry dynamic error information,
-it could be useful to have another mechanism.
-The proposal in the `tlerr` translation unit could work.
-
-#### Allocation
-
-Note that `T xs[N][N]` as indexed with `xs[i][j]`
-has distinctly different memory access characteristics
-from `T xs[N * N]` as indexed with `xs[i + j * n]`.
-The same applies to `T xs[N * N]` and `T* xs[N * N]`.
-Profile the cache behavior of each one to find the optimal solution.
-
-#### Double Buffering
-
-Some numerical operations need a copy of the universe.
-This is provided via double buffering,
-but operations that rely on it are obliged to copy the entire universe over
-to guarantee no stale data is left behind when the buffers are swapped.
-
-#### Critical Failure
+### Critical Failure
 
 In case a message writer dies in the middle of a message,
 the receiver has no way to detect and correct for this.
-This is by design.
+This is by design, because speeed.
 
 Failure also occurs if a consumer is fed a message it does not care about.
 This could be mitigated with the following reception system,
@@ -452,44 +425,7 @@ but that might not be worth the effort (both programming and computational).
     bool bmm_recv_unreg_all(struct bmm_recv_mask*);
     bool bmm_recv(struct bmm_recv_mask const*);
 
-#### Interesting Idea
-
-Particle speed distribution could be calculated and
-then partitioned into slow and fast regions.
-Only the slow region would participate in the linked cell algorithm.
-This did not work due to nonlocality:
-transfer of kinetic energy quickly changed the distribution.
-
-#### Pair Symmetry
-
-Currently links are stored in a particle list
-each of which with a list of indices representing links *to*.
-Another data structure option would be a freestanding index pair list,
-where the first index would always be strictly less than the second.
-
-Forces between pairs could be worked out asymmetrically,
-which would cut the Moore neighborhood sizes and iterations into half.
-However this would have some downsides too.
-First, finding whether a particle is linked to any other particle
-would require $n g$ instead of $g$ operations
-for $n$ particles and $g$ amortized group size.
-Second, interaction calculations would require almost twice as much code.
-
-Observe static structure time complexities.
-Assume 0-based indexing.
-Lists must store a "free list" as an unsorted array to manage allocation.
-Trees must use "bit pairs" to represent pointers.
-
-| Data Structure | Insertion | Deletion  | Access    | Search    | Space
-|:---------------|:----------|:----------|:----------|:----------|:------
-| Sorted Array   | $n - i$   | $n - i$   | $1$       | $\\log n$ | $k$
-| Unsorted Array | $1$       | $1$       | $1$       | $i$       | $k$
-| Sorted List    | $i$       | $i$       | $i$       | $2 i$     | $3 k$
-| Unsorted List  | $2$       | $i$       | $i$       | $2 i$     | $3 k$
-| Sorted Tree    | $\\log n$ | $\\log n$ | $\\log n$ | $\\log n$ | $3 k$
-| Unsorted Tree  | $\\log n$ | $n$?      | $n$?      | $n$?      | $3 k$
-
-#### Representation of Time
+### Representation of Time
 
 From the user perspective,
 it is easiest to specify timespan $t_1 - t_0$ and time step $dt$.
@@ -509,111 +445,7 @@ Haskell notation follows.
 It is unreasonable to expect `sum (replicate n dx) == n * dx`,
 but `sum (replicate n dx) <= n * dx + epsilon` should hold for small `epsilon`.
 
-#### Simulation Stages
-
-First particles are placed randomly without overlapping
-until enough consecutive failures happen.
-Then gravity is applied and the simulation is run
-until energy reaches a low point.
-The process is repeated until failures happen immediately.
-This introduces a statistical size bias, which has to be taken into account.
-The time step may be varied (from large to small here)
-as long as it produces a stable simulation.
-
-Beams are formed by building the convex hull of the particle point set and
-adding and flipping vertices until we run out.
-This is basically Delaunay triangulation with length constraints.
-
-#### Unit Stuff
-
-Wikipedia says the following.
-
-> For homogeneous isotropic materials simple relations exist
-> between elastic constants (Young's modulus $Y$,
-> shear modulus $G$, bulk modulus $K$, and Poisson's ratio $\\nu$)
-> that allow calculating them all as long as two are known:
-> $Y = 2 G (1 + \\nu) = 3 K (1 - 2 \\nu)$.
-
-#### Types
-
-Ignoring `const` and other qualifiers, the following basic types exist in C11.
-
-| Category                        | Sign-Agnostic    | Signed                | Unsigned
-|:--------------------------------|:-----------------|:----------------------|:---------
-| Bytes and Characters            | `char`           | `signed char`         | `unsigned char`
-| Pointers                        | `void *`         |                       |  
-| Function Pointers               | `void (*)(void)` |                       |  
-| Integers                        |                  | `short int`           | `unsigned short int`
-| Integers                        |                  | `int`                 | `unsigned int`
-| Integers                        |                  | `long int`            | `unsigned long int`
-| Integers                        |                  | `long long int`       | `unsigned long long int`
-| Floating-Point Numbers          |                  | `float`               |  
-| Floating-Point Numbers          |                  | `double`              |  
-| Floating-Point Numbers          |                  | `long double`         |  
-| Special-Purpose Integers        |                  |                       | `size_t`
-| Special-Purpose Integers        |                  | `ptrdiff_t`           |  
-| Enumerations                    | `bool`           |                       |  
-| Extended Integers               |                  | `int8_t`              | `uint8_t`
-| Extended Integers               |                  | `int_least8_t`        | `uint_least8_t`
-| Extended Integers               |                  | `int_fast8_t`         | `uint_fast8_t`
-| Extended Integers               |                  | `int16_t`             | `uint16_t`
-| Extended Integers               |                  | `int_least16_t`       | `uint_least16_t`
-| Extended Integers               |                  | `int_fast16_t`        | `uint_fast16_t`
-| Extended Integers               |                  | `int32_t`             | `uint32_t`
-| Extended Integers               |                  | `int_least32_t`       | `uint_least32_t`
-| Extended Integers               |                  | `int_fast32_t`        | `uint_fast32_t`
-| Extended Integers               |                  | `int64_t`             | `uint64_t`
-| Extended Integers               |                  | `int_least64_t`       | `uint_least64_t`
-| Extended Integers               |                  | `int_fast64_t`        | `uint_fast64_t`
-| Extended Integers               |                  | `intptr_t`            | `uintptr_t`
-| Extended Integers               |                  | `intmax_t`            | `uintmax_t`
-| Extended Floating-Point Numbers |                  | `complex float`       |  
-| Extended Floating-Point Numbers |                  | `complex double`      |  
-| Extended Floating-Point Numbers |                  | `complex long double` |  
-
-The following classes or traits are employed.
-
-    |------------------- poly -------------------|  Polymorphic
-    |-------------------- eq --------------------|  Equivalence with =
-    |-------------- ord ---------------|            Order with < and >
-    |-------------- bnd ---------------|            Bounded with ^ and v
-       |------------------ num ------------------|  Numeric with +, *, 0 and 1
-       |-------- int --------|                      Integral with ++ and --
-       |-- sint --|                                 Signed integral with -
-                  |-- uint --|                      Unsigned integral
-                             |-------- fp -------|  Floating-point with -, / and %
-                             |-- sfp --|            Scalar floating-point
-                                       |-- vfp --|  Vector floating-point with ||
-    |------------------- mono -------------------|  Monomorphic
-
-### Do These Things
-
-See if better sedimentation algorithms exist.
-
-    http://www.ime.unicamp.br/~martinez/packmol/
-
-Try Poisson disc sedimentation.
-
-    https://www.jasondavies.com/poisson-disc/
-
-Refactor integrators and data structures for particle dynamics
-into their own little module.
-
-Standardize messages to make the development of consumers easier.
-Concretely: combine NPART and PARTS for example.
-
-Finish the NetCDF adapter.
-
-Finish the Gnuplot adapter.
-
-Finish the realtime visualizer.
-
-Consider `int` instead of `size_t` in critical parts
-since the undefinedness of overflows may allow some better optimizations.
-
-Annotate with `__attribute__ ((__flatten__, __hot__))`.
-
-#### Programming Conventions
+### Programming Conventions
 
 All names consist of tokens that are eight or fewer characters long.
 Procedures are prefixed with the `namespace##_` token.
@@ -624,6 +456,18 @@ are suffixed with the `##_mut` token.
 In-parameters do not have prefixes or suffixes.
 Out-parameters that are written only use the prefix `o##`.
 Out-parameters that are read and written use the prefix `io##`.
+
+### Things I Never Got Around Doing
+
+* Refactor integrators and data structures for particle dynamics
+  into their own little module.
+* Standardize messages to make the development of consumers easier.
+* Finish the NetCDF adapter.
+* Finish the Gnuplot adapter.
+* Finish the realtime visualizer.
+* Annotate with `__attribute__ ((__flatten__, __hot__))`.
+* Consider `int` instead of `size_t` in critical parts since the undefinedness
+  of signed overflows may allow some better optimizations.
 
 [cfdem]: http://www.cfdem.com/
 [liggghts]: https://github.com/CFDEMproject/LIGGGHTS-PUBLIC
