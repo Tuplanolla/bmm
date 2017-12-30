@@ -2594,8 +2594,8 @@ bool bmm_dem_est_raddist(double *const pr, double *const pg,
     struct bmm_dem const *const dem) {
   // TODO This is bad and stupid.
 
-  // double g[BMM_TRI(BMM_MPART)];
-  size_t nmemb = $(bmm_tri, size_t)(dem->part.n);
+  // double g[BMM_TRI(BMM_MPART) * 2];
+  size_t nmemb = $(bmm_tri, size_t)(dem->part.n) * 2;
   double *const w = malloc(nmemb * sizeof *w);
   if (w == NULL)
     return false;
@@ -2611,8 +2611,8 @@ bool bmm_dem_est_raddist(double *const pr, double *const pg,
   size_t i = 0;
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     if (bmm_dem_inside(dem, ipart))
-      for (size_t jpart = ipart + 1; jpart < dem->part.n; ++jpart)
-        if (bmm_dem_inside(dem, jpart)) {
+      for (size_t jpart = 0; jpart < dem->part.n; ++jpart)
+        if (jpart != ipart && bmm_dem_inside(dem, jpart)) {
           double const d = bmm_geom2d_cpdist(dem->part.x[ipart],
               dem->part.x[jpart], dem->opts.box.x, dem->opts.box.per);
 
@@ -3690,7 +3690,7 @@ static bool rubbish(struct bmm_dem const *const dem) {
   double *const g = malloc(nbin * sizeof *g);
   dynamic_assert(r != NULL && g != NULL, "Allocated");
 
-  double const rmax = bmm_fp_min(dem->opts.box.x, BMM_NDIM) / 2.0;
+  double const rmax = dem->opts.box.x[0] / 2.0;
 
   if (!bmm_dem_est_raddist(r, g, nbin, rmax, dem))
     return false;
