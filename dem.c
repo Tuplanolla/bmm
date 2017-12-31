@@ -1265,8 +1265,10 @@ void bmm_dem_force(struct bmm_dem *const dem) {
     copysign(dem->opts.script.params[dem->script.i].crunch.fadjust[0] * dt,
         dem->opts.script.params[dem->script.i].crunch.v - dem->est.vdriv[0]);
 
-  // TODO Could stabilize the upper surface here.
-  dem->script.state.crunch.f[1] = dem->opts.script.params[dem->script.i].crunch.p;
+  dem->script.state.crunch.f[1] =
+    -dem->opts.script.params[dem->script.i].crunch.p *
+    dem->opts.box.x[0] *
+    2.0 * bmm_ival_midpoint(dem->opts.part.rnew);
 
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     bmm_dem_force_external(dem, ipart);
@@ -2490,8 +2492,7 @@ morer: ;
   return true;
 }
 
-// TODO These procedures semisuck, just like everything else here,
-// but I thought I should still let you know this.
+// TODO These procedures do not belong here.
 
 static double wkde_eval(double const *restrict const xarr,
     double const *restrict const warr,
@@ -2608,7 +2609,7 @@ bool bmm_dem_est_raddist(double *const pr, double *const pg,
 // If you desperately want wrong results...
 // #define NO_WEIGHTS
 
-  size_t i = 0;
+  nmemb = 0;
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     if (bmm_dem_inside(dem, ipart))
       for (size_t jpart = 0; jpart < dem->part.n; ++jpart)
@@ -2620,16 +2621,14 @@ bool bmm_dem_est_raddist(double *const pr, double *const pg,
           double const v = bmm_geom2d_shellvol(dem->part.x[ipart], d,
               dem->opts.box.x, dem->opts.box.per);
 
-          r[i] = d;
+          r[nmemb] = d;
 #ifdef NO_WEIGHTS
-          w[i] = 1.0;
+          w[nmemb] = 1.0;
 #else
-          w[i] = d == 0.0 ? 0.0 : v0 / v;
+          w[nmemb] = d == 0.0 ? 0.0 : v0 / v;
 #endif
-          ++i;
+          ++nmemb;
         }
-
-  nmemb = i;
 
   // We convert `w` from "importance weights"
   // to "frequency weights" or "analytic weights".
@@ -2649,6 +2648,8 @@ bool bmm_dem_est_raddist(double *const pr, double *const pg,
   // Ideal gas.
   // for (size_t i = 0; i < nbin; ++i)
   //   pg[i] = bmm_geom_ballsurf(pr[i], BMM_NDIM);
+
+  // We must renormalize to account for cut off kernels.
   double total = 0.0;
   for (size_t i = 0; i < nbin; ++i)
     total += pg[i] * dr;
@@ -2986,6 +2987,27 @@ static void bmm_dem_script_balance(struct bmm_dem *const dem) {
         dem->part.x[ipart][idim] = $(bmm_uwrap, double)(dem->part.x[ipart][idim],
             dem->opts.box.x[idim]);
     }
+}
+
+__attribute__ ((__nonnull__))
+static bool bmm_dem_script_set_density(struct bmm_dem *const dem) {
+  double const vhc = $(bmm_prod, double)(dem->opts.box.x, BMM_NDIM);
+
+  double v = 0.0;
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    v += bmm_geom_ballvol(dem->part.r[ipart], BMM_NDIM);
+
+  double chi = v / vhc;
+
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
+    double const v = bmm_geom_ballvol(dem->part.r[ipart], BMM_NDIM);
+    double const rho = dem->opts.part.rho / chi;
+
+    dem->part.m[ipart] = rho * v;
+  }
+
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    bmm_dem_cache_j(dem, ipart);
 }
 
 __attribute__ ((__nonnull__))
@@ -3406,6 +3428,10 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
           dem->part.role[ipart] = BMM_DEM_ROLE_FREE;
 
       break;
+    case BMM_DEM_MODE_SET_DENSITY:
+      bmm_dem_script_set_density(dem);
+
+      break;
     case BMM_DEM_MODE_CREATE_HC:
       if (!bmm_dem_script_create_hc(dem))
         return false;
@@ -3668,8 +3694,11 @@ bool bmm_dem_comm(struct bmm_dem *const dem) {
     if (!bmm_dem_puts(dem, BMM_MSG_NUM_EST))
       return false;
 
-    if (!garbage(dem))
+    if (!garbage(dem)) {
       BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Nope");
+
+      abort();
+    }
 
     // (void) extra_crap(dem);
   }
@@ -3690,7 +3719,7 @@ static bool rubbish(struct bmm_dem const *const dem) {
   double *const g = malloc(nbin * sizeof *g);
   dynamic_assert(r != NULL && g != NULL, "Allocated");
 
-  double const rmax = dem->opts.box.x[0] / 2.0;
+  double const rmax = dem->opts.box.x[0] / 4.0;
 
   if (!bmm_dem_est_raddist(r, g, nbin, rmax, dem))
     return false;
@@ -3905,8 +3934,10 @@ bool bmm_dem_run(struct bmm_dem *const dem) {
   if (!postgarbage(dem))
     BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Nope");
 
+#ifdef QA
   if (!rubbish(dem))
     BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Nope");
+#endif
 
   if (!trash(dem))
     BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Nope");

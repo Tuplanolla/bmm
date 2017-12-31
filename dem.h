@@ -161,6 +161,8 @@ enum bmm_dem_yield {
 enum bmm_dem_mode {
   /// Do nothing.
   BMM_DEM_MODE_IDLE,
+  /// Adjust the particle density.
+  BMM_DEM_MODE_SET_DENSITY,
   /// Create a fixed number of particles, sparse in the y-direction.
   BMM_DEM_MODE_CREATE_GAS,
   /// Test systems.
@@ -220,7 +222,7 @@ struct bmm_dem_opts {
   } time;
   /// Particles.
   struct {
-    /// Mass density.
+    /// True mass density.
     double rho;
     /// Tensile Young's modulus.
     double ytens;

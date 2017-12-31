@@ -32,7 +32,7 @@ static bool f(char const *const key, char const *const value,
   struct bmm_dem_opts *const opts = ptr;
 
   // TODO Refactor these at some point.
-  opts->box.x[1] = 0.05;
+  opts->box.x[1] = 0.1;
   opts->box.x[0] = opts->box.x[1] * 2.0;
   opts->box.per[0] = true;
   opts->box.per[1] = false;
@@ -56,8 +56,8 @@ static bool f(char const *const key, char const *const value,
 
   if (strcmp(key, "script") == 0) {
     if (strcmp(value, "fin") == 0) {
-      double mu = 0.75e-3;
-      dtstuff = 8.0e-7;
+      double mu = 1.0e-3;
+      dtstuff = 2.0e-7;
       // This time step should be sufficient for (N2464).
       // dtstuff = 4.0e-9;
 
@@ -99,6 +99,9 @@ static bool f(char const *const key, char const *const value,
       opts->script.mode[istage] = BMM_DEM_MODE_LINK;
 
       istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_SET_DENSITY;
+
+      istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_FAULT;
       opts->script.params[istage].fault.ind = ind_straight;
 
@@ -113,12 +116,12 @@ static bool f(char const *const key, char const *const value,
       opts->script.tspan[istage] = 8.0e-3;
       // opts->script.tspan[istage] = 20.0e-3;
       opts->script.dt[istage] = dtstuff * 0.65;
-      opts->script.params[istage].crunch.v = 20.0;
+      opts->script.params[istage].crunch.v = 4.0;
       opts->script.params[istage].crunch.fadjust[0] =
         opts->script.params[istage].crunch.fadjust[1] = 8.0e+9;
-      opts->script.params[istage].crunch.p = -4.0e+5;
+      opts->script.params[istage].crunch.p = 4.0e+8;
     } else if (strcmp(value, "shear") == 0) {
-      double mu = 1.75e-3;
+      double mu = 4.0e-3;
       dtstuff = 10.0e-7;
       // This time step should be sufficient for (N2464).
       // dtstuff = 4.0e-9;
@@ -176,6 +179,9 @@ static bool f(char const *const key, char const *const value,
       opts->script.dt[istage] = dtstuff;
 
       istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_SET_DENSITY;
+
+      istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_FAULT;
       opts->script.params[istage].fault.ind = ind_straight;
       opts->script.params[istage].fault.ind = ind_wave;
@@ -203,10 +209,10 @@ static bool f(char const *const key, char const *const value,
       opts->script.tspan[istage] = 8.0e-3;
       // opts->script.tspan[istage] = 20.0e-3;
       opts->script.dt[istage] = dtstuff * 0.65;
-      opts->script.params[istage].crunch.v = 20.0;
+      opts->script.params[istage].crunch.v = 30.0;
       opts->script.params[istage].crunch.fadjust[0] =
         opts->script.params[istage].crunch.fadjust[1] = 8.0e+9;
-      opts->script.params[istage].crunch.p = -4.0e+5;
+      opts->script.params[istage].crunch.p = 4.0e+8;
     } else if (strcmp(value, "beam") == 0) {
       dtstuff = 8.0e-7;
 
