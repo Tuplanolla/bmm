@@ -48,6 +48,7 @@ static bool f(char const *const key, char const *const value,
   opts->part.ytens = 17.0e+8;
   opts->part.ycomp = 51.0e+8;
   opts->part.nu = 0.215;
+  double const beta = 0.5;
 
   double dtstuff = 8.0e-7;
   size_t istage;
@@ -63,6 +64,7 @@ static bool f(char const *const key, char const *const value,
       opts->part.ytens = 17.0e+9;
       opts->part.ycomp = 51.0e+9;
       opts->part.nu = 0.215;
+      double const beta = 0.5;
 
       double const rnew[] = {
         2.0 * ravg / (1.0 + sqrt(2.0)),
@@ -84,6 +86,7 @@ static bool f(char const *const key, char const *const value,
 
       bool const statfric = true;
       double const eta = 1.0e+3; // Water.
+      double const eta2 = 1.0e+4; // Glue.
       double const a = 7.6e-3;
       double const mu = 0.725;
       double const kt = 2.0e+7;
@@ -93,11 +96,7 @@ static bool f(char const *const key, char const *const value,
       double const barkt = 8.0e+6;
       double const bargammat = 1.0e+3;
       double const sigmacrit = 283.0e+6 * 16.0;
-      double const sigmatcrit = 10.0e+6 * 16.0;
-      double const theta = 55.0;
-      double const taucrit =
-        sigmacrit * $(bmm_power, double)(sin(M_2PI / 360.0 * theta), 2) +
-        sigmatcrit * $(bmm_power, double)(cos(M_2PI / 360.0 * theta), 2);
+      double const taucrit = beta * sigmacrit;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_PRESET0;
@@ -108,9 +107,17 @@ static bool f(char const *const key, char const *const value,
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_SEDIMENT;
-      opts->script.tspan[istage] = 3.0e-3;
+      opts->script.tspan[istage] = 2.5e-3;
       opts->script.dt[istage] = dtstuff;
       opts->script.params[istage].sediment.kcohes = 0.4e+4;
+
+      dtstuff = 8.0e-8;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_SEDIMENT;
+      opts->script.tspan[istage] = 1.0e-3;
+      opts->script.dt[istage] = dtstuff;
+      opts->script.params[istage].sediment.kcohes = 0.4e+3;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CLIP;
@@ -120,6 +127,7 @@ static bool f(char const *const key, char const *const value,
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_PRESET1;
+      opts->script.params[istage].preset.eta2 = eta2;
       opts->script.params[istage].preset.a = a;
       opts->script.params[istage].preset.mu = mu;
       opts->script.params[istage].preset.kt = kt;
@@ -128,8 +136,6 @@ static bool f(char const *const key, char const *const value,
       opts->script.params[istage].preset.gamman = gamman;
       opts->script.params[istage].preset.barkt = barkt;
       opts->script.params[istage].preset.bargammat = bargammat;
-      opts->script.params[istage].preset.sigmacrit = sigmacrit;
-      opts->script.params[istage].preset.taucrit = taucrit;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_SET_DENSITY;
@@ -139,16 +145,20 @@ static bool f(char const *const key, char const *const value,
       opts->script.params[istage].fault.ind = ind_wave;
 
       istage = bmm_dem_script_addstage(opts);
-      opts->script.mode[istage] = BMM_DEM_MODE_GLUE;
-      opts->script.params[istage].glue.nlayer = 3.0;
+      opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
+      opts->script.tspan[istage] = 0.5e-3;
+      opts->script.dt[istage] = dtstuff;
 
-      dtstuff = 8.0e-8;
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_PRESET2;
+      opts->script.params[istage].preset.sigmacrit = sigmacrit;
+      opts->script.params[istage].preset.taucrit = taucrit;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CRUNCH;
       opts->script.tspan[istage] = 8.0e-3;
       // opts->script.tspan[istage] = 20.0e-3;
-      opts->script.dt[istage] = dtstuff * 0.65;
+      opts->script.dt[istage] = dtstuff;
       opts->script.params[istage].crunch.nlayer = 3.0;
       opts->script.params[istage].crunch.v = 4.0;
       opts->script.params[istage].crunch.fadjust[0] =
@@ -177,6 +187,7 @@ static bool f(char const *const key, char const *const value,
 
       bool const statfric = true;
       double const eta = 1.0e+3; // Water.
+      double const eta2 = 1.0e+4; // Glue.
       double const a = 7.6e-3;
       double const mu = 0.725;
       double const kt = 2.0e+7;
@@ -186,11 +197,7 @@ static bool f(char const *const key, char const *const value,
       double const barkt = 8.0e+6;
       double const bargammat = 1.0e+3;
       double const sigmacrit = 283.0e+6 * 16.0;
-      double const sigmatcrit = 10.0e+6 * 16.0;
-      double const theta = 55.0;
-      double const taucrit =
-        sigmacrit * $(bmm_power, double)(sin(M_2PI / 360.0 * theta), 2) +
-        sigmatcrit * $(bmm_power, double)(cos(M_2PI / 360.0 * theta), 2);
+      double const taucrit = beta * sigmacrit;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_PRESET0;
@@ -201,7 +208,7 @@ static bool f(char const *const key, char const *const value,
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_SEDIMENT;
-      opts->script.tspan[istage] = 3.0e-3;
+      opts->script.tspan[istage] = 4.0e-3;
       opts->script.dt[istage] = dtstuff;
       opts->script.params[istage].sediment.kcohes = 3.0e+4;
 
@@ -209,9 +216,9 @@ static bool f(char const *const key, char const *const value,
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_SEDIMENT;
-      opts->script.tspan[istage] = 1.0e-3;
+      opts->script.tspan[istage] = 2.0e-3;
       opts->script.dt[istage] = dtstuff;
-      opts->script.params[istage].sediment.kcohes = 3.0e+4;
+      opts->script.params[istage].sediment.kcohes = 3.0e+3;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CLIP;
@@ -221,6 +228,7 @@ static bool f(char const *const key, char const *const value,
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_PRESET1;
+      opts->script.params[istage].preset.eta2 = eta2;
       opts->script.params[istage].preset.a = a;
       opts->script.params[istage].preset.mu = mu;
       opts->script.params[istage].preset.kt = kt;
@@ -229,8 +237,6 @@ static bool f(char const *const key, char const *const value,
       opts->script.params[istage].preset.gamman = gamman;
       opts->script.params[istage].preset.barkt = barkt;
       opts->script.params[istage].preset.bargammat = bargammat;
-      opts->script.params[istage].preset.sigmacrit = sigmacrit;
-      opts->script.params[istage].preset.taucrit = taucrit;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_SET_DENSITY;
@@ -238,17 +244,22 @@ static bool f(char const *const key, char const *const value,
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_FAULT;
       opts->script.params[istage].fault.ind = ind_straight;
-      opts->script.params[istage].fault.ind = ind_wave;
 
       istage = bmm_dem_script_addstage(opts);
-      opts->script.mode[istage] = BMM_DEM_MODE_GLUE;
-      opts->script.params[istage].glue.nlayer = 3.0;
+      opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
+      opts->script.tspan[istage] = 0.5e-3;
+      opts->script.dt[istage] = dtstuff;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_PRESET2;
+      opts->script.params[istage].preset.sigmacrit = sigmacrit;
+      opts->script.params[istage].preset.taucrit = taucrit;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CRUNCH;
       opts->script.tspan[istage] = 8.0e-3;
       // opts->script.tspan[istage] = 20.0e-3;
-      opts->script.dt[istage] = dtstuff * 0.65;
+      opts->script.dt[istage] = dtstuff;
       opts->script.params[istage].crunch.nlayer = 3.0;
       opts->script.params[istage].crunch.v = 4.0;
       opts->script.params[istage].crunch.fadjust[0] =

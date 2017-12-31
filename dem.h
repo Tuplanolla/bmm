@@ -195,7 +195,8 @@ enum bmm_dem_mode {
   BMM_DEM_MODE_MEASURE,
   /// Debug utilities.
   BMM_DEM_MODE_PRESET0,
-  BMM_DEM_MODE_PRESET1
+  BMM_DEM_MODE_PRESET1,
+  BMM_DEM_MODE_PRESET2
 };
 
 struct bmm_dem_opts {
@@ -308,8 +309,11 @@ struct bmm_dem_opts {
       } gravy;
       /// For `BMM_DEM_MODE_PRESET0` and `BMM_DEM_MODE_PRESET1`.
       struct {
+        // Whether to use HW or CS.
         bool statfric;
+        // As defined.
         double eta;
+        double eta2;
         double a;
         double mu;
         double kt;
@@ -507,8 +511,6 @@ struct bmm_dem {
     enum bmm_dem_bond tag;
     /// Link length creation factor.
     double ccrcont;
-    /// Link length expansion factor.
-    double cshcont;
   } bond;
   /// Strong-to-weak yield criteria.
   struct {
@@ -589,10 +591,12 @@ struct bmm_dem {
     union {
       /// For `BMM_DEM_MODE_CRUNCH`.
       struct {
+        /// Number of fixed particles.
+        size_t nfix;
         /// Number of driven particles.
         size_t ndrive;
         /// Total driving force.
-        double f[BMM_NDIM];
+        double fdrive[BMM_NDIM];
       } crunch;
     } state;
   } script;
@@ -637,6 +641,8 @@ struct bmm_dem {
     double escontdis;
     /// Resisting force.
     double fback[BMM_NDIM];
+    /// Fixing velocity.
+    double vfix[BMM_NDIM];
     /// Driving velocity.
     double vdriv[BMM_NDIM];
     /// Observed packing fraction.
