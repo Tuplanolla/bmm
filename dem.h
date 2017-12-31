@@ -263,8 +263,15 @@ struct bmm_dem_opts {
         /// Lengthness.
         double slices;
       } test;
+      /// For `BMM_DEM_MODE_GLUE`.
+      struct {
+        /// Thickness of fixed layer.
+        double nlayer;
+      } glue;
       /// For `BMM_DEM_MODE_CRUNCH`.
       struct {
+        /// Thickness of driven layer.
+        double nlayer;
         /// Driving velocity target.
         double v;
         /// Force increment.
@@ -292,6 +299,21 @@ struct bmm_dem_opts {
         /// Gravitational acceleration.
         double g;
       } gravy;
+      /// For `BMM_DEM_MODE_PRESET0` and `BMM_DEM_MODE_PRESET1`.
+      struct {
+        bool statfric;
+        double eta;
+        double a;
+        double mu;
+        double kt;
+        double gammat;
+        double kn;
+        double gamman;
+        double barkt;
+        double bargammat;
+        double sigmacrit;
+        double taucrit;
+      } preset;
     } params[BMM_MSTAGE];
   } script;
   /// Communications.
@@ -610,6 +632,8 @@ struct bmm_dem {
     double fback[BMM_NDIM];
     /// Driving velocity.
     double vdriv[BMM_NDIM];
+    /// Observed packing fraction.
+    double chi;
     /// Effective macroscopic friction factor.
     double mueff;
     /// Effective macroscopic friction factor (from feedback).

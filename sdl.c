@@ -666,6 +666,9 @@ static void bmm_sdl_draw(struct bmm_sdl const *const sdl) {
     (void) snprintf(strbuf, sizeof strbuf, "E (energy balance) = %g",
         eee);
     glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
+    (void) snprintf(strbuf, sizeof strbuf, "chi (pack. frac.) = %g",
+        sdl->dem.est.chi);
+    glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
     (void) snprintf(strbuf, sizeof strbuf, "mu (eff. friction factor) = %g, %g",
         sdl->dem.est.mueff, sdl->dem.est.mueffb);
     glString(strbuf, 8, 8 + 15 * ioff++, glWhite, GLUT_BITMAP_9_BY_15);
