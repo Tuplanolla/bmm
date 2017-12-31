@@ -3568,15 +3568,13 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
       if (!bmm_dem_link(dem))
         return false;
 
-      // TODO Yoink test.
-      // dem->part.omega[0] = 1.0e+6;
-
       break;
     case BMM_DEM_MODE_FAULT:
       bmm_dem_fault(dem);
 
       break;
     case BMM_DEM_MODE_SEPARATE:
+      // TODO Maybe implement.
 
       break;
     case BMM_DEM_MODE_GLUE:

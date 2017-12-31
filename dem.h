@@ -215,6 +215,13 @@ struct bmm_dem_opts {
     /// Periodicities.
     bool per[BMM_NDIM];
   } box;
+  /// Fault.
+  struct {
+    /// Fault jags.
+    size_t njag;
+    /// Fault jag height.
+    double hjag;
+  } fault;
   /// Timekeeping.
   struct {
     /// Stabilization frequency (frame rule).
