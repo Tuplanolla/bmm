@@ -96,7 +96,8 @@ double bmm_dem_est_eklin(struct bmm_dem const *const dem) {
 
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-      e += dem->part.m[ipart] * $(bmm_power, double)(dem->part.v[ipart][idim], 2);
+      e += dem->part.m[ipart] *
+        $(bmm_power, double)(dem->part.v[ipart][idim], 2);
 
   return (1.0 / 2.0) * e;
 }
@@ -683,12 +684,17 @@ bool bmm_dem_yield_pair(struct bmm_dem *const dem,
   double const sigmanormij = fnormij / aij;
   double const sigmatangij = ftangij / aij;
 
+  double const sigmacrit = fnormij < 0.0 ?
+    dem->yield.params.ze.sigmacrit : dem->yield.params.ze.sigmacritt;
+  double const taucrit = fnormij < 0.0 ?
+    dem->yield.params.ze.taucrit : dem->yield.params.ze.taucritt;
+
   double const dt = dem->opts.script.dt[dem->script.i];
 
   switch (dem->yield.tag) {
     case BMM_DEM_YIELD_ZE:
-      if ($(bmm_power, double)(sigmanormij / dem->yield.params.ze.sigmacrit, 2) +
-          $(bmm_power, double)(sigmatangij / dem->yield.params.ze.taucrit, 2) > 1.0) {
+      if ($(bmm_power, double)(sigmanormij / sigmacrit, 2) +
+          $(bmm_power, double)(sigmatangij / taucrit, 2) > 1.0) {
         if (dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].tfat[icont] == 0) {
           bmm_dem_remcont(dem, BMM_DEM_CT_STRONG, ipart, jpart, icont);
 
@@ -772,7 +778,7 @@ size_t bmm_dem_addpart(struct bmm_dem *const dem) {
   dem->part.role[ipart] = BMM_DEM_ROLE_FREE;
   dem->part.r[ipart] = 1.0;
   dem->part.m[ipart] = 1.0;
-  dem->part.jred[ipart] = bmm_geom_ballprmoi(BMM_NDIM + 1);
+  dem->part.jred[ipart] = bmm_geom_ballprmoi(3);
 
   for (size_t idim = 0; idim < BMM_NDIM; ++idim)
     dem->part.x[ipart][idim] = 0.0;
@@ -2788,10 +2794,7 @@ void bmm_dem_def(struct bmm_dem *const dem,
   dem->pair[BMM_DEM_CT_STRONG].cohesive = true;
   dem->pair[BMM_DEM_CT_STRONG].norm.tag = BMM_DEM_NORM_KV;
   dem->pair[BMM_DEM_CT_STRONG].tang.tag = BMM_DEM_TANG_BEAM;
-  dem->yield.tag = BMM_DEM_YIELD_RANKINE;
-  dem->yield.tag = BMM_DEM_YIELD_TRESCA;
   dem->yield.tag = BMM_DEM_YIELD_ZE;
-  // dem->yield.tag = BMM_DEM_YIELD_NONE;
 
   switch (dem->amb.tag) {
     case BMM_DEM_AMB_FAXEN:
@@ -3011,10 +3014,9 @@ static bool bmm_dem_script_set_density(struct bmm_dem *const dem) {
   dem->est.chi = v / vhc;
 
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart) {
-    double const v = bmm_geom_ballvol(dem->part.r[ipart], BMM_NDIM);
     double const rho = dem->opts.part.rho / dem->est.chi;
 
-    dem->part.m[ipart] = rho * v;
+    dem->part.m[ipart] = rho * bmm_geom_ballvol(dem->part.r[ipart], 3);
   }
 
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
@@ -3051,7 +3053,7 @@ static bool bmm_dem_script_create_hc(struct bmm_dem *const dem) {
         return false;
 
       dem->part.r[ipart] = r;
-      dem->part.m[ipart] = dem->opts.part.rho * v;
+      dem->part.m[ipart] = dem->opts.part.rho * bmm_geom_ballvol(r, 3);
 
       for (size_t idim = 0; idim < BMM_NDIM; ++idim)
         dem->part.x[ipart][idim] = x[idim] + rspace;
@@ -3102,7 +3104,7 @@ static bool bmm_dem_script_create_hex(struct bmm_dem *const dem) {
         return false;
 
       dem->part.r[ipart] = r;
-      dem->part.m[ipart] = dem->opts.part.rho * v;
+      dem->part.m[ipart] = dem->opts.part.rho * bmm_geom_ballvol(r, 3);
 
       for (size_t idim = 0; idim < BMM_NDIM; ++idim)
         dem->part.x[ipart][idim] = x[idim] + rspace;
@@ -3155,7 +3157,7 @@ static bool bmm_dem_script_create_testpile(struct bmm_dem *const dem) {
         return false;
 
       dem->part.r[ipart] = r;
-      dem->part.m[ipart] = dem->opts.part.rho * v;
+      dem->part.m[ipart] = dem->opts.part.rho * bmm_geom_ballvol(r, 3);
 
       for (size_t idim = 0; idim < BMM_NDIM; ++idim)
         dem->part.x[ipart][idim] = x[idim] + rspace;
@@ -3216,7 +3218,7 @@ static bool bmm_dem_script_create_testplane(struct bmm_dem *const dem) {
       dem->part.role[ipart] = BMM_DEM_ROLE_FIXED;
 
       dem->part.r[ipart] = r;
-      dem->part.m[ipart] = dem->opts.part.rho * v;
+      dem->part.m[ipart] = dem->opts.part.rho * bmm_geom_ballvol(r, 3);
 
       for (size_t idim = 0; idim < BMM_NDIM; ++idim)
         dem->part.x[ipart][idim] = x[idim] + rspace;
@@ -3267,7 +3269,7 @@ static bool bmm_dem_script_create_testbeam(struct bmm_dem *const dem) {
         return false;
 
       dem->part.r[ipart] = r;
-      dem->part.m[ipart] = dem->opts.part.rho * v;
+      dem->part.m[ipart] = dem->opts.part.rho * bmm_geom_ballvol(r, 3);
 
       for (size_t idim = 0; idim < BMM_NDIM; ++idim)
         dem->part.x[ipart][idim] = x[idim] + rspace;
@@ -3306,7 +3308,7 @@ static bool bmm_dem_script_create_testbeam(struct bmm_dem *const dem) {
     double const v = bmm_geom_ballvol(r, BMM_NDIM);
 
     dem->part.r[ipart] = r;
-    dem->part.m[ipart] = dem->opts.part.rho * v;
+    dem->part.m[ipart] = dem->opts.part.rho * bmm_geom_ballvol(r, 3);
 
     double a[2];
     a[0] = 0.0;
@@ -3324,13 +3326,12 @@ static bool bmm_dem_script_create_testbeam(struct bmm_dem *const dem) {
   return true;
 }
 
-// TODO Bad!
 __attribute__ ((__nonnull__))
 static void bmm_dem_script_perturb(struct bmm_dem *const dem) {
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     for (size_t idim = 0; idim < BMM_NDIM; ++idim)
       dem->part.x[ipart][idim] += bmm_random_get(dem->rng,
-          dem->opts.part.rnew) / 4.0;
+          dem->opts.part.rnew) / 2.0;
 }
 
 __attribute__ ((__nonnull__))
@@ -3363,7 +3364,7 @@ static bool bmm_dem_script_create_couple(struct bmm_dem *const dem) {
     return false;
 
   dem->part.r[jpart] = 0.015 * scale;
-  dem->part.m[jpart] = dem->opts.part.rho * bmm_geom_ballvol(dem->part.r[jpart], BMM_NDIM);
+  dem->part.m[jpart] = dem->opts.part.rho * bmm_geom_ballvol(dem->part.r[jpart], 3);
   dem->part.x[jpart][0] += 0.45 * scale;
   dem->part.x[jpart][1] += 0.25 * scale;
   dem->part.v[jpart][0] += 6.0e+1 * scale;
@@ -3374,7 +3375,7 @@ static bool bmm_dem_script_create_couple(struct bmm_dem *const dem) {
     return false;
 
   dem->part.r[jpart] = 0.03 * scale;
-  dem->part.m[jpart] = dem->opts.part.rho * bmm_geom_ballvol(dem->part.r[jpart], BMM_NDIM);
+  dem->part.m[jpart] = dem->opts.part.rho * bmm_geom_ballvol(dem->part.r[jpart], 3);
   dem->part.x[jpart][0] += 0.55 * scale;
   dem->part.x[jpart][1] += 0.25 * scale;
   dem->part.v[jpart][0] -= 3.0e+1 * scale;
@@ -3394,7 +3395,7 @@ static bool bmm_dem_script_create_triplet(struct bmm_dem *const dem) {
   double const scale = dem->opts.box.x[0];
 
   dem->part.r[jpart] = 0.03 * scale;
-  dem->part.m[jpart] = dem->opts.part.rho * bmm_geom_ballvol(dem->part.r[jpart], BMM_NDIM);
+  dem->part.m[jpart] = dem->opts.part.rho * bmm_geom_ballvol(dem->part.r[jpart], 3);
   dem->part.x[jpart][0] += 0.45 * scale;
   dem->part.x[jpart][1] += 0.25 * scale;
   dem->part.v[jpart][0] += 3.0e+1 * scale;
@@ -3405,7 +3406,7 @@ static bool bmm_dem_script_create_triplet(struct bmm_dem *const dem) {
     return false;
 
   dem->part.r[jpart] = 0.03 * scale;
-  dem->part.m[jpart] = dem->opts.part.rho * bmm_geom_ballvol(dem->part.r[jpart], BMM_NDIM);
+  dem->part.m[jpart] = dem->opts.part.rho * bmm_geom_ballvol(dem->part.r[jpart], 3);
   dem->part.x[jpart][0] += 0.55 * scale;
   dem->part.x[jpart][1] += 0.25 * scale;
   dem->part.v[jpart][0] -= 3.0e+1 * scale;
@@ -3416,7 +3417,7 @@ static bool bmm_dem_script_create_triplet(struct bmm_dem *const dem) {
     return false;
 
   dem->part.r[jpart] = 0.02 * scale;
-  dem->part.m[jpart] = dem->opts.part.rho * bmm_geom_ballvol(dem->part.r[jpart], BMM_NDIM);
+  dem->part.m[jpart] = dem->opts.part.rho * bmm_geom_ballvol(dem->part.r[jpart], 3);
   dem->part.x[jpart][0] += 0.5 * scale;
   dem->part.x[jpart][1] += 0.25 * scale;
   dem->part.v[jpart][0] -= 0.0e+1 * scale;
@@ -3545,8 +3546,8 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
       dem->amb.tag = BMM_DEM_AMB_FAXEN;
       dem->amb.params.creeping.eta = dem->opts.script.params[dem->script.i].preset.eta2;
       dem->pair[BMM_DEM_CT_WEAK].cohesive = false;
-      dem->pair[BMM_DEM_CT_WEAK].norm.tag = BMM_DEM_NORM_BSHP;
-      dem->pair[BMM_DEM_CT_WEAK].norm.params.viscoel.a = dem->opts.script.params[dem->script.i].preset.a;
+      // dem->pair[BMM_DEM_CT_WEAK].norm.tag = BMM_DEM_NORM_BSHP;
+      // dem->pair[BMM_DEM_CT_WEAK].norm.params.viscoel.a = dem->opts.script.params[dem->script.i].preset.a;
       dem->pair[BMM_DEM_CT_WEAK].tang.tag = dem->opts.script.params[dem->script.i].preset.statfric ?
         BMM_DEM_TANG_CS : BMM_DEM_TANG_HW;
       switch (dem->pair[BMM_DEM_CT_WEAK].tang.tag) {
@@ -3576,6 +3577,8 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
       dem->yield.tag = BMM_DEM_YIELD_ZE;
       dem->yield.params.ze.sigmacrit = dem->opts.script.params[dem->script.i].preset.sigmacrit;
       dem->yield.params.ze.taucrit = dem->opts.script.params[dem->script.i].preset.taucrit;
+      dem->yield.params.ze.sigmacritt = dem->opts.script.params[dem->script.i].preset.sigmacritt;
+      dem->yield.params.ze.taucritt = dem->opts.script.params[dem->script.i].preset.taucritt;
 
       break;
     case BMM_DEM_MODE_LINK:

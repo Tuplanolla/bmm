@@ -324,6 +324,8 @@ struct bmm_dem_opts {
         double bargammat;
         double sigmacrit;
         double taucrit;
+        double sigmacritt;
+        double taucritt;
       } preset;
     } params[BMM_MSTAGE];
   } script;
@@ -536,6 +538,10 @@ struct bmm_dem {
         double sigmacrit;
         /// Maximum shear stress.
         double taucrit;
+        /// Maximum normal stress (tensile).
+        double sigmacritt;
+        /// Maximum shear stress (tensile).
+        double taucritt;
       } ze;
     } params;
   } yield;

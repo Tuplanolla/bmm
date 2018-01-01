@@ -49,14 +49,17 @@ static bool f(char const *const key, char const *const value,
   double const beta = 0.5;
   double const sigmacrit = 283.0e+6; // From experiments.
   double const taucrit = beta * sigmacrit; // From theory.
+  // double const sigmacritt = 10.0e+6; // From experiments.
+  double const sigmacritt = sigmacrit; // From experiments.
+  double const taucritt = beta * sigmacritt; // From theory.
   bool const statfric = true;
   double ravg = 1.0e-3;
   double const eta = 1.0e+3; // Water.
-  double const eta2 = 1.0e+4; // Glue.
+  double const eta2 = 2.0e+3; // Glue.
   double const a = 7.6e-3; // From theory.
   double const mu = 0.725; // From experiments.
-  double const kt = 2.0e+7;
-  double const gammat = 1.0e+4;
+  double const kt = 1.0e+1;
+  double const gammat = 1.0e+1;
   // Begin mess.
   double const mat = (2.0 / 3.0) * (opts->part.ycomp /
       (1.0 - $(bmm_power, double)(opts->part.nu, 2)));
@@ -64,11 +67,11 @@ static bool f(char const *const key, char const *const value,
   double const kn = pow(M_PI * ravg * ravg *
       sigmacrit * stuff * stuff, 1.0 / 3.0);
   // End mess.
-  double const gamman = 3.0e+4; // Critical damping.
-  double const barkt = kn * 1.0e+2; // Beam has neutral axis in the middle.
-  double const bargammat = gamman; // Assumed symmetry.
+  double const gamman = 1.0e+2; // Critical damping.
+  double const barkt = kn * 8.0; // Beam has neutral axis in the middle.
+  double const bargammat = 1.0e+2; // Critical damping.
 
-  double const pdriv = 283.0e+6;
+  double const pdriv = 283.0e+5;
   double const vdriv = 4.0;
   double const fadjust = 4.0e+9;
 
@@ -77,8 +80,7 @@ static bool f(char const *const key, char const *const value,
 
   if (strcmp(key, "script") == 0) {
     if (strcmp(value, "fin") == 0) {
-      dtstuff = 2.0e-7;
-      // dtstuff = 4.0e-9;
+      dtstuff = 1.0e-7;
       opts->comm.dt = 1.0e-4;
 
       double const rnew[] = {
@@ -88,7 +90,7 @@ static bool f(char const *const key, char const *const value,
       bmm_dem_opts_set_rnew(opts, rnew);
 
       opts->fault.njag = 8;
-      opts->fault.hjag = 2.0 * bmm_ival_midpoint(opts->part.rnew);
+      opts->fault.hjag = 2.0 * 2.0 * bmm_ival_midpoint(opts->part.rnew);
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
@@ -108,17 +110,17 @@ static bool f(char const *const key, char const *const value,
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_SEDIMENT;
-      opts->script.tspan[istage] = 2.5e-3;
+      opts->script.tspan[istage] = 2.0e-3;
       opts->script.dt[istage] = dtstuff;
-      opts->script.params[istage].sediment.kcohes = 0.4e+4;
-
-      dtstuff = 8.0e-8;
+      opts->script.params[istage].sediment.kcohes = 0.5e+4;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_SEDIMENT;
       opts->script.tspan[istage] = 1.0e-3;
       opts->script.dt[istage] = dtstuff;
-      opts->script.params[istage].sediment.kcohes = 0.4e+3;
+      opts->script.params[istage].sediment.kcohes = 1.0e+3;
+
+      dtstuff = 1.0e-8;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CLIP;
@@ -150,10 +152,14 @@ static bool f(char const *const key, char const *const value,
       opts->script.tspan[istage] = 0.5e-3;
       opts->script.dt[istage] = dtstuff;
 
+      dtstuff = 10.0e-9;
+
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_PRESET2;
       opts->script.params[istage].preset.sigmacrit = sigmacrit;
       opts->script.params[istage].preset.taucrit = taucrit;
+      opts->script.params[istage].preset.sigmacritt = sigmacritt;
+      opts->script.params[istage].preset.taucritt = taucritt;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CRUNCH;
@@ -167,7 +173,7 @@ static bool f(char const *const key, char const *const value,
       opts->script.params[istage].crunch.p = pdriv;
     } else if (strcmp(value, "shear") == 0) {
       double ravg = 4.0e-3;
-      dtstuff = 10.0e-7;
+      dtstuff = 6.0e-7;
       // dtstuff = 4.0e-9;
       opts->comm.dt = 1.0e-4;
 
@@ -195,7 +201,7 @@ static bool f(char const *const key, char const *const value,
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_SEDIMENT;
-      opts->script.tspan[istage] = 4.0e-3;
+      opts->script.tspan[istage] = 4.5e-3;
       opts->script.dt[istage] = dtstuff;
       opts->script.params[istage].sediment.kcohes = 3.0e+4;
 
@@ -203,9 +209,9 @@ static bool f(char const *const key, char const *const value,
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_SEDIMENT;
-      opts->script.tspan[istage] = 2.0e-3;
+      opts->script.tspan[istage] = 1.0e-3;
       opts->script.dt[istage] = dtstuff;
-      opts->script.params[istage].sediment.kcohes = 3.0e+3;
+      opts->script.params[istage].sediment.kcohes = 6.0e+3;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CLIP;
@@ -241,6 +247,8 @@ static bool f(char const *const key, char const *const value,
       opts->script.mode[istage] = BMM_DEM_MODE_PRESET2;
       opts->script.params[istage].preset.sigmacrit = sigmacrit;
       opts->script.params[istage].preset.taucrit = taucrit;
+      opts->script.params[istage].preset.sigmacritt = sigmacritt;
+      opts->script.params[istage].preset.taucritt = taucritt;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CRUNCH;
@@ -298,6 +306,8 @@ static bool f(char const *const key, char const *const value,
       opts->script.mode[istage] = BMM_DEM_MODE_PRESET2;
       opts->script.params[istage].preset.sigmacrit = sigmacrit;
       opts->script.params[istage].preset.taucrit = taucrit;
+      opts->script.params[istage].preset.sigmacritt = sigmacritt;
+      opts->script.params[istage].preset.taucritt = taucritt;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_GRAVY;
