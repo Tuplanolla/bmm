@@ -37,34 +37,49 @@ static bool f(char const *const key, char const *const value,
   opts->box.per[0] = true;
   opts->box.per[1] = false;
 
-  double a = 0.1;
-  opts->part.strnew[0] = 1.0 - a;
-  opts->part.strnew[1] = 1.0 + a;
+  double s = 0.1;
+  opts->part.strnew[0] = 1.0 - s;
+  opts->part.strnew[1] = 1.0 + s;
 
-  // Now in SI base units!
   opts->part.rho = 2.65e+3;
-  // TODO For granite this should be closer to `e+9`,
-  // but that explodes with this large `dt`.
-  opts->part.ytens = 17.0e+8;
-  opts->part.ycomp = 51.0e+8;
+  opts->part.ytens = 17.0e+9;
+  opts->part.ycomp = 51.0e+9;
   opts->part.nu = 0.215;
+
   double const beta = 0.5;
+  double const sigmacrit = 283.0e+6; // From experiments.
+  double const taucrit = beta * sigmacrit; // From theory.
+  bool const statfric = true;
+  double ravg = 1.0e-3;
+  double const eta = 1.0e+3; // Water.
+  double const eta2 = 1.0e+4; // Glue.
+  double const a = 7.6e-3; // From theory.
+  double const mu = 0.725; // From experiments.
+  double const kt = 2.0e+7;
+  double const gammat = 1.0e+4;
+  // Begin mess.
+  double const mat = (2.0 / 3.0) * (opts->part.ycomp /
+      (1.0 - $(bmm_power, double)(opts->part.nu, 2)));
+  double const stuff = mat * sqrt(ravg);
+  double const kn = pow(M_PI * ravg * ravg *
+      sigmacrit * stuff * stuff, 1.0 / 3.0);
+  // End mess.
+  double const gamman = 3.0e+4; // Critical damping.
+  double const barkt = kn * 1.0e+2; // Beam has neutral axis in the middle.
+  double const bargammat = gamman; // Assumed symmetry.
+
+  double const pdriv = 283.0e+6;
+  double const vdriv = 4.0;
+  double const fadjust = 4.0e+9;
 
   double dtstuff = 8.0e-7;
   size_t istage;
 
   if (strcmp(key, "script") == 0) {
     if (strcmp(value, "fin") == 0) {
-      double ravg = 1.0e-3;
       dtstuff = 2.0e-7;
       // dtstuff = 4.0e-9;
       opts->comm.dt = 1.0e-4;
-
-      opts->part.rho = 2.65e+3;
-      opts->part.ytens = 17.0e+9;
-      opts->part.ycomp = 51.0e+9;
-      opts->part.nu = 0.215;
-      double const beta = 0.5;
 
       double const rnew[] = {
         2.0 * ravg / (1.0 + sqrt(2.0)),
@@ -83,20 +98,6 @@ static bool f(char const *const key, char const *const value,
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CREATE_HC;
       opts->script.params[istage].create.eta = bmm_geom_ballmpd(BMM_NDIM);
-
-      bool const statfric = true;
-      double const eta = 1.0e+3; // Water.
-      double const eta2 = 1.0e+4; // Glue.
-      double const a = 7.6e-3;
-      double const mu = 0.725;
-      double const kt = 2.0e+7;
-      double const gammat = 1.0e+4;
-      double const kn = 2.0e+8;
-      double const gamman = 1.0e+4;
-      double const barkt = 8.0e+6;
-      double const bargammat = 1.0e+3;
-      double const sigmacrit = 283.0e+6 * 16.0;
-      double const taucrit = beta * sigmacrit;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_PRESET0;
@@ -160,13 +161,13 @@ static bool f(char const *const key, char const *const value,
       // opts->script.tspan[istage] = 20.0e-3;
       opts->script.dt[istage] = dtstuff;
       opts->script.params[istage].crunch.nlayer = 3.0;
-      opts->script.params[istage].crunch.v = 4.0;
+      opts->script.params[istage].crunch.v = vdriv;
       opts->script.params[istage].crunch.fadjust[0] =
-        opts->script.params[istage].crunch.fadjust[1] = 8.0e+8;
-      opts->script.params[istage].crunch.p = 283.0e+6;
+        opts->script.params[istage].crunch.fadjust[1] = fadjust;
+      opts->script.params[istage].crunch.p = pdriv;
     } else if (strcmp(value, "shear") == 0) {
       double ravg = 4.0e-3;
-      dtstuff = 10.0e-6;
+      dtstuff = 10.0e-7;
       // dtstuff = 4.0e-9;
       opts->comm.dt = 1.0e-4;
 
@@ -185,20 +186,6 @@ static bool f(char const *const key, char const *const value,
       opts->script.mode[istage] = BMM_DEM_MODE_CREATE_HC;
       opts->script.params[istage].create.eta = bmm_geom_ballmpd(BMM_NDIM);
 
-      bool const statfric = true;
-      double const eta = 1.0e+3; // Water.
-      double const eta2 = 1.0e+4; // Glue.
-      double const a = 7.6e-3;
-      double const mu = 0.725;
-      double const kt = 2.0e+7;
-      double const gammat = 1.0e+4;
-      double const kn = 2.0e+8;
-      double const gamman = 1.0e+4;
-      double const barkt = 8.0e+6;
-      double const bargammat = 1.0e+3;
-      double const sigmacrit = 283.0e+6 * 16.0;
-      double const taucrit = beta * sigmacrit;
-
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_PRESET0;
       opts->script.params[istage].preset.statfric = statfric;
@@ -212,7 +199,7 @@ static bool f(char const *const key, char const *const value,
       opts->script.dt[istage] = dtstuff;
       opts->script.params[istage].sediment.kcohes = 3.0e+4;
 
-      dtstuff = 6.0e-7;
+      dtstuff = 6.0e-8;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_SEDIMENT;
@@ -261,14 +248,15 @@ static bool f(char const *const key, char const *const value,
       // opts->script.tspan[istage] = 20.0e-3;
       opts->script.dt[istage] = dtstuff;
       opts->script.params[istage].crunch.nlayer = 3.0;
-      opts->script.params[istage].crunch.v = 4.0;
+      opts->script.params[istage].crunch.v = vdriv;
       opts->script.params[istage].crunch.fadjust[0] =
-        opts->script.params[istage].crunch.fadjust[1] = 8.0e+8;
-      opts->script.params[istage].crunch.p = 283.0e+6;
+        opts->script.params[istage].crunch.fadjust[1] = fadjust;
+      opts->script.params[istage].crunch.p = pdriv;
     } else if (strcmp(value, "beam") == 0) {
-      dtstuff = 8.0e-7;
+      dtstuff = 2.0e-7;
+      opts->comm.dt = 4.0e-5;
 
-      double const rnew[] = {2.078e-3, 2.078e-3 + 1.0e-9};
+      double const rnew[] = {2.0e-3, 2.0e-3 + 1.0e-6};
       bmm_dem_opts_set_rnew(opts, rnew);
 
       istage = bmm_dem_script_addstage(opts);
@@ -288,17 +276,32 @@ static bool f(char const *const key, char const *const value,
       opts->script.mode[istage] = BMM_DEM_MODE_LINK;
 
       istage = bmm_dem_script_addstage(opts);
-      opts->script.mode[istage] = BMM_DEM_MODE_GRAVY;
-      opts->script.tspan[istage] = 7.0e-3;
-      opts->script.dt[istage] = dtstuff * 0.5;
-      opts->script.params[istage].gravy.g = 3.0e+4;
+      opts->script.mode[istage] = BMM_DEM_MODE_PRESET0;
+      opts->script.params[istage].preset.statfric = statfric;
+      opts->script.params[istage].preset.eta = eta;
+      opts->script.params[istage].preset.kn = kn;
+      opts->script.params[istage].preset.gamman = gamman;
 
       istage = bmm_dem_script_addstage(opts);
-      opts->script.mode[istage] = BMM_DEM_MODE_LINK;
+      opts->script.mode[istage] = BMM_DEM_MODE_PRESET1;
+      opts->script.params[istage].preset.eta2 = eta2;
+      opts->script.params[istage].preset.a = a;
+      opts->script.params[istage].preset.mu = mu;
+      opts->script.params[istage].preset.kt = kt;
+      opts->script.params[istage].preset.gammat = gammat;
+      opts->script.params[istage].preset.kn = kn;
+      opts->script.params[istage].preset.gamman = gamman;
+      opts->script.params[istage].preset.barkt = barkt;
+      opts->script.params[istage].preset.bargammat = bargammat;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_PRESET2;
+      opts->script.params[istage].preset.sigmacrit = sigmacrit;
+      opts->script.params[istage].preset.taucrit = taucrit;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_GRAVY;
-      opts->script.tspan[istage] = 16.0e-3;
+      opts->script.tspan[istage] = 10.0e-3;
       opts->script.dt[istage] = dtstuff * 0.5;
       opts->script.params[istage].gravy.g = 3.0e+4;
     } else if (strcmp(value, "mix") == 0) {

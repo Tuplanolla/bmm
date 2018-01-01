@@ -373,6 +373,8 @@ struct bmm_dem_pair {
       double psirest[BMM_MLINK][BMM_NEND];
       /// Strength scale factor.
       double strength[BMM_MCONTACT];
+      /// Fatigue time (very small).
+      size_t tfat[BMM_MCONTACT];
     } src[BMM_MPART];
   } cont;
   /// Only contact or more.

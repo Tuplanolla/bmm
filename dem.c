@@ -575,6 +575,10 @@ size_t bmm_dem_addcont_unsafe(struct bmm_dem *const dem,
   dem->pair[ict].cont.src[ipart].psirest[icont][BMM_DEM_END_TAIL] = psii;
   dem->pair[ict].cont.src[ipart].psirest[icont][BMM_DEM_END_HEAD] = psij;
 
+  // Just to avoid instability failure cascades.
+  dem->pair[ict].cont.src[ipart].tfat[icont] =
+    (size_t) (6.0 * (gsl_rng_uniform(dem->rng) + 1.0));
+
   double const e = bmm_dem_est_econt_one(dem, ict, ipart, icont, jpart);
   dem->est.ebond += e;
   if (ict == BMM_DEM_CT_WEAK)
@@ -609,6 +613,10 @@ static void bmm_dem_copycont(struct bmm_dem *const dem,
 
   for (size_t iend = 0; iend < BMM_NEND; ++iend)
     dem->pair[ict].cont.src[ipart].psirest[icont][iend] = dem->pair[ict].cont.src[ipart].psirest[jcont][iend];
+
+  dem->pair[ict].cont.src[ipart].strength[icont] = dem->pair[ict].cont.src[ipart].strength[jcont];
+
+  dem->pair[ict].cont.src[ipart].tfat[icont] = dem->pair[ict].cont.src[ipart].tfat[jcont];
 }
 
 void bmm_dem_remcont_unsafe(struct bmm_dem *const dem,
@@ -645,6 +653,10 @@ void bmm_dem_remcont(struct bmm_dem *const dem,
 
 bool bmm_dem_yield_pair(struct bmm_dem *const dem,
     size_t const ipart, size_t const jpart, size_t const icont) {
+  if (dem->part.role[ipart] != BMM_DEM_ROLE_FREE ||
+      dem->part.role[jpart] != BMM_DEM_ROLE_FREE)
+    return false;
+
   double xdiffij[BMM_NDIM];
   bmm_geom2d_cpdiff(xdiffij, dem->part.x[jpart], dem->part.x[ipart],
       dem->opts.box.x, dem->opts.box.per);
@@ -671,30 +683,21 @@ bool bmm_dem_yield_pair(struct bmm_dem *const dem,
   double const sigmanormij = fnormij / aij;
   double const sigmatangij = ftangij / aij;
 
+  double const dt = dem->opts.script.dt[dem->script.i];
+
   switch (dem->yield.tag) {
-    case BMM_DEM_YIELD_RANKINE:
-      if (sigmanormij > dem->yield.params.rankine.sigmacrit) {
-        bmm_dem_remcont(dem, BMM_DEM_CT_STRONG, ipart, jpart, icont);
-
-        return true;
-      }
-
-      break;
-    case BMM_DEM_YIELD_TRESCA:
-      if (sigmatangij > dem->yield.params.tresca.taucrit) {
-        bmm_dem_remcont(dem, BMM_DEM_CT_STRONG, ipart, jpart, icont);
-
-        return true;
-      }
-
-      break;
     case BMM_DEM_YIELD_ZE:
       if ($(bmm_power, double)(sigmanormij / dem->yield.params.ze.sigmacrit, 2) +
           $(bmm_power, double)(sigmatangij / dem->yield.params.ze.taucrit, 2) > 1.0) {
-        bmm_dem_remcont(dem, BMM_DEM_CT_STRONG, ipart, jpart, icont);
+        if (dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].tfat[icont] == 0) {
+          bmm_dem_remcont(dem, BMM_DEM_CT_STRONG, ipart, jpart, icont);
 
-        return true;
-      }
+          return true;
+        } else
+          --dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].tfat[icont];
+      } else
+        dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].tfat[icont] =
+          (size_t) (6.0 * (gsl_rng_uniform(dem->rng) + 1.0));
 
       break;
   }
@@ -711,17 +714,19 @@ void bmm_dem_analyze_pair(struct bmm_dem *const dem,
     return;
   }
 
+  bool weak = true;
   size_t const icont = bmm_dem_search_cont(dem, BMM_DEM_CT_STRONG, ipart, jpart);
   if (icont != SIZE_MAX)
-    (void) bmm_dem_yield_pair(dem, ipart, jpart, icont);
-  else {
+    weak = bmm_dem_yield_pair(dem, ipart, jpart, icont);
+
+  if (weak) {
     double xdiffij[BMM_NDIM];
     bmm_geom2d_cpdiff(xdiffij, dem->part.x[jpart], dem->part.x[ipart],
         dem->opts.box.x, dem->opts.box.per);
 
     double const d2 = bmm_geom2d_norm2(xdiffij);
     double const r2 = $(bmm_power, double)(dem->part.r[ipart] + dem->part.r[jpart], 2);
-    bool const overlap = d2 <= r2;
+    bool const overlap = d2 < r2;
 
     size_t const jcont = bmm_dem_search_cont(dem, BMM_DEM_CT_WEAK, ipart, jpart);
     if (jcont != SIZE_MAX) {
@@ -846,6 +851,9 @@ static void bmm_dem_copypart(struct bmm_dem *const dem,
 
     for (size_t icont = 0; icont < dem->pair[ict].cont.src[jpart].n; ++icont)
       dem->pair[ict].cont.src[ipart].strength[icont] = dem->pair[ict].cont.src[jpart].strength[icont];
+
+    for (size_t icont = 0; icont < dem->pair[ict].cont.src[jpart].n; ++icont)
+      dem->pair[ict].cont.src[ipart].tfat[icont] = dem->pair[ict].cont.src[jpart].tfat[icont];
   }
 }
 
@@ -2850,11 +2858,11 @@ void bmm_dem_def(struct bmm_dem *const dem,
 
       break;
     case BMM_DEM_YIELD_ZE:
-      dem->yield.params.ze.sigmacrit = 2.0e+10;
-      dem->yield.params.ze.taucrit = 2.0e+10;
+      dem->yield.params.ze.sigmacrit = 5.0e+8;
+      dem->yield.params.ze.taucrit = 5.0e+8;
       // This is ideal for `beam` tests.
-      // dem->yield.params.ze.sigmacrit = 3.0e+7;
-      // dem->yield.params.ze.taucrit = 3.0e+8;
+      // dem->yield.params.ze.sigmacrit = 5.0e+7;
+      // dem->yield.params.ze.taucrit = 5.0e+7;
 
       break;
   }
