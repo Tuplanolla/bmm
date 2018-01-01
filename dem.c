@@ -3573,7 +3573,7 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
 
       break;
     case BMM_DEM_MODE_PRESET2:
-      dem->amb.tag = BMM_DEM_AMB_NONE;
+      // dem->amb.tag = BMM_DEM_AMB_NONE;
       dem->yield.tag = BMM_DEM_YIELD_ZE;
       dem->yield.params.ze.sigmacrit = dem->opts.script.params[dem->script.i].preset.sigmacrit;
       dem->yield.params.ze.taucrit = dem->opts.script.params[dem->script.i].preset.taucrit;

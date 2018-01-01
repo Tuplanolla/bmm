@@ -22,8 +22,8 @@ __attribute__ ((__nonnull__))
 static bool ind_wave(double const *const x, void *const cls) {
   struct bmm_dem_opts *const opts = cls;
 
-  return x[1] > opts->box.x[1] / 2.0 + opts->fault.hjag *
-    sin(M_2PI * (double) opts->fault.njag * x[0] / (2.0 * opts->box.x[0]));
+  return x[1] > opts->box.x[1] / 2.0 + (opts->fault.hjag / 2.0) *
+    sin(M_2PI * (double) opts->fault.njag * x[0] / opts->box.x[0]);
 }
 
 __attribute__ ((__nonnull__ (1, 2)))
@@ -33,11 +33,11 @@ static bool f(char const *const key, char const *const value,
 
   // TODO Refactor these at some point.
   opts->box.x[1] = 0.1;
-  opts->box.x[0] = opts->box.x[1] * 2.0;
+  opts->box.x[0] = opts->box.x[1];
   opts->box.per[0] = true;
   opts->box.per[1] = false;
 
-  double s = 0.1;
+  double s = 0.3;
   opts->part.strnew[0] = 1.0 - s;
   opts->part.strnew[1] = 1.0 + s;
 
@@ -58,20 +58,14 @@ static bool f(char const *const key, char const *const value,
   double const eta2 = 2.0e+3; // Glue.
   double const a = 7.6e-3; // From theory.
   double const mu = 0.725; // From experiments.
-  double const kt = 1.0e+1;
+  double const kt = 1.0e+6;
   double const gammat = 1.0e+1;
-  // Begin mess.
-  double const mat = (2.0 / 3.0) * (opts->part.ycomp /
-      (1.0 - $(bmm_power, double)(opts->part.nu, 2)));
-  double const stuff = mat * sqrt(ravg);
-  double const kn = pow(M_PI * ravg * ravg *
-      sigmacrit * stuff * stuff, 1.0 / 3.0);
-  // End mess.
+  double const kn = 3.0e+7;
   double const gamman = 1.0e+2; // Critical damping.
-  double const barkt = kn * 8.0; // Beam has neutral axis in the middle.
+  double const barkt = kn * 0.1; // Beam has neutral axis in the middle.
   double const bargammat = 1.0e+2; // Critical damping.
 
-  double const pdriv = 283.0e+5;
+  double const pdriv = 183.0e+6;
   double const vdriv = 4.0;
   double const fadjust = 4.0e+9;
 
@@ -89,8 +83,8 @@ static bool f(char const *const key, char const *const value,
       };
       bmm_dem_opts_set_rnew(opts, rnew);
 
-      opts->fault.njag = 8;
-      opts->fault.hjag = 2.0 * 2.0 * bmm_ival_midpoint(opts->part.rnew);
+      opts->fault.njag = 4;
+      opts->fault.hjag = 4.0 * 2.0 * bmm_ival_midpoint(opts->part.rnew);
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
@@ -183,6 +177,9 @@ static bool f(char const *const key, char const *const value,
       };
       bmm_dem_opts_set_rnew(opts, rnew);
 
+      opts->fault.njag = 2;
+      opts->fault.hjag = 2.0 * 2.0 * bmm_ival_midpoint(opts->part.rnew);
+
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
       opts->script.tspan[istage] = 0.03e-3;
@@ -211,7 +208,7 @@ static bool f(char const *const key, char const *const value,
       opts->script.mode[istage] = BMM_DEM_MODE_SEDIMENT;
       opts->script.tspan[istage] = 1.0e-3;
       opts->script.dt[istage] = dtstuff;
-      opts->script.params[istage].sediment.kcohes = 6.0e+3;
+      opts->script.params[istage].sediment.kcohes = 1.0e+4;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CLIP;
@@ -236,7 +233,7 @@ static bool f(char const *const key, char const *const value,
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_FAULT;
-      opts->script.params[istage].fault.ind = ind_straight;
+      opts->script.params[istage].fault.ind = ind_wave;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
@@ -255,7 +252,7 @@ static bool f(char const *const key, char const *const value,
       opts->script.tspan[istage] = 8.0e-3;
       // opts->script.tspan[istage] = 20.0e-3;
       opts->script.dt[istage] = dtstuff;
-      opts->script.params[istage].crunch.nlayer = 3.0;
+      opts->script.params[istage].crunch.nlayer = 2.0;
       opts->script.params[istage].crunch.v = vdriv;
       opts->script.params[istage].crunch.fadjust[0] =
         opts->script.params[istage].crunch.fadjust[1] = fadjust;
