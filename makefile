@@ -44,6 +44,8 @@ endif
 build: bmm-dem bmm-filter bmm-glut bmm-nc bmm-sdl
 
 run: bmm-dem bmm-filter bmm-sdl
+	# Run with the arguments in this order.
+	# ./bmm-dem --stat yes --ds 0.5 --pfac 1.0 --script fin --trap no --verbose yes
 	./bmm-dem --script shear --trap no --verbose yes | \
 	./bmm-sdl
 

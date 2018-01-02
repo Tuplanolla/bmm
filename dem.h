@@ -189,6 +189,7 @@ enum bmm_dem_mode {
   /// Write statistics.
   BMM_DEM_MODE_EXPORT,
   /// Start forcing the top in the x-direction.
+  BMM_DEM_MODE_PRECRUNCH,
   BMM_DEM_MODE_CRUNCH,
   /// Debug utilities.
   BMM_DEM_MODE_PRESET0,
@@ -199,6 +200,15 @@ enum bmm_dem_mode {
 struct bmm_dem_opts {
   /// Report statistics.
   bool verbose;
+  /// Gross order-specific options.
+  struct {
+    /// Static friction.
+    bool statf;
+    /// Pressure wrt ucs.
+    double pfac;
+    /// Variation in ucs (from unity).
+    double ds;
+  } gross;
   /// Floating-point exceptions.
   struct {
     /// Trap exceptions.
@@ -268,15 +278,13 @@ struct bmm_dem_opts {
         /// Lengthness.
         double slices;
       } test;
-      /// For `BMM_DEM_MODE_GLUE`.
-      struct {
-        /// Thickness of fixed layer.
-        double nlayer;
-      } glue;
-      /// For `BMM_DEM_MODE_CRUNCH`.
+      /// For `BMM_DEM_MODE_PRECRUNCH`.
       struct {
         /// Thickness of driven layer.
         double nlayer;
+      } precrunch;
+      /// For `BMM_DEM_MODE_CRUNCH`.
+      struct {
         /// Driving velocity target.
         double v;
         /// Force increment.

@@ -578,7 +578,7 @@ size_t bmm_dem_addcont_unsafe(struct bmm_dem *const dem,
 
   // Just to avoid instability failure cascades.
   dem->pair[ict].cont.src[ipart].tfat[icont] =
-    (size_t) (6.0 * (gsl_rng_uniform(dem->rng) + 1.0));
+    (size_t) (4.0 * (gsl_rng_uniform(dem->rng) + 1.0));
 
   double const e = bmm_dem_est_econt_one(dem, ict, ipart, icont, jpart);
   dem->est.ebond += e;
@@ -703,7 +703,7 @@ bool bmm_dem_yield_pair(struct bmm_dem *const dem,
           --dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].tfat[icont];
       } else
         dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].tfat[icont] =
-          (size_t) (6.0 * (gsl_rng_uniform(dem->rng) + 1.0));
+          (size_t) (4.0 * (gsl_rng_uniform(dem->rng) + 1.0));
 
       break;
   }
@@ -1759,12 +1759,11 @@ static bool export_s(struct bmm_dem const *const dem) {
     return false;
   }
 
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    if (fprintf(stream, "%g\n", dem->est.sk) < 0) {
-      BMM_TLE_STDS();
+  if (fprintf(stream, "%g\n", dem->est.sk) < 0) {
+    BMM_TLE_STDS();
 
-      return false;
-    }
+    return false;
+  }
 
   if (fclose(stream) != 0) {
     BMM_TLE_STDS();
@@ -1787,12 +1786,11 @@ static bool export_chi(struct bmm_dem const *const dem) {
     return false;
   }
 
-  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-    if (fprintf(stream, "%g\n", dem->est.chi) < 0) {
-      BMM_TLE_STDS();
+  if (fprintf(stream, "%g\n", dem->est.chi) < 0) {
+    BMM_TLE_STDS();
 
-      return false;
-    }
+    return false;
+  }
 
   if (fclose(stream) != 0) {
     BMM_TLE_STDS();
@@ -2806,6 +2804,10 @@ void bmm_dem_opts_def(struct bmm_dem_opts *const opts) {
 
   opts->verbose = false;
 
+  opts->gross.statf = true;
+  opts->gross.pfac = 1.0;
+  opts->gross.ds = 0.5;
+
   opts->trap.enabled = false;
 #ifdef _GNU_SOURCE
   opts->trap.mask = FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW | FE_UNDERFLOW;
@@ -3688,45 +3690,52 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
       }
 
       break;
+    case BMM_DEM_MODE_PRECRUNCH:
+      for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+        if (dem->part.x[ipart][1] > dem->opts.box.x[1] -
+            dem->opts.script.params[dem->script.i].precrunch.nlayer *
+            2.0 * bmm_ival_midpoint(dem->opts.part.rnew))
+          dem->part.role[ipart] = BMM_DEM_ROLE_DRIVEN;
+
+      for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+        if (dem->part.x[ipart][1] <
+            dem->opts.script.params[dem->script.i].precrunch.nlayer *
+            2.0 * bmm_ival_midpoint(dem->opts.part.rnew))
+          dem->part.role[ipart] = BMM_DEM_ROLE_FIXED;
+
+      break;
     case BMM_DEM_MODE_CRUNCH:
-      dem->ext.tag = BMM_DEM_EXT_DRIVE;
+      {
+        static bool pristine = true;
+        if (pristine) {
+          pristine = false;
 
-      static bool pristine = true;
-      if (pristine) {
-        pristine = false;
+          dem->ext.tag = BMM_DEM_EXT_DRIVE;
 
-        dem->script.state.crunch.ndrive = 0;
-        for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-          if (dem->part.x[ipart][1] > dem->opts.box.x[1] -
-              dem->opts.script.params[dem->script.i].crunch.nlayer *
-              2.0 * bmm_ival_midpoint(dem->opts.part.rnew)) {
-            dem->part.role[ipart] = BMM_DEM_ROLE_DRIVEN;
+          dem->script.state.crunch.ndrive = 0;
+          for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+            if (dem->part.role[ipart] == BMM_DEM_ROLE_DRIVEN)
+              ++dem->script.state.crunch.ndrive;
 
-            ++dem->script.state.crunch.ndrive;
-          }
+          for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+            dem->script.state.crunch.fdrive[idim] = 0.0;
 
-        for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-          dem->script.state.crunch.fdrive[idim] = 0.0;
+          dem->script.state.crunch.nfix = 0;
+          for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+            if (dem->part.role[ipart] == BMM_DEM_ROLE_FIXED) {
+              ++dem->script.state.crunch.nfix;
 
-        dem->script.state.crunch.nfix = 0;
-        for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
-          if (dem->part.x[ipart][1] <
-              dem->opts.script.params[dem->script.i].glue.nlayer *
-              2.0 * bmm_ival_midpoint(dem->opts.part.rnew)) {
-            dem->part.role[ipart] = BMM_DEM_ROLE_FIXED;
+              for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+                dem->part.a[ipart][idim] = 0.0;
 
-            ++dem->script.state.crunch.nfix;
+              dem->part.alpha[ipart] = 0.0;
 
-            for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-              dem->part.a[ipart][idim] = 0.0;
+              for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+                dem->part.v[ipart][idim] = 0.0;
 
-            dem->part.alpha[ipart] = 0.0;
-
-            for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-              dem->part.v[ipart][idim] = 0.0;
-
-            dem->part.omega[ipart] = 0.0;
-          }
+              dem->part.omega[ipart] = 0.0;
+            }
+        }
       }
 
       break;
