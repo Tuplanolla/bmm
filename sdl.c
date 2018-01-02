@@ -639,10 +639,10 @@ static void bmm_sdl_draw(struct bmm_sdl const *const sdl) {
   double const eyieldis = dem->est.eyieldis;
   double const ewcontdis = dem->est.ewcontdis;
   double const escontdis = dem->est.escontdis;
-  double const pos = eambdis + epotext + eklin + ekrot + ewcont + escont
-    + eyieldis + ewcontdis + escontdis;
+  double const pos = eambdis + epotext + eklin + ekrot + ewcont + escont;
+  double const dis = eyieldis + ewcontdis + escontdis;
   double const neg = edrivnorm + edrivtang + ebond;
-  double const eee = pos - neg;
+  double const eee = pos + dis - neg;
 
   // TODO These should come via messages.
   if (sdl->diag) {

@@ -51,7 +51,7 @@
 #define BMM_MMSG 256
 
 /// Maximum number of simulation stages.
-#define BMM_MSTAGE 16
+#define BMM_MSTAGE 32
 
 /// Maximum number of simulation steps.
 #define BMM_MSTEP 2147483648

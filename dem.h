@@ -186,13 +186,10 @@ enum bmm_dem_mode {
   BMM_DEM_MODE_FAULT,
   /// Pull the material apart in the y-direction.
   BMM_DEM_MODE_SEPARATE,
-  // TODO Also "fix" the top during this stage.
-  /// Fix the bottom.
-  BMM_DEM_MODE_GLUE,
+  /// Write statistics.
+  BMM_DEM_MODE_EXPORT,
   /// Start forcing the top in the x-direction.
   BMM_DEM_MODE_CRUNCH,
-  /// Begin measurements.
-  BMM_DEM_MODE_MEASURE,
   /// Debug utilities.
   BMM_DEM_MODE_PRESET0,
   BMM_DEM_MODE_PRESET1,
@@ -307,6 +304,13 @@ struct bmm_dem_opts {
         /// Gravitational acceleration.
         double g;
       } gravy;
+      /// For `BMM_DEM_MODE_EXPORT`.
+      struct {
+        /// Dump entropy.
+        bool entropic;
+        /// File name prefix.
+        char const *str;
+      } expr;
       /// For `BMM_DEM_MODE_PRESET0` and `BMM_DEM_MODE_PRESET1`.
       struct {
         // Whether to use HW or CS.
@@ -320,6 +324,8 @@ struct bmm_dem_opts {
         double gammat;
         double kn;
         double gamman;
+        double barkn;
+        double bargamman;
         double barkt;
         double bargammat;
         double sigmacrit;
@@ -655,10 +661,14 @@ struct bmm_dem {
     double vdriv[BMM_NDIM];
     /// Observed packing fraction.
     double chi;
+    /// Observed entropy.
+    double sk;
     /// Effective macroscopic friction factor.
     double mueff;
     /// Effective macroscopic friction factor (from feedback).
     double mueffb;
+    /// BSHP prefactor.
+    double bshpp;
   } est;
   /// Neighbor cache.
   /// This is only used for performance optimization.
