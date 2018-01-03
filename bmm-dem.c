@@ -50,17 +50,16 @@ static bool f(char const *const key, char const *const value,
     double const beta = 0.5; // From theory and experiments.
     double const sigmacrit = 280.0e+6; // From experiments.
     double const taucrit = beta * sigmacrit; // From theory.
-    // double const sigmacritt = 13.0e+6; // From experiments.
-    double const sigmacritt = sigmacrit; // From experiments.
+    double const sigmacritt = sigmacrit;
     double const taucritt = beta * sigmacritt; // From theory.
     bool const statfric = opts->gross.statf;
     double ravg = 1.0e-3;
     double const eta = 1.0e+2; // Tar.
     double const eta2 = 1.0e+1; // Oil.
-    double const eta3 = 1.0e+0; // Small wrt `gamman`.
+    double const eta3 = 1.0e+0; // Some other disgusting substance.
     double const a = 4.3e-8; // From theory and assumptions.
     double const mu = 0.72; // From experiments.
-    double const kt = 1.1e+6; // From theory and experiments.
+    double const kt = 1.1e+6; // From rolling tests.
     double const gammat = 1.0e+1; // From beam calibration test.
     double const kn = 1.1e+7; // From stress--strain tests.
     double const gamman = 1.0e+1;
@@ -166,8 +165,8 @@ static bool f(char const *const key, char const *const value,
       opts->script.params[istage].expr.entropic = false;
       opts->script.params[istage].expr.str = "fault";
 
-      // dtstuff = 300.0e-9;
-      dtstuff = 1.0e-8;
+      dtstuff = 300.0e-9;
+      // dtstuff = 1.0e-8; // This is still stable.
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_PRECRUNCH;
@@ -198,8 +197,8 @@ static bool f(char const *const key, char const *const value,
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CRUNCH;
-      opts->script.tspan[istage] = 10.0e-3;
-      // opts->script.tspan[istage] = 50.0e-3;
+      opts->script.tspan[istage] = 50.0e-3;
+      // opts->script.tspan[istage] = 10.0e-3; // This is good for testing.
       opts->script.dt[istage] = dtstuff;
       opts->script.params[istage].crunch.measure = true;
       opts->script.params[istage].crunch.v = vdriv;
@@ -207,10 +206,27 @@ static bool f(char const *const key, char const *const value,
       opts->script.params[istage].crunch.fadjust[1] = padjust;
       opts->script.params[istage].crunch.p = pdriv;
 
+      // Strain 100 %.
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_EXPORT;
       opts->script.params[istage].expr.entropic = false;
       opts->script.params[istage].expr.str = "fragment";
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_CRUNCH;
+      opts->script.tspan[istage] = 50.0e-3;
+      opts->script.dt[istage] = dtstuff;
+      opts->script.params[istage].crunch.measure = true;
+      opts->script.params[istage].crunch.v = vdriv;
+      opts->script.params[istage].crunch.fadjust[0] = fadjust;
+      opts->script.params[istage].crunch.fadjust[1] = padjust;
+      opts->script.params[istage].crunch.p = pdriv;
+
+      // Strain 200 %.
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_EXPORT;
+      opts->script.params[istage].expr.entropic = false;
+      opts->script.params[istage].expr.str = "end";
     } else if (strcmp(value, "shear") == 0) {
       opts->box.x[1] = 0.025;
       opts->box.x[0] = opts->box.x[1];

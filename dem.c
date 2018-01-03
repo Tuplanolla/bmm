@@ -156,6 +156,10 @@ double bmm_dem_est_econt_one(struct bmm_dem const *const dem,
   switch (dem->pair[ict].norm.tag) {
     case BMM_DEM_NORM_KV:
       if (dem->pair[ict].cohesive) {
+        // double const r = ri + rj;
+        double const r = dem->pair[ict].cont.src[ipart].drest[icont];
+        double const xi = r - d;
+
         fnorm = dem->pair[ict].norm.params.dashpot.k * xi +
           dem->pair[ict].norm.params.dashpot.gamma * vnormij;
 
@@ -658,13 +662,16 @@ bool bmm_dem_yield_pair(struct bmm_dem *const dem,
       dem->part.role[jpart] != BMM_DEM_ROLE_FREE)
     return false;
 
+  size_t const ict = BMM_DEM_CT_STRONG;
+
   double xdiffij[BMM_NDIM];
   bmm_geom2d_cpdiff(xdiffij, dem->part.x[jpart], dem->part.x[ipart],
       dem->opts.box.x, dem->opts.box.per);
 
   double const ri = dem->part.r[ipart];
   double const rj = dem->part.r[jpart];
-  double const r = ri + rj;
+  // double const r = ri + rj;
+  double const r = dem->pair[ict].cont.src[ipart].drest[icont];
   double const r2 = $(bmm_power, double)(r, 2);
 
   double const d2 = bmm_geom2d_norm2(xdiffij);
@@ -683,8 +690,6 @@ bool bmm_dem_yield_pair(struct bmm_dem *const dem,
   double const vnormij = -bmm_geom2d_dot(vdiffij, xnormij);
   double const reff = $(bmm_resum2, double)(ri, rj);
   double const dt = dem->opts.script.dt[dem->script.i];
-
-  size_t const ict = BMM_DEM_CT_STRONG;
 
   double const fnorm = dem->pair[ict].norm.params.dashpot.k * xi +
     dem->pair[ict].norm.params.dashpot.gamma * vnormij;
@@ -1000,6 +1005,10 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
     switch (dem->pair[ict].norm.tag) {
       case BMM_DEM_NORM_KV:
         if (dem->pair[ict].cohesive) {
+          // double const r = ri + rj;
+          double const r = dem->pair[ict].cont.src[ipart].drest[icont];
+          double const xi = r - d;
+
           fnorm = dem->pair[ict].norm.params.dashpot.k * xi +
             dem->pair[ict].norm.params.dashpot.gamma * vnormij;
 
@@ -1142,7 +1151,6 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
         {
           double const d = bmm_geom2d_norm(xdiffij);
           double const r = ri + rj;
-          // double const r = dem->pair[ict].cont.src[ipart].drest[icont];
           double const r2 = $(bmm_power, double)(r, 2);
 
           double const lambdaij = bmm_geom2d_dir(xdiffij);
@@ -1860,6 +1868,34 @@ static bool export_x(struct bmm_dem const *const dem) {
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     if (fprintf(stream, "(%g, %g)\n",
           dem->part.x[ipart][0], dem->part.x[ipart][1]) < 0) {
+      BMM_TLE_STDS();
+
+      return false;
+    }
+
+  if (fclose(stream) != 0) {
+    BMM_TLE_STDS();
+
+    return false;
+  }
+
+  return true;
+}
+
+static bool export_phi(struct bmm_dem const *const dem) {
+  char buf[BUFSIZ];
+  (void) snprintf(buf, sizeof buf, "./%s-phi.data",
+      dem->opts.script.params[dem->script.i].expr.str);
+
+  FILE *const stream = fopen(buf, "w");
+  if (stream == NULL) {
+    BMM_TLE_STDS();
+
+    return false;
+  }
+
+  for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
+    if (fprintf(stream, "%g\n", dem->part.phi[ipart]) < 0) {
       BMM_TLE_STDS();
 
       return false;
@@ -2849,7 +2885,7 @@ void bmm_dem_opts_def(struct bmm_dem_opts *const opts) {
   opts->verbose = true;
 
   opts->gross.statf = true;
-  opts->gross.pfac = 0.5;
+  opts->gross.pfac = 1.0;
   opts->gross.ds = 0.1;
 
   opts->trap.enabled = false;
@@ -3732,7 +3768,8 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
         }
       }
 
-      if (!export_x(dem) || !export_r(dem) || !export_c(dem) ||
+      if (!export_x(dem) || !export_phi(dem) ||
+          !export_r(dem) || !export_c(dem) ||
           !export_f(dem) || !export_p(dem)) {
         BMM_TLE_EXTS(BMM_TLE_NUM_UNKNOWN, "Big nope");
 
