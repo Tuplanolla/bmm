@@ -3892,7 +3892,7 @@ bool bmm_dem_report(struct bmm_dem const *const dem) {
 }
 
 static bool bmm_dem_run_(struct bmm_dem *const dem) {
-  int const sigs[] = {SIGINT, SIGQUIT, SIGTERM, SIGPIPE};
+  int const sigs[] = {SIGUSR1, SIGUSR2, SIGINT, SIGQUIT, SIGTERM, SIGPIPE};
   if (bmm_sig_register(sigs, nmembof(sigs)) != SIZE_MAX) {
     BMM_TLE_STDS();
 
@@ -3906,6 +3906,12 @@ static bool bmm_dem_run_(struct bmm_dem *const dem) {
     int signum;
     if (bmm_sig_use(&signum))
       switch (signum) {
+        case SIGUSR1:
+        case SIGUSR2:
+          fprintf(stderr, "Time: %g, Script: %zu / %zu\n",
+              dem->time.t, dem->script.i + 1, dem->opts.script.n);
+
+          break;
         case SIGINT:
         case SIGQUIT:
         case SIGTERM:
