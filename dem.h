@@ -192,6 +192,8 @@ enum bmm_dem_mode {
   BMM_DEM_MODE_PRECRUNCH,
   BMM_DEM_MODE_CRUNCH,
   /// Debug utilities.
+  BMM_DEM_MODE_STORE,
+  BMM_DEM_MODE_LOAD,
   BMM_DEM_MODE_PRESET0,
   BMM_DEM_MODE_PRESET1,
   BMM_DEM_MODE_PRESET2
@@ -285,6 +287,8 @@ struct bmm_dem_opts {
       } precrunch;
       /// For `BMM_DEM_MODE_CRUNCH`.
       struct {
+        /// Measure or not.
+        bool measure;
         /// Driving velocity target.
         double v;
         /// Force increment.
@@ -326,6 +330,7 @@ struct bmm_dem_opts {
         // As defined.
         double eta;
         double eta2;
+        double eta3;
         double a;
         double mu;
         double kt;
@@ -609,8 +614,8 @@ struct bmm_dem {
     double ttrans[BMM_MSTAGE];
     /// Transition time offsets (positive means transition was late).
     double toff[BMM_MSTAGE];
-    /// State of the current mode.
-    union {
+    /// State of the current mode (should be a union, but is not).
+    struct {
       /// For `BMM_DEM_MODE_CRUNCH`.
       struct {
         /// Number of fixed particles.

@@ -55,19 +55,19 @@ static bool f(char const *const key, char const *const value,
     double const taucritt = beta * sigmacritt; // From theory.
     bool const statfric = opts->gross.statf;
     double ravg = 1.0e-3;
-    double const eta = 1.0e+3; // Water.
-    double const eta2 = 2.0e+3; // Glue.
+    double const eta = 4.0e+1; // Oil.
+    double const eta2 = 2.0e+0;
+    double const eta3 = 1.0e-3; // Water.
     double const a = 4.3e-8; // From theory and assumptions.
     double const mu = 0.72; // From experiments.
-    double const dharm = 5.0e+1; // Subcritical damping.
-    double const kt = 1.1e+6; // Assumed.
-    double const gammat = dharm;
+    double const kt = 1.1e+5; // Calibrated.
+    double const gammat = 1.0e+1; // Calibrated.
     double const kn = 1.1e+7; // From stress--strain tests.
-    double const gamman = dharm;
+    double const gamman = 1.0e+1;
     double const barkn = 1.1e+7; // Equal to `kn`.
-    double const bargamman = dharm;
-    double const barkt = 1.1e+6; // Small wrt `barkn`.
-    double const bargammat = dharm;
+    double const bargamman = 1.0e+1;
+    double const barkt = 1.1e+5; // Small wrt `barkn`.
+    double const bargammat = 1.0e+1;
     // What ought to hold.
     double const bshpp = (2.0 / 3.0) * (opts->part.ycomp /
         (1.0 - $(bmm_power, double)(opts->part.nu, 2)));
@@ -78,8 +78,9 @@ static bool f(char const *const key, char const *const value,
     // fprintf(stderr, "k^n > %g, A < %g\n", knp, ap);
 
     double const pdriv = sigmacrit * opts->gross.pfac;
-    double const vdriv = 4.0;
-    double const fadjust = 4.0e+9;
+    double const vdriv = 2.0;
+    double const fadjust = 1.0e+8;
+    double const padjust = 1.0e+8;
 
     double const rnew[] = {
       2.0 * ravg / (1.0 + sqrt(2.0)),
@@ -110,15 +111,15 @@ static bool f(char const *const key, char const *const value,
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_SEDIMENT;
-      opts->script.tspan[istage] = 2.0e-3;
+      opts->script.tspan[istage] = 1.0e-3;
       opts->script.dt[istage] = dtstuff;
-      opts->script.params[istage].sediment.kcohes = 6.0e+3;
+      opts->script.params[istage].sediment.kcohes = 2.0e+3;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_SEDIMENT;
       opts->script.tspan[istage] = 1.0e-3;
       opts->script.dt[istage] = dtstuff;
-      opts->script.params[istage].sediment.kcohes = 2.0e+3;
+      opts->script.params[istage].sediment.kcohes = 1.0e+3;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CLIP;
@@ -165,15 +166,8 @@ static bool f(char const *const key, char const *const value,
       opts->script.params[istage].expr.entropic = false;
       opts->script.params[istage].expr.str = "fault";
 
-      // dtstuff = 300.0e-9;
-      dtstuff = 1.0e-8;
-
-      istage = bmm_dem_script_addstage(opts);
-      opts->script.mode[istage] = BMM_DEM_MODE_PRESET2;
-      opts->script.params[istage].preset.sigmacrit = sigmacrit;
-      opts->script.params[istage].preset.taucrit = taucrit;
-      opts->script.params[istage].preset.sigmacritt = sigmacritt;
-      opts->script.params[istage].preset.taucritt = taucritt;
+      dtstuff = 300.0e-9;
+      // dtstuff = 1.0e-8;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_PRECRUNCH;
@@ -181,11 +175,12 @@ static bool f(char const *const key, char const *const value,
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CRUNCH;
-      opts->script.tspan[istage] = 1.0e-3;
+      opts->script.tspan[istage] = 0.5e-3;
       opts->script.dt[istage] = dtstuff;
+      opts->script.params[istage].crunch.measure = false;
       opts->script.params[istage].crunch.v = vdriv;
-      opts->script.params[istage].crunch.fadjust[0] =
-        opts->script.params[istage].crunch.fadjust[1] = fadjust;
+      opts->script.params[istage].crunch.fadjust[0] = fadjust;
+      opts->script.params[istage].crunch.fadjust[1] = padjust;
       opts->script.params[istage].crunch.p = pdriv;
 
       istage = bmm_dem_script_addstage(opts);
@@ -194,13 +189,22 @@ static bool f(char const *const key, char const *const value,
       opts->script.params[istage].expr.str = "shear";
 
       istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_PRESET2;
+      opts->script.params[istage].preset.eta3 = eta3;
+      opts->script.params[istage].preset.sigmacrit = sigmacrit;
+      opts->script.params[istage].preset.taucrit = taucrit;
+      opts->script.params[istage].preset.sigmacritt = sigmacritt;
+      opts->script.params[istage].preset.taucritt = taucritt;
+
+      istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CRUNCH;
       opts->script.tspan[istage] = 10.0e-3;
       // opts->script.tspan[istage] = 50.0e-3;
       opts->script.dt[istage] = dtstuff;
+      opts->script.params[istage].crunch.measure = true;
       opts->script.params[istage].crunch.v = vdriv;
-      opts->script.params[istage].crunch.fadjust[0] =
-        opts->script.params[istage].crunch.fadjust[1] = fadjust;
+      opts->script.params[istage].crunch.fadjust[0] = fadjust;
+      opts->script.params[istage].crunch.fadjust[1] = padjust;
       opts->script.params[istage].crunch.p = pdriv;
 
       istage = bmm_dem_script_addstage(opts);
@@ -231,13 +235,13 @@ static bool f(char const *const key, char const *const value,
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_SEDIMENT;
-      opts->script.tspan[istage] = 4.0e-3;
+      opts->script.tspan[istage] = 1.0e-3;
       opts->script.dt[istage] = dtstuff;
-      opts->script.params[istage].sediment.kcohes = 6.0e+3;
+      opts->script.params[istage].sediment.kcohes = 4.0e+3;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_SEDIMENT;
-      opts->script.tspan[istage] = 2.0e-3;
+      opts->script.tspan[istage] = 1.0e-3;
       opts->script.dt[istage] = dtstuff;
       opts->script.params[istage].sediment.kcohes = 2.0e+3;
 
@@ -289,23 +293,17 @@ static bool f(char const *const key, char const *const value,
       dtstuff = 2.0e-8;
 
       istage = bmm_dem_script_addstage(opts);
-      opts->script.mode[istage] = BMM_DEM_MODE_PRESET2;
-      opts->script.params[istage].preset.sigmacrit = sigmacrit;
-      opts->script.params[istage].preset.taucrit = taucrit;
-      opts->script.params[istage].preset.sigmacritt = sigmacritt;
-      opts->script.params[istage].preset.taucritt = taucritt;
-
-      istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_PRECRUNCH;
       opts->script.params[istage].precrunch.nlayer = 2.0;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CRUNCH;
-      opts->script.tspan[istage] = 1.0e-3;
+      opts->script.tspan[istage] = 0.5e-3;
       opts->script.dt[istage] = dtstuff;
+      opts->script.params[istage].crunch.measure = false;
       opts->script.params[istage].crunch.v = vdriv;
-      opts->script.params[istage].crunch.fadjust[0] =
-        opts->script.params[istage].crunch.fadjust[1] = fadjust;
+      opts->script.params[istage].crunch.fadjust[0] = fadjust;
+      opts->script.params[istage].crunch.fadjust[1] = padjust;
       opts->script.params[istage].crunch.p = pdriv;
 
       istage = bmm_dem_script_addstage(opts);
@@ -314,12 +312,21 @@ static bool f(char const *const key, char const *const value,
       opts->script.params[istage].expr.str = "shear";
 
       istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_PRESET2;
+      opts->script.params[istage].preset.eta3 = eta3;
+      opts->script.params[istage].preset.sigmacrit = sigmacrit;
+      opts->script.params[istage].preset.taucrit = taucrit;
+      opts->script.params[istage].preset.sigmacritt = sigmacritt;
+      opts->script.params[istage].preset.taucritt = taucritt;
+
+      istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CRUNCH;
       opts->script.tspan[istage] = 7.0e-3;
       opts->script.dt[istage] = dtstuff;
+      opts->script.params[istage].crunch.measure = true;
       opts->script.params[istage].crunch.v = vdriv;
-      opts->script.params[istage].crunch.fadjust[0] =
-        opts->script.params[istage].crunch.fadjust[1] = fadjust;
+      opts->script.params[istage].crunch.fadjust[0] = fadjust;
+      opts->script.params[istage].crunch.fadjust[1] = padjust;
       opts->script.params[istage].crunch.p = pdriv;
 
       istage = bmm_dem_script_addstage(opts);
@@ -372,6 +379,7 @@ static bool f(char const *const key, char const *const value,
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_PRESET2;
+      opts->script.params[istage].preset.eta3 = eta3;
       opts->script.params[istage].preset.sigmacrit = sigmacrit;
       opts->script.params[istage].preset.taucrit = taucrit;
       opts->script.params[istage].preset.sigmacritt = sigmacritt;
@@ -449,6 +457,7 @@ static bool f(char const *const key, char const *const value,
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_PRESET2;
+      opts->script.params[istage].preset.eta3 = eta3;
       opts->script.params[istage].preset.sigmacrit = sigmacrit;
       opts->script.params[istage].preset.taucrit = taucrit;
       opts->script.params[istage].preset.sigmacritt = sigmacritt;

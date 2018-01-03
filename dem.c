@@ -576,6 +576,7 @@ size_t bmm_dem_addcont_unsafe(struct bmm_dem *const dem,
   dem->pair[ict].cont.src[ipart].psirest[icont][BMM_DEM_END_TAIL] = psii;
   dem->pair[ict].cont.src[ipart].psirest[icont][BMM_DEM_END_HEAD] = psij;
 
+  // Not used.
   dem->pair[ict].cont.src[ipart].tfat[icont] = 6;
 
   double const e = bmm_dem_est_econt_one(dem, ict, ipart, icont, jpart);
@@ -693,15 +694,10 @@ bool bmm_dem_yield_pair(struct bmm_dem *const dem,
     case BMM_DEM_YIELD_ZE:
       if ($(bmm_power, double)(sigmanormij / sigmacrit, 2) +
           $(bmm_power, double)(sigmatangij / taucrit, 2) > 1.0) {
-        if (dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].tfat[icont] == 0) {
-          bmm_dem_remcont(dem, BMM_DEM_CT_STRONG, ipart, jpart, icont);
+        bmm_dem_remcont(dem, BMM_DEM_CT_STRONG, ipart, jpart, icont);
 
-          return true;
-        } else
-          --dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].tfat[icont];
-      } else
-        // Just to avoid instability failure cascades.
-        dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].tfat[icont] = 6;
+        return true;
+      }
 
       break;
   }
@@ -1109,6 +1105,7 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
 
           double const d = bmm_geom2d_norm(xdiffij);
           double const r = ri + rj;
+          // double const r = dem->pair[ict].cont.src[ipart].drest[icont];
           double const r2 = $(bmm_power, double)(r, 2);
 
           double const lambdaij = bmm_geom2d_dir(xdiffij);
@@ -1290,10 +1287,12 @@ void bmm_dem_force(struct bmm_dem *const dem) {
     copysign(dem->opts.script.params[dem->script.i].crunch.fadjust[0] * dt,
         dem->opts.script.params[dem->script.i].crunch.v - dem->est.vdriv[0]);
 
-  dem->script.state.crunch.fdrive[1] =
-    -dem->opts.script.params[dem->script.i].crunch.p *
-    dem->opts.box.x[0] *
-    2.0 * bmm_ival_midpoint(dem->opts.part.rnew);
+  dem->script.state.crunch.fdrive[1] +=
+    copysign(dem->opts.script.params[dem->script.i].crunch.fadjust[1] * dt,
+        dem->est.fback[1] -
+        dem->opts.script.params[dem->script.i].crunch.p *
+        dem->opts.box.x[0] *
+        2.0 * bmm_ival_midpoint(dem->opts.part.rnew));
 
   for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
     bmm_dem_force_external(dem, ipart);
@@ -3459,7 +3458,7 @@ static bool bmm_dem_script_create_couple(struct bmm_dem *const dem) {
   dem->part.x[jpart][0] += 0.45 * scale;
   dem->part.x[jpart][1] += 0.15 * scale;
   dem->part.v[jpart][0] += 0.0e+1 * scale;
-  dem->part.omega[jpart] += 9.0e+3;
+  dem->part.omega[jpart] += 1.0e+4;
 
   jpart = bmm_dem_addpart(dem);
   if (jpart == SIZE_MAX)
@@ -3470,7 +3469,7 @@ static bool bmm_dem_script_create_couple(struct bmm_dem *const dem) {
   dem->part.x[jpart][0] += 0.55 * scale;
   dem->part.x[jpart][1] += 0.15 * scale;
   dem->part.v[jpart][0] -= 0.0e+1 * scale;
-  dem->part.omega[jpart] += 9.0e+3;
+  dem->part.omega[jpart] += 1.0e+4;
 
   return true;
 }
@@ -3662,7 +3661,9 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
       break;
     case BMM_DEM_MODE_PRESET2:
       dem->ext.tag = BMM_DEM_EXT_NONE;
-      dem->amb.tag = BMM_DEM_AMB_NONE;
+      // dem->amb.tag = BMM_DEM_AMB_NONE;
+      dem->amb.tag = BMM_DEM_AMB_FAXEN;
+      dem->amb.params.creeping.eta = dem->opts.script.params[dem->script.i].preset.eta3;
       dem->yield.tag = BMM_DEM_YIELD_ZE;
       dem->yield.params.ze.sigmacrit = dem->opts.script.params[dem->script.i].preset.sigmacrit;
       dem->yield.params.ze.taucrit = dem->opts.script.params[dem->script.i].preset.taucrit;
@@ -3718,9 +3719,13 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
       break;
     case BMM_DEM_MODE_CRUNCH:
       {
-        static bool pristine = true;
-        if (pristine) {
-          pristine = false;
+        static size_t stage = 0;
+        if (stage != dem->script.i) {
+          if (stage == 0)
+            for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+              dem->script.state.crunch.fdrive[idim] = 0.0;
+
+          stage = dem->script.i;
 
           dem->ext.tag = BMM_DEM_EXT_DRIVE;
 
@@ -3728,9 +3733,6 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
           for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
             if (dem->part.role[ipart] == BMM_DEM_ROLE_DRIVEN)
               ++dem->script.state.crunch.ndrive;
-
-          for (size_t idim = 0; idim < BMM_NDIM; ++idim)
-            dem->script.state.crunch.fdrive[idim] = 0.0;
 
           dem->script.state.crunch.nfix = 0;
           for (size_t ipart = 0; ipart < dem->part.n; ++ipart)
@@ -3747,6 +3749,56 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
 
               dem->part.omega[ipart] = 0.0;
             }
+        }
+      }
+
+      break;
+    case BMM_DEM_MODE_STORE:
+      {
+        FILE *const stream = fopen("a.out", "w");
+        if (stream == NULL) {
+          BMM_TLE_STDS();
+          abort();
+        }
+        if (fwrite(dem, sizeof *dem, 1, stream) != 1) {
+          BMM_TLE_STDS();
+          abort();
+        }
+        if (fclose(stream) != 0) {
+          BMM_TLE_STDS();
+          abort();
+        }
+      }
+
+      break;
+    case BMM_DEM_MODE_LOAD:
+      {
+        FILE *const stream = fopen("a.out", "r");
+        if (stream == NULL) {
+          BMM_TLE_STDS();
+          abort();
+        }
+        if (fread(dem, sizeof *dem, 1, stream) != 1) {
+          BMM_TLE_STDS();
+          abort();
+        }
+        if (fclose(stream) != 0) {
+          BMM_TLE_STDS();
+          abort();
+        }
+
+        gsl_rng_type const *const t = gsl_rng_env_setup();
+        if (t == NULL) {
+          BMM_TLE_STDS();
+
+          return false;
+        }
+
+        dem->rng = gsl_rng_alloc(t);
+        if (dem->rng == NULL) {
+          BMM_TLE_STDS();
+
+          return false;
         }
       }
 
@@ -3806,7 +3858,8 @@ static bool garbage(struct bmm_dem const *const dem) {
   double const neg = edrivnorm + edrivtang + ebond;
   double const eee = pos + dis - neg;
 
-  if (dem->opts.script.mode[dem->script.i] == BMM_DEM_MODE_CRUNCH)
+  if (dem->opts.script.mode[dem->script.i] == BMM_DEM_MODE_CRUNCH &&
+      dem->opts.script.params[dem->script.i].crunch.measure)
     if (fprintf(stream, "%g %g %g %g %g %g %g %g %g %g\n",
           dem->time.t,
           pos, dis, neg,
@@ -4003,22 +4056,6 @@ bool bmm_dem_run(struct bmm_dem *const dem) {
 
   bool const run = bmm_dem_run_(dem);
   bool const report = bmm_dem_report(dem);
-
-  /*
-  FILE *const stream = fopen("a.out", "w");
-  if (stream == NULL) {
-    BMM_TLE_STDS();
-    abort();
-  }
-  if (fwrite(dem, sizeof *dem, 1, stream) != 1) {
-    BMM_TLE_STDS();
-    abort();
-  }
-  if (fclose(stream) != 0) {
-    BMM_TLE_STDS();
-    abort();
-  }
-  */
 
   bmm_dem_trap_off(dem);
 
