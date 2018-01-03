@@ -576,9 +576,7 @@ size_t bmm_dem_addcont_unsafe(struct bmm_dem *const dem,
   dem->pair[ict].cont.src[ipart].psirest[icont][BMM_DEM_END_TAIL] = psii;
   dem->pair[ict].cont.src[ipart].psirest[icont][BMM_DEM_END_HEAD] = psij;
 
-  // Just to avoid instability failure cascades.
-  dem->pair[ict].cont.src[ipart].tfat[icont] =
-    (size_t) (4.0 * (gsl_rng_uniform(dem->rng) + 1.0));
+  dem->pair[ict].cont.src[ipart].tfat[icont] = 6;
 
   double const e = bmm_dem_est_econt_one(dem, ict, ipart, icont, jpart);
   dem->est.ebond += e;
@@ -702,8 +700,8 @@ bool bmm_dem_yield_pair(struct bmm_dem *const dem,
         } else
           --dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].tfat[icont];
       } else
-        dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].tfat[icont] =
-          (size_t) (4.0 * (gsl_rng_uniform(dem->rng) + 1.0));
+        // Just to avoid instability failure cascades.
+        dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].tfat[icont] = 6;
 
       break;
   }
@@ -1039,16 +1037,22 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
 
     switch (dem->pair[ict].tang.tag) {
       case BMM_DEM_TANG_HW:
-        ftang = copysign($(bmm_min, double)(
-              dem->pair[ict].tang.params.hw.gamma * $(bmm_abs, double)(vtangij),
-              dem->pair[ict].tang.params.hw.mu * $(bmm_abs, double)(fnorm)), vtangij);
+        {
+          double const hwgamma = dem->pair[ict].tang.params.hw.gamma * $(bmm_abs, double)(vtangij);
+          double const hwmu = dem->pair[ict].tang.params.hw.mu * $(bmm_abs, double)(fnorm);
 
-        ftangcons = 0.0;
-        ftangdiss = ftang;
+          ftang = copysign($(bmm_min, double)(hwmu, hwgamma), vtangij);
+          if (hwgamma < hwmu)
+            ++dem->est.hwgamma;
+          else
+            ++dem->est.hwmu;
 
-        taui = ri * ftang;
-        tauj = rj * ftang;
+          ftangcons = 0.0;
+          ftangdiss = ftang;
 
+          taui = ri * ftang;
+          tauj = rj * ftang;
+        }
         break;
       case BMM_DEM_TANG_CS:
         {
@@ -1083,9 +1087,13 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
           if (dyn <= stat) {
             ftangcons = 0.0;
             ftangdiss = copysign(dyn, dzeta);
+
+            ++dem->est.csmu;
           } else {
             ftangcons = copysign(stat, zeta);
             ftangdiss = 0.0;
+
+            ++dem->est.csk;
           }
 
           taui = ri * ftang;
@@ -2802,7 +2810,7 @@ void bmm_dem_opts_def(struct bmm_dem_opts *const opts) {
   // This is here just to help Valgrind and cover up my mistakes.
   (void) memset(opts, 0, sizeof *opts);
 
-  opts->verbose = false;
+  opts->verbose = true;
 
   opts->gross.statf = true;
   opts->gross.pfac = 1.0;
@@ -2969,6 +2977,10 @@ void bmm_dem_def(struct bmm_dem *const dem,
   dem->est.mueffb = (double) NAN;
   dem->est.vdriv[0] = (double) NAN;
   dem->est.vdriv[1] = (double) NAN;
+  dem->est.hwgamma = 0;
+  dem->est.hwmu = 0;
+  dem->est.csk = 0;
+  dem->est.csmu = 0;
 
   dem->time.t = 0.0;
   dem->time.istep = 0;
@@ -3445,9 +3457,9 @@ static bool bmm_dem_script_create_couple(struct bmm_dem *const dem) {
   dem->part.r[jpart] = 0.015 * scale;
   dem->part.m[jpart] = dem->opts.part.rho * bmm_geom_ballvol(dem->part.r[jpart], 3);
   dem->part.x[jpart][0] += 0.45 * scale;
-  dem->part.x[jpart][1] += 0.25 * scale;
-  dem->part.v[jpart][0] += 6.0e+1 * scale;
-  dem->part.omega[jpart] += 0.0e+4;
+  dem->part.x[jpart][1] += 0.15 * scale;
+  dem->part.v[jpart][0] += 0.0e+1 * scale;
+  dem->part.omega[jpart] += 9.0e+3;
 
   jpart = bmm_dem_addpart(dem);
   if (jpart == SIZE_MAX)
@@ -3456,9 +3468,9 @@ static bool bmm_dem_script_create_couple(struct bmm_dem *const dem) {
   dem->part.r[jpart] = 0.03 * scale;
   dem->part.m[jpart] = dem->opts.part.rho * bmm_geom_ballvol(dem->part.r[jpart], 3);
   dem->part.x[jpart][0] += 0.55 * scale;
-  dem->part.x[jpart][1] += 0.25 * scale;
-  dem->part.v[jpart][0] -= 3.0e+1 * scale;
-  dem->part.omega[jpart] += 3.0e+4;
+  dem->part.x[jpart][1] += 0.15 * scale;
+  dem->part.v[jpart][0] -= 0.0e+1 * scale;
+  dem->part.omega[jpart] += 9.0e+3;
 
   return true;
 }
@@ -3795,11 +3807,13 @@ static bool garbage(struct bmm_dem const *const dem) {
   double const eee = pos + dis - neg;
 
   if (dem->opts.script.mode[dem->script.i] == BMM_DEM_MODE_CRUNCH)
-    if (fprintf(stream, "%g %g %g %g %g %g %g %g\n",
+    if (fprintf(stream, "%g %g %g %g %g %g %g %g %g %g\n",
           dem->time.t,
           pos, dis, neg,
           dem->est.mueff, dem->est.mueffb,
-          dem->est.vdriv[0], dem->est.vdriv[1]) < 0) {
+          dem->est.vdriv[0], dem->est.vdriv[1],
+          (double) dem->est.hwmu / (double) dem->est.hwgamma,
+          (double) dem->est.csmu / (double) dem->est.csk) < 0) {
       BMM_TLE_STDS();
 
       return false;
@@ -3882,6 +3896,14 @@ bool bmm_dem_report(struct bmm_dem const *const dem) {
     }
 
     if (fprintf(stderr, "S-Wave Speed: %g\n", bmm_dem_swavec(dem)) < 0) {
+      BMM_TLE_STDS();
+
+      return false;
+    }
+
+    if (fprintf(stderr, "HW Dynamic Fraction: %g\nCS Dynamic Fraction: %g\n",
+          (double) dem->est.hwmu / (double) dem->est.hwgamma,
+          (double) dem->est.csmu / (double) dem->est.csk) < 0) {
       BMM_TLE_STDS();
 
       return false;
@@ -3982,6 +4004,7 @@ bool bmm_dem_run(struct bmm_dem *const dem) {
   bool const run = bmm_dem_run_(dem);
   bool const report = bmm_dem_report(dem);
 
+  /*
   FILE *const stream = fopen("a.out", "w");
   if (stream == NULL) {
     BMM_TLE_STDS();
@@ -3995,6 +4018,7 @@ bool bmm_dem_run(struct bmm_dem *const dem) {
     BMM_TLE_STDS();
     abort();
   }
+  */
 
   bmm_dem_trap_off(dem);
 

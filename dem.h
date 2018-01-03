@@ -675,6 +675,11 @@ struct bmm_dem {
     double mueff;
     /// Effective macroscopic friction factor (from feedback).
     double mueffb;
+    /// Model usage.
+    size_t hwgamma;
+    size_t hwmu;
+    size_t csk;
+    size_t csmu;
     /// BSHP prefactor.
     double bshpp;
   } est;
