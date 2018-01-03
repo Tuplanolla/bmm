@@ -651,6 +651,7 @@ void bmm_dem_remcont(struct bmm_dem *const dem,
   bmm_dem_remcont_unsafe(dem, ict, ipart, icont, jpart);
 }
 
+// I broke this to only work with KV and BEAM.
 bool bmm_dem_yield_pair(struct bmm_dem *const dem,
     size_t const ipart, size_t const jpart, size_t const icont) {
   if (dem->part.role[ipart] != BMM_DEM_ROLE_FREE ||
@@ -661,6 +662,11 @@ bool bmm_dem_yield_pair(struct bmm_dem *const dem,
   bmm_geom2d_cpdiff(xdiffij, dem->part.x[jpart], dem->part.x[ipart],
       dem->opts.box.x, dem->opts.box.per);
 
+  double const ri = dem->part.r[ipart];
+  double const rj = dem->part.r[jpart];
+  double const r = ri + rj;
+  double const r2 = $(bmm_power, double)(r, 2);
+
   double const d2 = bmm_geom2d_norm2(xdiffij);
   double const d = sqrt(d2);
 
@@ -670,14 +676,55 @@ bool bmm_dem_yield_pair(struct bmm_dem *const dem,
   double xtangij[BMM_NDIM];
   bmm_geom2d_rperp(xtangij, xnormij);
 
-  double fdiffij[BMM_NDIM];
-  bmm_geom2d_diff(fdiffij, dem->part.f[jpart], dem->part.f[ipart]);
+  double vdiffij[BMM_NDIM];
+  bmm_geom2d_diff(vdiffij, dem->part.v[jpart], dem->part.v[ipart]);
 
-  double const fnormij = -bmm_geom2d_dot(fdiffij, xnormij);
-  double const ftangij = $(bmm_abs, double)(bmm_geom2d_dot(fdiffij, xtangij));
+  double const xi = r - d;
+  double const vnormij = -bmm_geom2d_dot(vdiffij, xnormij);
+  double const reff = $(bmm_resum2, double)(ri, rj);
+  double const dt = dem->opts.script.dt[dem->script.i];
+
+  size_t const ict = BMM_DEM_CT_STRONG;
+
+  double const fnorm = dem->pair[ict].norm.params.dashpot.k * xi +
+    dem->pair[ict].norm.params.dashpot.gamma * vnormij;
+
+  double const lambdaij = bmm_geom2d_dir(xdiffij);
+  double const lambdaji = $(bmm_swrap, double)(lambdaij + M_PI, M_2PI);
+  double const phii = dem->part.phi[ipart];
+  double const phij = dem->part.phi[jpart];
+  double const psii = phii - lambdaij;
+  double const psij = phij - lambdaji;
+
+  double const dpsii = $(bmm_swrap, double)(psii - dem->pair[ict].cont.src[ipart].psirest[icont][BMM_DEM_END_TAIL], M_2PI);
+  double const dpsij = $(bmm_swrap, double)(psij - dem->pair[ict].cont.src[ipart].psirest[icont][BMM_DEM_END_HEAD], M_2PI);
+
+  double zetai = dem->part.r[ipart] * dpsii;
+  double zetaj = dem->part.r[jpart] * dpsij;
+
+  double const proj = bmm_geom2d_dot(xtangij, vdiffij) / d;
+  double const dzetai = ri * (dem->part.omega[ipart] - proj);
+  double const dzetaj = rj * (dem->part.omega[jpart] - proj);
+
+  double const ftangconsi = dem->pair[ict].tang.params.beam.k * zetai;
+  double const ftangconsj = dem->pair[ict].tang.params.beam.k * zetaj;
+
+  double const ftangdissi = dem->pair[ict].tang.params.beam.dk * dzetai;
+  double const ftangdissj = dem->pair[ict].tang.params.beam.dk * dzetaj;
+
+  double const ftangi = ftangconsi + ftangdissi;
+  double const ftangj = ftangconsj + ftangdissj;
+
+  double const taui = ri * ftangi;
+  double const tauj = rj * ftangj;
+
+  double const ftang = (taui + tauj) / d;
+
+  double const fnormij = fnorm;
+  double const ftangij = $(bmm_abs, double)(ftang);
 
   double const aij = M_PI * $(bmm_power, double)(
-      dem->pair[BMM_DEM_CT_STRONG].cont.src[ipart].strength[icont] *
+      dem->pair[ict].cont.src[ipart].strength[icont] *
       $(bmm_min, double)(dem->part.r[ipart], dem->part.r[jpart]), 2);
 
   double const sigmanormij = fnormij / aij;
@@ -688,13 +735,11 @@ bool bmm_dem_yield_pair(struct bmm_dem *const dem,
   double const taucrit = fnormij < 0.0 ?
     dem->yield.params.ze.taucrit : dem->yield.params.ze.taucritt;
 
-  double const dt = dem->opts.script.dt[dem->script.i];
-
   switch (dem->yield.tag) {
     case BMM_DEM_YIELD_ZE:
       if ($(bmm_power, double)(sigmanormij / sigmacrit, 2) +
           $(bmm_power, double)(sigmatangij / taucrit, 2) > 1.0) {
-        bmm_dem_remcont(dem, BMM_DEM_CT_STRONG, ipart, jpart, icont);
+        bmm_dem_remcont(dem, ict, ipart, jpart, icont);
 
         return true;
       }
@@ -1052,10 +1097,6 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
         break;
       case BMM_DEM_TANG_CS:
         {
-          double xdiffij[BMM_NDIM];
-          bmm_geom2d_cpdiff(xdiffij, dem->part.x[jpart], dem->part.x[ipart],
-              dem->opts.box.x, dem->opts.box.per);
-
           double const lambdaij = bmm_geom2d_dir(xdiffij);
           double const lambdaji = $(bmm_swrap, double)(lambdaij + M_PI, M_2PI);
           double const phii = dem->part.phi[ipart];
@@ -1099,10 +1140,6 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
         break;
       case BMM_DEM_TANG_BEAM:
         {
-          double xdiffij[BMM_NDIM];
-          bmm_geom2d_cpdiff(xdiffij, dem->part.x[jpart], dem->part.x[ipart],
-              dem->opts.box.x, dem->opts.box.per);
-
           double const d = bmm_geom2d_norm(xdiffij);
           double const r = ri + rj;
           // double const r = dem->pair[ict].cont.src[ipart].drest[icont];
@@ -2812,8 +2849,8 @@ void bmm_dem_opts_def(struct bmm_dem_opts *const opts) {
   opts->verbose = true;
 
   opts->gross.statf = true;
-  opts->gross.pfac = 1.0;
-  opts->gross.ds = 0.5;
+  opts->gross.pfac = 0.5;
+  opts->gross.ds = 0.1;
 
   opts->trap.enabled = false;
 #ifdef _GNU_SOURCE
@@ -3661,9 +3698,9 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
       break;
     case BMM_DEM_MODE_PRESET2:
       dem->ext.tag = BMM_DEM_EXT_NONE;
-      // dem->amb.tag = BMM_DEM_AMB_NONE;
-      dem->amb.tag = BMM_DEM_AMB_FAXEN;
-      dem->amb.params.creeping.eta = dem->opts.script.params[dem->script.i].preset.eta3;
+      dem->amb.tag = BMM_DEM_AMB_NONE;
+      // dem->amb.tag = BMM_DEM_AMB_FAXEN;
+      // dem->amb.params.creeping.eta = dem->opts.script.params[dem->script.i].preset.eta3;
       dem->yield.tag = BMM_DEM_YIELD_ZE;
       dem->yield.params.ze.sigmacrit = dem->opts.script.params[dem->script.i].preset.sigmacrit;
       dem->yield.params.ze.taucrit = dem->opts.script.params[dem->script.i].preset.taucrit;

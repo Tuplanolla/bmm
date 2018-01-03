@@ -55,18 +55,18 @@ static bool f(char const *const key, char const *const value,
     double const taucritt = beta * sigmacritt; // From theory.
     bool const statfric = opts->gross.statf;
     double ravg = 1.0e-3;
-    double const eta = 4.0e+1; // Oil.
-    double const eta2 = 2.0e+0;
-    double const eta3 = 1.0e-3; // Water.
+    double const eta = 1.0e+2; // Tar.
+    double const eta2 = 1.0e+1; // Oil.
+    double const eta3 = 1.0e+0; // Small wrt `gamman`.
     double const a = 4.3e-8; // From theory and assumptions.
     double const mu = 0.72; // From experiments.
-    double const kt = 1.1e+5; // Calibrated.
-    double const gammat = 1.0e+1; // Calibrated.
+    double const kt = 1.1e+6; // From theory and experiments.
+    double const gammat = 1.0e+1; // From beam calibration test.
     double const kn = 1.1e+7; // From stress--strain tests.
     double const gamman = 1.0e+1;
     double const barkn = 1.1e+7; // Equal to `kn`.
     double const bargamman = 1.0e+1;
-    double const barkt = 1.1e+5; // Small wrt `barkn`.
+    double const barkt = 1.1e+6; // Small wrt `barkn`.
     double const bargammat = 1.0e+1;
     // What ought to hold.
     double const bshpp = (2.0 / 3.0) * (opts->part.ycomp /
@@ -78,7 +78,7 @@ static bool f(char const *const key, char const *const value,
     // fprintf(stderr, "k^n > %g, A < %g\n", knp, ap);
 
     double const pdriv = sigmacrit * opts->gross.pfac;
-    double const vdriv = 2.0;
+    double const vdriv = 3.0; // Jogging speed.
     double const fadjust = 1.0e+8;
     double const padjust = 1.0e+8;
 
@@ -166,8 +166,8 @@ static bool f(char const *const key, char const *const value,
       opts->script.params[istage].expr.entropic = false;
       opts->script.params[istage].expr.str = "fault";
 
-      dtstuff = 300.0e-9;
-      // dtstuff = 1.0e-8;
+      // dtstuff = 300.0e-9;
+      dtstuff = 1.0e-8;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_PRECRUNCH;
@@ -178,7 +178,7 @@ static bool f(char const *const key, char const *const value,
       opts->script.tspan[istage] = 0.5e-3;
       opts->script.dt[istage] = dtstuff;
       opts->script.params[istage].crunch.measure = false;
-      opts->script.params[istage].crunch.v = vdriv;
+      opts->script.params[istage].crunch.v = 0.0;
       opts->script.params[istage].crunch.fadjust[0] = fadjust;
       opts->script.params[istage].crunch.fadjust[1] = padjust;
       opts->script.params[istage].crunch.p = pdriv;
@@ -217,7 +217,7 @@ static bool f(char const *const key, char const *const value,
 
       bmm_dem_opts_set_rnew(opts, rnew);
 
-      dtstuff = 1.0e-7;
+      dtstuff = 2.0e-7;
       opts->comm.dt = 1.0e-4;
 
       opts->fault.njag = 2;
@@ -301,7 +301,7 @@ static bool f(char const *const key, char const *const value,
       opts->script.tspan[istage] = 0.5e-3;
       opts->script.dt[istage] = dtstuff;
       opts->script.params[istage].crunch.measure = false;
-      opts->script.params[istage].crunch.v = vdriv;
+      opts->script.params[istage].crunch.v = 0.0;
       opts->script.params[istage].crunch.fadjust[0] = fadjust;
       opts->script.params[istage].crunch.fadjust[1] = padjust;
       opts->script.params[istage].crunch.p = pdriv;
