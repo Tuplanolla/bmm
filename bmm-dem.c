@@ -59,7 +59,7 @@ static bool f(char const *const key, char const *const value,
     double const eta3 = 1.0e-1; // Some other disgusting substance.
     double const a = 4.3e-8; // From theory and assumptions.
     double const mu = 0.72; // From experiments.
-    double const kt = 1.1e+5; // From rolling tests.
+    double const kt = 0.94e+6; // From rolling tests.
     double const gammat = 1.0e+1; // From beam calibration test.
     double const kn = 1.1e+7; // From stress--strain tests.
     double const gamman = 1.0e+1;
@@ -363,7 +363,7 @@ static bool f(char const *const key, char const *const value,
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
-      opts->script.tspan[istage] = 0.03e-3;
+      opts->script.tspan[istage] = 0.1e-3;
       opts->script.dt[istage] = dtstuff;
 
       istage = bmm_dem_script_addstage(opts);
@@ -410,7 +410,7 @@ static bool f(char const *const key, char const *const value,
       opts->script.mode[istage] = BMM_DEM_MODE_GRAVY;
       opts->script.tspan[istage] = 10.0e-3;
       opts->script.dt[istage] = dtstuff * 0.5;
-      opts->script.params[istage].gravy.g = 3.0e+6;
+      opts->script.params[istage].gravy.g = 3.0e+5;
     } else if (strcmp(value, "mix") == 0) {
       double const mu = 2.0e-3;
 
