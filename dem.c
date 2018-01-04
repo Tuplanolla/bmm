@@ -156,8 +156,9 @@ double bmm_dem_est_econt_one(struct bmm_dem const *const dem,
   switch (dem->pair[ict].norm.tag) {
     case BMM_DEM_NORM_KV:
       if (dem->pair[ict].cohesive) {
-        // double const r = ri + rj;
-        double const r = dem->pair[ict].cont.src[ipart].drest[icont];
+        double const r = ri + rj;
+        // TODO Investigate.
+        // double const r = dem->pair[ict].cont.src[ipart].drest[icont];
         double const xi = r - d;
 
         fnorm = dem->pair[ict].norm.params.dashpot.k * xi +
@@ -1005,8 +1006,9 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
     switch (dem->pair[ict].norm.tag) {
       case BMM_DEM_NORM_KV:
         if (dem->pair[ict].cohesive) {
-          // double const r = ri + rj;
-          double const r = dem->pair[ict].cont.src[ipart].drest[icont];
+          double const r = ri + rj;
+          // TODO Investigate.
+          // double const r = dem->pair[ict].cont.src[ipart].drest[icont];
           double const xi = r - d;
 
           fnorm = dem->pair[ict].norm.params.dashpot.k * xi +
@@ -3934,11 +3936,12 @@ static bool garbage(struct bmm_dem const *const dem) {
 
   if (dem->opts.script.mode[dem->script.i] == BMM_DEM_MODE_CRUNCH &&
       dem->opts.script.params[dem->script.i].crunch.measure)
-    if (fprintf(stream, "%g %g %g %g %g %g %g %g %g %g\n",
+    if (fprintf(stream, "%g %g %g %g %g %g %g %g %g %g %g %g\n",
           dem->time.t,
           pos, dis, neg,
           dem->est.mueff, dem->est.mueffb,
           dem->est.vdriv[0], dem->est.vdriv[1],
+          dem->script.state.crunch.fdrive[0], dem->script.state.crunch.fdrive[1],
           (double) dem->est.hwmu / (double) dem->est.hwgamma,
           (double) dem->est.csmu / (double) dem->est.csk) < 0) {
       BMM_TLE_STDS();

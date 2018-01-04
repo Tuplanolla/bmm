@@ -54,9 +54,9 @@ static bool f(char const *const key, char const *const value,
     double const taucritt = beta * sigmacritt; // From theory.
     bool const statfric = opts->gross.statf;
     double ravg = 1.0e-3;
-    double const eta = 1.0e+2; // Tar.
-    double const eta2 = 1.0e+1; // Oil.
-    double const eta3 = 1.0e+0; // Some other disgusting substance.
+    double const eta = 1.0e+1; // Tar.
+    double const eta2 = 1.0e+0; // Oil.
+    double const eta3 = 1.0e-1; // Some other disgusting substance.
     double const a = 4.3e-8; // From theory and assumptions.
     double const mu = 0.72; // From experiments.
     double const kt = 1.1e+6; // From rolling tests.
@@ -96,7 +96,7 @@ static bool f(char const *const key, char const *const value,
       bmm_dem_opts_set_rnew(opts, rnew);
 
       opts->fault.njag = 4;
-      opts->fault.hjag = 2.0 * 2.0 * bmm_ival_midpoint(opts->part.rnew);
+      opts->fault.hjag = 1.0 * 2.0 * bmm_ival_midpoint(opts->part.rnew);
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CREATE_HC;
@@ -118,7 +118,7 @@ static bool f(char const *const key, char const *const value,
       opts->script.mode[istage] = BMM_DEM_MODE_SEDIMENT;
       opts->script.tspan[istage] = 1.0e-3;
       opts->script.dt[istage] = dtstuff;
-      opts->script.params[istage].sediment.kcohes = 1.0e+3;
+      opts->script.params[istage].sediment.kcohes = 0.2e+3;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CLIP;
@@ -165,8 +165,7 @@ static bool f(char const *const key, char const *const value,
       opts->script.params[istage].expr.entropic = false;
       opts->script.params[istage].expr.str = "fault";
 
-      dtstuff = 300.0e-9;
-      // dtstuff = 1.0e-8; // This is still stable.
+      dtstuff = 1.0e-8;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_PRECRUNCH;
@@ -259,7 +258,7 @@ static bool f(char const *const key, char const *const value,
       opts->script.mode[istage] = BMM_DEM_MODE_SEDIMENT;
       opts->script.tspan[istage] = 1.0e-3;
       opts->script.dt[istage] = dtstuff;
-      opts->script.params[istage].sediment.kcohes = 2.0e+3;
+      opts->script.params[istage].sediment.kcohes = 0.4e+3;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CLIP;
