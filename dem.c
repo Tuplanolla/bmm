@@ -156,9 +156,9 @@ double bmm_dem_est_econt_one(struct bmm_dem const *const dem,
   switch (dem->pair[ict].norm.tag) {
     case BMM_DEM_NORM_KV:
       if (dem->pair[ict].cohesive) {
-        double const r = ri + rj;
-        // TODO Investigate.
-        // double const r = dem->pair[ict].cont.src[ipart].drest[icont];
+        // double const r = ri + rj;
+        // Maybe.
+        double const r = dem->pair[ict].cont.src[ipart].drest[icont];
         double const xi = r - d;
 
         fnorm = dem->pair[ict].norm.params.dashpot.k * xi +
@@ -1006,9 +1006,9 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
     switch (dem->pair[ict].norm.tag) {
       case BMM_DEM_NORM_KV:
         if (dem->pair[ict].cohesive) {
-          double const r = ri + rj;
-          // TODO Investigate.
-          // double const r = dem->pair[ict].cont.src[ipart].drest[icont];
+          // double const r = ri + rj;
+          // Maybe.
+          double const r = dem->pair[ict].cont.src[ipart].drest[icont];
           double const xi = r - d;
 
           fnorm = dem->pair[ict].norm.params.dashpot.k * xi +
@@ -2887,7 +2887,7 @@ void bmm_dem_opts_def(struct bmm_dem_opts *const opts) {
   opts->verbose = true;
 
   opts->gross.statf = true;
-  opts->gross.pfac = 1.0;
+  opts->gross.pfac = 0.5;
   opts->gross.ds = 0.1;
 
   opts->trap.enabled = false;
@@ -3791,6 +3791,16 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
             dem->opts.script.params[dem->script.i].precrunch.nlayer *
             2.0 * bmm_ival_midpoint(dem->opts.part.rnew))
           dem->part.role[ipart] = BMM_DEM_ROLE_FIXED;
+
+      break;
+    case BMM_DEM_MODE_ZEROEST:
+      dem->est.eambdis = 0.0;
+      dem->est.edrivtang = 0.0;
+      dem->est.edrivnorm = 0.0;
+      dem->est.ebond = 0.0;
+      dem->est.eyieldis = 0.0;
+      dem->est.ewcontdis = 0.0;
+      dem->est.escontdis = 0.0;
 
       break;
     case BMM_DEM_MODE_CRUNCH:

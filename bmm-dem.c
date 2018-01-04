@@ -59,13 +59,13 @@ static bool f(char const *const key, char const *const value,
     double const eta3 = 1.0e-1; // Some other disgusting substance.
     double const a = 4.3e-8; // From theory and assumptions.
     double const mu = 0.72; // From experiments.
-    double const kt = 1.1e+6; // From rolling tests.
+    double const kt = 1.1e+5; // From rolling tests.
     double const gammat = 1.0e+1; // From beam calibration test.
     double const kn = 1.1e+7; // From stress--strain tests.
     double const gamman = 1.0e+1;
     double const barkn = 1.1e+7; // Equal to `kn`.
     double const bargamman = 1.0e+1;
-    double const barkt = 1.1e+6; // Small wrt `barkn`.
+    double const barkt = 1.1e+7; // Small wrt `barkn`.
     double const bargammat = 1.0e+1;
     // What ought to hold.
     double const bshpp = (2.0 / 3.0) * (opts->part.ycomp /
@@ -77,7 +77,7 @@ static bool f(char const *const key, char const *const value,
     // fprintf(stderr, "k^n > %g, A < %g\n", knp, ap);
 
     double const pdriv = sigmacrit * opts->gross.pfac;
-    double const vdriv = 3.0; // Jogging speed.
+    double const vdriv = 2.0;
     double const fadjust = 1.0e+8;
     double const padjust = 1.0e+8;
 
@@ -185,6 +185,9 @@ static bool f(char const *const key, char const *const value,
       opts->script.mode[istage] = BMM_DEM_MODE_EXPORT;
       opts->script.params[istage].expr.entropic = false;
       opts->script.params[istage].expr.str = "shear";
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_ZEROEST;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_PRESET2;
@@ -325,6 +328,9 @@ static bool f(char const *const key, char const *const value,
       opts->script.mode[istage] = BMM_DEM_MODE_EXPORT;
       opts->script.params[istage].expr.entropic = false;
       opts->script.params[istage].expr.str = "shear";
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_ZEROEST;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_PRESET2;

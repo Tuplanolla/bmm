@@ -191,6 +191,8 @@ enum bmm_dem_mode {
   /// Start forcing the top in the x-direction.
   BMM_DEM_MODE_PRECRUNCH,
   BMM_DEM_MODE_CRUNCH,
+  /// Zero estimators.
+  BMM_DEM_MODE_ZEROEST,
   /// Debug utilities.
   BMM_DEM_MODE_STORE,
   BMM_DEM_MODE_LOAD,
