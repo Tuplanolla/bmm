@@ -207,9 +207,11 @@ struct bmm_dem_opts {
   /// Gross order-specific options.
   struct {
     /// Static friction.
-    bool statf;
+    enum bmm_dem_tang fric;
     /// Pressure wrt ucs.
     double pfac;
+    /// Jag height wrt particle diameter.
+    double hfac;
     /// Variation in ucs (from unity).
     double ds;
   } gross;
@@ -327,8 +329,8 @@ struct bmm_dem_opts {
       } expr;
       /// For `BMM_DEM_MODE_PRESET0` and `BMM_DEM_MODE_PRESET1`.
       struct {
-        // Whether to use HW or CS.
-        bool statfric;
+        // Which model to use for frition.
+        enum bmm_dem_tang fric;
         // As defined.
         double eta;
         double eta2;

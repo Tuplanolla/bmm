@@ -52,20 +52,20 @@ static bool f(char const *const key, char const *const value,
     double const taucrit = beta * sigmacrit; // From theory.
     double const sigmacritt = sigmacrit;
     double const taucritt = beta * sigmacritt; // From theory.
-    bool const statfric = opts->gross.statf;
+    enum bmm_dem_tang const fric = opts->gross.fric;
     double ravg = 1.0e-3;
     double const eta = 1.0e+1; // Tar.
     double const eta2 = 1.0e+0; // Oil.
     double const eta3 = 1.0e-1; // Some other disgusting substance.
-    double const a = 4.3e-8; // From theory and assumptions.
+    double const a = 8.0e-9; // From theory and assumptions.
     double const mu = 0.72; // From experiments.
-    double const kt = 0.94e+6; // From rolling tests.
+    double const kt = 1.0e+5; // From rolling and piling calibration tests.
     double const gammat = 1.0e+1; // From beam calibration test.
-    double const kn = 1.1e+7; // From stress--strain tests.
+    double const kn = 1.0e+7; // From stress--strain tests.
     double const gamman = 1.0e+1;
-    double const barkn = 1.1e+7; // Equal to `kn`.
+    double const barkn = 1.0e+7; // Equal to `kn`.
     double const bargamman = 1.0e+1;
-    double const barkt = 1.1e+7; // Small wrt `barkn`.
+    double const barkt = 1.0e+6; // Small wrt `barkn`.
     double const bargammat = 1.0e+1;
     // What ought to hold.
     double const bshpp = (2.0 / 3.0) * (opts->part.ycomp /
@@ -76,6 +76,7 @@ static bool f(char const *const key, char const *const value,
     double const ap = gamman / more;
     // fprintf(stderr, "k^n > %g, A < %g\n", knp, ap);
 
+    double const h = opts->gross.hfac;
     double const pdriv = sigmacrit * opts->gross.pfac;
     double const vdriv = 2.0;
     double const fadjust = 1.0e+8;
@@ -96,7 +97,7 @@ static bool f(char const *const key, char const *const value,
       bmm_dem_opts_set_rnew(opts, rnew);
 
       opts->fault.njag = 4;
-      opts->fault.hjag = 1.0 * 2.0 * bmm_ival_midpoint(opts->part.rnew);
+      opts->fault.hjag = h * 2.0 * bmm_ival_midpoint(opts->part.rnew);
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CREATE_HC;
@@ -135,7 +136,7 @@ static bool f(char const *const key, char const *const value,
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_PRESET1;
-      opts->script.params[istage].preset.statfric = statfric;
+      opts->script.params[istage].preset.fric = fric;
       opts->script.params[istage].preset.eta2 = eta2;
       opts->script.params[istage].preset.a = a;
       opts->script.params[istage].preset.mu = mu;
@@ -214,6 +215,7 @@ static bool f(char const *const key, char const *const value,
       opts->script.params[istage].expr.entropic = false;
       opts->script.params[istage].expr.str = "fragment";
 
+      /*
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CRUNCH;
       opts->script.tspan[istage] = 50.0e-3;
@@ -229,6 +231,7 @@ static bool f(char const *const key, char const *const value,
       opts->script.mode[istage] = BMM_DEM_MODE_EXPORT;
       opts->script.params[istage].expr.entropic = false;
       opts->script.params[istage].expr.str = "end";
+      */
     } else if (strcmp(value, "shear") == 0) {
       opts->box.x[1] = 0.025;
       opts->box.x[0] = opts->box.x[1];
@@ -239,7 +242,7 @@ static bool f(char const *const key, char const *const value,
       opts->comm.dt = 1.0e-4;
 
       opts->fault.njag = 2;
-      opts->fault.hjag = 1.0 * 2.0 * bmm_ival_midpoint(opts->part.rnew);
+      opts->fault.hjag = h * 2.0 * bmm_ival_midpoint(opts->part.rnew);
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CREATE_HC;
@@ -278,7 +281,7 @@ static bool f(char const *const key, char const *const value,
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_PRESET1;
-      opts->script.params[istage].preset.statfric = statfric;
+      opts->script.params[istage].preset.fric = fric;
       opts->script.params[istage].preset.eta2 = eta2;
       opts->script.params[istage].preset.a = a;
       opts->script.params[istage].preset.mu = mu;
@@ -385,7 +388,7 @@ static bool f(char const *const key, char const *const value,
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_PRESET1;
-      opts->script.params[istage].preset.statfric = statfric;
+      opts->script.params[istage].preset.fric = fric;
       opts->script.params[istage].preset.eta2 = eta2;
       opts->script.params[istage].preset.a = a;
       opts->script.params[istage].preset.mu = mu;
@@ -463,7 +466,7 @@ static bool f(char const *const key, char const *const value,
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_PRESET1;
-      opts->script.params[istage].preset.statfric = statfric;
+      opts->script.params[istage].preset.fric = fric;
       opts->script.params[istage].preset.eta2 = eta2;
       opts->script.params[istage].preset.a = a;
       opts->script.params[istage].preset.mu = mu;
@@ -504,18 +507,48 @@ static bool f(char const *const key, char const *const value,
       opts->script.tspan[istage] = 20.0e-3;
       opts->script.dt[istage] = dtstuff;
     } else if (strcmp(value, "pile") == 0) {
-      dtstuff = 2.0e-8;
+      opts->comm.dt = 4.0e-5;
+      dtstuff = 1.0e-8;
 
       double const rnew[] = {
         2.0e-3,
-        2.0e-3 * 1.07
+        2.0e-3 + 4.0e-4
       };
       bmm_dem_opts_set_rnew(opts, rnew);
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_IDLE;
-      opts->script.tspan[istage] = 0.03e-3;
+      opts->script.tspan[istage] = 0.1e-3;
       opts->script.dt[istage] = dtstuff;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_PRESET0;
+      opts->script.params[istage].preset.eta = eta;
+      opts->script.params[istage].preset.kn = kn;
+      opts->script.params[istage].preset.gamman = gamman;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_PRESET1;
+      opts->script.params[istage].preset.fric = fric;
+      opts->script.params[istage].preset.eta2 = eta2;
+      opts->script.params[istage].preset.a = a;
+      opts->script.params[istage].preset.mu = mu;
+      opts->script.params[istage].preset.kt = kt;
+      opts->script.params[istage].preset.gammat = gammat;
+      opts->script.params[istage].preset.kn = kn;
+      opts->script.params[istage].preset.gamman = gamman;
+      opts->script.params[istage].preset.barkn = barkn;
+      opts->script.params[istage].preset.bargamman = bargamman;
+      opts->script.params[istage].preset.barkt = barkt;
+      opts->script.params[istage].preset.bargammat = bargammat;
+
+      istage = bmm_dem_script_addstage(opts);
+      opts->script.mode[istage] = BMM_DEM_MODE_PRESET2;
+      opts->script.params[istage].preset.eta3 = eta3;
+      opts->script.params[istage].preset.sigmacrit = sigmacrit;
+      opts->script.params[istage].preset.taucrit = taucrit;
+      opts->script.params[istage].preset.sigmacritt = sigmacritt;
+      opts->script.params[istage].preset.taucritt = taucritt;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CREATE_PILE;
@@ -532,7 +565,7 @@ static bool f(char const *const key, char const *const value,
       opts->script.mode[istage] = BMM_DEM_MODE_GRAVY;
       opts->script.tspan[istage] = 30.0e-3;
       opts->script.dt[istage] = dtstuff;
-      opts->script.params[istage].gravy.g = 3.0e+5;
+      opts->script.params[istage].gravy.g = 3.0e+4;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_LINK;
@@ -589,12 +622,21 @@ static bool f(char const *const key, char const *const value,
       opts->script.dt[istage] = dtstuff;
     } else
       return false;
-  } else if (strcmp(key, "stat") == 0) {
-    bool p;
-    if (!bmm_str_strtob(&p, value))
+  } else if (strcmp(key, "fric") == 0) {
+    if (strcmp(value, "cs") == 0)
+      opts->gross.fric = BMM_DEM_TANG_CS;
+    else if (strcmp(value, "hw") == 0)
+      opts->gross.fric = BMM_DEM_TANG_HW;
+    else if (strcmp(value, "none") == 0)
+      opts->gross.fric = BMM_DEM_TANG_NONE;
+    else
+      return false;
+  } else if (strcmp(key, "hfac") == 0) {
+    double x;
+    if (!bmm_str_strtod(&x, value))
       return false;
 
-    opts->gross.statf = p;
+    opts->gross.hfac = x;
   } else if (strcmp(key, "pfac") == 0) {
     double x;
     if (!bmm_str_strtod(&x, value))

@@ -2886,8 +2886,9 @@ void bmm_dem_opts_def(struct bmm_dem_opts *const opts) {
 
   opts->verbose = true;
 
-  opts->gross.statf = true;
+  opts->gross.fric = BMM_DEM_TANG_CS;
   opts->gross.pfac = 0.5;
+  opts->gross.hfac = 1.0;
   opts->gross.ds = 0.1;
 
   opts->trap.enabled = false;
@@ -3299,8 +3300,8 @@ static bool bmm_dem_script_create_testpile(struct bmm_dem *const dem) {
   double const v = vhc * (etahc / eta);
 
   double const vlim = vhc * eta;
-  double const rspace = bmm_ival_midpoint(dem->opts.part.rnew);
-  // double const rspace = dem->opts.part.rnew[1];
+  // double const rspace = bmm_ival_midpoint(dem->opts.part.rnew);
+  double const rspace = dem->opts.part.rnew[1];
   double const dspace = (sqrt(3.0) / 2.0) * rspace;
 
   double x[BMM_NDIM];
@@ -3531,7 +3532,7 @@ static bool bmm_dem_script_create_couple(struct bmm_dem *const dem) {
   dem->part.r[jpart] = 0.015 * scale;
   dem->part.m[jpart] = dem->opts.part.rho * bmm_geom_ballvol(dem->part.r[jpart], 3);
   dem->part.x[jpart][0] += 0.45 * scale;
-  dem->part.x[jpart][1] += 0.15 * scale;
+  dem->part.x[jpart][1] += 0.12 * scale;
   dem->part.v[jpart][0] += 0.0e+1 * scale;
   dem->part.omega[jpart] += 1.0e+4;
 
@@ -3542,7 +3543,7 @@ static bool bmm_dem_script_create_couple(struct bmm_dem *const dem) {
   dem->part.r[jpart] = 0.03 * scale;
   dem->part.m[jpart] = dem->opts.part.rho * bmm_geom_ballvol(dem->part.r[jpart], 3);
   dem->part.x[jpart][0] += 0.55 * scale;
-  dem->part.x[jpart][1] += 0.15 * scale;
+  dem->part.x[jpart][1] += 0.12 * scale;
   dem->part.v[jpart][0] -= 0.0e+1 * scale;
   dem->part.omega[jpart] += 1.0e+4;
 
@@ -3706,12 +3707,12 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
       dem->amb.tag = BMM_DEM_AMB_FAXEN;
       dem->amb.params.creeping.eta = dem->opts.script.params[dem->script.i].preset.eta2;
       dem->pair[BMM_DEM_CT_WEAK].cohesive = false;
-      // dem->pair[BMM_DEM_CT_WEAK].norm.tag = BMM_DEM_NORM_BSHP;
-      // dem->pair[BMM_DEM_CT_WEAK].norm.params.viscoel.a = dem->opts.script.params[dem->script.i].preset.a;
+      dem->pair[BMM_DEM_CT_WEAK].norm.tag = BMM_DEM_NORM_BSHP;
+      dem->pair[BMM_DEM_CT_WEAK].norm.params.viscoel.a = dem->opts.script.params[dem->script.i].preset.a;
+      dem->pair[BMM_DEM_CT_WEAK].norm.tag = BMM_DEM_NORM_KV;
       dem->pair[BMM_DEM_CT_WEAK].norm.params.dashpot.k = dem->opts.script.params[dem->script.i].preset.kn;
       dem->pair[BMM_DEM_CT_WEAK].norm.params.dashpot.gamma = dem->opts.script.params[dem->script.i].preset.gamman;
-      dem->pair[BMM_DEM_CT_WEAK].tang.tag = dem->opts.script.params[dem->script.i].preset.statfric ?
-        BMM_DEM_TANG_CS : BMM_DEM_TANG_HW;
+      dem->pair[BMM_DEM_CT_WEAK].tang.tag = dem->opts.script.params[dem->script.i].preset.fric;
       switch (dem->pair[BMM_DEM_CT_WEAK].tang.tag) {
         case BMM_DEM_TANG_HW:
           dem->pair[BMM_DEM_CT_WEAK].tang.params.hw.gamma = dem->opts.script.params[dem->script.i].preset.gammat;
@@ -3736,9 +3737,9 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
       break;
     case BMM_DEM_MODE_PRESET2:
       dem->ext.tag = BMM_DEM_EXT_NONE;
+      dem->amb.tag = BMM_DEM_AMB_FAXEN;
+      dem->amb.params.creeping.eta = dem->opts.script.params[dem->script.i].preset.eta3;
       dem->amb.tag = BMM_DEM_AMB_NONE;
-      // dem->amb.tag = BMM_DEM_AMB_FAXEN;
-      // dem->amb.params.creeping.eta = dem->opts.script.params[dem->script.i].preset.eta3;
       dem->yield.tag = BMM_DEM_YIELD_ZE;
       dem->yield.params.ze.sigmacrit = dem->opts.script.params[dem->script.i].preset.sigmacrit;
       dem->yield.params.ze.taucrit = dem->opts.script.params[dem->script.i].preset.taucrit;
