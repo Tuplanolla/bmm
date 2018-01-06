@@ -40,14 +40,14 @@ static bool f(char const *const key, char const *const value,
     opts->box.per[1] = false;
 
     opts->part.rho = 2.7e+3;
-    opts->part.ytens = 18.0e+9;
-    opts->part.ycomp = 53.0e+9;
+    opts->part.ytens = 20.0e+9;
+    opts->part.ycomp = 50.0e+9;
     opts->part.nu = 0.22;
 
     opts->part.strnew[0] = 1.0 - opts->gross.ds;
     opts->part.strnew[1] = 1.0 + opts->gross.ds;
 
-    double const beta = 0.5; // From theory and experiments.
+    double const beta = 0.6; // From theory and experiments.
     double const sigmacrit = 280.0e+6; // From experiments.
     double const taucrit = beta * sigmacrit; // From theory.
     double const sigmacritt = sigmacrit;
@@ -58,15 +58,15 @@ static bool f(char const *const key, char const *const value,
     double const eta2 = 1.0e+0; // Oil.
     double const eta3 = 1.0e-1; // Some other disgusting substance.
     double const a = 8.0e-9; // From theory and assumptions.
-    double const mu = 0.72; // From experiments.
-    double const kt = 1.0e+5; // From rolling and piling calibration tests.
-    double const gammat = 1.0e+1; // From beam calibration test.
-    double const kn = 1.0e+7; // From stress--strain tests.
-    double const gamman = 1.0e+1;
+    double const mu = 0.8; // From experiments.
+    double const kt = 5.0e+4; // From rolling and piling calibration tests.
+    double const gammat = 2.0e+0; // From rolling and piling calibration tests.
+    double const kn = 1.0e+7; // From theory and stress--strain tests.
+    double const gamman = 1.0e+1; // From beam tests.
     double const barkn = 1.0e+7; // Equal to `kn`.
-    double const bargamman = 1.0e+1;
+    double const bargamman = 1.0e+1; // Equal to `gamman`.
     double const barkt = 1.0e+6; // Small wrt `barkn`.
-    double const bargammat = 1.0e+1;
+    double const bargammat = 1.0e+1; // Equal to `bargamman`.
     // What ought to hold.
     double const bshpp = (2.0 / 3.0) * (opts->part.ycomp /
         (1.0 - $(bmm_power, double)(opts->part.nu, 2)));
@@ -512,7 +512,7 @@ static bool f(char const *const key, char const *const value,
 
       double const rnew[] = {
         2.0e-3,
-        2.0e-3 + 4.0e-4
+        2.0e-3 + 2.0e-5
       };
       bmm_dem_opts_set_rnew(opts, rnew);
 

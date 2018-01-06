@@ -1082,22 +1082,40 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
   double ftangdiss = 0.0;
 
   {
-    double const vtangij = -bmm_geom2d_dot(vdiffij, xtangij) +
-      ri * dem->part.omega[ipart] + rj * dem->part.omega[jpart];
     double const dt = dem->opts.script.dt[dem->script.i];
-    dxtang = vtangij * dt;
+
+    double const lambdaij = bmm_geom2d_dir(xdiffij);
+    double const lambdaji = $(bmm_swrap, double)(lambdaij + M_PI, M_2PI);
+    double const phii = dem->part.phi[ipart];
+    double const phij = dem->part.phi[jpart];
+    double const psii = phii - lambdaij;
+    double const psij = phij - lambdaji;
+
+    double const dpsii = $(bmm_swrap, double)(psii - dem->pair[ict].cont.src[ipart].psirest[icont][BMM_DEM_END_TAIL], M_2PI);
+    double const dpsij = $(bmm_swrap, double)(psij - dem->pair[ict].cont.src[ipart].psirest[icont][BMM_DEM_END_HEAD], M_2PI);
+
+    double zetai = dem->part.r[ipart] * dpsii;
+    double zetaj = dem->part.r[jpart] * dpsij;
+    double zeta = zetai + zetaj;
+
+    double const proj = bmm_geom2d_dot(xtangij, vdiffij) / d;
+    double const dzetai = ri * (dem->part.omega[ipart] - proj);
+    double const dzetaj = rj * (dem->part.omega[jpart] - proj);
+    double const dzeta = dzetai + dzetaj;
+
+    dxtang = dzeta * dt;
 
     switch (dem->pair[ict].tang.tag) {
       case BMM_DEM_TANG_HW:
         {
-          double const hwgamma = dem->pair[ict].tang.params.hw.gamma * $(bmm_abs, double)(vtangij);
-          double const hwmu = dem->pair[ict].tang.params.hw.mu * $(bmm_abs, double)(fnorm);
+          double const dyn = dem->pair[ict].tang.params.hw.mu * $(bmm_abs, double)(fnorm);
+          double const shear = dem->pair[ict].tang.params.hw.gamma * $(bmm_abs, double)(dzeta);
 
-          ftang = copysign($(bmm_min, double)(hwmu, hwgamma), vtangij);
-          if (hwgamma < hwmu)
-            ++dem->est.hwgamma;
-          else
+          ftang = copysign($(bmm_min, double)(dyn, shear), dzeta);
+          if (dyn <= shear)
             ++dem->est.hwmu;
+          else
+            ++dem->est.hwgamma;
 
           ftangcons = 0.0;
           ftangdiss = ftang;
@@ -1108,25 +1126,6 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
         break;
       case BMM_DEM_TANG_CS:
         {
-          double const lambdaij = bmm_geom2d_dir(xdiffij);
-          double const lambdaji = $(bmm_swrap, double)(lambdaij + M_PI, M_2PI);
-          double const phii = dem->part.phi[ipart];
-          double const phij = dem->part.phi[jpart];
-          double const psii = phii - lambdaij;
-          double const psij = phij - lambdaji;
-
-          double const dpsii = $(bmm_swrap, double)(psii - dem->pair[ict].cont.src[ipart].psirest[icont][BMM_DEM_END_TAIL], M_2PI);
-          double const dpsij = $(bmm_swrap, double)(psij - dem->pair[ict].cont.src[ipart].psirest[icont][BMM_DEM_END_HEAD], M_2PI);
-
-          double zetai = dem->part.r[ipart] * dpsii;
-          double zetaj = dem->part.r[jpart] * dpsij;
-          double zeta = zetai + zetaj;
-
-          double const proj = bmm_geom2d_dot(xtangij, vdiffij) / d;
-          double const dzetai = ri * (dem->part.omega[ipart] - proj);
-          double const dzetaj = rj * (dem->part.omega[jpart] - proj);
-          double const dzeta = dzetai + dzetaj;
-
           double const dyn = dem->pair[ict].tang.params.cs.mu * $(bmm_abs, double)(fnorm);
           double const stat = dem->pair[ict].tang.params.cs.k * $(bmm_abs, double)(zeta);
 
@@ -2886,7 +2885,7 @@ void bmm_dem_opts_def(struct bmm_dem_opts *const opts) {
 
   opts->verbose = true;
 
-  opts->gross.fric = BMM_DEM_TANG_CS;
+  opts->gross.fric = BMM_DEM_TANG_HW;
   opts->gross.pfac = 0.5;
   opts->gross.hfac = 1.0;
   opts->gross.ds = 0.1;
@@ -3354,6 +3353,67 @@ static bool bmm_dem_script_create_testpile(struct bmm_dem *const dem) {
 }
 
 __attribute__ ((__nonnull__))
+static bool bmm_dem_script_create_testblock(struct bmm_dem *const dem) {
+  double const etahc = bmm_geom_ballvol(0.5, BMM_NDIM);
+  double const vhc = $(bmm_prod, double)(dem->opts.box.x, BMM_NDIM);
+  double const eta = dem->opts.script.params[dem->script.i].test.eta;
+  double const v = vhc * (etahc / eta);
+
+  double const vlim = vhc * eta;
+  // double const rspace = bmm_ival_midpoint(dem->opts.part.rnew);
+  double const rspace = dem->opts.part.rnew[1];
+  double const dspace = rspace;
+
+  double x[BMM_NDIM];
+  for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+    x[idim] = 0.0;
+
+  double vnow = 0.0;
+  bool parity = false;
+
+  for ever {
+    double const r = bmm_random_get(dem->rng, dem->opts.part.rnew);
+    double const v = bmm_geom_ballvol(r, BMM_NDIM);
+
+    double const vnext = vnow + v;
+
+    if (vnext <= vlim) {
+      size_t ipart = bmm_dem_addpart(dem);
+      if (ipart == SIZE_MAX)
+        return false;
+
+      dem->part.r[ipart] = r;
+      dem->part.m[ipart] = dem->opts.part.rho * bmm_geom_ballvol(r, 3);
+
+      for (size_t idim = 0; idim < BMM_NDIM; ++idim)
+        dem->part.x[ipart][idim] = x[idim] + rspace;
+
+      x[0] += 2.0 * rspace;
+
+      if (x[0] + 2.0 * rspace >= dem->opts.box.x[0] + 2.0 * rspace) {
+        x[0] = 0.0;
+        x[1] += 2.0 * dspace;
+        parity = !parity;
+      }
+
+      if (fabs(dem->part.x[ipart][0] - dem->opts.box.x[0] / 2.0) +
+          fabs(dem->part.x[ipart][1] - dem->opts.box.x[1] / 2.0) >
+          dem->opts.box.x[0] / 1.9 ||
+          dem->part.x[ipart][1] < dem->opts.box.x[1] / 2.0 - rspace)
+        bmm_dem_rempart(dem, ipart);
+
+      if (fabs(dem->part.x[ipart][1] - dem->opts.box.x[1] / 2.0) < rspace)
+        dem->part.role[ipart] = BMM_DEM_ROLE_FIXED;
+
+      vnow = vnext;
+    } else
+      break;
+  }
+
+  return true;
+}
+
+__attribute__ ((__nonnull__))
 static bool bmm_dem_script_create_testplane(struct bmm_dem *const dem) {
   double const vhc = $(bmm_prod, double)(dem->opts.box.x, BMM_NDIM);
   double const v = vhc;
@@ -3630,7 +3690,10 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
 
       break;
     case BMM_DEM_MODE_CREATE_PILE:
-      if (!bmm_dem_script_create_testpile(dem))
+      // if (!bmm_dem_script_create_testpile(dem))
+      //   return false;
+
+      if (!bmm_dem_script_create_testblock(dem))
         return false;
 
       bmm_dem_script_perturb(dem);
