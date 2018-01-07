@@ -2885,7 +2885,7 @@ void bmm_dem_opts_def(struct bmm_dem_opts *const opts) {
 
   opts->verbose = true;
 
-  opts->gross.fric = BMM_DEM_TANG_HW;
+  opts->gross.fric = BMM_DEM_TANG_CS;
   opts->gross.pfac = 0.5;
   opts->gross.hfac = 1.0;
   opts->gross.ds = 0.1;
@@ -3865,6 +3865,10 @@ bool bmm_dem_step(struct bmm_dem *const dem) {
       dem->est.eyieldis = 0.0;
       dem->est.ewcontdis = 0.0;
       dem->est.escontdis = 0.0;
+      dem->est.hwgamma = 0;
+      dem->est.hwmu = 0;
+      dem->est.csk = 0;
+      dem->est.csmu = 0;
 
       break;
     case BMM_DEM_MODE_CRUNCH:
@@ -4010,14 +4014,12 @@ static bool garbage(struct bmm_dem const *const dem) {
 
   if (dem->opts.script.mode[dem->script.i] == BMM_DEM_MODE_CRUNCH &&
       dem->opts.script.params[dem->script.i].crunch.measure)
-    if (fprintf(stream, "%g %g %g %g %g %g %g %g %g %g %g %g\n",
+    if (fprintf(stream, "%g %g %g %g %g %g %g %g %g %g\n",
           dem->time.t,
           pos, dis, neg,
           dem->est.mueff, dem->est.mueffb,
           dem->est.vdriv[0], dem->est.vdriv[1],
-          dem->script.state.crunch.fdrive[0], dem->script.state.crunch.fdrive[1],
-          (double) dem->est.hwmu / (double) dem->est.hwgamma,
-          (double) dem->est.csmu / (double) dem->est.csk) < 0) {
+          dem->script.state.crunch.fdrive[0], dem->script.state.crunch.fdrive[1]) < 0) {
       BMM_TLE_STDS();
 
       return false;
@@ -4106,8 +4108,8 @@ bool bmm_dem_report(struct bmm_dem const *const dem) {
     }
 
     if (fprintf(stderr, "HW Dynamic Fraction: %g\nCS Dynamic Fraction: %g\n",
-          (double) dem->est.hwmu / (double) dem->est.hwgamma,
-          (double) dem->est.csmu / (double) dem->est.csk) < 0) {
+          (double) dem->est.hwmu / (double) (dem->est.hwgamma + dem->est.hwmu),
+          (double) dem->est.csmu / (double) (dem->est.csk + dem->est.csmu)) < 0) {
       BMM_TLE_STDS();
 
       return false;

@@ -59,13 +59,13 @@ static bool f(char const *const key, char const *const value,
     double const eta3 = 1.0e-1; // Some other disgusting substance.
     double const a = 8.0e-9; // From theory and assumptions.
     double const mu = 0.8; // From experiments.
-    double const kt = 5.0e+4; // From rolling and piling calibration tests.
-    double const gammat = 2.0e+0; // From rolling and piling calibration tests.
+    double const kt = 1.0e+8; // From rolling and piling calibration tests.
+    double const gammat = 1.0e+3; // From rolling and piling calibration tests.
     double const kn = 1.0e+7; // From theory and stress--strain tests.
     double const gamman = 1.0e+1; // From beam tests.
     double const barkn = 1.0e+7; // Equal to `kn`.
     double const bargamman = 1.0e+1; // Equal to `gamman`.
-    double const barkt = 1.0e+6; // Small wrt `barkn`.
+    double const barkt = 1.0e+7; // Small wrt `barkn`.
     double const bargammat = 1.0e+1; // Equal to `bargamman`.
     // What ought to hold.
     double const bshpp = (2.0 / 3.0) * (opts->part.ycomp /
@@ -214,24 +214,6 @@ static bool f(char const *const key, char const *const value,
       opts->script.mode[istage] = BMM_DEM_MODE_EXPORT;
       opts->script.params[istage].expr.entropic = false;
       opts->script.params[istage].expr.str = "fragment";
-
-      /*
-      istage = bmm_dem_script_addstage(opts);
-      opts->script.mode[istage] = BMM_DEM_MODE_CRUNCH;
-      opts->script.tspan[istage] = 50.0e-3;
-      opts->script.dt[istage] = dtstuff;
-      opts->script.params[istage].crunch.measure = true;
-      opts->script.params[istage].crunch.v = vdriv;
-      opts->script.params[istage].crunch.fadjust[0] = fadjust;
-      opts->script.params[istage].crunch.fadjust[1] = padjust;
-      opts->script.params[istage].crunch.p = pdriv;
-
-      // Strain 200 %.
-      istage = bmm_dem_script_addstage(opts);
-      opts->script.mode[istage] = BMM_DEM_MODE_EXPORT;
-      opts->script.params[istage].expr.entropic = false;
-      opts->script.params[istage].expr.str = "end";
-      */
     } else if (strcmp(value, "shear") == 0) {
       opts->box.x[1] = 0.025;
       opts->box.x[0] = opts->box.x[1];
