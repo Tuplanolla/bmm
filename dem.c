@@ -4019,7 +4019,8 @@ static bool garbage(struct bmm_dem const *const dem) {
           pos, dis, neg,
           dem->est.mueff, dem->est.mueffb,
           dem->est.vdriv[0], dem->est.vdriv[1],
-          dem->script.state.crunch.fdrive[0], dem->script.state.crunch.fdrive[1]) < 0) {
+          dem->script.state.crunch.fdrive[0], dem->script.state.crunch.fdrive[1]) < 0 ||
+        fflush(stream) == EOF) {
       BMM_TLE_STDS();
 
       return false;
@@ -4073,8 +4074,6 @@ bool bmm_dem_comm(struct bmm_dem *const dem) {
 
       abort();
     }
-
-    // (void) extra_crap(dem);
   }
 
   return true;
@@ -4107,12 +4106,27 @@ bool bmm_dem_report(struct bmm_dem const *const dem) {
       return false;
     }
 
-    if (fprintf(stderr, "HW Dynamic Fraction: %g\nCS Dynamic Fraction: %g\n",
-          (double) dem->est.hwmu / (double) (dem->est.hwgamma + dem->est.hwmu),
-          (double) dem->est.csmu / (double) (dem->est.csk + dem->est.csmu)) < 0) {
-      BMM_TLE_STDS();
+    switch (dem->pair[BMM_DEM_CT_WEAK].tang.tag) {
+      case BMM_DEM_TANG_HW:
+        if (fprintf(stderr, "HW Dynamic Fraction: %g\n",
+              (double) dem->est.hwmu /
+              (double) (dem->est.hwgamma + dem->est.hwmu)) < 0) {
+          BMM_TLE_STDS();
 
-      return false;
+          return false;
+        }
+
+        break;
+      case BMM_DEM_TANG_CS:
+        if (fprintf(stderr, "CS Dynamic Fraction: %g\n",
+              (double) dem->est.csmu /
+              (double) (dem->est.csk + dem->est.csmu)) < 0) {
+          BMM_TLE_STDS();
+
+          return false;
+        }
+
+        break;
     }
   }
 

@@ -60,7 +60,7 @@ static bool f(char const *const key, char const *const value,
     double const a = 8.0e-9; // From theory and assumptions.
     double const mu = 0.8; // From experiments.
     double const kt = 1.0e+8; // From rolling and piling calibration tests.
-    double const gammat = 1.0e+3; // From rolling and piling calibration tests.
+    double const gammat = 1.0e+2; // From rolling and piling calibration tests.
     double const kn = 1.0e+7; // From theory and stress--strain tests.
     double const gamman = 1.0e+1; // From beam tests.
     double const barkn = 1.0e+7; // Equal to `kn`.
