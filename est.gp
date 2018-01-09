@@ -1,6 +1,5 @@
 set xlabel 't'
 set ylabel ''
-max(x, y) = x > y ? x : y
 plot 'est.data' using 1 : ($2 + $3 - $4) with linespoints title 'E', \
   '' using 1 : 2 with linespoints title 'E+', \
   '' using 1 : 3 with linespoints title 'E*', \

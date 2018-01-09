@@ -58,7 +58,7 @@ static bool f(char const *const key, char const *const value,
     double const eta2 = 1.0e+0; // Oil.
     double const eta3 = 1.0e-1; // Some other disgusting substance.
     double const a = 8.0e-9; // From theory and assumptions.
-    double const mu = 0.8; // From experiments.
+    double const mu = 0.7; // From experiments.
     double const kt = 1.0e+8; // From rolling and piling calibration tests.
     double const gammat = 1.0e+2; // From rolling and piling calibration tests.
     double const kn = 1.0e+7; // From theory and stress--strain tests.

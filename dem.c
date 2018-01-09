@@ -2883,7 +2883,7 @@ void bmm_dem_opts_def(struct bmm_dem_opts *const opts) {
   // This is here just to help Valgrind and cover up my mistakes.
   (void) memset(opts, 0, sizeof *opts);
 
-  opts->verbose = true;
+  opts->verbose = false;
 
   opts->gross.fric = BMM_DEM_TANG_CS;
   opts->gross.pfac = 0.5;
