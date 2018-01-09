@@ -1,3 +1,7 @@
+pkg load data-smoothing
+pkg load optim
+pkg load tmvs
+
 if (!exist ('runs', 'var'))
   models = {'none', 'hw', 'cs'};
   ps = {'0.01', ...
@@ -17,16 +21,22 @@ if (!exist ('runs', 'var'))
         sprintf ('%s-%s/est.data', model, p));
 
       runs(length (runs) + 1) = struct ('model', model, 'p', str2num (p), ...
-        't', t - t(1), 'e', e, 'q', q, 'w', w, 'mu', ...
-        [mudir, mufb], 'v', [vx, vy], 'f', [fx, fy]);
+        't', t - t(1), 'e', e, 'q', q, 'w', w, ...
+        'mu', [mudir, mufb], 'v', [vx, vy], 'f', [fx, fy]);
     end
   end
 end
 
 someruns = filters (@(run) strcmp (run.model, 'hw'), runs);
 
+plim = [];
+mulim = [];
+
 figure (1);
 clf ();
+xlabel ('t');
+ylabel ('\mu');
+axis ([0.0e-3, 50.0e-3, 0.0, 2.0]);
 hold ('on');
 
 for irun = 1 : length (someruns)
@@ -37,11 +47,14 @@ for irun = 1 : length (someruns)
     y = run.mu(:, 2);
     y0 = max (y);
     i0 = find (y == y0)(1);
-    x0 = x (i0);
+    x0 = x(i0);
     xcut = x(i0 : end);
     ycut = y(i0 : end);
     f = @(x, q) q(1) + (y0 - q(1)) * exp (-q(2) * (x - x0));
     [~, q] = leasqr (xcut, ycut, [0.25, 1.5e+3], f);
+
+    plim(irun) = run.p;
+    mulim(irun) = q(1);
 
     c = [run.p, 0.0, 1.0 - run.p];
     plot (xcut, f (xcut, q), 'color', c);
@@ -51,6 +64,14 @@ for irun = 1 : length (someruns)
 end
 
 hold ('off');
-xlabel ('t');
+
+figure (2);
+clf ();
+xlabel ('p');
 ylabel ('\mu');
-axis ([0.0e-3, 50.0e-3, 0.0, 2.0]);
+axis ([0.0, 1.0, 0.0, 2.0]);
+hold ('on');
+
+plot (plim, mulim);
+
+hold ('off');
