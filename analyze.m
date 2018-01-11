@@ -1,12 +1,12 @@
 pkg load optim % leasqr
-pkg load tmvs % filters
+pkg load tmvs % filters, mapl
 
 models = {'none', 'hw', 'cs'};
 ps = {'0.0125', '0.025', '0.0375', '0.05', '0.0625', ...
   '0.075', '0.0875', '0.1', '0.1125', '0.125', ...
   '0.15', '0.175', '0.2', '0.225', '0.25', ...
-  '0.3', '0.35', '0.4', '0.45', '0.5'};
-fps = {'0.0625', '0.125', '0.25', '0.5'};
+  '0.3', '0.35', '0.4', '0.45', '0.5', ...
+  '0.6', '0.7', '0.8', '0.9', '1.0'};
 
 if (!exist ('runs', 'var'))
   runs = struct ('model', {}, 'p', {}, ...
@@ -20,7 +20,7 @@ if (!exist ('runs', 'var'))
       p = ps{ip};
 
       [t, e, q, w, mudir, mufb, vx, vy, fx, fy] = textread ( ...
-        sprintf ('%s-%s/est.data', model, p));
+        sprintf ('run/%s-%s/est.data', model, p));
 
       runs(length (runs) + 1) = struct ('model', model, 'p', str2num (p), ...
         't', t - t(1), 'e', e, 'q', q, 'w', w, ...
@@ -29,7 +29,8 @@ if (!exist ('runs', 'var'))
   end
 end
 
-fexp = @(x0, y0) @(x, q) q(1) + (y0 - q(1)) * exp (-q(2) * (x - x0));
+fexp = @(x0, y0) @(x, q) ifelse (x < x0, (y0 / x0) * x, ...
+  q(1) + (y0 - q(1)) * exp (-q(2) * (x - x0)));
 
 if (!exist ('fits', 'var'))
   fits = struct ('run', {}, 't', {}, 'mu', {}, 'q', {}, 'dq', {});
@@ -87,6 +88,8 @@ if (!exist ('exts', 'var'))
   end
 end
 
+fps = {'0.15', '0.6'};
+
 for imodel = 1 : length (models)
   model = models{imodel};
 
@@ -95,29 +98,35 @@ for imodel = 1 : length (models)
   figure (imodel);
   clf ();
   hold ('on');
+  h = [];
 
   for ifit = 1 : length (ffits)
     fit = ffits(ifit);
 
-    c = [(interp1 ([0.0, 0.5], [0.0, 1.0], fit.run.p)), ...
-      0.0, ...
-      (interp1 ([0.0, 0.5], [1.0, 0.0], fit.run.p))];
+    if (find (fit.run.p == cell2mat (mapl (@str2num, fps))))
+      c = [(interp1 ([0.0, 0.5, 1.0], [0.0, 0.5, 1.0], fit.run.p)), ...
+        (interp1 ([0.0, 0.5, 1.0], [0.0, 0.0, 0.0], fit.run.p)), ...
+        (interp1 ([0.0, 0.5, 1.0], [1.0, 0.5, 0.0], fit.run.p))];
 
-    plot (fit.run.t, fit.run.mu, ...
-      'color', c,  'linewidth', 1);
+      plot (fit.run.t, fit.run.mu, ...
+        'color', c,  'linewidth', 1);
 
-    plot (fit.t, fexp (fit.t(1), fit.mu(1)) (fit.t, fit.q), ...
-      'color', c, 'linewidth', 2);
+      h(length (h) + 1) = plot (fit.run.t, ...
+        fexp (fit.t(1), fit.mu(1)) (fit.run.t, fit.q), ...
+        'color', c, 'linewidth', 2);
 
-    for isgn = 1 : 2
-      sgn = [-1.0, 1.0](isgn);
+      for isgn = 1 : 2
+        sgn = [-1.0, 1.0](isgn);
 
-      % plot (fit.t, fexp (fit.t(1), fit.mu(1)) (fit.t, fit.q) + sgn * fit.dq, ...
-      %   'color', c, 'linewidth', 1);
+        plot (fit.t, ...
+          fexp (fit.t(1), fit.mu(1)) (fit.t, fit.q) + sgn * fit.dq, ...
+          'color', c, 'linewidth', 1);
+      end
     end
   end
 
   title (model);
+  legend (h, mapl (@(p) ['p = ', p], fps), 'location', 'northeast');
   xlabel ('t');
   ylabel ('\mu');
   axis ([0.0e-3, 50.0e-3, 0.0, 2.0]);
@@ -150,8 +159,10 @@ end
 legend (h, models, 'location', 'northeast');
 xlabel ('p / p^{crit}');
 ylabel ('\mu');
-axis ([0.0, 0.5, 0.0, 1.0]);
+axis ([0.0, 0.6, 0.0, 1.0]);
 hold ('off');
+
+fps = {'0.0625', '0.125', '0.25', '0.5'};
 
 for ip = 1 : length (fps)
   p = fps{ip};
@@ -174,8 +185,17 @@ for ip = 1 : length (fps)
     plot (ext.run.t, ext.run.w, ...
       'color', c, 'linewidth', 1);
 
-    h(length (h) + 1) = plot (ext.t, flin (ext.t(1), ext.w(1)) (ext.t, ext.q), ...
+    h(length (h) + 1) = plot (ext.t, ...
+      flin (ext.t(1), ext.w(1)) (ext.t, ext.q), ...
       'color', c, 'linewidth', 2);
+
+    for isgn = 1 : 2
+      sgn = [-1.0, 1.0](isgn);
+
+      plot (ext.t, ...
+        flin (ext.t(1), ext.w(1)) (ext.t, ext.q) + sgn * ext.dq, ...
+        'color', c, 'linewidth', 1);
+    end
   end
 
   title (['p = ', p]);
