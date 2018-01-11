@@ -50,10 +50,10 @@ static bool f(char const *const key, char const *const value,
     double const beta = 0.6; // From theory and experiments.
     double const sigmacrit = 280.0e+6; // From experiments.
     double const taucrit = beta * sigmacrit; // From theory.
-    double const sigmacritt = sigmacrit;
+    double const sigmacritt = sigmacrit; // From assumptions.
     double const taucritt = beta * sigmacritt; // From theory.
     enum bmm_dem_tang const fric = opts->gross.fric;
-    double ravg = 1.0e-3;
+    double ravg = 1.0e-3; // From experiments.
     double const eta = 1.0e+1; // Tar.
     double const eta2 = 1.0e+0; // Oil.
     double const eta3 = 1.0e-1; // Some other disgusting substance.
@@ -65,16 +65,8 @@ static bool f(char const *const key, char const *const value,
     double const gamman = 1.0e+1; // From beam tests.
     double const barkn = 1.0e+7; // Equal to `kn`.
     double const bargamman = 1.0e+1; // Equal to `gamman`.
-    double const barkt = 1.0e+7; // Small wrt `barkn`.
+    double const barkt = 1.0e+7; // Equal to `barkn`.
     double const bargammat = 1.0e+1; // Equal to `bargamman`.
-    // What ought to hold.
-    double const bshpp = (2.0 / 3.0) * (opts->part.ycomp /
-        (1.0 - $(bmm_power, double)(opts->part.nu, 2)));
-    double const more = bshpp * sqrt(ravg);
-    double const knp = pow(M_PI * ravg * ravg *
-        sigmacrit * more * more, 1.0 / 3.0);
-    double const ap = gamman / more;
-    // fprintf(stderr, "k^n > %g, A < %g\n", knp, ap);
 
     double const h = opts->gross.hfac;
     double const pdriv = sigmacrit * opts->gross.pfac;

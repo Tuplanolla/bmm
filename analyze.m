@@ -1,12 +1,14 @@
-pkg load data-smoothing
 pkg load optim
 pkg load tmvs
 
-if (!exist ('runs', 'var'))
-  models = {'none', 'hw', 'cs'};
-  ps = {'0.01', ...
-    '0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9', '1.0'};
+models = {'none', 'hw', 'cs'};
+ps = {'0.0125', '0.025', '0.0375', '0.05', '0.0625', ...
+  '0.075', '0.0875', '0.1', '0.1125', '0.125', ...
+  '0.15', '0.175', '0.2', '0.225', '0.25', ...
+  '0.3', '0.35', '0.4', '0.45', '0.5', ...
+  '0.6', '0.7', '0.8', '0.9', '1.0'};
 
+if (!exist ('runs', 'var'))
   runs = struct ('model', {}, 'p', {}, ...
     't', {}, 'e', {}, 'q', {}, 'w', {}, ...
     'mu', {}, 'v', {}, 'f', {});
@@ -27,51 +29,94 @@ if (!exist ('runs', 'var'))
   end
 end
 
-someruns = filters (@(run) strcmp (run.model, 'hw'), runs);
+f = @(x0, y0) @(x, q) q(1) + (y0 - q(1)) * exp (-q(2) * (x - x0));
 
-plim = [];
-mulim = [];
+if (!exist ('fits', 'var'))
+  fits = struct ('run', {}, 't', {}, 'mu', {}, 'q', {}, 'dq', {});
 
-figure (1);
-clf ();
-xlabel ('t');
-ylabel ('\mu');
-axis ([0.0e-3, 50.0e-3, 0.0, 2.0]);
-hold ('on');
+  for imodel = 1 : length (models)
+    model = models{imodel};
 
-for irun = 1 : length (someruns)
-  run = someruns(irun);
+    fruns = filters (@(run) strcmp (run.model, model), runs);
 
-  if (run.p >= 0.01)
-    x = run.t;
-    y = run.mu(:, 2);
-    y0 = max (y);
-    i0 = find (y == y0)(1);
-    x0 = x(i0);
-    xcut = x(i0 : end);
-    ycut = y(i0 : end);
-    f = @(x, q) q(1) + (y0 - q(1)) * exp (-q(2) * (x - x0));
-    [~, q] = leasqr (xcut, ycut, [0.25, 1.5e+3], f);
+    figure (imodel);
+    clf ();
+    xlabel ('t');
+    ylabel ('\mu');
+    axis ([0.0e-3, 50.0e-3, 0.0, 2.0]);
+    hold ('on');
 
-    plim(irun) = run.p;
-    mulim(irun) = q(1);
+    for irun = 1 : length (fruns)
+      run = fruns(irun);
 
-    c = [run.p, 0.0, 1.0 - run.p];
-    plot (xcut, f (xcut, q), 'color', c);
-    % plot (x, y, 'color', c);
-    plot (x, regdatasmooth (x, y, 'lambda', 1.0e-6), 'color', c);
+      x = run.t;
+      y = run.mu(:, 1);
+      y0 = max (y);
+      i0 = find (y == y0)(1);
+      x0 = x(i0);
+      xcut = x(i0 : end);
+      ycut = y(i0 : end);
+      [~, q] = leasqr (xcut, ycut, [0.25, 1.5e+3], f (x0, y0));
+
+      fits(length (fits) + 1) = struct ('run', run, ...
+        't', xcut, 'mu', ycut, 'q', q, 'dq', sqrt ( ...
+        sum ((ycut - f (x0, y0) (xcut, q)) .^ 2) / (length (ycut) - 1)));
+    end
   end
 end
 
-hold ('off');
+for imodel = 1 : length (models)
+  model = models{imodel};
 
-figure (2);
+  ffits = filters (@(fit) strcmp (fit.run.model, model), fits);
+
+  figure (imodel);
+  clf ();
+  title (model);
+  xlabel ('t');
+  ylabel ('\mu');
+  axis ([0.0e-3, 50.0e-3, 0.0, 2.0]);
+  hold ('on');
+
+  for ifit = 1 : length (ffits)
+    fit = ffits(ifit);
+
+    c = [fit.run.p, 0.0, 1.0 - fit.run.p];
+
+    plot (fit.t, f (fit.t(1), fit.mu(1)) (fit.t, fit.q), ...
+      'color', c, 'linewidth', 2);
+
+    plot (fit.run.t, fit.run.mu, ...
+      'color', c, 'linewidth', 1);
+  end
+
+  hold ('off');
+end
+
+figure (length (models) + 1);
 clf ();
-xlabel ('p');
+% legend (models);
+xlabel ('p / p^{crit}');
 ylabel ('\mu');
-axis ([0.0, 1.0, 0.0, 2.0]);
+axis ([0.0, 1.0, 0.0, 1.0]);
 hold ('on');
 
-plot (plim, mulim);
+for imodel = 1 : length (models)
+  model = models{imodel};
+
+  ffits = filters (@(fit) strcmp (fit.run.model, model), fits);
+
+  c = 0.5 * [imodel == 1, imodel == 2, imodel == 3];
+
+  plot ([[ffits.run].p], [ffits.q](1, :), ...
+      'color', c, 'linewidth', 2);
+
+  for isgn = 1 : 2
+    sgn = [-1.0, 1.0](isgn);
+
+    plot ([[ffits.run].p], [ffits.q](1, :) + sgn * [ffits.dq], ...
+      'color', c, 'linewidth', 1);
+  end
+end
 
 hold ('off');
