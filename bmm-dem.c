@@ -57,7 +57,7 @@ static bool f(char const *const key, char const *const value,
     double const eta = 1.0e+1; // Tar.
     double const eta2 = 1.0e+0; // Oil.
     double const eta3 = 1.0e-1; // Some other disgusting substance.
-    double const a = 8.0e-9; // From theory and assumptions.
+    double const a = 6.0e-3; // From theory and assumptions.
     double const mu = 0.7; // From experiments.
     double const kt = 1.0e+8; // From rolling and piling calibration tests.
     double const gammat = 1.0e+2; // From rolling and piling calibration tests.
@@ -105,13 +105,13 @@ static bool f(char const *const key, char const *const value,
       opts->script.mode[istage] = BMM_DEM_MODE_SEDIMENT;
       opts->script.tspan[istage] = 1.0e-3;
       opts->script.dt[istage] = dtstuff;
-      opts->script.params[istage].sediment.kcohes = 2.0e+3;
+      opts->script.params[istage].sediment.kcohes = 1.0e+3;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_SEDIMENT;
       opts->script.tspan[istage] = 1.0e-3;
       opts->script.dt[istage] = dtstuff;
-      opts->script.params[istage].sediment.kcohes = 0.2e+3;
+      opts->script.params[istage].sediment.kcohes = 1.0e+2;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CLIP;
@@ -232,13 +232,13 @@ static bool f(char const *const key, char const *const value,
       opts->script.mode[istage] = BMM_DEM_MODE_SEDIMENT;
       opts->script.tspan[istage] = 1.0e-3;
       opts->script.dt[istage] = dtstuff;
-      opts->script.params[istage].sediment.kcohes = 4.0e+3;
+      opts->script.params[istage].sediment.kcohes = 2.0e+3;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_SEDIMENT;
       opts->script.tspan[istage] = 1.0e-3;
       opts->script.dt[istage] = dtstuff;
-      opts->script.params[istage].sediment.kcohes = 0.4e+3;
+      opts->script.params[istage].sediment.kcohes = 0.2e+3;
 
       istage = bmm_dem_script_addstage(opts);
       opts->script.mode[istage] = BMM_DEM_MODE_CLIP;

@@ -631,17 +631,17 @@ static void bmm_sdl_draw(struct bmm_sdl const *const sdl) {
   double const epotext = dem->est.epotext_d;
   double const eklin = dem->est.eklin_d;
   double const ekrot = dem->est.ekrot_d;
-  double const ewcont = dem->est.ewcont;
-  double const escont = dem->est.escont;
+  double const ewcont = dem->est.ewcont_d;
+  double const escont = dem->est.escont_d;
   double const edrivnorm = dem->est.edrivnorm;
   double const edrivtang = dem->est.edrivtang;
   double const ebond = dem->est.ebond;
   double const eyieldis = dem->est.eyieldis;
   double const ewcontdis = dem->est.ewcontdis;
   double const escontdis = dem->est.escontdis;
-  double const pos = eambdis + epotext + eklin + ekrot + ewcont + escont;
-  double const dis = eyieldis + ewcontdis + escontdis;
-  double const neg = edrivnorm + edrivtang + ebond;
+  double const pos = eklin + ekrot + ewcont + escont + epotext;
+  double const dis = eambdis + ewcontdis + escontdis + eyieldis;
+  double const neg = ebond + edrivnorm + edrivtang;
   double const eee = pos + dis - neg;
 
   // TODO These should come via messages.

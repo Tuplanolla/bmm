@@ -3999,24 +3999,26 @@ static bool garbage(struct bmm_dem const *const dem) {
   double const epotext = dem->est.epotext_d;
   double const eklin = dem->est.eklin_d;
   double const ekrot = dem->est.ekrot_d;
-  double const ewcont = dem->est.ewcont;
-  double const escont = dem->est.escont;
+  double const ewcont = dem->est.ewcont_d;
+  double const escont = dem->est.escont_d;
   double const edrivnorm = dem->est.edrivnorm;
   double const edrivtang = dem->est.edrivtang;
   double const ebond = dem->est.ebond;
   double const eyieldis = dem->est.eyieldis;
   double const ewcontdis = dem->est.ewcontdis;
   double const escontdis = dem->est.escontdis;
-  double const pos = eambdis + epotext + eklin + ekrot + ewcont + escont;
-  double const dis = eyieldis + ewcontdis + escontdis;
-  double const neg = edrivnorm + edrivtang + ebond;
+  double const pos = eklin + ekrot + ewcont + escont + epotext;
+  double const dis = eambdis + ewcontdis + escontdis + eyieldis;
+  double const neg = ebond + edrivnorm + edrivtang;
   double const eee = pos + dis - neg;
 
   if (dem->opts.script.mode[dem->script.i] == BMM_DEM_MODE_CRUNCH &&
       dem->opts.script.params[dem->script.i].crunch.measure)
-    if (fprintf(stream, "%g %g %g %g %g %g %g %g %g %g\n",
+    if (fprintf(stream, "%g %g %g %g %g %g %g %g %g %g %g %g %g %g %g\n",
           dem->time.t,
-          pos, dis, neg,
+          eklin + ekrot, ewcont + escont, epotext,
+          eambdis, ewcontdis + escontdis, eyieldis,
+          ebond, edrivnorm + edrivtang,
           dem->est.mueff, dem->est.mueffb,
           dem->est.vdriv[0], dem->est.vdriv[1],
           dem->script.state.crunch.fdrive[0], dem->script.state.crunch.fdrive[1]) < 0 ||
