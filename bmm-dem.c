@@ -601,7 +601,7 @@ static bool f(char const *const key, char const *const value,
       opts->gross.fric = BMM_DEM_TANG_CS;
     else if (strcmp(value, "hw") == 0)
       opts->gross.fric = BMM_DEM_TANG_HW;
-    else if (strcmp(value, "none") == 0)
+    else if (strcmp(value, "zero") == 0)
       opts->gross.fric = BMM_DEM_TANG_NONE;
     else
       return false;

@@ -1123,6 +1123,7 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
           taui = ri * ftang;
           tauj = rj * ftang;
         }
+
         break;
       case BMM_DEM_TANG_CS:
         {
@@ -1131,6 +1132,7 @@ void bmm_dem_force_unified(struct bmm_dem *const dem,
 
           ftang = dyn <= stat ? copysign(dyn, dzeta) : copysign(stat, zeta);
 
+          // This is dubious.
           if (dyn <= stat) {
             ftangcons = 0.0;
             ftangdiss = copysign(dyn, dzeta);
